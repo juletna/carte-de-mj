@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Carte de MJ</title>
+  <meta name="description" content="Décrivez une pièce, la carte s'affiche sur une grille pour vos figurines.">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <aside id="panneau">
+    <header>
+      <h1>Carte de MJ</h1>
+      <p class="sous-titre">Décrivez la pièce, la carte suit.</p>
+    </header>
+
+    <section class="saisie">
+      <label for="description">Description</label>
+      <p class="note astuce">Déplacez pions, objets et portes sur la carte : la description et le JSON suivent.</p>
+      <textarea id="description" rows="5" spellcheck="false"
+        placeholder="Ex. : grande pièce de 4 m par 12, quatre piliers, deux coffres au fond de la salle, une statue devant une porte"></textarea>
+      <div class="actions">
+        <button id="micro" type="button" title="Dicter la description">🎙️ Dicter</button>
+        <button id="effacer" type="button" class="discret">Effacer</button>
+      </div>
+      <p id="message-micro" class="note" hidden></p>
+      <details class="exemples">
+        <summary>Exemples</summary>
+        <ul id="exemples"></ul>
+      </details>
+    </section>
+
+    <section class="retour">
+      <h2>Compris</h2>
+      <ul id="compris"></ul>
+      <p id="ignores" class="note" hidden></p>
+      <div class="actions">
+        <button id="annuler" type="button" class="discret" hidden
+          title="Revient à la description d'avant le dernier déplacement">↩ Annuler le déplacement</button>
+        <button id="copier-rapport" type="button" class="discret"
+          title="Copie la description, ce qui a été compris, les mots ignorés et la carte en texte">📋 Copier pour signaler</button>
+      </div>
+      <p id="message-copie" class="note" hidden></p>
+    </section>
+
+    <section class="reglages">
+      <h2>Réglages</h2>
+      <label class="ligne">Échelle
+        <span><input id="echelle" type="number" min="0.5" max="5" step="0.5" value="1.5"> m par case</span>
+      </label>
+      <label class="ligne">Taille d'une case
+        <span><input id="taille" type="range" min="16" max="160" step="1" value="48"> <output id="taille-val">48 px</output></span>
+      </label>
+      <label class="ligne case"><input id="grille" type="checkbox" checked> Afficher la grille</label>
+      <label class="ligne case"><input id="calibrage" type="checkbox"> Calibrer avec une carte bancaire</label>
+      <p id="aide-calibrage" class="note" hidden>
+        Posez une carte bancaire sur l'écran et ajustez « Taille d'une case » jusqu'à ce que le rectangle
+        pointillé ait exactement sa taille. Une case fera alors 2,5 cm.
+      </p>
+      <div class="actions">
+        <button id="plein-ecran" type="button">⛶ Plein écran (table)</button>
+      </div>
+    </section>
+
+    <section class="fichiers">
+      <h2>Fichiers</h2>
+      <div class="actions">
+        <button id="exporter" type="button">Exporter</button>
+        <label class="bouton">Importer <input id="importer" type="file" accept=".json,application/json" hidden></label>
+      </div>
+      <details>
+        <summary>Plan JSON (modifiable)</summary>
+        <textarea id="json" rows="12" spellcheck="false"></textarea>
+        <div class="actions"><button id="appliquer-json" type="button">Appliquer le JSON</button></div>
+        <p id="erreurs-json" class="note erreur" hidden></p>
+      </details>
+    </section>
+
+    <footer class="note">Projet libre (MIT) · fonctionne hors ligne au clavier</footer>
+  </aside>
+
+  <main id="scene">
+    <div id="support">
+      <canvas id="carte" aria-label="Carte de la pièce"></canvas>
+      <div id="carte-ref" hidden></div>
+    </div>
+    <button id="quitter-plein-ecran" type="button" hidden>Quitter le plein écran</button>
+  </main>
+
+  <script type="module" src="js/main-mj.js"></script>
+</body>
+</html>

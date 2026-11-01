@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tests du parseur</title>
+  <style>
+    :root { color-scheme: dark; }
+    body { margin: 0; padding: 24px 16px; background: #16151a; color: #e8e4dc; font: 15px/1.45 system-ui, sans-serif; }
+    main { max-width: 900px; margin: 0 auto; }
+    h1 { font-size: 22px; margin: 0 0 4px; }
+    #bilan { margin: 0 0 20px; font-weight: 600; }
+    .test { border: 1px solid #34323b; border-radius: 6px; padding: 10px 12px; margin: 8px 0; background: #1f1e24; }
+    .test.ko { border-color: #e06c5a; }
+    .titre::before { content: '✔ '; color: #7cc47c; }
+    .ko .titre::before { content: '✘ '; color: #e06c5a; }
+    ul { margin: 6px 0 0; color: #e06c5a; }
+    details { margin-top: 6px; color: #a29d94; font-size: 13px; }
+    pre { white-space: pre-wrap; font: 12px/1.4 ui-monospace, Menlo, monospace; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Tests du parseur</h1>
+    <p id="bilan">Exécution…</p>
+    <div id="resultats"></div>
+  </main>
+  <script type="module">
+    import { executer, executerAllerRetour } from './tests/parseur.test.js';
+
+    const resultats = [...executer(), ...executerAllerRetour()];
+    const echecs = resultats.filter((r) => r.ecarts.length).length;
+    document.getElementById('bilan').textContent =
+      `${resultats.length - echecs} / ${resultats.length} réussis` + (echecs ? ` — ${echecs} échec(s)` : '');
+
+    for (const r of resultats) {
+      const bloc = document.createElement('div');
+      bloc.className = 'test' + (r.ecarts.length ? ' ko' : '');
+      const titre = Object.assign(document.createElement('div'), { className: 'titre', textContent: r.phrase });
+      bloc.append(titre);
+      if (r.ecarts.length) {
+        const ul = document.createElement('ul');
+        r.ecarts.forEach((e) => ul.append(Object.assign(document.createElement('li'), { textContent: e })));
+        bloc.append(ul);
+      }
+      if (r.resultat) {
+        const d = document.createElement('details');
+        d.innerHTML = '<summary>Plan obtenu</summary>';
+        d.append(Object.assign(document.createElement('pre'), { textContent: JSON.stringify(r.resultat.plan, null, 2) }));
+        bloc.append(d);
+      }
+      document.getElementById('resultats').append(bloc);
+    }
+  </script>
+</body>
+</html>
