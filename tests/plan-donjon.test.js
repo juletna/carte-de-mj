@@ -4,7 +4,7 @@
  * Sans dépendance : marche sous Node et dans tests.html (même forme que les autres tests : { phrase, ecarts }).
  */
 import * as m from '../js/donjon.js';
-import { disposerPlan, cheminCouloir, salleSous, ECART_LIAISON, ECART_MIN, ECART_PASSAGE, ETIQUETTE_ISOLEES } from '../js/plan-donjon.js';
+import { disposerPlan, cheminCouloir, salleSous, ECART_LIAISON, ECART_MIN, ECART_PASSAGE, MARGE_PLAN, ETIQUETTE_ISOLEES } from '../js/plan-donjon.js';
 import { salleVoisine, disposerSalles } from '../js/minicarte.js';
 
 function verifier(condition, message) { if (!condition) throw new Error(message); }
@@ -297,6 +297,35 @@ const TESTS = [
     egal(cheminCouloir(vers7).length, 2, 'le couloir 5 → 7 est une ligne droite');
     couloirsPropres(disp, 'trois portes à l’est');
     egal(casesPartagees(disp), 0, 'aucun croisement');
+  }],
+  ['couloirs : celui qui fait le tour garde une marge, le plan s’agrandit pour lui', () => {
+    const d = donjonVide();
+    const s1 = d.salleActive;
+    const t1 = texteSalle(6, 6, [['nord', 2], ['est', 2]]);
+    m.definirTexte(d, s1, t1, m.planDepuisTexte(t1, s1));
+    const s2 = salle(d, 'Salle 2', 6, 6, [['ouest', 2], ['nord', 2]]);
+    m.relier(d, porte(s1, 'est', 2), porte(s2, 'ouest', 2));
+    m.relier(d, porte(s1, 'nord', 2), porte(s2, 'nord', 2));
+    const disp = disposerPlan(d);
+    const parDessus = disp.couloirs.find((c) => c.de.mur === 'nord');
+    const ys = cheminCouloir(parDessus).map((pt) => pt.y);
+    verifier(Math.min(...ys) < disp.positions[s1].y, 'le couloir passe au-dessus des salles');
+    verifier(Math.min(...ys) - 0.5 >= MARGE_PLAN, 'il garde la marge du plan');
+    egal(disp.largeur, 6 + ECART_LIAISON + 1 + 6 + 2 * MARGE_PLAN, 'il ne sort pas sur les côtés (1 case de plus : une boucle pour deux salles)');
+  }],
+  ['espace : les salles s’écartent quand le donjon a beaucoup de boucles', () => {
+    const d = donjonVide();
+    const s1 = d.salleActive;
+    const t1 = texteSalle(6, 6, [['est', 0], ['est', 2], ['est', 4]]);
+    m.definirTexte(d, s1, t1, m.planDepuisTexte(t1, s1));
+    const s2 = salle(d, 'Salle 2', 6, 6, [['ouest', 0], ['ouest', 2], ['ouest', 4]]);
+    const ecart = () => { const p = disposerPlan(d).positions; return p[s2].x - (p[s1].x + p[s1].largeur); };
+    m.relier(d, porte(s1, 'est', 0), porte(s2, 'ouest', 0));
+    egal(ecart(), ECART_LIAISON, 'sans boucle');
+    m.relier(d, porte(s1, 'est', 2), porte(s2, 'ouest', 2));
+    egal(ecart(), ECART_LIAISON + 1, 'une boucle pour deux salles');
+    m.relier(d, porte(s1, 'est', 4), porte(s2, 'ouest', 4));
+    egal(ecart(), ECART_LIAISON + 2, 'deux boucles pour deux salles');
   }],
   ['couloirs : ils se croisent seulement s’ils ne peuvent pas faire autrement', () => {
     const { d } = casBarre({ porte6: 2, avec7: true }); // la ligne droite vers la 7 est barrée par la 6

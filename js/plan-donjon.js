@@ -16,6 +16,8 @@
  *    Mais si son couloir peut filer tout droit le long de la salle qui gêne, la nouvelle salle se pose après celle-ci :
  *    aucun couloir n'a alors à faire le tour, ni à croiser celui d'à côté ;
  *  - une porte qui mène à une salle déjà placée ne déplace rien : la liaison est simplement tracée ;
+ *  - plus le donjon a de boucles (des liaisons en plus de celles qui suffisent à tout relier), plus ses couloirs se
+ *    disputent la place : les salles s'écartent alors de 1 ou 2 cases de plus (voir `espaceDuDonjon`) ;
  *  - les salles sans aucune liaison vont en rangée sous le reste, sous l'étiquette « Salles non reliées » ;
  *    un groupe de salles reliées entre elles, mais pas à la première, forme un bloc posé sous le premier.
  */
@@ -29,6 +31,9 @@ export const ECART_PASSAGE = 3;   // cases de chaque côté d'une salle inséré
 export const MARGE_PLAN = 2;      // cases autour de l'ensemble (noms au-dessus des salles du haut, murs, couloirs)
 export const ETIQUETTE_ISOLEES = 'Salles non reliées';
 
+const MARGE_ROUTAGE = 8;          // cases où un couloir peut sortir de l'ensemble des salles : le plan s'agrandit d'autant
+const BOUCLES_PAR_SALLE_1 = 1 / 3; // à partir de ce nombre de boucles par salle, 1 case de plus entre les salles
+const BOUCLES_PAR_SALLE_2 = 2 / 3; // à partir de celui-ci, 2 cases de plus
 const ECART_BLOCS = 4;            // cases entre deux blocs de salles (et avant la rangée des non reliées)
 const ECART_RANGEE = 2;           // cases entre deux salles de la rangée des non reliées
 const LARGEUR_RANGEE_MIN = 24;    // la rangée des non reliées passe à la ligne au-delà de cette largeur (ou celle du plan)
@@ -56,17 +61,18 @@ function voisins(d, id) {
  * Position idéale (avant tout éloignement) de la salle d'arrivée, derrière le mur `ici.mur` de la salle `A`.
  * Les portes se font face si l'arrivée est sur le mur opposé ; sinon la salle est centrée sur la porte de départ.
  */
-function positionIdeale(A, dimA, ici, autre, dimB) {
+function positionIdeale(A, dimA, ici, autre, dimB, espace = 0) {
+  const ecart = ECART_LIAISON + espace;
   const mur = ici.mur;
   const p = borner(ici.position | 0, 0, longueurMur(dimA, mur) - 1);
   const q = borner(autre.position | 0, 0, longueurMur(dimB, autre.mur) - 1);
   const face = autre.mur === OPPOSE[mur];
   if (mur === 'est' || mur === 'ouest') {
     const y = face ? A.y + p - q : Math.round(A.y + p + 0.5 - dimB.h / 2);
-    return { x: mur === 'est' ? A.x + dimA.l + ECART_LIAISON : A.x - ECART_LIAISON - dimB.l, y };
+    return { x: mur === 'est' ? A.x + dimA.l + ecart : A.x - ecart - dimB.l, y };
   }
   const x = face ? A.x + p - q : Math.round(A.x + p + 0.5 - dimB.l / 2);
-  return { x, y: mur === 'sud' ? A.y + dimA.h + ECART_LIAISON : A.y - ECART_LIAISON - dimB.h };
+  return { x, y: mur === 'sud' ? A.y + dimA.h + ecart : A.y - ecart - dimB.h };
 }
 
 /**
@@ -76,7 +82,8 @@ function positionIdeale(A, dimA, ici, autre, dimB) {
  * chevauchement, puisque ces salles s'éloignent seulement de celles qui ne bougent pas), et B est à ECART_PASSAGE de
  * ses deux voisines, car un couloir devra passer de chaque côté d'elle pour la contourner. Modifie `rects`.
  */
-function placerDerriere(rects, A, ici, autre, dimB) {
+function placerDerriere(rects, A, ici, autre, dimB, espace = 0) {
+  const passage = ECART_PASSAGE + espace;
   const mur = ici.mur;
   const horizontal = mur === 'est' || mur === 'ouest';
   const [debut, taille] = horizontal ? ['x', 'l'] : ['y', 'h'];
@@ -86,13 +93,13 @@ function placerDerriere(rects, A, ici, autre, dimB) {
   const entree = (o) => (avance ? o[debut] : -(o[debut] + o[taille]));
   const sortie = (o) => (avance ? o[debut] + o[taille] : -o[debut]);
   const liste = Object.values(rects);
-  const ideal = positionIdeale(A, { l: A.l, h: A.h }, ici, autre, dimB);
+  const ideal = positionIdeale(A, { l: A.l, h: A.h }, ici, autre, dimB, espace);
   const r = { x: ideal.x, y: ideal.y, l: dimB.l, h: dimB.h };
   // La ligne droite n'existe que si les portes se font face. Elle passe si une case libre la sépare du mur de la salle.
   const ligne = autre.mur === OPPOSE[mur] ? A[cote] + borner(ici.position | 0, 0, longueurMur(A, mur) - 1) : null;
   const barreLigne = (o) => ligne === null || (ligne > o[cote] - 2 && ligne <= o[cote] + o[tailleCote]);
   const devantA = liste.filter((o) => o !== A && sortie(o) > sortie(A));
-  const enPlus = ECART_PASSAGE - ECART_MIN; // ce qu'il faut de plus que l'écart minimum, seulement devant la salle
+  const enPlus = passage - ECART_MIN; // ce qu'il faut de plus que l'écart minimum, seulement devant la salle
   let ecartee = false;
   for (let tour = 0; tour <= 2 * liste.length; tour++) {
     const zone = { ...r, [debut]: avance ? r[debut] : r[debut] - enPlus, [taille]: r[taille] + enPlus };
@@ -100,7 +107,7 @@ function placerDerriere(rects, A, ici, autre, dimB) {
     if (!genes.length) break;
     const fin = Math.max(...genes.map(sortie));
     if (!genes.some(barreLigne) && !devantA.some((o) => barreLigne(o) && entree(o) < fin)) {
-      const place = fin + ECART_PASSAGE;
+      const place = fin + passage;
       r[debut] = avance ? place : -place - r[taille];
       ecartee = true;
       continue;
@@ -108,7 +115,7 @@ function placerDerriere(rects, A, ici, autre, dimB) {
     const aReculer = liste.filter((o) => sortie(o) <= entree(r) && !genes.includes(o));
     if (!ecartee) r[debut] += (avance ? 1 : -1) * (ECART_PASSAGE - ECART_LIAISON); // le passage, côté salle de départ
     ecartee = true;
-    const recul = Math.max(...genes.map((o) => sortie(r) + ECART_PASSAGE - entree(o)));
+    const recul = Math.max(...genes.map((o) => sortie(r) + passage - entree(o)));
     const decalage = avance ? -recul : recul;
     for (const o of aReculer) o[debut] += decalage;
     r[debut] += decalage;
@@ -117,7 +124,7 @@ function placerDerriere(rects, A, ici, autre, dimB) {
 }
 
 /** Dispose les salles de la composante de `racine`, relativement à (0, 0). Renvoie { ids, rects }. */
-function disposerComposante(d, racine, dejaVus) {
+function disposerComposante(d, racine, dejaVus, espace) {
   const rects = {};
   const dim = (id) => dimensions(d.salles[id]);
   rects[racine] = { x: 0, y: 0, l: dim(racine).l, h: dim(racine).h };
@@ -129,7 +136,7 @@ function disposerComposante(d, racine, dejaVus) {
     for (const { vers, ici, autre } of voisins(d, id)) {
       if (vers in rects) continue; // déjà placée : la liaison sera seulement tracée
       const dimB = dim(vers);
-      rects[vers] = placerDerriere(rects, A, ici, autre, dimB);
+      rects[vers] = placerDerriere(rects, A, ici, autre, dimB, espace);
       dejaVus.add(vers);
       file.push(vers);
     }
@@ -156,6 +163,21 @@ function pointPorte(r, ext) {
   };
 }
 
+/** Cases à ajouter entre les salles, selon le nombre de boucles par salle (composantes séparées comprises). */
+function espaceDuDonjon(d, ids) {
+  const parent = new Map(ids.map((id) => [id, id]));
+  const racine = (id) => { while (parent.get(id) !== id) id = parent.get(id); return id; };
+  let boucles = 0;
+  for (const l of d.liaisons || []) {
+    if (!parent.has(l.a.salle) || !parent.has(l.b.salle) || l.a.salle === l.b.salle) continue;
+    const a = racine(l.a.salle), b = racine(l.b.salle);
+    if (a === b) boucles++;
+    else parent.set(a, b);
+  }
+  const parSalle = boucles / ids.length;
+  return parSalle >= BOUCLES_PAR_SALLE_2 ? 2 : parSalle >= BOUCLES_PAR_SALLE_1 ? 1 : 0;
+}
+
 /**
  * Calcule le plan du donjon.
  *
@@ -176,11 +198,12 @@ export function disposerPlan(d) {
   const ids = Object.keys(d.salles || {});
   if (!ids.length) return { positions: {}, largeur: 2 * MARGE_PLAN, longueur: 2 * MARGE_PLAN, couloirs: [], isolees: [], etiquetteIsolees: null };
 
+  const espace = espaceDuDonjon(d, ids);
   const vus = new Set();
   const composantes = [];
   for (const id of ids) {
     if (vus.has(id)) continue;
-    composantes.push(disposerComposante(d, id, vus));
+    composantes.push(disposerComposante(d, id, vus, espace));
   }
   // Les salles sans liaison (hors la première, qui ouvre le plan) vont dans la rangée du bas.
   const blocs = composantes.filter((c, i) => i === 0 || c.ids.length > 1);
@@ -212,13 +235,13 @@ export function disposerPlan(d) {
     bas = y + hauteurLigne;
   }
 
-  // Marge autour de l'ensemble.
+  // De la place tout autour pour tracer les couloirs ; le plan sera recadré sur ce qui est réellement dessiné.
   const positions = {};
   for (const id of ids) {
     const r = rects[id];
-    positions[id] = { x: r.x + MARGE_PLAN, y: r.y + MARGE_PLAN, largeur: r.l, longueur: r.h };
+    positions[id] = { x: r.x + MARGE_ROUTAGE, y: r.y + MARGE_ROUTAGE, largeur: r.l, longueur: r.h };
   }
-  if (etiquetteIsolees) etiquetteIsolees = { x: etiquetteIsolees.x + MARGE_PLAN, y: etiquetteIsolees.y + MARGE_PLAN };
+  if (etiquetteIsolees) etiquetteIsolees = { x: etiquetteIsolees.x + MARGE_ROUTAGE, y: etiquetteIsolees.y + MARGE_ROUTAGE };
 
   // Couloirs : une ligne par liaison dont les deux salles existent (porte disparue ou non).
   const orphelines = new Set();
@@ -240,8 +263,20 @@ export function disposerPlan(d) {
     });
   }
 
-  const largeur = droite + 2 * MARGE_PLAN, longueur = bas + 2 * MARGE_PLAN;
-  tracerCouloirs(couloirs, positions, largeur, longueur);
+  tracerCouloirs(couloirs, positions, droite + 2 * MARGE_ROUTAGE, bas + 2 * MARGE_ROUTAGE);
+
+  // Recadrage : une marge de MARGE_PLAN autour des salles ET des couloirs.
+  const xs = [], ys = [];
+  for (const r of Object.values(positions)) { xs.push(r.x, r.x + r.largeur); ys.push(r.y, r.y + r.longueur); }
+  for (const c of couloirs) for (const pt of cheminCouloir(c)) { xs.push(Math.floor(pt.x), Math.ceil(pt.x)); ys.push(Math.floor(pt.y), Math.ceil(pt.y)); }
+  if (etiquetteIsolees) { xs.push(etiquetteIsolees.x); ys.push(etiquetteIsolees.y); }
+  const x0 = Math.min(...xs), y0 = Math.min(...ys);
+  const dx = MARGE_PLAN - x0, dy = MARGE_PLAN - y0;
+  const glisser = (o) => { o.x += dx; o.y += dy; };
+  Object.values(positions).forEach(glisser);
+  if (etiquetteIsolees) glisser(etiquetteIsolees);
+  for (const c of couloirs) { glisser(c.de); glisser(c.vers); (c.chemin || []).forEach(glisser); }
+  const largeur = Math.max(...xs) - x0 + 2 * MARGE_PLAN, longueur = Math.max(...ys) - y0 + 2 * MARGE_PLAN;
   return { positions, largeur, longueur, couloirs, isolees, etiquetteIsolees };
 }
 
@@ -249,6 +284,7 @@ export function disposerPlan(d) {
 
 const COUT_VIRAGE = 2;           // un couloir préfère les lignes droites
 const COUT_LONGE_SALLE = 0.5;    // et garde ses distances avec les murs quand il le peut
+const COUT_LONGE_COULOIR = 1;    // ni avec les autres couloirs
 const COUT_SORTIE_PORTE = 6;     // évite de passer devant une autre porte
 const COUT_CROISEMENT = 40;      // un croisement ne se justifie que si le détour est vraiment très long
 const PASSES_MAX = 3;            // retracés quand des couloirs se croisent encore : chacun réessaie, les autres étant posés
@@ -368,7 +404,9 @@ function tracerCouloirs(couloirs, positions, largeur, longueur) {
     const coutCase = (x, y) => {
       if (estExtremite(x, y)) return 0;
       const i = indice(x, y);
-      return (proche[i] ? COUT_LONGE_SALLE : 0) + (devantPorte[i] ? COUT_SORTIE_PORTE : 0) + (pris[i] ? COUT_CROISEMENT : 0);
+      const cole = DIRECTIONS.some(([dx, dy]) => dans(x + dx, y + dy) && pris[indice(x + dx, y + dy)]);
+      return (proche[i] ? COUT_LONGE_SALLE : 0) + (devantPorte[i] ? COUT_SORTIE_PORTE : 0)
+        + (pris[i] ? COUT_CROISEMENT : 0) + (cole ? COUT_LONGE_COULOIR : 0);
     };
     const dirArrivee = INDICE_DIRECTION[OPPOSE[c.vers.mur]];
     const cases = chercherChemin(depart, arrivee, INDICE_DIRECTION[c.de.mur], dirArrivee, grille, largeur, longueur, coutCase);
