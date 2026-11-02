@@ -8,6 +8,7 @@
  */
 import * as vectoriel from './themes/vectoriel.js';
 import { lettreColonne } from '../parseur/coordonnees.js';
+import { cheminCouloir, ETIQUETTE_ISOLEES } from '../plan-donjon.js';
 
 export const MARGE = 1; // cases de roche autour de la pièce
 
@@ -103,6 +104,125 @@ export function dessinerFenetre(canvas, plan, { fenetre, bords, taille, debord =
   ctx.translate(debord - gauche * t, debord - haut * t); // origine : coin nord-ouest de la salle
   peindre(ctx, plan, t, { grille, reperes: false, theme, marques });
   return { largeur, hauteur, debord };
+}
+
+// Limites d'un canvas (navigateurs et iOS) : côté et surface en pixels PHYSIQUES. Au-delà, le dessin disparaîtrait.
+const CANVAS_COTE_MAX = 8192;
+const CANVAS_SURFACE_MAX = 16_000_000;
+
+/**
+ * Plan complet du donjon : toutes les salles à leur vraie taille, sur le fond de roche, reliées par des couloirs.
+ * Chaque salle est peinte par `peindre` (comme dans la vue MJ : sol, objets, murs, portes, pions, secrets en translucide),
+ * sans repères A1. Les couloirs passent dessous (ils débouchent sur les portes), les noms au-dessus des salles.
+ * N'est utilisée que par la vue Plan du Donjon : `dessiner` n'est pas modifiée.
+ *
+ * @param {HTMLCanvasElement} canvas
+ * @param {object} d            donjon
+ * @param {object} disposition  résultat de `disposerPlan(d)` (js/plan-donjon.js), en cases
+ * @param {{taille?:number, actif?:string, survol?:string|null, grille?:boolean, theme?:object}} options
+ *        taille = côté d'une case en pixels CSS (réduit si le canvas dépasserait les limites du navigateur)
+ *        actif = salle affichée (cadre et nom en couleur d'accent) ; survol = salle sous le curseur (surlignée)
+ * @returns {{taille:number, largeur:number, hauteur:number}} côté de case réellement utilisé et taille CSS du canvas
+ */
+export function dessinerPlanDonjon(canvas, d, disposition, { taille = 16, actif = null, survol = null, grille = false, theme = vectoriel } = {}) {
+  const casesL = disposition.largeur, casesH = disposition.longueur;
+  let dpr = window.devicePixelRatio || 1;
+  let t = Math.max(1, taille);
+  const trop = () => casesL * t * dpr > CANVAS_COTE_MAX || casesH * t * dpr > CANVAS_COTE_MAX || casesL * t * casesH * t * dpr * dpr > CANVAS_SURFACE_MAX;
+  // D'abord moins de pixels physiques (netteté), puis, si ça ne suffit pas, une case plus petite.
+  while (trop() && dpr > 1) dpr = Math.max(1, dpr - 0.5);
+  if (trop()) {
+    t = Math.min(CANVAS_COTE_MAX / (Math.max(casesL, casesH) * dpr), Math.sqrt(CANVAS_SURFACE_MAX / (casesL * casesH)) / dpr);
+    t = Math.max(1, Math.floor(t * 100) / 100);
+  }
+  const largeurPx = Math.round(casesL * t), hauteurPx = Math.round(casesH * t);
+
+  canvas.width = Math.round(largeurPx * dpr);
+  canvas.height = Math.round(hauteurPx * dpr);
+  canvas.style.width = `${largeurPx}px`;
+  canvas.style.height = `${hauteurPx}px`;
+
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, largeurPx, hauteurPx);
+  theme.roche(ctx, largeurPx, hauteurPx, t);
+
+  // Couloirs : contour sombre puis sol, à angle droit. Une liaison orpheline (porte disparue) est un trait en pointillés.
+  ctx.save();
+  ctx.lineJoin = 'miter';
+  ctx.lineCap = 'butt';
+  for (const c of disposition.couloirs) {
+    const chemin = cheminCouloir(c);
+    const trace = () => { ctx.beginPath(); chemin.forEach((p, i) => (i ? ctx.lineTo(p.x * t, p.y * t) : ctx.moveTo(p.x * t, p.y * t))); ctx.stroke(); };
+    if (c.orpheline) {
+      ctx.strokeStyle = '#e06c5a';
+      ctx.lineWidth = Math.max(2, t * 0.14);
+      ctx.setLineDash([t * 0.35, t * 0.3]);
+      trace();
+      ctx.setLineDash([]);
+    } else {
+      ctx.strokeStyle = '#2a2724';
+      ctx.lineWidth = t * 1.22;
+      trace();
+      ctx.strokeStyle = '#8a8680'; // le sol de pierre des salles
+      ctx.lineWidth = t * 0.92;
+      trace();
+    }
+  }
+  ctx.restore();
+
+  // Salles, chacune dans son repère (origine : coin nord-ouest de la salle).
+  for (const [id, s] of Object.entries(d.salles)) {
+    const p = disposition.positions[id];
+    if (!p) continue;
+    ctx.save();
+    ctx.translate(p.x * t, p.y * t);
+    peindre(ctx, s.plan, t, { grille, reperes: false, theme, marques: {} });
+    ctx.restore();
+  }
+
+  // Surlignage (survol) et cadre de la salle active, par-dessus les murs.
+  const cadre = (id, couleur, epais, voile) => {
+    const p = disposition.positions[id];
+    if (!p) return;
+    const e = EPAISSEUR_MUR * t, x = p.x * t - e, y = p.y * t - e, l = p.largeur * t + 2 * e, h = p.longueur * t + 2 * e;
+    ctx.save();
+    if (voile) { ctx.fillStyle = voile; ctx.fillRect(p.x * t, p.y * t, p.largeur * t, p.longueur * t); }
+    ctx.strokeStyle = couleur;
+    ctx.lineWidth = epais;
+    ctx.strokeRect(x - epais / 2, y - epais / 2, l + epais, h + epais);
+    ctx.restore();
+  };
+  if (survol && survol !== actif) cadre(survol, '#f4efe4', Math.max(2, t * 0.12), 'rgba(255, 255, 255, 0.14)');
+  if (actif) cadre(actif, '#d9a929', Math.max(3, t * 0.18), survol === actif ? 'rgba(255, 255, 255, 0.1)' : null);
+
+  // Noms : au-dessus de chaque salle, sur une pastille sombre pour rester lisibles sur la roche comme sur un couloir.
+  const police = Math.max(12, Math.min(t * 0.7, 22));
+  ctx.save();
+  ctx.font = `600 ${police}px system-ui, sans-serif`;
+  ctx.textBaseline = 'alphabetic';
+  ctx.textAlign = 'left';
+  const ecrire = (texte, x, yBas, couleur, largeurMax) => {
+    let ligne = texte;
+    while (ligne.length > 1 && ctx.measureText(ligne).width > largeurMax) ligne = `${ligne.slice(0, -2).trimEnd()}…`;
+    const w = ctx.measureText(ligne).width;
+    ctx.fillStyle = 'rgba(20, 19, 17, 0.85)';
+    ctx.fillRect(x - 3, yBas - police - 1, w + 6, police + 6);
+    ctx.fillStyle = couleur;
+    ctx.fillText(ligne, x, yBas);
+  };
+  for (const [id, s] of Object.entries(d.salles)) {
+    const p = disposition.positions[id];
+    if (!p) continue;
+    ecrire(s.nom, p.x * t, p.y * t - EPAISSEUR_MUR * t - 4, id === actif ? '#f0c64a' : '#f4efe4', Math.max(p.largeur * t, 120));
+  }
+  if (disposition.etiquetteIsolees) {
+    const e = disposition.etiquetteIsolees;
+    ecrire(ETIQUETTE_ISOLEES, e.x * t, e.y * t + police, '#b8b3a8', 400);
+  }
+  ctx.restore();
+
+  return { taille: t, largeur: largeurPx, hauteur: hauteurPx };
 }
 
 /** Sol, objets, grille, murs, portes, pions et repères d'interface ; l'origine du contexte est le coin nord-ouest de la salle. */

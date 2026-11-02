@@ -5,7 +5,8 @@
  * `disposerSalles` (pur, testable sous Node) place les salles : parcours depuis la
  * première salle en suivant la direction des portes (porte au nord → salle au-dessus),
  * décalage si la place est prise, salles non reliées à part, en dessous.
- * `dessinerMiniCarte` en fait un SVG focusable au clavier (Tab, puis Entrée).
+ * `dessinerMiniCarte` en fait un SVG focusable au clavier (Tab, Entrée ; les flèches passent à la salle voisine).
+ * Un schéma plus grand que son cadre se déplace en le glissant à la souris (au doigt, le cadre défile déjà tout seul).
  */
 import { liaisonsOrphelines } from './donjon.js';
 
@@ -95,6 +96,70 @@ export function disposerSalles(d) {
   return { positions, colonnes, lignes: ligne, isolees, ligneIsolees };
 }
 
+/**
+ * Salle la plus proche de `id` dans la direction d'une flèche, d'après les positions du schéma, ou null.
+ * Une salle compte si elle est plus loin dans cette direction que de côté ; à distance égale, la mieux alignée gagne.
+ * @param {Object<string,{col:number,ligne:number}>} positions
+ * @param {string} id
+ * @param {'nord'|'sud'|'est'|'ouest'} direction
+ */
+export function salleVoisine(positions, id, direction) {
+  const [vx, vy] = VECTEUR[direction];
+  const depart = positions[id];
+  if (!depart) return null;
+  let meilleure = null, score = Infinity;
+  for (const [autre, p] of Object.entries(positions)) {
+    if (autre === id) continue;
+    const dx = p.col - depart.col, dy = p.ligne - depart.ligne;
+    const avance = dx * vx + dy * vy, cote = Math.abs(dx * vy) + Math.abs(dy * vx);
+    if (avance <= 0 || cote > avance) continue;
+    const s = avance * 10 + cote;
+    if (s < score) { score = s; meilleure = autre; }
+  }
+  return meilleure;
+}
+
+const FLECHES = { ArrowUp: 'nord', ArrowDown: 'sud', ArrowLeft: 'ouest', ArrowRight: 'est' };
+const SEUIL_GLISSEMENT = 5; // px : en dessous, c'est un clic sur une salle
+
+/** Déplace le schéma en glissant à la souris. Une seule fois par cadre : le schéma est redessiné, pas le cadre. */
+function activerGlissement(conteneur) {
+  if (conteneur.dataset.glissement) return;
+  conteneur.dataset.glissement = 'oui';
+  let prise = null;
+  let ignorerClic = false;
+  const bouger = (e) => {
+    const dx = e.clientX - prise.x, dy = e.clientY - prise.y;
+    if (!prise.glisse && Math.hypot(dx, dy) < SEUIL_GLISSEMENT) return;
+    prise.glisse = true;
+    conteneur.classList.add('glisse');
+    conteneur.scrollLeft = prise.gauche - dx;
+    conteneur.scrollTop = prise.haut - dy;
+  };
+  const lacher = () => {
+    window.removeEventListener('pointermove', bouger);
+    window.removeEventListener('pointerup', lacher);
+    window.removeEventListener('pointercancel', lacher);
+    conteneur.classList.remove('glisse');
+    ignorerClic = prise.glisse; // le clic qui suit le lâcher ne doit pas ouvrir une salle
+    prise = null;
+  };
+  conteneur.addEventListener('pointerdown', (e) => {
+    const deborde = conteneur.scrollWidth > conteneur.clientWidth || conteneur.scrollHeight > conteneur.clientHeight;
+    if (e.pointerType !== 'mouse' || e.button !== 0 || !deborde) return;
+    ignorerClic = false;
+    prise = { x: e.clientX, y: e.clientY, gauche: conteneur.scrollLeft, haut: conteneur.scrollTop, glisse: false };
+    window.addEventListener('pointermove', bouger);
+    window.addEventListener('pointerup', lacher);
+    window.addEventListener('pointercancel', lacher);
+  });
+  conteneur.addEventListener('click', (e) => {
+    if (!ignorerClic) return;
+    ignorerClic = false;
+    e.stopPropagation();
+  }, true);
+}
+
 const el = (nom, attrs = {}, texte) => {
   const e = document.createElementNS(NS, nom);
   for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
@@ -156,7 +221,7 @@ export function dessinerMiniCarte(conteneur, donjon, { actif, onChoisir, focus, 
     const etats = [id === actif ? 'salle affichée' : '', surTable ? 'à la table' : '', inconnue ? 'non découverte' : vues ? 'découverte' : ''].filter(Boolean);
     const g = el('g', {
       class: ['salle', id === actif ? 'actif' : '', inconnue ? 'inconnue' : '', surTable ? 'table' : ''].filter(Boolean).join(' '),
-      tabindex: '0', role: 'button',
+      tabindex: '0', role: 'button', 'data-salle': id,
       'aria-label': `${salle.nom}${etats.length ? ` (${etats.join(', ')})` : ''}`,
     });
     if (id === actif) g.setAttribute('aria-current', 'true');
@@ -178,12 +243,17 @@ export function dessinerMiniCarte(conteneur, donjon, { actif, onChoisir, focus, 
     }
     g.addEventListener('click', () => onChoisir(id));
     g.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onChoisir(id); }
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onChoisir(id); return; }
+      if (!FLECHES[e.key]) return;
+      e.preventDefault(); // sinon le cadre défilerait au lieu de changer de salle
+      const voisine = salleVoisine(positions, id, FLECHES[e.key]);
+      if (voisine) svg.querySelector(`[data-salle="${CSS.escape(voisine)}"]`)?.focus();
     });
     svg.append(g);
     if (id === focus) aFocaliser = g;
   }
 
   conteneur.replaceChildren(svg);
+  activerGlissement(conteneur);
   aFocaliser?.focus();
 }

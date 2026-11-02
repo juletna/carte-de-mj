@@ -80,6 +80,10 @@
 
   <!-- Onglets des salles : toujours visibles, au-dessus de la carte, quel que soit l'outil (js/main-mj.js, majOnglets). -->
   <div class="salles-barre">
+    <button id="plan-bouton" type="button" class="discret bouton-plan" aria-pressed="false" aria-controls="plan-donjon"
+      title="Voir tout le donjon d'un coup : les salles à leur vraie taille, reliées par des couloirs">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3.5" width="8" height="7" rx="1"/><rect x="13" y="13.5" width="8" height="7" rx="1"/><path d="M11 7h4.5a1 1 0 0 1 1 1v5.5"/></svg><span>Plan</span>
+    </button>
     <ul id="salles-onglets" class="salles-onglets" role="tablist" aria-label="Salles du donjon"></ul>
     <button id="salle-ajouter" type="button" class="discret" aria-label="Ajouter une salle" title="Ajouter une salle isolée">+</button>
   </div>
@@ -152,6 +156,7 @@
     <div class="outil" data-pour="plan" hidden>
       <div id="minicarte" class="minicarte" role="region" aria-label="Mini-carte du donjon"></div>
       <div id="orphelines" hidden></div>
+      <button id="plan-complet" type="button" class="discret" title="Voir tout le donjon d'un coup, les salles à leur vraie taille">Voir le plan complet</button>
       <p id="aide-salles" class="note"></p>
       <ul id="salles-liste" class="salles-liste"></ul>
     </div>
@@ -180,6 +185,9 @@
 
   <div id="cadre-scene">
     <main id="scene">
+      <!-- Vue Plan (js/main-mj.js, ouvrirPlan) : remplace #support. La liste est cachée à l'œil mais atteignable au clavier. -->
+      <ul id="plan-salles" class="cache-visuel" aria-label="Salles du plan" hidden></ul>
+      <canvas id="plan-donjon" role="img" aria-label="Plan du donjon" hidden></canvas>
       <div id="support">
         <canvas id="carte" aria-label="Carte de la pièce"></canvas>
         <!-- Dimensions de la salle : glisser la bande d'un côté, ou ses boutons − et + (js/main-mj.js). -->

@@ -169,6 +169,7 @@ button.petit { padding: 4px 8px; font-size: 13px; min-height: max(var(--cible), 
 
 /* La mini-carte défile dans son cadre : jamais de défilement horizontal de la page. */
 .minicarte { margin-top: 10px; overflow: auto; max-width: 100%; border: 1px solid var(--bord); border-radius: var(--rayon); background: var(--champ); }
+.minicarte.glisse, .minicarte.glisse * { cursor: grabbing; user-select: none; -webkit-user-select: none; }
 .minicarte-svg { display: block; max-width: none; font: 15px system-ui, sans-serif; }
 .minicarte-svg .lien { stroke: var(--texte-doux); stroke-width: 3; }
 .minicarte-svg .lien.orpheline { stroke: var(--erreur); stroke-dasharray: 6 5; }

@@ -38,6 +38,10 @@
 .salles-onglets li { flex: none; }
 .onglet-salle { max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 4px 10px; font-size: 13px; font-weight: 400; min-height: max(var(--cible), 30px); background: transparent; color: var(--texte); border: 1px solid var(--bord); }
 .onglet-salle.actif { background: var(--accent); color: var(--accent-texte); border-color: var(--accent); font-weight: 600; }
+/* Bouton Plan : avant les onglets ; pressé, la scène montre tout le donjon. */
+.bouton-plan { flex: none; display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; min-height: max(var(--cible), 30px); font-size: 13px; font-weight: 600; }
+.bouton-plan svg { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.bouton-plan[aria-pressed="true"] { background: var(--accent); color: var(--accent-texte); border-color: var(--accent); }
 #salle-ajouter { flex: none; padding: 4px 12px; min-height: max(var(--cible), 30px); font-size: 16px; line-height: 1; }
 
 /* --- Rail d'outils (icône + libellé, à la Canva) --- */
@@ -102,6 +106,15 @@ body.palette-glisse, body.palette-glisse * { cursor: grabbing !important; user-s
 .bord-salle button { width: 28px; height: 28px; min-height: 0; padding: 0; font-size: 15px; line-height: 1; touch-action: manipulation; }
 .bord-salle .lettre-cote { min-width: 14px; text-align: center; font-size: 12px; font-weight: 600; color: var(--texte-doux); }
 #scene:fullscreen .bord-salle { display: none; }
+
+/* --- Vue Plan : le canvas remplace la carte de la salle (marges automatiques : un plan zoomé plus grand que la scène défile) --- */
+#plan-donjon { display: block; flex: none; margin: auto; touch-action: pan-x pan-y; }
+#plan-donjon.sur-salle { cursor: pointer; }
+.cache-visuel button:focus-visible { outline: var(--focus); }
+body.vue-plan .bouton-ajouter, body.vue-plan #pose-pastille { display: none; }
+/* Pas de porte ni de pion à toucher dans un plan : l'aide de la sélection, sur téléphone, n'a pas lieu d'être. */
+body.vue-plan #aide-carte { display: none; }
+.outil[data-pour="plan"] #plan-complet { align-self: flex-start; }
 
 /* --- Scène, bulle, commandes flottantes --- */
 .flottant { position: absolute; z-index: 20; background: rgba(31, 30, 36, 0.95); border: 1px solid var(--bord); border-radius: var(--rayon); box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45); }
