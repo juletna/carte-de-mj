@@ -207,6 +207,7 @@ function espaceDuDonjon(d, ids) {
  *   positions: Object<string,{x:number,y:number,largeur:number,longueur:number}>,  // en cases, dans un repère qui commence à 0
  *   largeur: number, longueur: number,        // taille totale du plan, marges comprises
  *   couloirs: Array<{liaison:string, de:{salle,mur,x,y}, vers:{salle,mur,x,y}, orpheline:boolean}>,
+ *   ponts: Array<{x:number,y:number,horizontal:boolean}>,  // là où deux couloirs se croisent, voir `pontsDe`
  *   isolees: string[],                        // salles sans liaison, dans la rangée du bas
  *   etiquetteIsolees: {x:number,y:number}|null  // où écrire « Salles non reliées »
  * }}
@@ -217,7 +218,7 @@ function espaceDuDonjon(d, ids) {
  */
 export function disposerPlan(d) {
   const ids = Object.keys(d.salles || {});
-  if (!ids.length) return { positions: {}, largeur: 2 * MARGE_PLAN, longueur: 2 * MARGE_PLAN, couloirs: [], isolees: [], etiquetteIsolees: null };
+  if (!ids.length) return { positions: {}, largeur: 2 * MARGE_PLAN, longueur: 2 * MARGE_PLAN, couloirs: [], ponts: [], isolees: [], etiquetteIsolees: null };
 
   const espace = espaceDuDonjon(d, ids);
   const essais = Math.max(1, Math.min(ESSAIS_MAX, Math.floor(SALLES_ESSAIS / ids.length)));
@@ -228,7 +229,7 @@ export function disposerPlan(d) {
     if (autre.note < meilleur.note) meilleur = autre;
   }
   const { note, defauts, ...plan } = meilleur;
-  return plan;
+  return { ...plan, ponts: pontsDe(plan.couloirs) };
 }
 
 /** Un plan selon un ordre de pose (`alea` : null pour l'ordre des liaisons), avec sa note : plus elle est basse, mieux c'est. */
@@ -479,6 +480,41 @@ function tracerCouloirs(couloirs, positions, largeur, longueur) {
     for (const k of cases.slice(1, -1)) if (proche[indice(k.x, k.y)]) bilan.frottements++;
   }
   return bilan;
+}
+
+export const PONT_DEMI_LONGUEUR = 0.85; // cases de part et d'autre du croisement
+
+/**
+ * Les ponts : un par endroit où deux couloirs se coupent franchement à angle droit (ni un virage posé sur l'autre, ni une
+ * liaison orpheline). Le couloir tracé après passe au-dessus, sauf s'il tourne trop près pour porter le pont et pas l'autre.
+ * @returns {Array<{x:number,y:number,horizontal:boolean}>}  `horizontal` : le sens du couloir qui passe dessus
+ */
+export function pontsDe(couloirs) {
+  const segments = (c) => {
+    const pts = cheminCouloir(c);
+    return pts.slice(1).map((b, i) => {
+      const a = pts[i];
+      return { horizontal: a.y === b.y, x0: Math.min(a.x, b.x), x1: Math.max(a.x, b.x), y0: Math.min(a.y, b.y), y1: Math.max(a.y, b.y) };
+    });
+  };
+  const liste = couloirs.filter((c) => !c.orpheline).map(segments);
+  const assezLong = (s, x, y) => (s.horizontal
+    ? x - s.x0 >= PONT_DEMI_LONGUEUR && s.x1 - x >= PONT_DEMI_LONGUEUR
+    : y - s.y0 >= PONT_DEMI_LONGUEUR && s.y1 - y >= PONT_DEMI_LONGUEUR);
+  const ponts = [];
+  liste.forEach((apres, j) => {
+    for (const avant of liste.slice(0, j).flat()) {
+      for (const s of apres) {
+        if (s.horizontal === avant.horizontal) continue;
+        const h = s.horizontal ? s : avant, v = s.horizontal ? avant : s;
+        if (!(v.x0 > h.x0 && v.x0 < h.x1 && h.y0 > v.y0 && h.y0 < v.y1)) continue;
+        const x = v.x0, y = h.y0;
+        const dessus = !assezLong(s, x, y) && assezLong(avant, x, y) ? avant : s;
+        ponts.push({ x, y, horizontal: dessus.horizontal });
+      }
+    }
+  });
+  return ponts;
 }
 
 /**

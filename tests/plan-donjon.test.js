@@ -4,7 +4,7 @@
  * Sans dépendance : marche sous Node et dans tests.html (même forme que les autres tests : { phrase, ecarts }).
  */
 import * as m from '../js/donjon.js';
-import { disposerPlan, cheminCouloir, salleSous, ECART_LIAISON, ECART_MIN, ECART_PASSAGE, MARGE_PLAN, ETIQUETTE_ISOLEES } from '../js/plan-donjon.js';
+import { disposerPlan, pontsDe, PONT_DEMI_LONGUEUR, cheminCouloir, salleSous, ECART_LIAISON, ECART_MIN, ECART_PASSAGE, MARGE_PLAN, ETIQUETTE_ISOLEES } from '../js/plan-donjon.js';
 import { salleVoisine, disposerSalles } from '../js/minicarte.js';
 
 function verifier(condition, message) { if (!condition) throw new Error(message); }
@@ -340,6 +340,17 @@ const TESTS = [
         verifier(!(dessus && enFace), 'aucun couloir ne longe le haut de la salle 6');
       }
     }
+  }],
+  ['ponts : un par vrai croisement, jamais pour un virage ou une liaison orpheline', () => {
+    const couloir = (...pts) => ({ chemin: pts.map(([x, y]) => ({ x, y })) });
+    const horizontal = couloir([0, 5], [10, 5]);
+    egal(pontsDe([horizontal, couloir([5, 0], [5, 10])]), [{ x: 5, y: 5, horizontal: false }], 'le second passe dessus');
+    egal(pontsDe([horizontal, couloir([0, 7], [10, 7])]), [], 'deux couloirs parallèles');
+    egal(pontsDe([horizontal, couloir([5, 0], [5, 5], [9, 5])]), [], 'un virage posé sur l’autre couloir');
+    egal(pontsDe([horizontal, { ...couloir([5, 0], [5, 10]), orpheline: true }]), [], 'liaison orpheline');
+    const tropCourt = couloir([5, 5 - PONT_DEMI_LONGUEUR / 2], [5, 10]);
+    egal(pontsDe([horizontal, tropCourt]), [{ x: 5, y: 5, horizontal: true }], 'celui qui tourne trop près passe dessous');
+    egal(disposerPlan(donjonVide()).ponts, [], 'un donjon sans couloir n’a pas de pont');
   }],
   ['couloirs : ils se croisent seulement s’ils ne peuvent pas faire autrement', () => {
     const { d } = casBarre({ porte6: 2, avec7: true }); // la ligne droite vers la 7 est barrée par la 6

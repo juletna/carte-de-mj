@@ -8,7 +8,7 @@
  */
 import * as vectoriel from './themes/vectoriel.js';
 import { lettreColonne } from '../parseur/coordonnees.js';
-import { cheminCouloir, ETIQUETTE_ISOLEES } from '../plan-donjon.js';
+import { cheminCouloir, PONT_DEMI_LONGUEUR, ETIQUETTE_ISOLEES } from '../plan-donjon.js';
 
 export const MARGE = 1; // cases de roche autour de la pièce
 
@@ -124,6 +124,31 @@ const CANVAS_SURFACE_MAX = 16_000_000;
  *        actif = salle affichée (cadre et nom en couleur d'accent) ; survol = salle sous le curseur (surlignée)
  * @returns {{taille:number, largeur:number, hauteur:number}} côté de case réellement utilisé et taille CSS du canvas
  */
+/** Un pont de planches là où deux couloirs se croisent : le couloir du dessus continue, celui du dessous passe sous lui. */
+function dessinerPont(ctx, { x, y, horizontal }, t) {
+  const demi = PONT_DEMI_LONGUEUR * t, large = t * 0.46, garde = t * 0.15;
+  ctx.save();
+  ctx.translate(x * t, y * t);
+  if (!horizontal) ctx.rotate(Math.PI / 2);
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.45)'; // l'ombre portée sur le couloir du dessous
+  ctx.fillRect(-demi, -large - garde * 1.6, demi * 2, (large + garde * 1.6) * 2);
+  ctx.fillStyle = '#8f6c44';
+  ctx.fillRect(-demi, -large, demi * 2, large * 2);
+  if (t >= 7) { // en dessous, les planches ne se voient plus
+    ctx.strokeStyle = '#5f4630';
+    ctx.lineWidth = Math.max(1, t * 0.03);
+    const n = 6;
+    for (let i = 1; i < n; i++) {
+      const px = -demi + (2 * demi * i) / n;
+      ctx.beginPath(); ctx.moveTo(px, -large); ctx.lineTo(px, large); ctx.stroke();
+    }
+  }
+  ctx.fillStyle = '#2a2724'; // les garde-corps
+  ctx.fillRect(-demi, -large - garde, demi * 2, garde);
+  ctx.fillRect(-demi, large, demi * 2, garde);
+  ctx.restore();
+}
+
 export function dessinerPlanDonjon(canvas, d, disposition, { taille = 16, actif = null, survol = null, grille = false, theme = vectoriel } = {}) {
   const casesL = disposition.largeur, casesH = disposition.longueur;
   let dpr = window.devicePixelRatio || 1;
@@ -170,6 +195,7 @@ export function dessinerPlanDonjon(canvas, d, disposition, { taille = 16, actif 
     }
   }
   ctx.restore();
+  for (const pont of disposition.ponts || []) dessinerPont(ctx, pont, t);
 
   // Salles, chacune dans son repère (origine : coin nord-ouest de la salle).
   for (const [id, s] of Object.entries(d.salles)) {
