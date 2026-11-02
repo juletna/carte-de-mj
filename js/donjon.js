@@ -24,6 +24,7 @@
 import { validerPlan, MURS } from './schema.js';
 import { analyser } from './parseur/index.js';
 import { decrire } from './parseur/decrire.js';
+import { ajouterElement, retirerElement } from './pose.js';
 
 export const FORMAT = 'carte-de-mj-donjon';
 export const FORMAT_ANCIEN = 'jdr-carte';
@@ -104,6 +105,36 @@ export function elementDeplace(ancien, nouveau) {
     }
   }
   return null;
+}
+
+// --- Ajouter et supprimer un élément (palette, bulle d'actions) ---------------------------
+
+export { ajouterElement };
+
+/**
+ * Plan de la salle sans l'élément décrit. Une porte reliée perd d'abord sa liaison (jamais de liaison orpheline
+ * créée par une suppression) : la liaison retirée est renvoyée pour pouvoir être rétablie par `retablirLiaisons`.
+ * Le donjon n'est modifié que par cette suppression de liaison ; le plan reçu ne l'est jamais.
+ * @returns {{plan:object, liaisonsRetirees:object[]}|null}  null si l'élément n'existe pas
+ */
+export function supprimerElement(d, idSalle, desc) {
+  const s = d.salles[idSalle];
+  const trouve = s && retrouverElement(s.plan, desc);
+  if (!trouve) return null;
+  const liaisonsRetirees = [];
+  if (trouve.genre === 'porte') {
+    const lien = liaisonDePorte(d, idSalle, trouve.element);
+    if (lien) { liaisonsRetirees.push(lien.liaison); delier(d, lien.liaison.id); }
+  }
+  return { plan: retirerElement(s.plan, trouve), liaisonsRetirees };
+}
+
+/** Remet des liaisons retirées par supprimerElement (annulation), sauf celles que le donjon a déjà retrouvées. */
+export function retablirLiaisons(d, liaisons) {
+  for (const l of liaisons || []) {
+    if (d.liaisons.some((x) => x.id === l.id) || !d.salles[l.a.salle] || !d.salles[l.b.salle]) continue;
+    d.liaisons.push(l);
+  }
 }
 
 // --- Création et gestion des salles --------------------------------------------

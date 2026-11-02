@@ -14,39 +14,20 @@
  * déplacent ; les autres restent cliquables (signalés à `cliquer`) mais ne bougent jamais.
  * Sans cette option, tout se déplace (comportement de donjon.html).
  *
- * Option `portesLarges` (régie de la Présentation seulement) : la zone de clic d'une porte s'élargit de BANDE_PORTE case
+ * Option `portesLarges` (Présentation et Donjon) : la zone de clic d'une porte s'élargit de BANDE_PORTE case
  * vers l'intérieur de la salle (le mur seul fait environ 8 px). Règle unique dans cette bande : un CLIC y est toujours
  * pour la porte, même si un pion s'y trouve ; un GLISSEMENT commencé sur un pion déplace ce pion (la porte ne bouge
- * jamais par ce biais). Sans l'option (Donjon), rien ne change.
+ * jamais par ce biais). Sans l'option, rien ne change.
  *
  * Ce module ne modifie rien : il propose un nouveau plan à `deposer`.
  */
 import { MARGE } from './rendu/moteur.js';
-import { definition } from './parseur/lexique.js';
+import { largeurDe, hauteurDe, murProche, positionSurMur, evaluerPose } from './pose.js';
 
 const SEUIL_GLISSEMENT = 4; // px : en dessous, c'est un clic
 export const BANDE_PORTE = 0.5; // cases : profondeur ajoutée à la zone de clic d'une porte (option `portesLarges`)
 const EPAISSEUR_CLIC = 0.2;     // cases : profondeur de la zone de clic d'une porte sans l'option
-const REGARD = { nord: 180, sud: 0, ouest: 90, est: 270 }; // dos au mur, vers l'intérieur
 const SOUS_LES_AUTRES = new Set(['fosse', 'debris']);
-
-const largeurDe = (e) => e.taille ?? e.l;
-const hauteurDe = (e) => e.taille ?? e.h;
-const seChevauchent = (a, x, y, b) => x < b.x + largeurDe(b) && b.x < x + largeurDe(a)
-  && y < b.y + hauteurDe(b) && b.y < y + hauteurDe(a);
-
-/** Mur le plus proche d'un point exprimé en cases. */
-function murProche(cx, cy, plan) {
-  const distances = { nord: cy, sud: plan.longueur - cy, ouest: cx, est: plan.largeur - cx };
-  return Object.keys(distances).reduce((a, b) => (distances[b] < distances[a] ? b : a));
-}
-
-/** Position sur un mur la plus proche d'un point, sans sortir du mur. */
-function positionSurMur(mur, cx, cy, plan) {
-  const horizontal = mur === 'nord' || mur === 'sud';
-  const long = horizontal ? plan.largeur : plan.longueur;
-  return Math.max(0, Math.min(long - 1, Math.floor(horizontal ? cx : cy)));
-}
 
 /** La porte attrapée sous le pointeur, dans l'épaisseur du mur (et jusqu'à `profondeur` cases vers l'intérieur). */
 export function porteSous(cx, cy, plan, profondeur = EPAISSEUR_CLIC) {
@@ -68,10 +49,11 @@ export function porteSous(cx, cy, plan, profondeur = EPAISSEUR_CLIC) {
  *   deposer: (plan: object) => void     déplacement validé : le nouveau plan
  *   cliquer?: (touche: {genre: string, element: object} | null) => void
  *                                       appui sans glissement ; sans ce rappel, tout appui est un déplacement
+ *   commencer?: (genre: string) => void un vrai glissement démarre (le pointeur a dépassé le seuil)
  *   deplacables?: string[]              genres qui peuvent bouger (par défaut : tous)
  * }} options
  */
-export function activerDeplacement(canvas, { plan, taille, apercu, deposer, cliquer, deplacables, portesLarges = false }) {
+export function activerDeplacement(canvas, { plan, taille, apercu, deposer, cliquer, commencer, deplacables, portesLarges = false }) {
   const peutBouger = (genre) => !deplacables || deplacables.includes(genre);
   let prise = null; // { genre, element, depart, glisse, decalX, decalY, x, y } ou, pour une porte, { mur, position }
   let image = 0;
@@ -145,6 +127,7 @@ export function activerDeplacement(canvas, { plan, taille, apercu, deposer, cliq
     if (!prise.glisse) {
       if (Math.hypot(e.clientX - prise.depart[0], e.clientY - prise.depart[1]) < SEUIL_GLISSEMENT) return;
       prise.glisse = true;
+      commencer?.(prise.genre);
     }
     if (prise.genre === 'porte') {
       prise.mur = murProche(cx, cy, plan());
@@ -170,19 +153,10 @@ export function activerDeplacement(canvas, { plan, taille, apercu, deposer, cliq
 
     const x = Math.round(prise.x), y = Math.round(prise.y);
     if (x === el.x && y === el.y) return null;
-    if (x < 0 || y < 0 || x + largeurDe(el) > p.largeur || y + hauteurDe(el) > p.longueur) return null;
 
-    if (genre === 'creature') {
-      // Un pion peut monter sur un objet (un coffre, des débris), pas sur un autre pion.
-      return p.creatures.some((k) => k !== el && seChevauchent(el, x, y, k)) ? null : planAvec({ x, y });
-    }
-    if (definition(el.type).bloquant === false) {
-      // Une torche est au mur : elle tourne le dos au mur le plus proche.
-      return planAvec({ x, y, rotation: REGARD[murProche(x + 0.5, y + 0.5, p)] });
-    }
-    const gene = (o) => o !== el && definition(o.type).bloquant !== false && seChevauchent(el, x, y, o);
-    if (p.objets.some(gene) || p.creatures.some((k) => seChevauchent(el, x, y, k))) return null;
-    return planAvec({ x, y });
+    // Règles de pose communes avec l'ajout depuis la palette : voir js/pose.js.
+    const pose = evaluerPose(p, genre, el, x, y, el);
+    return pose.ok ? planAvec(pose.modifs) : null;
   }
 
   function lacher(e) {

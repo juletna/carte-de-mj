@@ -27,10 +27,24 @@ const QUANTITE_PLURIEL = { grille: 4, perimetre: 4, aleatoire: 5 };
 /**
  * « salle du trône », « salle des gardes » : c'est le NOM de la pièce,
  * pas un objet à poser. On le retire du texte.
+ *
+ * Avec un simple « de » (« salle de garde », « crypte de vampire »), le mot suivant n'est un nom
+ * de pièce que s'il est du lexique ET que le groupe ouvre la phrase : « une salle avec un garde »
+ * et « deux gardes » créent toujours leurs pions, et « salle de 6 par 6 » n'est pas un nom.
  */
-const RE_NOM = /\b(salle|chambre|crypte|piece|caverne|grotte|hall)\s+(du|des|de la|de l)\s+([a-z]+)/;
+const PIECES = 'salle|chambre|crypte|piece|caverne|grotte|hall|cellule|prison|taverne|auberge|temple|chapelle|cuisine|cave';
+const RE_NOM = new RegExp(`\\b(${PIECES})\\s+(du|des|de la|de l)\\s+([a-z]+)`);
+const RE_NOM_DE = new RegExp(`\\b(${PIECES})\\s+(de|d)\\s+([a-z]+)`, 'g');
+const DEBUT_DE_PHRASE = /^(?:(?:une?|la|cette|grande?|petite?|vaste)\s+)*$/;
 function extraireNom(texte) {
-  const m = texte.match(RE_NOM);
+  let m = texte.match(RE_NOM);
+  let cherche = m;
+  if (!m) {
+    for (const c of texte.matchAll(RE_NOM_DE)) {
+      const avant = texte.slice(0, c.index).split(/[.;:!?,]/).pop();
+      if (DEBUT_DE_PHRASE.test(avant) && trouverObjet(c[3])) { m = c; break; }
+    }
+  }
   if (!m) return { nom: null, reste: texte };
   return { nom: `${m[1]} ${m[2]} ${nomAffiche(m[3])}`, reste: texte.replace(m[0], m[1]) };
 }

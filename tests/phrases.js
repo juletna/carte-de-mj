@@ -243,4 +243,44 @@ PHRASES.push(
     phrase: 'salle de 6 par 6 cases, une statue devant la porte, la porte est au nord',
     attendu: { portes: [{ mur: 'nord' }], objets: [{ type: 'statue', x: 2, y: 1 }] },
   },
+
+  // --- Nom de salle contenant un mot du lexique : jamais de pion fantôme ---
+  {
+    phrase: 'Salle de garde de 6 par 5 cases, une porte au sud',
+    attendu: { nom: 'Salle de garde', largeur: 6, longueur: 5, ignores: [], verifier: (plan) => plan.creatures.length === 0 || `pions : ${plan.creatures.map((k) => k.type)}` },
+  },
+  {
+    phrase: 'Salle des gardes de 6 par 5 cases',
+    attendu: { nom: 'Salle des gardes', largeur: 6, longueur: 5, verifier: (plan) => plan.creatures.length === 0 || 'pion créé par le nom' },
+  },
+  {
+    phrase: 'Chambre du garde de 6 par 5 cases',
+    attendu: { nom: 'Chambre du garde', verifier: (plan) => plan.creatures.length === 0 || 'pion créé par le nom' },
+  },
+  {
+    phrase: 'Salle de mage de 6 par 6 cases, une table',
+    attendu: { nom: 'Salle de mage', compter: { table: 1 }, verifier: (plan) => plan.creatures.length === 0 || 'pion créé par le nom' },
+  },
+  {
+    phrase: 'Crypte de vampire de 6 par 6 cases, un sarcophage',
+    attendu: { nom: 'Crypte de vampire', compter: { sarcophage: 1 }, verifier: (plan) => plan.creatures.length === 0 || 'pion créé par le nom' },
+  },
+  {
+    // Le nom ne retire qu'un groupe : les gardes cités ensuite existent bien.
+    phrase: 'Salle de garde de 6 par 6 cases, deux gardes au fond',
+    attendu: { nom: 'Salle de garde', verifier: (plan) => (plan.creatures.length === 2 && plan.creatures.every((k) => k.type === 'garde')) || `pions : ${plan.creatures.map((k) => k.type)}` },
+  },
+  {
+    phrase: 'Une salle de 6 par 6 cases avec un garde',
+    attendu: { verifier: (plan) => (plan.creatures.length === 1 && plan.creatures[0].type === 'garde') || 'un garde attendu' },
+  },
+  {
+    phrase: 'Salle de 6 par 6 cases, deux gardes',
+    attendu: { verifier: (plan) => plan.creatures.length === 2 || 'deux gardes attendus' },
+  },
+  {
+    // Un « de » qui n'ouvre pas la phrase n'est pas un nom de salle : le garde cité existe.
+    phrase: 'Salle de 6 par 6 cases, une porte, la salle de garde est au nord, un garde',
+    attendu: { verifier: (plan) => plan.creatures.some((k) => k.type === 'garde') || 'le garde cité doit exister' },
+  },
 );

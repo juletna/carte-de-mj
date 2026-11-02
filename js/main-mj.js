@@ -7,7 +7,10 @@
  */
 import { analyser } from './parseur/index.js';
 import { validerPlan } from './schema.js';
-import { dessiner } from './rendu/moteur.js';
+import { dessiner, MARGE, rectPorte } from './rendu/moteur.js';
+import { tailleRemplir } from './affichage.js';
+import { elementsPalette, GROUPES_PALETTE } from './pose.js';
+import { creerPalette } from './palette.js';
 import { creerMicro, voixDisponible } from './voix.js';
 import * as stockage from './stockage.js';
 import { rapport } from './rapport.js';
@@ -17,7 +20,7 @@ import { nomCase, lettreColonne } from './parseur/coordonnees.js';
 import { nomAffiche } from './parseur/lexique.js';
 import * as modele from './donjon.js';
 import { dessinerMiniCarte } from './minicarte.js';
-import { telephone, activerOnglets, marquerDefilement, tailleQuiTient } from './telephone.js';
+import { telephone, activerOnglets, marquerDefilement } from './telephone.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -56,6 +59,8 @@ const etat = {
   retour: { compris: [], ignores: [] }, // dernier « compris / non compris », pour le rapport
   focusMini: null,   // salle à qui rendre le focus clavier après un redessin de la mini-carte
   neuves: new Set(), // salles créées et pas encore affichées : la première fois, le focus va à la description
+  zoom: null,        // côté de case choisi au zoom (px), temporaire et jamais sauvegardé ; null = la salle remplit la scène
+  cleAjuste: '',     // donjon / salle / dimensions de la carte affichée : quand elle change, le zoom manuel est oublié
 };
 const r = etat.reglages;
 
@@ -76,9 +81,10 @@ function pile(idSalle = donjon().salleActive) {
   if (!historiques.has(cle)) historiques.set(cle, []);
   return historiques.get(cle);
 }
-function memoriser(idSalle = donjon().salleActive) {
+// `liaisons` : liaisons retirées par la modification (suppression d'une porte reliée), rétablies si on annule.
+function memoriser(idSalle = donjon().salleActive, liaisons = []) {
   const p = pile(idSalle);
-  p.push({ texte: donjon().salles[idSalle].texte, ancres: modele.ancresDeSalle(donjon(), idSalle) });
+  p.push({ texte: donjon().salles[idSalle].texte, ancres: modele.ancresDeSalle(donjon(), idSalle), liaisons });
   if (p.length > 100) p.shift();
 }
 
@@ -96,24 +102,45 @@ function marques(planAffiche) {
   return { portesReliees, selection: element ? { genre: trouve.genre, element } : null };
 }
 
+// --- Taille de la carte : ajustement automatique et zoom -------------------------------------
+const RETRAIT_CARTE = 24;        // px de chaque côté réservés autour de la carte (12 de marge de #support, de chaque côté)
+const ZOOM_MIN = 8, ZOOM_MAX = 300;
+
 /**
- * Côté de case affiché. Sous 760 px la carte est réduite pour tenir dans son onglet (par la taille de case : la grille et
- * le déplacement gardent leur géométrie exacte). Le réglage `r.taille` n'est jamais modifié ; pendant le calibrage à la
- * carte bancaire, ou carte masquée, c'est lui qui s'applique.
+ * Côté de case affiché :
+ *  - pendant le calibrage à la carte bancaire : `r.taille` exact, sans aucune adaptation ;
+ *  - après un zoom manuel (temporaire) : le zoom ;
+ *  - sinon la salle remplit la scène (tailleRemplir, comme la Présentation en mode « remplir »). Scène masquée (onglet
+ *    Texte du téléphone) : `r.taille`, un redessin suit à l'affichage.
+ * `r.taille` est la taille calibrée, lue par la Présentation : rien ici ne l'écrit.
  */
 function tailleAffichee(plan) {
-  if (!telephone() || $('calibrage').checked) return r.taille;
-  return tailleQuiTient($('scene'), plan.largeur, plan.longueur, r.taille, 12);
+  if ($('calibrage').checked) return r.taille;
+  if (etat.zoom) return etat.zoom;
+  const scene = $('scene');
+  return tailleRemplir(plan, scene.clientWidth - RETRAIT_CARTE, scene.clientHeight - RETRAIT_CARTE) ?? r.taille;
 }
 const optionsDessin = (plan) => ({ taille: tailleAffichee(plan), grille: r.grille, marques: marques(plan) });
 
 function dessinerCarte(plan) {
   dessiner($('carte'), plan, optionsDessin(plan));
   marquerDefilement($('carte'), $('scene'));
+  majZoom(plan);
+  placerBulle();
+}
+
+/** Le zoom manuel ne survit ni à un changement de donjon ou de salle, ni de dimensions ; il survit à tout le reste. */
+function oublierZoomSiAutreCarte() {
+  const s = salle();
+  const cle = `${donjon().id}/${s.id}/${s.plan.largeur}x${s.plan.longueur}`;
+  if (cle === etat.cleAjuste) return;
+  etat.cleAjuste = cle;
+  etat.zoom = null;
 }
 
 function rendre() {
   const s = salle();
+  oublierZoomSiAutreCarte();
   dessinerCarte(s.plan);
   majCarteRef();
   $('annuler').hidden = $('annuler-carte').hidden = pile().length === 0;
@@ -158,21 +185,18 @@ function genererBientot() {
 }
 
 // --- Aide de première utilisation ---------------------------------------------------
-// Pas de texte en plus : le sous-titre et la note de « Salles » changent de contenu tant qu'ils servent.
+// Une seule phrase, sous la description, tant que le donjon n'a ni liaison ni deuxième salle ; elle s'efface ensuite.
 // Débutant = aucun donjon n'a encore plus d'une salle ni de liaison ; dès qu'on relie, l'aide s'efface.
-const SOUS_TITRE = 'Décris la pièce, la carte suit.';
-const NOTE_SALLES = 'Clique une porte sur la carte pour la relier à une autre salle.';
 const estDebutant = () => Object.values(etat.donjons).every((d) => d.liaisons.length === 0 && Object.keys(d.salles).length < 2);
 
 function majAide() {
-  $('aide-debut').textContent = estDebutant() ? 'Décris une porte, puis clique dessus pour créer la salle suivante.' : SOUS_TITRE;
+  const zone = $('aide-debut');
+  zone.hidden = !estDebutant();
+  zone.textContent = estDebutant() ? 'Clique une porte sur la carte pour créer la salle suivante.' : '';
   $('aide-salles').textContent = salle().plan.portes.length
-    ? NOTE_SALLES
-    : 'Cette salle n’a aucune porte : écris-en une dans la description (« une porte au nord »), puis clique dessus sur la carte.';
+    ? 'Clique une porte sur la carte pour la relier à une autre salle.'
+    : 'Cette salle n’a pas de porte : ajoutes-en une depuis la palette de la carte, ou écris-la dans la description.';
 }
-
-/** Défilement doux, sans animation si l'utilisateur la réduit. */
-const comportementDefilement = () => (matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth');
 
 /**
  * Affiche la salle active : description, notes, listes. À appeler après tout changement de salle ou de donjon.
@@ -191,6 +215,7 @@ function afficherSalleActive() {
   majListe();
   generer();
   $('panneau').scrollTo({ top: 0 });
+  fermerMenu();
   const nouvelle = etat.neuves.delete(salle().id);
   if (nouvelle && !garderMini && !matchMedia('(pointer: coarse)').matches) $('description').focus({ preventScroll: true });
 }
@@ -213,7 +238,6 @@ $('exemples').replaceChildren(...EXEMPLES.map((ex) => {
   return h('li', {}, a);
 }));
 
-if (estDebutant()) document.querySelector('details.exemples').open = true; // première utilisation seulement
 
 // --- Notes ---------------------------------------------------------------------
 let minuterieNotes;
@@ -223,13 +247,30 @@ $('notes').addEventListener('input', (e) => {
   minuterieNotes = setTimeout(sauvegarder, 300);
 });
 
-// --- Carte : déplacer, cliquer --------------------------------------------------
+// --- Carte : poser (palette), déplacer, cliquer ----------------------------------
+// Élément de la palette armé : un appui sur la carte POSE. Cet écouteur est posé AVANT celui du déplacement (et en phase de
+// capture) pour que le déplacement ne voie jamais cet appui : ni sélection, ni glissement tant qu'un élément est armé.
+$('carte').addEventListener('pointerdown', (e) => {
+  const item = palette.arme();
+  if (!item || e.button !== 0) return;
+  e.stopImmediatePropagation();
+  e.preventDefault();
+  poserSurCarte(item, e.clientX, e.clientY);
+}, true);
+
 // Un élément déplacé réécrit la description, qui régénère la carte et le JSON.
-// Un appui sans glissement sélectionne l'élément.
+// Un appui sans glissement sélectionne l'élément : ses actions s'ouvrent dans une bulle à côté de lui.
 activerDeplacement($('carte'), {
   plan: () => salle().plan,
   taille: () => tailleAffichee(salle().plan),
   apercu: (plan) => dessiner($('carte'), plan, optionsDessin(plan)),
+  portesLarges: true, // zone de clic des portes élargie vers l'intérieur ; un glissement sur un pion déplace toujours le pion
+  commencer: () => { // un glissement commence : la bulle se ferme
+    if (!etat.selection) return;
+    etat.selection = null;
+    etat.message = '';
+    majSelection();
+  },
   deposer: (nouveau) => {
     const s = salle();
     const deplace = modele.elementDeplace(s.plan, nouveau);
@@ -242,22 +283,22 @@ activerDeplacement($('carte'), {
     etat.selection = touche ? modele.descripteur(touche.genre, touche.element) : null;
     etat.message = '';
     rendre();
-    // Les actions de la sélection sont plus bas dans le panneau : on les amène en vue, sans toucher à ce qui est saisi.
-    // (Sous 760 px, aucun défilement : la sélection est un bandeau fixe sous la carte, déjà en vue.)
-    if (touche && !telephone()) $('selection').scrollIntoView({ block: 'nearest', behavior: comportementDefilement() });
   },
 });
 
 function annulerDeplacement() {
   const entree = pile().pop();
   if (!entree) return;
+  modele.retablirLiaisons(donjon(), entree.liaisons);
   modele.restaurerAncres(donjon(), entree.ancres);
   changerTexte(entree.texte);
 }
 $('annuler').addEventListener('click', annulerDeplacement);
 $('annuler-carte').addEventListener('click', annulerDeplacement); // même action, à portée dans l'onglet Carte (écran étroit)
 
-// --- Section « sélection » ---------------------------------------------------------
+// --- Bulle d'actions de l'élément sélectionné -------------------------------------------------
+// Sur ordinateur, `#selection` est une bulle posée à côté de l'élément, dans `#support` (elle défile avec la carte) ;
+// sous 760 px, c'est le bandeau fixe en bas de l'écran (CSS). Le contenu est le même.
 const reperePorte = (p) => (p.mur === 'nord' || p.mur === 'sud' ? lettreColonne(p.position) : String(p.position + 1));
 
 function libelleSelection(trouve) {
@@ -265,6 +306,17 @@ function libelleSelection(trouve) {
   if (trouve.genre === 'porte') return `${e.type} · mur ${e.mur}, repère ${reperePorte(e)}`;
   if (trouve.genre === 'creature') return `${nomAffiche(e.type)} ${e.numero} · ${nomCase(e.x, e.y)}`;
   return `${nomAffiche(e.type)} · ${nomCase(e.x, e.y)}`;
+}
+
+/** Supprime l'élément sélectionné (une porte reliée perd d'abord sa liaison) ; annulable avec « Annuler ». */
+function supprimerSelection() {
+  const s = salle();
+  const res = modele.supprimerElement(donjon(), s.id, etat.selection);
+  if (!res) return;
+  memoriser(s.id, res.liaisonsRetirees);
+  etat.selection = null;
+  etat.message = '';
+  changerTexte(decrire(res.plan));
 }
 
 function majSelection() {
@@ -284,22 +336,13 @@ function majSelection() {
     b.addEventListener('click', onClick);
     return b;
   };
-  // « Fermer » n'existe que sous 760 px (bandeau fixe) ; au-dessus, on désélectionne en cliquant dans le vide, comme avant.
   const contenu = [
     bouton('✕ Fermer', () => { etat.selection = null; etat.message = ''; rendre(); }, 'discret petit fermer-selection'),
-    h('h2', { textContent: 'Sélection' }), h('p', { className: 'selection-titre', textContent: libelleSelection(trouve) }),
+    h('p', { className: 'selection-titre', textContent: libelleSelection(trouve) }),
   ];
 
-  contenu.push(h('div', { className: 'actions' }, bouton(el.cache === true ? 'Rendre visible' : 'Marquer comme caché', () => {
-    const nouveau = modele.basculerCache(s.plan, etat.selection);
-    if (!nouveau) return;
-    memoriser();
-    changerTexte(decrire(nouveau));
-  }, 'discret')));
-  if (el.cache === true) contenu.push(h('p', { className: 'note', textContent: 'Caché aux joueurs. Tu le vois ici, en translucide avec un contour en pointillés.' }));
-
+  const lien = trouve.genre === 'porte' ? modele.liaisonDePorte(d, s.id, el) : null;
   if (trouve.genre === 'porte') {
-    const lien = modele.liaisonDePorte(d, s.id, el);
     if (lien) {
       const autre = d.salles[lien.autre.salle];
       contenu.push(h('p', {}, 'Reliée à ', h('strong', { textContent: autre.nom }), '.'));
@@ -307,11 +350,11 @@ function majSelection() {
         contenu.push(h('p', { className: 'note erreur', textContent: 'La porte de retour a disparu dans cette salle : la liaison est orpheline là-bas.' }));
       }
       contenu.push(h('div', { className: 'actions' },
-        bouton(`Aller à la salle « ${autre.nom} »`, () => activerSalle(autre.id)),
+        bouton(`Aller à « ${autre.nom} »`, () => activerSalle(autre.id)),
         bouton('Délier', () => { modele.delier(d, lien.liaison.id); etat.message = 'Liaison retirée.'; rendre(); }, 'discret')));
     } else {
       const depuis = { salle: s.id, mur: el.mur, position: el.position };
-      contenu.push(h('div', { className: 'actions' }, bouton('Nouvelle salle derrière cette porte', () => {
+      contenu.push(h('div', { className: 'actions' }, bouton('Créer la salle derrière', () => {
         try {
           const { salle: nouvelle } = modele.creerSalleDerriere(d, { depuis, echelle: r.echelle });
           etat.neuves.add(nouvelle.id);
@@ -321,28 +364,242 @@ function majSelection() {
         rendre();
       })));
       const autres = modele.listerSalles(d).filter((x) => x.id !== s.id);
-      const choix = h('select', { id: 'relier-choix', disabled: autres.length === 0, 'aria-label': 'Salle à relier' },
-        ...autres.map((x) => h('option', { value: x.id, textContent: x.nom })));
-      const relier = bouton('Relier à une salle existante', () => {
-        const cible = d.salles[choix.value];
-        if (!cible) return;
-        const ancres = modele.ancresDeSalle(d, cible.id);
-        const texteAvant = cible.texte;
-        try {
-          modele.relierASalle(d, depuis, cible.id, { echelle: r.echelle });
-          pile(cible.id).push({ texte: texteAvant, ancres }); // annulable depuis la salle d'arrivée
-          etat.message = `Reliée à « ${cible.nom} » : une porte a été ajoutée sur son mur ${modele.OPPOSE[el.mur]}.`;
-        } catch (err) { etat.message = err.message; }
-        rendre();
-      });
-      relier.disabled = autres.length === 0;
-      contenu.push(h('div', { className: 'ligne-relier' }, choix, relier));
-      if (autres.length === 0) contenu.push(h('p', { className: 'note', textContent: 'Ajoute d’abord une autre salle pour pouvoir y relier cette porte.' }));
+      if (autres.length) {
+        const choix = h('select', { id: 'relier-choix', 'aria-label': 'Salle à relier' },
+          ...autres.map((x) => h('option', { value: x.id, textContent: x.nom })));
+        const relier = bouton('Relier', () => {
+          const cible = d.salles[choix.value];
+          if (!cible) return;
+          const ancres = modele.ancresDeSalle(d, cible.id);
+          const texteAvant = cible.texte;
+          try {
+            modele.relierASalle(d, depuis, cible.id, { echelle: r.echelle });
+            pile(cible.id).push({ texte: texteAvant, ancres, liaisons: [] }); // annulable depuis la salle d'arrivée
+            etat.message = `Reliée à « ${cible.nom} » : une porte a été ajoutée sur son mur ${modele.OPPOSE[el.mur]}.`;
+          } catch (err) { etat.message = err.message; }
+          rendre();
+        }, 'discret');
+        relier.title = 'Relier cette porte à une salle existante (une porte est ajoutée sur son mur opposé)';
+        contenu.push(h('div', { className: 'ligne-relier' }, choix, relier));
+      }
     }
   }
+
+  // Cacher / supprimer : sur toute la sélection. Un seul clic pour supprimer (« Annuler » rattrape une erreur), sauf une
+  // porte reliée : il faut confirmer en deux temps, car la liaison est retirée avec elle.
+  const basculer = bouton(el.cache === true ? 'Rendre visible' : 'Marquer comme caché', () => {
+    const nouveau = modele.basculerCache(s.plan, etat.selection);
+    if (!nouveau) return;
+    memoriser();
+    changerTexte(decrire(nouveau));
+  }, 'discret');
+  let supprimer;
+  if (lien) {
+    supprimer = h('button', { type: 'button', className: 'discret', title: 'Supprime cette porte et retire sa liaison (annulable)' });
+    deuxTemps(supprimer, 'Supprimer', 'Retirer la liaison et supprimer ?', supprimerSelection);
+  } else {
+    supprimer = bouton('Supprimer', supprimerSelection, 'discret');
+    supprimer.title = 'Supprime cet élément (annulable)';
+  }
+  contenu.push(h('div', { className: 'actions' }, basculer, supprimer));
+  if (el.cache === true) contenu.push(h('p', { className: 'note', textContent: 'Caché aux joueurs. Tu le vois ici, en translucide avec un contour en pointillés.' }));
   if (etat.message) contenu.push(h('p', { className: 'note', textContent: etat.message }));
   zone.replaceChildren(...contenu);
+  placerBulle();
 }
+
+/** Rectangle d'un élément, en cases (origine : coin nord-ouest de la salle). */
+function rectElement(genre, e, plan) {
+  if (genre === 'porte') return rectPorte(plan, e);
+  if (genre === 'creature') return { x: e.x, y: e.y, l: e.taille, h: e.taille };
+  return { x: e.x, y: e.y, l: e.l, h: e.h };
+}
+
+/**
+ * Pose la bulle à côté de l'élément sélectionné : à droite, sinon à gauche, sinon dessous, sinon dessus, puis recalée pour ne
+ * jamais dépasser de la zone visible de la scène (même si la carte zoomée la déborde). Rappelée à chaque redessin, zoom,
+ * défilement et redimensionnement. Sous 760 px la bulle est le bandeau du bas : rien à placer.
+ */
+function placerBulle() {
+  const bulle = $('selection');
+  if (bulle.hidden) return;
+  if (telephone()) { bulle.style.left = bulle.style.top = bulle.style.maxHeight = ''; return; }
+  const plan = salle().plan;
+  const trouve = modele.retrouverElement(plan, etat.selection);
+  const scene = $('scene');
+  if (!trouve || !scene.clientWidth) return;
+  const t = tailleAffichee(plan);
+  const rc = rectElement(trouve.genre, trouve.element, plan);
+  const cv = $('carte').getBoundingClientRect(), sc = scene.getBoundingClientRect();
+  const ancre = { g: cv.left + (MARGE + rc.x) * t, h: cv.top + (MARGE + rc.y) * t };
+  ancre.d = ancre.g + rc.l * t;
+  ancre.b = ancre.h + rc.h * t;
+  const vue = { g: sc.left + scene.clientLeft + 8, h: sc.top + scene.clientTop + 8 };
+  vue.d = sc.left + scene.clientLeft + scene.clientWidth - 8;
+  vue.b = Math.min(sc.top + scene.clientTop + scene.clientHeight - 8, $('zoom').getBoundingClientRect().top - 8); // au-dessus du zoom, qui reste visible
+  bulle.style.maxHeight = `${Math.max(120, vue.b - vue.h)}px`;
+  const w = bulle.offsetWidth, ha = bulle.offsetHeight;
+  const ECART = 10;
+  // À côté (la bulle glisse alors verticalement pour rester visible), sinon dessous ou dessus (elle glisse horizontalement).
+  const essais = [
+    { x: ancre.d + ECART, y: ancre.h - 6, ok: ancre.d + ECART + w <= vue.d },    // à droite
+    { x: ancre.g - ECART - w, y: ancre.h - 6, ok: ancre.g - ECART - w >= vue.g }, // à gauche
+    { x: ancre.g, y: ancre.b + ECART, ok: ancre.b + ECART + ha <= vue.b },       // dessous
+    { x: ancre.g, y: ancre.h - ECART - ha, ok: ancre.h - ECART - ha >= vue.h },  // dessus
+  ];
+  let { x, y } = essais.find((e) => e.ok) || essais[0];
+  x = Math.max(vue.g, Math.min(x, vue.d - w));
+  y = Math.max(vue.h, Math.min(y, vue.b - ha));
+  const sp = $('support').getBoundingClientRect();
+  bulle.style.left = `${Math.round(x - sp.left)}px`;
+  bulle.style.top = `${Math.round(y - sp.top)}px`;
+}
+$('scene').addEventListener('scroll', placerBulle, { passive: true });
+
+// Un clic dans le vide de la scène (hors carte et hors bulle) ferme la bulle, comme un clic dans le vide de la carte.
+$('scene').addEventListener('pointerdown', (e) => {
+  if (!etat.selection || (e.target !== $('scene') && e.target !== $('support'))) return;
+  etat.selection = null;
+  etat.message = '';
+  rendre();
+});
+
+// --- Zoom ------------------------------------------------------------------------------------
+/** Affiche le zoom courant (pourcentage de la taille réelle : 100 % = une case à la taille calibrée). */
+function majZoom(plan) {
+  const calibre = $('calibrage').checked;
+  const t = tailleAffichee(plan || salle().plan);
+  $('zoom-pct').textContent = `${Math.round((t / r.taille) * 100)} %`;
+  for (const id of ['zoom-moins', 'zoom-plus', 'zoom-ajuster', 'zoom-reel']) $(id).disabled = calibre;
+  $('zoom').title = calibre ? 'Calibrage en cours : la taille d’une case est celle du réglage. Décoche le calibrage pour zoomer.' : '';
+  $('zoom-ajuster').setAttribute('aria-pressed', String(!calibre && !etat.zoom));
+}
+
+/**
+ * Applique un zoom manuel (côté de case en px). Si `ancre` ({x, y} en px écran) est donné, la case qui s'y trouve y reste :
+ * le zoom à la molette se fait sous le curseur.
+ */
+function zoomer(t, ancre) {
+  if ($('calibrage').checked) return;
+  const plan = salle().plan;
+  const avant = tailleAffichee(plan);
+  etat.zoom = t === null ? null : Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, Math.round(t)));
+  let sous = null;
+  if (ancre) {
+    const cv = $('carte').getBoundingClientRect();
+    sous = [(ancre.x - cv.left) / avant - MARGE, (ancre.y - cv.top) / avant - MARGE];
+  }
+  dessinerCarte(plan);
+  majCarteRef();
+  if (sous) {
+    const apres = tailleAffichee(plan), cv = $('carte').getBoundingClientRect();
+    $('scene').scrollLeft += cv.left + (sous[0] + MARGE) * apres - ancre.x;
+    $('scene').scrollTop += cv.top + (sous[1] + MARGE) * apres - ancre.y;
+    placerBulle();
+  }
+}
+/** Un cran de zoom : ×1,25 ou ÷1,25, d'au moins 1 px. */
+function pasZoom(sens) {
+  const t = tailleAffichee(salle().plan);
+  const suivant = sens > 0 ? Math.max(t + 1, t * 1.25) : Math.min(t - 1, t / 1.25);
+  zoomer(suivant);
+}
+$('zoom-plus').addEventListener('click', () => pasZoom(1));
+$('zoom-moins').addEventListener('click', () => pasZoom(-1));
+$('zoom-ajuster').addEventListener('click', () => zoomer(null));
+$('zoom-reel').addEventListener('click', () => zoomer(r.taille));
+// Ctrl ou Cmd + molette (et le pincement du pavé tactile) : zoom sous le curseur ; la molette seule fait défiler.
+$('scene').addEventListener('wheel', (e) => {
+  if (!e.ctrlKey && !e.metaKey) return;
+  e.preventDefault();
+  zoomer(tailleAffichee(salle().plan) * Math.exp(-Math.max(-50, Math.min(50, e.deltaY)) * 0.01), { x: e.clientX, y: e.clientY });
+}, { passive: false });
+
+// La carte se réajuste quand la scène change de taille (fenêtre, plein écran, passage à l'onglet Carte du téléphone).
+let derniereScene = '';
+new ResizeObserver(() => {
+  const scene = $('scene');
+  const cle = `${scene.clientWidth}x${scene.clientHeight}`;
+  if (cle === derniereScene) return;
+  derniereScene = cle;
+  if (!scene.clientWidth) return; // masquée : le redessin suivra à l'affichage
+  dessinerCarte(salle().plan);
+  majCarteRef();
+}).observe($('scene'));
+
+// --- Palette : ajouter à la souris ---------------------------------------------------------------
+const CLE_PALETTE = 'carte-de-mj:palette-repliee';
+const lirePaletteRepliee = () => { try { return localStorage.getItem(CLE_PALETTE) === '1'; } catch { return false; } };
+const ecrirePaletteRepliee = (v) => { try { localStorage.setItem(CLE_PALETTE, v ? '1' : '0'); } catch { /* stockage indisponible : le choix n'est pas retenu */ } };
+
+let minuterieMessage;
+/** Retour d'une pose, posé sur la carte (hors du flux : rien ne bouge). */
+function annoncerCarte(texte, erreur = false) {
+  const zone = $('message-carte');
+  zone.hidden = false;
+  zone.textContent = texte;
+  zone.classList.toggle('erreur-pose', erreur);
+  clearTimeout(minuterieMessage);
+  minuterieMessage = setTimeout(() => { zone.hidden = true; }, erreur ? 4500 : 2500);
+}
+
+/** Pose l'élément de la palette au point écran donné, si ce point est sur la carte visible. Renvoie vrai si posé. */
+function poserSurCarte(item, clientX, clientY) {
+  const scene = $('scene').getBoundingClientRect(), cv = $('carte').getBoundingClientRect();
+  const dansScene = clientX >= scene.left && clientX <= scene.right && clientY >= scene.top && clientY <= scene.bottom;
+  const dansCarte = clientX >= cv.left && clientX <= cv.right && clientY >= cv.top && clientY <= cv.bottom;
+  if (!dansScene || !dansCarte) { annoncerCarte('Lâche l’élément sur la carte pour le poser.', true); return false; }
+  const t = tailleAffichee(salle().plan);
+  const res = modele.ajouterElement(salle().plan, item, (clientX - cv.left) / t - MARGE, (clientY - cv.top) / t - MARGE);
+  if (res.erreur) { annoncerCarte(res.erreur, true); return false; }
+  memoriser();
+  etat.selection = null;
+  etat.message = '';
+  changerTexte(decrire(res.plan));
+  annoncerCarte(res.message);
+  return true;
+}
+
+const palette = creerPalette($('palette'), {
+  elements: elementsPalette(),
+  groupes: GROUPES_PALETTE,
+  replie: telephone() || lirePaletteRepliee(),
+  onReplier: (replie) => { if (!telephone()) ecrirePaletteRepliee(replie); },
+  onArmer: (item) => {
+    $('carte').classList.toggle('arme', !!item);
+    if (item) {
+      etat.selection = null; // la bulle se ferme : le prochain clic sur la carte pose
+      majSelection();
+      if (telephone()) palette.replier(true); // au doigt, la palette libère la carte une fois l'élément choisi
+      annoncerCarte(`${item.libelle} : clique une case de la carte pour le poser. Échap pour arrêter.`);
+    } else $('message-carte').hidden = true;
+  },
+  onDeposer: (item, x, y) => { poserSurCarte(item, x, y); },
+  survol: (x, y) => {
+    const cv = $('carte').getBoundingClientRect(), sc = $('scene').getBoundingClientRect();
+    return x >= Math.max(cv.left, sc.left) && x <= Math.min(cv.right, sc.right) && y >= Math.max(cv.top, sc.top) && y <= Math.min(cv.bottom, sc.bottom);
+  },
+});
+
+// --- Menu du donjon (barre du haut) -------------------------------------------------------------------
+function ouvrirMenu(ouvert) {
+  $('menu-donjon').hidden = !ouvert;
+  $('menu-donjon-bouton').setAttribute('aria-expanded', String(ouvert));
+}
+function fermerMenu() { ouvrirMenu(false); }
+$('menu-donjon-bouton').addEventListener('click', () => ouvrirMenu($('menu-donjon').hidden));
+document.addEventListener('pointerdown', (e) => {
+  if (!$('menu-donjon').hidden && !e.target.closest('.menu-donjon')) fermerMenu();
+});
+
+// Échap, du plus proche au plus lointain : glisser en cours, menu ouvert, élément armé, bulle ouverte.
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape' || e.defaultPrevented) return;
+  if (palette.annulerGlisser()) return;
+  if (!$('menu-donjon').hidden) { fermerMenu(); $('menu-donjon-bouton').focus(); return; }
+  if (palette.arme()) { palette.desarmer(); return; }
+  if (etat.selection) { etat.selection = null; etat.message = ''; rendre(); }
+});
 
 // --- Liaisons orphelines --------------------------------------------------------
 function majOrphelines() {
@@ -392,8 +649,21 @@ function deuxTemps(bouton, libelle, confirmation, action, annonce) {
   bouton.addEventListener('blur', reinitialiser);
 }
 
+/** Onglets des salles, au-dessus de la description : un clic affiche la salle. */
+function majOnglets() {
+  const d = donjon();
+  $('salles-onglets').replaceChildren(...modele.listerSalles(d).map((s) => {
+    const actif = s.id === d.salleActive;
+    const b = h('button', { type: 'button', className: `onglet-salle${actif ? ' actif' : ''}`, textContent: s.nom, title: s.nom, role: 'tab', 'aria-selected': String(actif) });
+    b.addEventListener('click', () => { if (!actif) activerSalle(s.id); });
+    return h('li', { role: 'presentation' }, b);
+  }));
+  $('salles-onglets').querySelector('.actif')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+}
+
 function majListe() {
   const d = donjon();
+  majOnglets();
   $('salles-liste').replaceChildren(...modele.listerSalles(d).map((s) => {
     const actif = s.id === d.salleActive;
     const nom = h('input', { type: 'text', value: s.nom, maxLength: 80, spellcheck: false, 'aria-label': `Nom de la salle ${s.nom}` });
@@ -401,6 +671,7 @@ function majListe() {
       modele.renommerSalle(d, s.id, nom.value);
       nom.value = s.nom;
       if (actif) $('nom-salle-active').textContent = `· ${s.nom}`;
+      majOnglets();
       rendre();
     });
     const aller = h('button', { type: 'button', className: 'discret', textContent: actif ? 'Affichée' : 'Afficher', disabled: actif });
@@ -431,13 +702,9 @@ function majMiniCarte() {
 
 $('salle-ajouter').addEventListener('click', () => {
   const d = donjon();
-  etat.neuves.add(modele.ajouterSalle(d, { echelle: r.echelle }).id);
-  etat.message = '';
-  majListe();
-  rendre();
-  const champ = $('salles-liste').querySelector('li:last-child input');
-  champ?.focus();
-  champ?.select();
+  const nouvelle = modele.ajouterSalle(d, { echelle: r.echelle });
+  etat.neuves.add(nouvelle.id);
+  activerSalle(nouvelle.id); // la salle isolée s'affiche, prête à être décrite
 });
 
 // --- Donjons : changer, nouveau, renommer, supprimer ------------------------------
@@ -446,6 +713,7 @@ function majDonjons() {
   choix.replaceChildren(...Object.values(etat.donjons).map((d) => h('option', { value: d.id, textContent: d.nom, selected: d.id === etat.actif })));
   choix.value = etat.actif;
   $('donjon-nom').value = donjon().nom;
+  $('menu-donjon-nom').textContent = donjon().nom;
 }
 
 $('donjon-choix').addEventListener('change', (e) => {
@@ -473,7 +741,7 @@ function annonceSuppressionDonjon() {
   return `Supprimer « ${d.nom} » et ${n > 1 ? `ses ${n} salles` : 'sa salle'} ? Clique sur Confirmer dans les 4 secondes.`
     + (partie ? ' La partie en cours reste disponible dans la Présentation.' : '');
 }
-deuxTemps($('donjon-supprimer'), 'Supprimer', 'Confirmer', () => {
+deuxTemps($('donjon-supprimer'), 'Supprimer ce donjon', 'Confirmer', () => {
   for (const cle of [...historiques.keys()]) if (cle.startsWith(`${etat.actif}/`)) historiques.delete(cle);
   delete etat.donjons[etat.actif];
   if (!Object.keys(etat.donjons).length) {
@@ -494,6 +762,7 @@ $('copier-rapport').addEventListener('click', async () => {
     message.textContent = 'Copié ! Colle-le dans ton message.';
   } catch {
     // Presse-papiers refusé (page non sécurisée…) : on montre le texte à copier à la main.
+    ouvrirMenu(true);
     for (let d = $('json').closest('details'); d; d = d.parentElement?.closest('details')) d.open = true;
     $('json').value = texte;
     $('json').select();
@@ -543,7 +812,7 @@ function majCarteRef() {
   ref.style.width = `${(r.taille * 85.6) / 25}px`;
   ref.style.height = `${(r.taille * 53.98) / 25}px`;
 }
-$('calibrage').addEventListener('change', (e) => { $('aide-calibrage').hidden = !e.target.checked; majCarteRef(); });
+$('calibrage').addEventListener('change', (e) => { $('aide-calibrage').hidden = !e.target.checked; rendre(); });
 
 // --- Plein écran (vue table) --------------------------------------------------
 $('plein-ecran').addEventListener('click', () => $('scene').requestFullscreen?.());
@@ -607,15 +876,12 @@ function afficherErreursJson(erreurs) {
 }
 
 // --- Écran étroit : onglets Texte / Carte ---------------------------------------------
-// La carte est redessinée (à la taille qui tient) quand on l'affiche, et quand la fenêtre change de taille ou de sens.
-function redessinerCarteSiVisible() {
-  if (!telephone() || document.body.dataset.onglet !== 'carte') return;
-  dessinerCarte(salle().plan);
-  majCarteRef();
-}
-activerOnglets(document.querySelector('.onglets'), { defaut: 'texte', onChange: (nom) => { if (nom === 'carte') redessinerCarteSiVisible(); } });
-let minuterieTaille;
-window.addEventListener('resize', () => { clearTimeout(minuterieTaille); minuterieTaille = setTimeout(redessinerCarteSiVisible, 150); });
+// La carte est redessinée (à la taille qui tient) quand on l'affiche ; quand la fenêtre change de taille ou de sens,
+// c'est l'observateur de la scène (plus haut) qui s'en charge.
+activerOnglets(document.querySelector('.onglets'), {
+  defaut: 'texte',
+  onChange: (nom) => { if (nom === 'carte' && $('scene').clientWidth) { dessinerCarte(salle().plan); majCarteRef(); } },
+});
 
 // --- Démarrage ----------------------------------------------------------------
 afficherSalleActive();

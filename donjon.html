@@ -7,86 +7,103 @@
   <meta name="description" content="Décris une pièce, la carte s'affiche sur une grille pour tes figurines.">
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/donjon.css">
 </head>
 <body>
-  <!-- Écran étroit seulement (js/telephone.js, CSS sous 760 px) : un seul des deux à la fois, la carte à sa taille. Masqué ailleurs. -->
-  <div class="onglets" role="group" aria-label="Afficher">
-    <button type="button" data-onglet="texte" aria-pressed="true">Texte</button>
-    <button type="button" data-onglet="carte" aria-pressed="false">Carte</button>
-    <button id="annuler-carte" type="button" class="discret" hidden>↩ Annuler</button>
-  </div>
-  <aside id="panneau">
-    <header class="menu-site">
-      <div class="menu-int">
-        <a class="menu-nom" href="index.html">Carte de MJ</a>
-        <nav aria-label="Navigation principale">
-          <a class="menu-lien" href="fiche.html">Fiche</a>
-          <a class="menu-lien" href="donjon.html" aria-current="page">Donjon</a>
-          <a class="menu-lien" href="presentation.html">Présentation</a>
-          <a class="menu-lien" href="impression.html">Imprimer</a>
-        </nav>
-      </div>
-    </header>
-    <header>
-      <h1>Donjon</h1>
-      <p id="aide-debut" class="sous-titre">Décris la pièce, la carte suit.</p>
-    </header>
+  <!-- Barre du haut, sur toute la largeur. Écran étroit (js/telephone.js, CSS sous 760 px) : une seule barre, avec les
+       onglets Texte / Carte à la place du nom et des liens (ils passent dans le menu du donjon). -->
+  <header id="barre" class="menu-site">
+    <div class="menu-int">
+      <a class="menu-nom" href="index.html">Carte de MJ</a>
+      <nav aria-label="Navigation principale">
+        <a class="menu-lien" href="fiche.html">Fiche</a>
+        <a class="menu-lien" href="donjon.html" aria-current="page">Donjon</a>
+        <a class="menu-lien" href="presentation.html">Présentation</a>
+        <a class="menu-lien" href="impression.html" title="Ouvre la page d'impression du donjon actif : plans à l'échelle des figurines, version MJ ou joueurs">Imprimer</a>
+      </nav>
+    </div>
 
-    <section class="donjons" aria-label="Donjon">
-      <label for="donjon-choix">Donjon ouvert</label>
-      <select id="donjon-choix"></select>
-      <label for="donjon-nom" class="doux">Renommer</label>
-      <input id="donjon-nom" type="text" maxlength="80" spellcheck="false">
-      <div class="actions">
-        <button id="donjon-nouveau" type="button" class="discret">+ Nouveau donjon</button>
-        <button id="donjon-supprimer" type="button" class="discret">Supprimer</button>
+    <div class="onglets" role="group" aria-label="Afficher">
+      <button type="button" data-onglet="texte" aria-pressed="true">Texte</button>
+      <button type="button" data-onglet="carte" aria-pressed="false">Carte</button>
+      <button id="annuler-carte" type="button" class="discret" hidden aria-label="Annuler" title="Annuler la dernière modification">↩<span class="libelle"> Annuler</span></button>
+    </div>
+
+    <div class="menu-donjon">
+      <button id="menu-donjon-bouton" type="button" class="discret" aria-haspopup="true" aria-expanded="false" aria-controls="menu-donjon"
+        title="Changer de donjon, le renommer, l'exporter, l'importer…">
+        <span class="mot-donjon">Donjon</span> <strong id="menu-donjon-nom"></strong> <span aria-hidden="true">▾</span>
+      </button>
+      <div id="menu-donjon" class="menu-panneau" hidden>
+        <p class="liens-site">
+          <a class="bouton" href="index.html">Accueil</a>
+          <a class="bouton" href="fiche.html">Fiche</a>
+          <a class="bouton" href="presentation.html">Présentation</a>
+          <a class="bouton" href="impression.html">Imprimer</a>
+        </p>
+
+        <label for="donjon-choix">Changer de donjon</label>
+        <select id="donjon-choix"></select>
+        <label for="donjon-nom" class="doux">Renommer</label>
+        <input id="donjon-nom" type="text" maxlength="80" spellcheck="false">
+        <div class="actions">
+          <button id="donjon-nouveau" type="button" class="discret">+ Nouveau donjon</button>
+          <button id="exporter" type="button" class="discret" title="Enregistre le donjon entier (salles, notes, liaisons, éléments cachés)">Exporter</button>
+          <label class="bouton">Importer <input id="importer" type="file" accept=".json,application/json" hidden></label>
+        </div>
+        <p id="message-fichier" class="note" hidden></p>
+        <p id="erreurs-fichier" class="note erreur" hidden></p>
+
+        <details class="plan-json">
+          <summary>Plan JSON de la salle (modifiable)</summary>
+          <textarea id="json" rows="10" spellcheck="false"></textarea>
+          <div class="actions"><button id="appliquer-json" type="button">Appliquer le JSON</button></div>
+          <p id="erreurs-json" class="note erreur" hidden></p>
+        </details>
+
+        <div class="actions">
+          <button id="copier-rapport" type="button" class="discret"
+            title="Copie la description, ce qui a été compris, les mots ignorés et la carte en texte, à coller dans ton message">📋 Copier pour signaler une erreur de lecture</button>
+        </div>
+        <p id="message-copie" class="note" hidden></p>
+
+        <div class="actions zone-danger">
+          <button id="donjon-supprimer" type="button" class="discret">Supprimer ce donjon</button>
+        </div>
+        <p id="donjon-confirmation" class="note erreur" role="status" hidden></p>
+        <p class="note pied">Projet libre (MIT) · fonctionne hors ligne</p>
       </div>
-      <div class="actions navigation">
-        <a class="bouton" href="presentation.html" title="Ouvre l'outil Présentation : choisis ce donjon dans la liste">Présenter ce donjon</a>
-        <a class="bouton" href="impression.html" title="Ouvre la page d'impression du donjon actif : plans à l'échelle des figurines, version MJ ou joueurs">Imprimer ce donjon</a>
-      </div>
-      <p id="donjon-confirmation" class="note erreur" role="status" hidden></p>
-    </section>
+    </div>
+
+    <a id="presenter" class="bouton principal" href="presentation.html" title="Ouvre l'outil Présentation : choisis ce donjon dans la liste">Présenter</a>
+  </header>
+
+  <aside id="panneau" aria-label="Description de la salle">
+    <h1 class="cache-visuel">Donjon</h1>
+
+    <div class="salles-barre">
+      <ul id="salles-onglets" class="salles-onglets" role="tablist" aria-label="Salles du donjon"></ul>
+      <button id="salle-ajouter" type="button" class="discret" aria-label="Ajouter une salle" title="Ajouter une salle isolée">+</button>
+    </div>
 
     <section class="saisie">
-      <label for="description">Description <span id="nom-salle-active" class="doux"></span></label>
-      <p class="note astuce">Déplace pions, objets et portes sur la carte : la description et le JSON suivent. Un simple clic sélectionne.</p>
-      <textarea id="description" rows="5" spellcheck="false"
+      <label for="description" class="cache-visuel">Description de la salle <span id="nom-salle-active"></span></label>
+      <textarea id="description" rows="4" spellcheck="false"
         placeholder="Ex. : grande pièce de 4 m par 12, quatre piliers, deux coffres au fond de la salle, une statue devant une porte"></textarea>
       <div class="actions">
         <button id="micro" type="button" title="Dicter la description">🎙️ Dicter</button>
         <button id="effacer" type="button" class="discret">Effacer</button>
+        <button id="annuler" type="button" class="discret" hidden title="Annule la dernière modification de la carte (déplacement, ajout, suppression)">↩ Annuler</button>
       </div>
       <p id="message-micro" class="note" hidden></p>
-      <details class="exemples">
-        <summary>Exemples</summary>
-        <ul id="exemples"></ul>
-      </details>
+      <p id="aide-debut" class="note" hidden></p>
     </section>
 
     <section class="retour">
       <h2>Compris</h2>
       <ul id="compris"></ul>
       <p id="ignores" class="note" hidden></p>
-      <div class="actions">
-        <button id="annuler" type="button" class="discret" hidden
-          title="Revient à la description d'avant le dernier déplacement">↩ Annuler le déplacement</button>
-        <button id="copier-rapport" type="button" class="discret"
-          title="Copie la description, ce qui a été compris, les mots ignorés et la carte en texte, à coller dans ton message">📋 Copier pour signaler une erreur de lecture</button>
-      </div>
-      <p id="message-copie" class="note" hidden></p>
     </section>
-
-    <section id="selection" class="selection" aria-live="polite" hidden></section>
-
-    <details class="bloc" open>
-      <summary><h2>Salles</h2></summary>
-      <ul id="salles-liste" class="salles-liste"></ul>
-      <div class="actions"><button id="salle-ajouter" type="button" class="discret">+ Salle isolée</button></div>
-      <div id="minicarte" class="minicarte" role="region" aria-label="Mini-carte du donjon"></div>
-      <p id="aide-salles" class="note">Clique une porte sur la carte pour la relier à une autre salle.</p>
-      <div id="orphelines" hidden></div>
-    </details>
 
     <details class="bloc">
       <summary><h2>Notes de la salle</h2></summary>
@@ -94,18 +111,26 @@
         placeholder="Secrets, pièges, trésors… Ces notes ne sont jamais réécrites par la description."></textarea>
     </details>
 
+    <details class="bloc">
+      <summary><h2>Plan du donjon</h2></summary>
+      <div id="minicarte" class="minicarte" role="region" aria-label="Mini-carte du donjon"></div>
+      <div id="orphelines" hidden></div>
+      <p id="aide-salles" class="note"></p>
+      <ul id="salles-liste" class="salles-liste"></ul>
+    </details>
+
     <details class="bloc reglages">
       <summary><h2>Réglages</h2></summary>
       <label class="ligne">Échelle
         <span><input id="echelle" type="number" min="0.5" max="5" step="0.5" value="1.5"> m par case</span>
       </label>
-      <label class="ligne">Taille d'une case
+      <label class="ligne case"><input id="grille" type="checkbox" checked> Afficher la grille</label>
+      <label class="ligne">Taille réelle d'une case
         <span><input id="taille" type="range" min="16" max="160" step="1" value="48"> <output id="taille-val">48 px</output></span>
       </label>
-      <label class="ligne case"><input id="grille" type="checkbox" checked> Afficher la grille</label>
       <label class="ligne case"><input id="calibrage" type="checkbox"> Calibrer avec une carte bancaire</label>
       <p id="aide-calibrage" class="note" hidden>
-        Pose une carte bancaire sur l'écran et ajuste « Taille d'une case » jusqu'à ce que le rectangle
+        Pose une carte bancaire sur l'écran et ajuste « Taille réelle d'une case » jusqu'à ce que le rectangle
         pointillé ait exactement sa taille. Une case fera alors 2,5 cm.
       </p>
       <div class="actions">
@@ -113,32 +138,34 @@
       </div>
     </details>
 
-    <details class="bloc fichiers">
-      <summary><h2>Fichiers</h2></summary>
-      <div class="actions">
-        <button id="exporter" type="button" title="Enregistre le donjon entier (salles, notes, liaisons, éléments cachés)">Exporter le donjon</button>
-        <label class="bouton">Importer un donjon <input id="importer" type="file" accept=".json,application/json" hidden></label>
-      </div>
-      <p id="message-fichier" class="note" hidden></p>
-      <p id="erreurs-fichier" class="note erreur" hidden></p>
-      <details>
-        <summary>Plan JSON de la salle (modifiable)</summary>
-        <textarea id="json" rows="12" spellcheck="false"></textarea>
-        <div class="actions"><button id="appliquer-json" type="button">Appliquer le JSON</button></div>
-        <p id="erreurs-json" class="note erreur" hidden></p>
-      </details>
+    <details class="exemples">
+      <summary>Exemples</summary>
+      <ul id="exemples"></ul>
     </details>
-
-    <footer class="note">Projet libre (MIT) · fonctionne hors ligne au clavier</footer>
   </aside>
 
-  <main id="scene">
-    <div id="support">
-      <canvas id="carte" aria-label="Carte de la pièce"></canvas>
-      <div id="carte-ref" hidden></div>
+  <div id="cadre-scene">
+    <main id="scene">
+      <div id="support">
+        <canvas id="carte" aria-label="Carte de la pièce"></canvas>
+        <div id="carte-ref" hidden></div>
+        <!-- Actions de l'élément cliqué : bulle posée à côté de lui (ordinateur) ou bandeau fixe en bas (écran étroit). -->
+        <section id="selection" class="selection" aria-live="polite" hidden></section>
+      </div>
+      <button id="quitter-plein-ecran" type="button" hidden>Quitter le plein écran</button>
+    </main>
+
+    <!-- Hors de la scène qui défile : ces commandes restent au même endroit quand on fait défiler une carte zoomée. -->
+    <div id="palette" class="flottant" role="group" aria-label="Ajouter à la carte"></div>
+    <div id="zoom" class="flottant" role="group" aria-label="Zoom de la carte">
+      <button id="zoom-moins" type="button" class="discret" aria-label="Réduire la carte" title="Réduire">−</button>
+      <output id="zoom-pct" aria-live="off" title="Taille de la carte par rapport à la taille réelle">100 %</output>
+      <button id="zoom-plus" type="button" class="discret" aria-label="Agrandir la carte" title="Agrandir">+</button>
+      <button id="zoom-ajuster" type="button" class="discret" title="La salle remplit la zone de carte">Ajuster</button>
+      <button id="zoom-reel" type="button" class="discret" title="Une case a la taille réglée (calibrage) : échelle réelle pour tes figurines">Taille réelle</button>
     </div>
-    <button id="quitter-plein-ecran" type="button" hidden>Quitter le plein écran</button>
-  </main>
+    <p id="message-carte" class="message-carte" role="status" hidden></p>
+  </div>
 
   <!-- Écran étroit, onglet Carte : la zone réservée aux actions de la sélection, quand rien n'est sélectionné. -->
   <p id="aide-carte" class="aide-carte">Touche une porte, un objet ou un pion : ses actions apparaissent ici.</p>

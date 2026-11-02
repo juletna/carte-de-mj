@@ -1,0 +1,164 @@
+/**
+ * Poser et retirer un élément sur un plan : règles PURES (aucun DOM), testables sous Node.
+ *
+ * Ce module est la règle unique de « où peut-on poser quelque chose » :
+ *  - deplacement.js s'en sert quand on lâche un pion, un objet ou une porte déplacé ;
+ *  - la palette du Donjon s'en sert pour AJOUTER un élément (par un clic ou un glisser-déposer).
+ * Rien ici n'écrit la description : l'appelant passe le plan obtenu à decrire(), puis à analyser().
+ *
+ * Coordonnées : en cases, x de l'ouest vers l'est, y du nord vers le sud (voir schema.js).
+ */
+import { OBJETS, CREATURES, PORTES, definition, nomAffiche } from './parseur/lexique.js';
+import { nomCase } from './parseur/coordonnees.js';
+
+/** Regard d'un objet au mur : dos au mur, vers l'intérieur. */
+export const REGARD = { nord: 180, sud: 0, ouest: 90, est: 270 };
+/** Regard tourné vers le mur d'entrée (c'est l'orientation que decrire() n'écrit pas : la valeur « par défaut »). */
+const FACE_ENTREE = { nord: 0, sud: 180, est: 90, ouest: 270 };
+/** Marge tolérée autour de la salle pour viser un mur avec une porte, en cases. */
+const MARGE_PORTE = 1;
+
+export const largeurDe = (e) => e.taille ?? e.l;
+export const hauteurDe = (e) => e.taille ?? e.h;
+export const seChevauchent = (a, x, y, b) => x < b.x + largeurDe(b) && b.x < x + largeurDe(a)
+  && y < b.y + hauteurDe(b) && b.y < y + hauteurDe(a);
+
+/** Mur le plus proche d'un point exprimé en cases. */
+export function murProche(cx, cy, plan) {
+  const distances = { nord: cy, sud: plan.longueur - cy, ouest: cx, est: plan.largeur - cx };
+  return Object.keys(distances).reduce((a, b) => (distances[b] < distances[a] ? b : a));
+}
+
+/** Position sur un mur la plus proche d'un point, sans sortir du mur. */
+export function positionSurMur(mur, cx, cy, plan) {
+  const horizontal = mur === 'nord' || mur === 'sud';
+  const long = horizontal ? plan.largeur : plan.longueur;
+  return Math.max(0, Math.min(long - 1, Math.floor(horizontal ? cx : cy)));
+}
+
+/**
+ * Un objet ou un pion de dimensions `el` peut-il se poser avec son coin nord-ouest en (x, y) ?
+ * `ignorer` : l'élément déplacé lui-même (il ne se gêne pas), ou null pour un ajout.
+ * Règles : dans la pièce ; un pion peut monter sur un objet, pas sur un autre pion ; un objet ne se pose ni sur un objet
+ * bloquant ni sur un pion ; une torche (non bloquante) se pose sur un mur, dos au mur le plus proche.
+ * @returns {{ok:true, modifs:object}|{ok:false, raison:'hors'|'gene'}}
+ */
+export function evaluerPose(plan, genre, el, x, y, ignorer = null) {
+  if (x < 0 || y < 0 || x + largeurDe(el) > plan.largeur || y + hauteurDe(el) > plan.longueur) return { ok: false, raison: 'hors' };
+  const creatures = plan.creatures || [];
+  if (genre === 'creature') {
+    return creatures.some((k) => k !== ignorer && seChevauchent(el, x, y, k)) ? { ok: false, raison: 'gene' } : { ok: true, modifs: { x, y } };
+  }
+  if (definition(el.type).bloquant === false) {
+    return { ok: true, modifs: { x, y, rotation: REGARD[murProche(x + 0.5, y + 0.5, plan)] } };
+  }
+  const gene = (o) => o !== ignorer && definition(o.type).bloquant !== false && seChevauchent(el, x, y, o);
+  if (plan.objets.some(gene) || creatures.some((k) => seChevauchent(el, x, y, k))) return { ok: false, raison: 'gene' };
+  return { ok: true, modifs: { x, y } };
+}
+
+// --- Éléments proposés par la palette ---------------------------------------------------
+
+/** Libellé français d'un type, avec une majuscule (« bibliotheque » → « Bibliothèque »). */
+const libelle = (type) => { const n = nomAffiche(type); return n.charAt(0).toUpperCase() + n.slice(1); };
+const LIBELLES_PORTES = { porte: 'Porte', herse: 'Herse', arche: 'Arche' };
+
+/**
+ * Tout ce que la palette propose, tiré du lexique : { groupe, genre, type, libelle }.
+ * Groupes : 'portes', 'mobilier', 'creatures'. Ajouter un mot au lexique l'ajoute ici.
+ */
+export function elementsPalette() {
+  const portes = [...new Set(Object.values(PORTES))].map((type) => ({ groupe: 'portes', genre: 'porte', type, libelle: LIBELLES_PORTES[type] || libelle(type) }));
+  const objets = OBJETS.map((d) => ({ groupe: 'mobilier', genre: 'objet', type: d.type, libelle: libelle(d.type) }));
+  const creatures = CREATURES.map((d) => ({ groupe: 'creatures', genre: 'creature', type: d.type, libelle: libelle(d.type) }));
+  return [...portes, ...objets, ...creatures];
+}
+
+export const GROUPES_PALETTE = [
+  { id: 'portes', titre: 'Portes' },
+  { id: 'mobilier', titre: 'Mobilier' },
+  { id: 'creatures', titre: 'Créatures' },
+];
+
+// --- Ajouter ---------------------------------------------------------------------------
+
+/** Identifiant libre de la forme « o7 », « c3 », « p2 » dans une liste d'éléments. */
+function idLibre(liste, prefixe) {
+  const pris = new Set(liste.map((e) => e.id));
+  let n = liste.length + 1;
+  while (pris.has(`${prefixe}${n}`)) n++;
+  return `${prefixe}${n}`;
+}
+
+/** Mur d'entrée tel que decrire() le comprend : celui de la première porte (celle du mur d'entrée d'abord), sinon le sud. */
+function murEntree(plan) {
+  const portes = [...plan.portes].sort((a, b) => (b.mur === plan.entree) - (a.mur === plan.entree));
+  return portes[0]?.mur || 'sud';
+}
+
+const MESSAGES = {
+  hors: 'Pose impossible : ce point est hors de la salle. Vise une case de la grille.',
+  gene: 'Pose impossible : la place est déjà prise. Choisis une case libre.',
+  hors_mur: 'Pose impossible : vise le bord de la salle pour poser une porte sur un mur.',
+  porte_prise: 'Pose impossible : il y a déjà une porte à cet endroit du mur.',
+  inconnu: 'Pose impossible : élément inconnu.',
+};
+
+/**
+ * Ajoute un élément au plan, au point visé (en cases, éventuellement fractionnaire : le coin de l'élément est
+ * calé pour que le point tombe en son centre).
+ * @param {object} plan
+ * @param {{genre:'porte'|'objet'|'creature', type:string}} item  ce qu'on pose (voir elementsPalette)
+ * @param {number} cx  point visé, colonne en cases (2,5 = milieu de la case C)
+ * @param {number} cy  point visé, rangée en cases
+ * @returns {{plan:object, element:object, genre:string, message:string}|{erreur:string}}
+ *   `plan` est une copie : le plan reçu n'est pas modifié. `message` décrit la pose réussie.
+ */
+export function ajouterElement(plan, item, cx, cy) {
+  if (item.genre === 'porte') {
+    if (!Object.values(PORTES).includes(item.type)) return { erreur: MESSAGES.inconnu };
+    if (cx < -MARGE_PORTE || cy < -MARGE_PORTE || cx > plan.largeur + MARGE_PORTE || cy > plan.longueur + MARGE_PORTE) return { erreur: MESSAGES.hors_mur };
+    const mur = murProche(cx, cy, plan);
+    const position = positionSurMur(mur, cx, cy, plan);
+    if (plan.portes.some((p) => p.mur === mur && p.position === position)) return { erreur: MESSAGES.porte_prise };
+    const element = { id: idLibre(plan.portes, 'p'), mur, position, type: item.type };
+    return { plan: { ...plan, portes: [...plan.portes, element] }, element, genre: 'porte', message: `${LIBELLES_PORTES[item.type] || item.type} posée sur le mur ${mur}.` };
+  }
+
+  const def = definition(item.type);
+  if (!def || def.genre !== item.genre) return { erreur: MESSAGES.inconnu };
+  const l = def.l, h = def.h;
+  const x = Math.round(cx - l / 2), y = Math.round(cy - h / 2);
+
+  if (item.genre === 'creature') {
+    const creatures = plan.creatures || [];
+    const modele = { taille: l };
+    const pose = evaluerPose(plan, 'creature', modele, x, y);
+    if (!pose.ok) return { erreur: MESSAGES[pose.raison] };
+    // Numéro : à la suite des pions du même type (jamais un numéro déjà pris, même si un pion a été retiré).
+    const numero = Math.max(0, ...creatures.filter((k) => k.type === def.type).map((k) => k.numero || 0)) + 1;
+    const element = { id: idLibre(creatures, 'c'), type: def.type, camp: def.camp, x, y, taille: l, numero };
+    return { plan: { ...plan, creatures: [...creatures, element] }, element, genre: 'creature', message: `${libelle(def.type)} ${numero} posé en ${nomCase(x, y)}.` };
+  }
+
+  const modele = { type: def.type, l, h };
+  const pose = evaluerPose(plan, 'objet', modele, x, y);
+  if (!pose.ok) return { erreur: MESSAGES[pose.raison] };
+  const rotation = pose.modifs.rotation ?? FACE_ENTREE[murEntree(plan)];
+  const element = { id: idLibre(plan.objets, 'o'), type: def.type, x, y, l, h, rotation };
+  return { plan: { ...plan, objets: [...plan.objets, element] }, element, genre: 'objet', message: `${libelle(def.type)} posé en ${nomCase(x, y)}.` };
+}
+
+// --- Retirer ---------------------------------------------------------------------------
+
+const LISTES = { porte: 'portes', objet: 'objets', creature: 'creatures' };
+
+/**
+ * Copie du plan sans l'élément trouvé par `retrouverElement` ({ genre, liste, index }). Les numéros des autres pions ne
+ * changent pas ici : c'est la relecture de la description (decrire → analyser) qui les renumérote.
+ */
+export function retirerElement(plan, trouve) {
+  if (!trouve || !LISTES[trouve.genre]) return null;
+  const liste = LISTES[trouve.genre];
+  return { ...plan, [liste]: plan[liste].filter((_, i) => i !== trouve.index) };
+}

@@ -1,0 +1,134 @@
+/* Carte de MJ — mise en page de l'outil Donjon (donjon.html seulement).
+   Charge après css/style.css : elle n'en change ni les couleurs, ni les polices, ni les jetons de css/base.css, seulement
+   l'organisation (barre du haut, colonne courte, bulle d'actions, palette et zoom flottants).
+   Au-dessus de 760 px : ordinateur. En dessous : onglets Texte / Carte, bandeau d'actions fixe (règles de style.css). */
+
+/* Texte réservé aux lecteurs d'écran (titre de page, étiquette de la description). */
+.cache-visuel { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
+
+/* --- Barre du haut (nom, liens, menu du donjon, Imprimer, Présenter) --- */
+#barre { margin: 0; background: var(--panneau); border-bottom: 1px solid var(--bord); }
+#barre .menu-int { flex: 1 1 auto; min-width: 0; }
+.bouton.principal { background: var(--accent); color: var(--accent-texte); border-color: var(--accent); font-weight: 700; padding: 7px 16px; }
+.bouton.principal:hover { filter: brightness(1.1); }
+
+.menu-donjon { position: relative; flex: none; }
+#menu-donjon-bouton { display: inline-flex; align-items: center; gap: 6px; max-width: 320px; padding: 5px 10px; font-weight: 400; }
+#menu-donjon-bouton[aria-expanded="true"] { border-color: var(--accent); }
+#menu-donjon-nom { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 220px; font-weight: 600; }
+#menu-donjon-nom::before { content: '· '; font-weight: 400; color: var(--texte-doux); }
+.menu-panneau {
+  position: absolute; right: 0; top: calc(100% + 6px); z-index: 60;
+  width: min(390px, calc(100vw - 16px)); max-height: calc(100vh - 72px); max-height: calc(100dvh - 72px); overflow: auto;
+  padding: 12px; background: var(--panneau); border: 1px solid var(--bord); border-radius: var(--rayon);
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.6);
+}
+.menu-panneau label { font-weight: 600; margin-bottom: 4px; }
+.menu-panneau label.doux { margin: 10px 0 4px; font-weight: 400; font-size: 13px; }
+.menu-panneau label.bouton { margin: 0; }
+.menu-panneau .plan-json { margin-top: 12px; }
+.menu-panneau .zone-danger { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--bord); }
+.menu-panneau .pied { margin-top: 12px; }
+.liens-site { display: none; }
+
+/* --- Colonne de gauche : courte, sans défiler dans le cas courant --- */
+.salles-barre { display: flex; align-items: center; gap: 6px; }
+.salles-onglets { list-style: none; margin: 0; padding: 0 0 2px; display: flex; gap: 4px; flex: 1 1 auto; min-width: 0; overflow-x: auto; scrollbar-width: thin; }
+.salles-onglets li { flex: none; }
+.onglet-salle { max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 5px 10px; font-size: 13px; font-weight: 400; min-height: max(var(--cible), 32px); background: transparent; color: var(--texte); border: 1px solid var(--bord); }
+.onglet-salle.actif { background: var(--accent); color: var(--accent-texte); border-color: var(--accent); font-weight: 600; }
+#salle-ajouter { flex: none; padding: 5px 12px; min-height: max(var(--cible), 32px); font-size: 16px; line-height: 1; }
+.saisie textarea { padding: 6px 8px; }
+.retour h2 { margin-bottom: 2px; }
+#compris { font-size: 13px; line-height: 1.35; }
+details.bloc > summary h2 { font-size: 12px; }
+details.exemples summary { font-size: 13px; }
+
+/* --- Scène, bulle, commandes flottantes --- */
+.flottant { position: absolute; z-index: 20; background: rgba(31, 30, 36, 0.95); border: 1px solid var(--bord); border-radius: var(--rayon); box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45); }
+
+#zoom { right: 24px; bottom: 24px; display: flex; align-items: center; gap: 4px; padding: 4px; }
+#zoom button { padding: 3px 10px; font-size: 13px; font-weight: 600; min-height: max(var(--cible), 30px); }
+#zoom output { min-width: 50px; text-align: center; font-size: 13px; font-variant-numeric: tabular-nums; }
+#zoom button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+
+#palette { left: 12px; top: 12px; width: min(300px, calc(100% - 24px)); }
+.palette-entete { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 4px; }
+.palette-titre { padding: 4px 12px; min-height: max(var(--cible), 30px); font-size: 13px; }
+.palette-pastille { padding: 3px 10px; min-height: max(var(--cible), 30px); font-size: 13px; background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+#palette.arme { border-color: var(--accent); }
+.palette-corps { padding: 2px 8px 8px; }
+.palette-groupes { display: flex; gap: 4px; margin-bottom: 6px; }
+.palette-groupes button[aria-pressed="true"] { background: var(--accent); color: var(--accent-texte); border-color: var(--accent); }
+.palette-liste { display: flex; flex-wrap: wrap; gap: 4px; max-height: 188px; overflow-y: auto; scrollbar-width: thin; }
+.palette-item { padding: 3px 9px; font-size: 13px; font-weight: 400; min-height: max(var(--cible), 28px); cursor: grab; user-select: none; -webkit-user-select: none; touch-action: none; }
+.palette-item[aria-pressed="true"] { background: var(--accent); color: var(--accent-texte); border-color: var(--accent); font-weight: 600; }
+.palette-aide { margin: 6px 0 0; font-size: 12px; line-height: 1.35; color: var(--texte-doux); }
+.palette-fantome { position: fixed; z-index: 100; pointer-events: none; transform: translate(-50%, -130%); padding: 4px 10px; font-size: 13px; color: var(--texte); background: rgba(0, 0, 0, 0.85); border: 1px dashed var(--texte-doux); border-radius: var(--rayon); }
+.palette-fantome.sur-carte { background: var(--accent); color: var(--accent-texte); border: 1px solid var(--accent); }
+body.palette-glisse, body.palette-glisse * { cursor: grabbing !important; user-select: none; -webkit-user-select: none; }
+#carte.arme { cursor: crosshair !important; }
+
+.message-carte { position: absolute; z-index: 30; left: 50%; bottom: 24px; transform: translateX(-50%); max-width: min(560px, calc(100% - 24px)); margin: 0; padding: 8px 14px; font-size: 14px; background: var(--panneau); border: 1px solid var(--accent); border-radius: var(--rayon); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5); pointer-events: none; }
+.message-carte.erreur-pose { border-color: var(--erreur); }
+
+/* --- Ordinateur (au-dessus de 760 px) --- */
+@media (min-width: 761px) {
+  body { grid-template-columns: 300px minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); height: 100vh; height: 100dvh; overflow: hidden; }
+
+  #barre { grid-column: 1 / -1; grid-row: 1; position: relative; z-index: 50; display: flex; align-items: center; gap: var(--esp-3); padding: 0 var(--esp-3); min-height: 48px; }
+  #barre .onglets { display: none; }
+  #barre .menu-site nav { flex: 1 1 auto; }
+
+  #panneau { grid-column: 1; grid-row: 2; min-height: 0; padding: 10px 12px; gap: 8px; }
+  #cadre-scene { grid-column: 2; grid-row: 2; position: relative; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+  /* flex et marges automatiques (pas place-items) : une carte zoomée plus grande que la scène reste entièrement atteignable au défilement. */
+  #scene { flex: 1 1 auto; display: flex; min-width: 0; min-height: 0; }
+  /* La palette est une bande au-dessus de la scène, jamais par-dessus la carte : l'ajustement automatique lui laisse sa place. */
+  #palette { order: -1; position: relative; left: auto; top: auto; width: auto; flex: none; display: flex; align-items: flex-start; gap: var(--esp-2); padding: 4px 8px; background: var(--panneau, #1f1e24); border-width: 0 0 1px; border-radius: 0; box-shadow: none; }
+  .palette-entete { flex: none; padding: 0; }
+  .palette-corps { flex: 1 1 auto; min-width: 0; display: flex; align-items: flex-start; gap: var(--esp-2); padding: 0; }
+  .palette-groupes { flex: none; margin: 0; }
+  /* Hauteur constante, deux lignes : changer de catégorie ne redimensionne pas la carte. */
+  .palette-liste { flex: 1 1 auto; min-width: 0; height: 64px; max-height: none; align-content: flex-start; }
+  .palette-aide { display: none; }
+  #support { margin: auto; padding: 12px; flex: none; }
+  #scene:fullscreen #support { padding: 0; }
+
+  /* Bulle d'actions : posée à côté de l'élément (js/main-mj.js, placerBulle). */
+  #selection { position: absolute; z-index: 25; width: 292px; max-width: calc(100% - 16px); overflow: auto; margin: 0; padding: 10px 12px; font-size: 14px; background: var(--panneau); box-shadow: 0 8px 28px rgba(0, 0, 0, 0.6); }
+  #selection .fermer-selection { display: inline-flex; position: absolute; top: 4px; right: 4px; min-height: 26px; padding: 2px 8px; }
+  #selection .selection-titre { margin-top: 0; padding-right: 76px; }
+  #selection .actions { margin-top: 8px; }
+  #selection .ligne-relier { margin-top: 8px; }
+}
+
+/* --- Écran étroit (sous 760 px) : une seule barre, carte et commandes au doigt --- */
+@media (max-width: 760px) {
+  body[data-onglet] #barre { position: sticky; top: 0; z-index: 50; display: flex; align-items: center; gap: var(--esp-2); min-height: var(--barre-onglets); padding: var(--esp-2) var(--esp-4); }
+  #barre .menu-int { display: none; }
+  /* Les onglets prennent la place laissée par les deux boutons, dans la même barre. */
+  body[data-onglet] #barre .onglets { position: static; z-index: auto; flex: 1 1 0; min-width: 0; padding: 0; border: 0; background: none; }
+  #barre .onglets .libelle { display: none; }
+  #barre .onglets button { padding-left: var(--esp-1); padding-right: var(--esp-1); font-size: 15px; }
+  #barre .onglets #annuler-carte { flex: 0 0 44px; }
+  #menu-donjon-bouton { padding: 0 var(--esp-3); }
+  #menu-donjon-nom { display: none; }
+  .menu-donjon { position: static; }
+  .menu-panneau { position: fixed; left: var(--esp-2); right: var(--esp-2); top: var(--barre-onglets); width: auto; max-height: calc(100vh - var(--barre-onglets) - 8px); max-height: calc(100dvh - var(--barre-onglets) - 8px); }
+  .liens-site { display: flex; flex-wrap: wrap; gap: var(--esp-2); margin: 0 0 var(--esp-3); }
+  .liens-site .bouton { flex: 1 1 40%; }
+  .bouton.principal { padding: 0 var(--esp-3); }
+
+  .salles-barre { margin-top: var(--esp-1); }
+  #panneau { gap: var(--esp-3); }
+
+  /* La carte n'existe que dans l'onglet Carte ; ses commandes avec elle. */
+  body[data-onglet="texte"] #cadre-scene { display: none; }
+  #cadre-scene { position: relative; }
+  #palette { left: var(--esp-2); top: var(--esp-2); width: calc(100% - 2 * var(--esp-2)); }
+  #palette.replie { width: auto; max-width: calc(100% - 2 * var(--esp-2)); }
+  .palette-liste { max-height: 36vh; }
+  #zoom { left: var(--esp-2); right: auto; bottom: var(--esp-2); flex-wrap: wrap; max-width: calc(100% - 2 * var(--esp-2)); }
+  .message-carte { bottom: 64px; }
+}
