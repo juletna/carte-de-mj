@@ -7,7 +7,7 @@ Décrivez une pièce au clavier ou à la voix, en français :
 La carte s'affiche aussitôt sur une grille, vue du dessus, prête pour les figurines.
 Le site est 100 % statique, sans IA et sans serveur. Il marche hors ligne au clavier.
 
-> État : le Donjon gère plusieurs salles reliées par leurs portes (étape 2) ; la Présentation ouvre un donjon prêt et le montre à la table (étape 3).
+> État : le Donjon gère plusieurs salles reliées par leurs portes (étape 2) ; la Présentation ouvre un donjon prêt, le montre à la table (étape 3) et permet de l'improviser en jouant (étape 4).
 
 ## Trois outils indépendants
 
@@ -126,7 +126,7 @@ ni de la Fiche ni d'un réseau, et n'exige de décrire quoi que ce soit : elle o
   - *Portes* : un clic sur une porte reliée propose « Passer dans la salle X » ; la salle devient courante et découverte. « Le groupe suit »
     (coché par défaut) emmène les pions de camp `pj` de la salle, placés au plus près de la porte d'arrivée, sans superposition ni sortie de
     la pièce (dans une salle pleine, un pion monte sur un objet, jamais sur un autre pion ; sans aucune place il reste en arrière, avec un message).
-    Une porte non reliée affiche un simple message. Les portes sont aussi listées dans le panneau, au clavier.
+    Une porte non reliée propose de créer la salle d'à côté (voir Improvisation). Les portes sont aussi listées dans le panneau, au clavier.
   - *Révéler* : un clic sur un élément caché propose « Révéler » / « Recacher » ; « Révéler toute la salle » révèle tout.
   - *Table ou consultation* : cliquer une salle de la mini-carte la **consulte** sans la montrer ni la marquer découverte. Un bandeau
     permanent dit si la salle regardée est « À LA TABLE » (vert) ou en « CONSULTATION » (jaune, cadre en pointillés) et rappelle laquelle
@@ -137,9 +137,39 @@ ni de la Fiche ni d'un réseau, et n'exige de décrire quoi que ce soit : elle o
     demande l'état à la régie, et affiche un message d'attente si aucune régie ne répond.
   - « Plein écran ici » : pour un seul écran ; Échap ou « Retour à la régie » pour revenir.
 - **Sécurité** : ce que reçoit la table est le résultat de `vueTable()` (`js/presentation.js`), construit par liste blanche : salle courante
-  uniquement, sans notes, sans nom ni description, sans élément caché non révélé (portes comprises), sans `cache`, sans liaisons ni autres
-  salles. Les secrets ne quittent donc jamais la régie, ils ne sont pas seulement masqués à l'affichage. La fenêtre table ne lit jamais les
+  uniquement, sans notes, sans nom ni description, sans notes (ni de préparation, ni de partie), sans élément caché non révélé (portes comprises), sans `cache`,
+  sans liaisons ni autres salles. Seul ajout propre au jeu : l'état blessé / mort des pions. Les secrets ne quittent donc jamais la régie, ils ne sont pas seulement masqués à l'affichage. La fenêtre table ne lit jamais les
   présentations du localStorage (elle ne lit que les réglages d'affichage) et relit ce qu'elle reçoit (`recevoirVueTable`).
+- **Improvisation** : le MJ fait évoluer le donjon pendant la partie, toujours dans la copie (le donjon préparé n'est jamais modifié).
+  - *Créer une salle en franchissant une porte non reliée* : un clic sur la porte propose un champ « Décrire la nouvelle salle »
+    (même langage que dans le Donjon, nom facultatif). Vide : salle de 6 × 6 cases. La salle est créée, reliée à cette porte, et le
+    groupe y passe (« Le groupe suit » comme pour un passage normal). Une porte de retour est ajoutée sur le mur opposé si la
+    description n'en place pas (une porte secrète du texte n'est jamais prise pour porte de retour). Les mots non compris sont
+    signalés. Les liaisons et les portes des autres salles ne bougent pas.
+  - *Commande rapide* (champ de la régie, clavier ou dictée 🎙️ puis « Exécuter ») : elle s'applique à la salle regardée.
+    Syntaxes reconnues (accents, majuscules et nombres en lettres acceptés) :
+    - ajouter (aussi : rajoute, place, pose, mets, crée) : « ajoute trois gobelins », « ajoute un coffre en C4 »,
+      « ajoute un gobelin caché », « ajoute deux gobelins à gauche », « ajoute un gobelin devant la porte », « ajoute un tonneau et deux torches » ;
+      toutes les positions du parseur sont permises (au fond, au centre, devant / à côté de X, en cercle…) ;
+    - supprimer (aussi : enlève, retire, efface) : « supprime le coffre », « supprime le gobelin 2 », « supprime le coffre en C4 »,
+      « supprime le gobelin caché », « supprime tous les gobelins » (le pluriel vaut « tous ») ;
+    - déplacer (aussi : bouge, décale) : « déplace la statue à gauche », « déplace le gobelin 2 en C4 », « déplace le gobelin 1 devant la statue »,
+      « déplace le coffre de C4 à D5 ».
+    Un pion se désigne par son numéro (« gobelin 2 ») ; un objet par son rang de lecture (de haut en bas, puis de gauche à droite : « coffre 2 »)
+    ou par sa case. Une commande ambiguë (deux coffres pour « supprime le coffre ») ou incompréhensible **ne change rien** : un message
+    en français, affiché sous le champ, dit quoi préciser. Les portes ne se gèrent pas par commande. Le placement suit les règles
+    habituelles : dans la pièce, jamais sur un autre pion ni sur un objet bloquant (un pion peut monter sur un objet), cases devant les
+    portes évitées ; une case exacte déjà occupée ou hors de la salle est refusée. Un élément ajouté « caché » reste invisible à la
+    table jusqu'à sa révélation ; supprimer un élément retire aussi sa révélation.
+  - *Notes de partie* : bloc « Notes de la salle », un champ par salle, enregistré avec la partie, **jamais envoyé à la table**. Les notes
+    de préparation de la salle restent affichées au-dessus, en lecture seule, et ne sont jamais écrasées.
+  - *État des pions* : cliquer un pion ouvre son panneau : « Normal », « Blessé », « Mort ». Un pion blessé porte une pastille blanche à
+    croix rouge ; un pion mort est grisé et barré d'une grande croix : lisible aussi en noir et blanc. L'état est une information de jeu :
+    la table le voit (sauf pour un pion caché non révélé). Il suit le pion quand le groupe change de salle.
+  - *Cohérence* : en partie, c'est le **plan** de la salle qui fait référence. Une commande ou un état le modifient directement, sans
+    relire de texte : les identifiants (pions, objets, portes), les numéros, les états et les liaisons (salle + mur + position) restent
+    intacts. Le `texte` des salles de la copie est la description de préparation, figée au démarrage et non utilisée en partie (déplacer un
+    pion ne le réécrit pas non plus) ; seule une salle créée en jeu reçoit un texte, écrit par `decrire(plan)`.
 - **Réglages** (`carte-de-mj:reglages-v1`, partagés avec le Donjon) : taille d'une case (le calibrage à la carte bancaire se fait dans le
   Donjon), grille, repères. « Adapter la carte de la régie à la fenêtre » ne change que la régie.
 - **Carte plus grande que l'écran de la table** : la table défile à la molette ou au doigt, et la régie propose des flèches
@@ -150,11 +180,16 @@ ni de la Fiche ni d'un réseau, et n'exige de décrire quoi que ce soit : elle o
 ```json
 { "format": "carte-de-mj-presentation", "version": 1,
   "donjon": { "…": "copie du donjon, même format que ci-dessus" },
-  "salleCourante": "s-x1y2z3", "decouvertes": ["s-x1y2z3"], "reveles": { "s-x1y2z3": ["o1", "p1"] } }
+  "salleCourante": "s-x1y2z3", "decouvertes": ["s-x1y2z3"], "reveles": { "s-x1y2z3": ["o1", "p1"] },
+  "notesPartie": { "s-x1y2z3": "Les joueurs ont forcé la serrure." } }
 ```
 
 Rangé dans `carte-de-mj:presentations-v1` sous la forme `{ "presentations": { "<idDonjon>": <partie> } }`. Les identifiants d'éléments
 (`o1`, `c1`, `p1`) y sont stables, car rien ne relit le texte.
+
+Étape 4 : le format reste en version 1, avec deux ajouts facultatifs. `notesPartie` (texte par salle) et `etat` sur une créature du plan
+(`"blesse"` ou `"mort"`, absent = normal). Une partie enregistrée avant l'étape 4 se charge donc telle quelle ; à l'import, `notesPartie` est
+nettoyé (salles inconnues, valeurs qui ne sont pas du texte, longueur bornée) et un `etat` inconnu est écarté, sans refuser la partie.
 
 ## Arborescence
 
@@ -166,7 +201,7 @@ fiche.html          outil Fiche, fichier autonome
 tests.html          tests du parseur et du donjon dans le navigateur
 css/style.css
 js/main-mj.js       branchement de l'interface (donjons, salles, sélection)
-js/presentation.js  partie en cours, portes, révélations, vueTable (pur, sans DOM)
+js/presentation.js  partie en cours, portes, révélations, improvisation, vueTable (pur, sans DOM)
 js/main-presentation.js  régie et vue table (DOM, stockage, BroadcastChannel)
 js/donjon.js        modèle du donjon : salles, liaisons, orphelines, validation (pur, sans DOM)
 js/minicarte.js     mini-carte SVG des salles et de leurs liaisons
@@ -174,9 +209,10 @@ js/schema.js        schéma du plan d'une salle et validation
 js/stockage.js      localStorage (donjons, réglages, migration), export/import JSON
 js/voix.js          dictée (Web Speech API)
 js/deplacement.js   glisser-déposer et clic sur la carte
-js/parseur/         normalisation, nombres, lexique, dimensions, positions, placement, decrire (plan → texte)
+js/parseur/         normalisation, nombres, lexique, dimensions, positions, placement, decrire (plan → texte),
+                    commandes (« ajoute trois gobelins » en cours de partie : pur, sans DOM)
 js/rendu/           moteur Canvas et thème vectoriel
-tests/              phrases de test, tests du donjon et de la présentation, mini-outil d'assertions
+tests/              phrases de test, tests du donjon, des commandes et de la présentation, mini-outil d'assertions
 outils/serveur.py   serveur local sans cache
 ```
 

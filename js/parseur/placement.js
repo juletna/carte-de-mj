@@ -105,10 +105,11 @@ function devantPorte(p, W, L) {
 
 /**
  * Construit le plan à partir des intentions.
- * @param {{largeur:number, longueur:number, sol:string, intentions:object[], graine:number}} entree
+ * @param {{largeur:number, longueur:number, sol:string, intentions:object[], graine:number, entree?:string}} entree
+ *        `entree` impose le mur d'entrée (sinon : mur de la première porte précisée, ou sud).
  * @returns {{plan:object, journal:string[]}}
  */
-export function construirePlan({ largeur: W, longueur: L, sol, intentions, graine = 1 }) {
+export function construirePlan({ largeur: W, longueur: L, sol, intentions, graine = 1, entree: entreeImposee }) {
   const g = new Grille(W, L);
   const journal = [];
   const plan = { version: 1, id: 'salle-1', nom: 'Salle', forme: 'rectangle', largeur: W, longueur: L, sol, portes: [], objets: [], creatures: [], connexions: [] };
@@ -123,7 +124,7 @@ export function construirePlan({ largeur: W, longueur: L, sol, intentions, grain
 
   plan.entree = null; // renseigné juste après
   const murExplicite = intPortes.find((i) => i.position.zone === 'mur')?.position.mur;
-  const entree = murExplicite || 'sud';
+  const entree = entreeImposee || murExplicite || 'sud';
   plan.entree = entree;
   const fond = OPPOSE[entree];
   const ordreDefaut = [entree, fond, GAUCHE[entree], DROITE[entree]];

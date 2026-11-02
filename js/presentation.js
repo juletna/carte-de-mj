@@ -7,7 +7,8 @@
  *   donjon:       <COPIE du donjon préparé>,   // les modifications en jeu vont ici, jamais dans l'original
  *   salleCourante: idSalle,                    // la salle montrée à la table
  *   decouvertes:   [idSalle],                  // salles déjà montrées aux joueurs
- *   reveles:       { idSalle: [idElement] }    // éléments `cache: true` que le MJ a révélés
+ *   reveles:       { idSalle: [idElement] },   // éléments `cache: true` que le MJ a révélés
+ *   notesPartie:   { idSalle: texte }          // notes prises en jouant (facultatif : absent des anciennes parties)
  * }
  *
  * Démarrer une présentation copie le donjon : le donjon préparé n'est JAMAIS modifié, et aucun
@@ -15,13 +16,31 @@
  * identifiants d'éléments (o1, c1, p1…) sont donc stables : rien ne relit le texte.
  * Révéler ne touche pas au plan : l'identifiant est ajouté à `reveles`, `cache` reste dans la copie.
  *
+ * IMPROVISATION (étape 4) : le MJ peut faire évoluer le donjon pendant la partie, toujours dans la copie.
+ *  - Le PLAN d'une salle de la copie est la référence : commandes (ajoute, supprime, déplace), nouvelle salle
+ *    derrière une porte, état des pions (`etat` sur la créature) le modifient directement, sans jamais relire
+ *    un texte. Les identifiants d'éléments et de portes restent donc stables, et les liaisons (salle + mur +
+ *    position) ne bougent pas.
+ *  - Le `texte` d'une salle de la copie n'est PAS utilisé en partie : c'est la description de la préparation,
+ *    figée au démarrage (déjà le cas quand un pion se déplace ou change de salle). Il n'est ni affiché ni relu,
+ *    on ne le réécrit donc pas. Seule une salle créée en jeu reçoit un texte (decrire(plan)), parce qu'une
+ *    salle en a toujours un.
+ *  - `notesPartie` est séparé de `notes` (préparation, jamais modifié) et ne quitte jamais la régie.
+ *
  * SÉCURITÉ : `vueTable()` est la SEULE source de ce qui part vers la fenêtre ou l'écran de table.
  * Elle construit le plan à partir d'une liste blanche de champs : notes, noms, textes, éléments
- * cachés non révélés, liaisons et autres salles n'y entrent jamais.
+ * cachés non révélés, liaisons et autres salles n'y entrent jamais. L'état d'un pion (blessé, mort) est une
+ * information de jeu : il y entre, au même titre que sa position.
  */
-import { validerDonjon, liaisonDePorte } from './donjon.js';
-import { validerPlan } from './schema.js';
+import * as modele from './donjon.js';
+import { validerDonjon, liaisonDePorte, OPPOSE, longueurMur } from './donjon.js';
+import { validerPlan, ETATS } from './schema.js';
 import { definition } from './parseur/lexique.js';
+import { analyser } from './parseur/index.js';
+import { decrire } from './parseur/decrire.js';
+import { interpreterCommande } from './parseur/commandes.js';
+
+export { ETATS };
 
 export const FORMAT_PRESENTATION = 'carte-de-mj-presentation';
 export const VERSION_PRESENTATION = 1;
@@ -31,6 +50,8 @@ export const CANAL = 'carte-de-mj-presentation';
 const dictionnaire = () => Object.create(null);
 const estObjet = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 const LISTES = { porte: 'portes', objet: 'objets', creature: 'creatures' };
+/** Longueur maximale d'une note de partie (comme les notes de préparation). */
+const MAX_NOTE = 20000;
 
 /** Un élément est caché dès que son champ `cache` est vrai (lecture volontairement large). */
 const estCache = (e) => !!e?.cache;
@@ -57,7 +78,7 @@ export function creerPresentation(donjon, { salleDepart } = {}) {
   const depart = [salleDepart, copie.salleActive].find((id) => typeof id === 'string' && id in copie.salles) || Object.keys(copie.salles)[0];
   return {
     format: FORMAT_PRESENTATION, version: VERSION_PRESENTATION,
-    donjon: copie, salleCourante: depart, decouvertes: [depart], reveles: dictionnaire(),
+    donjon: copie, salleCourante: depart, decouvertes: [depart], reveles: dictionnaire(), notesPartie: dictionnaire(),
   };
 }
 
@@ -90,7 +111,15 @@ export function validerPresentation(brut) {
       if (gardes.length) reveles[idSalle] = gardes;
     }
   }
-  return { ok: true, erreurs: [], presentation: { format: FORMAT_PRESENTATION, version: VERSION_PRESENTATION, donjon, salleCourante, decouvertes, reveles } };
+
+  // Notes de partie (facultatives : absentes des parties enregistrées avant l'étape 4).
+  const notesPartie = dictionnaire();
+  if (estObjet(brut.notesPartie)) {
+    for (const [idSalle, texte] of Object.entries(brut.notesPartie)) {
+      if (idSalle in donjon.salles && typeof texte === 'string' && texte) notesPartie[idSalle] = texte.slice(0, MAX_NOTE);
+    }
+  }
+  return { ok: true, erreurs: [], presentation: { format: FORMAT_PRESENTATION, version: VERSION_PRESENTATION, donjon, salleCourante, decouvertes, reveles, notesPartie } };
 }
 
 // --- Découvertes, salle courante -------------------------------------------------------
@@ -174,6 +203,55 @@ export function appliquerDeplacement(p, idSalle, nouveauPlan) {
     if (n && (n.x !== k.x || n.y !== k.y)) { k.x = n.x; k.y = n.y; return true; }
   }
   return false;
+}
+
+// --- État des pions ----------------------------------------------------------------------------
+
+/**
+ * Pose l'état d'un pion de la salle : « blesse », « mort » ou « normal » (retire le champ).
+ * C'est une information de jeu : la table la voit. Renvoie false si le pion n'existe pas ou l'état est inconnu.
+ */
+export function definirEtat(p, idSalle, idPion, etat) {
+  const pion = p.donjon.salles[idSalle]?.plan.creatures.find((k) => k.id === idPion);
+  if (!pion || (etat !== 'normal' && !ETATS.includes(etat))) return false;
+  if (etat === 'normal') delete pion.etat;
+  else pion.etat = etat;
+  return true;
+}
+
+// --- Notes de partie ------------------------------------------------------------------------------
+
+/** Notes prises en jouant pour cette salle (séparées des notes de préparation, jamais envoyées à la table). */
+export const notePartie = (p, idSalle) => p.notesPartie?.[idSalle] || '';
+
+/** Remplace la note de partie d'une salle ; une note vide est retirée. */
+export function definirNotePartie(p, idSalle, texte) {
+  if (!(idSalle in p.donjon.salles)) return false;
+  if (!estObjet(p.notesPartie)) p.notesPartie = dictionnaire();
+  const t = String(texte ?? '').slice(0, MAX_NOTE);
+  if (t) p.notesPartie[idSalle] = t;
+  else delete p.notesPartie[idSalle];
+  return true;
+}
+
+// --- Commandes à la volée ------------------------------------------------------------------------------
+
+/**
+ * Applique une commande du MJ (« ajoute trois gobelins », « supprime le coffre »…) à une salle de la copie.
+ * Voir parseur/commandes.js. Une commande refusée ne change rien. Un élément supprimé n'est plus « révélé »
+ * (son identifiant pourra être réutilisé par un nouvel élément, qui ne doit pas naître révélé).
+ * @returns {{ok:boolean, message:string}}
+ */
+export function appliquerCommande(p, idSalle, texte) {
+  const salle = p.donjon.salles[idSalle];
+  if (!salle) return { ok: false, message: 'Cette salle n’existe plus.' };
+  const r = interpreterCommande(texte, salle.plan);
+  if (!r.ok) return r;
+  const v = validerPlan(r.plan); // garde-fou : jamais de plan invalide dans la partie
+  if (!v.ok) return { ok: false, message: 'Cette commande donnerait un plan invalide : elle n’a pas été appliquée.' };
+  salle.plan = { ...v.plan, id: idSalle };
+  for (const id of r.supprimes) recacherElement(p, idSalle, id);
+  return { ok: true, message: r.message };
 }
 
 // --- Passage d'une porte, le groupe suit -----------------------------------------------------------
@@ -273,13 +351,68 @@ export function passerPorte(p, idSalle, idPorte, { groupe = true } = {}) {
   return { ok: true, vers: dest.salle.id, ...suite };
 }
 
+/**
+ * Crée une salle derrière une porte non reliée, relie les deux et renvoie la salle. Sans description : une salle
+ * de 6 × 6 cases avec sa porte de retour (creerSalleDerriere du modèle). Avec une description : elle est lue par le
+ * parseur de salle, et la porte de retour est celle que le texte place sur le mur opposé (visible), sinon une porte
+ * est ajoutée sur ce mur, à la même position que la porte d'origine si elle est libre. La salle d'arrivée reçoit
+ * son texte par decrire(plan). Aucune autre salle n'est touchée : les liaisons existantes restent valables.
+ * @returns {{ok:boolean, message?:string, salle?:object, ignores?:string[]}}
+ */
+export function creerSalleApresPorte(p, idSalle, idPorte, description = '', { nom = '', echelle } = {}) {
+  const d = p.donjon;
+  const porte = d.salles[idSalle]?.plan.portes.find((q) => q.id === idPorte);
+  if (!porte) return { ok: false, message: 'Cette porte n’existe plus.' };
+  if (liaisonDePorte(d, idSalle, porte)) return { ok: false, message: 'Cette porte est déjà reliée à une salle.' };
+  if (Object.keys(d.salles).length >= modele.MAX_SALLES) return { ok: false, message: `Ce donjon a déjà ${modele.MAX_SALLES} salles : c’est le maximum.` };
+  const depuis = { salle: idSalle, mur: porte.mur, position: porte.position };
+  const texte = String(description ?? '').trim();
+  const nomSalle = String(nom ?? '').trim();
+
+  if (!texte) {
+    const { salle } = modele.creerSalleDerriere(d, { depuis, echelle });
+    if (nomSalle) modele.renommerSalle(d, salle.id, nomSalle);
+    return { ok: true, salle, ignores: [] };
+  }
+
+  const mur = OPPOSE[porte.mur];
+  const analyse = analyser(texte, { echelle, entree: mur }); // « au fond » se lit depuis la porte de retour
+  const plan = { ...analyse.plan, portes: [...analyse.plan.portes] };
+  let retour = plan.portes.find((q) => q.mur === mur && !q.cache);
+  if (!retour) {
+    const long = longueurMur(plan, mur);
+    const prises = new Set(plan.portes.filter((q) => q.mur === mur).map((q) => q.position));
+    const voulue = Math.min(porte.position, long - 1);
+    const position = prises.has(voulue) ? Array.from({ length: long }, (_, i) => i).find((i) => !prises.has(i)) : voulue;
+    if (position === undefined) return { ok: false, message: `Le mur ${mur} de cette salle n’a plus de place pour la porte de retour : décrivez-la plus petite ou sans porte sur ce mur.` };
+    retour = { id: idLibre(plan, 'p'), mur, position, type: porte.type };
+    plan.portes.push(retour);
+  }
+  plan.entree = mur; // les joueurs entrent par la porte de retour
+  const salle = modele.ajouterSalle(d, { nom: nomSalle || undefined, texte: decrire(plan), plan });
+  try {
+    modele.relier(d, depuis, { salle: salle.id, mur, position: retour.position });
+  } catch (err) {
+    modele.supprimerSalle(d, salle.id); // ne laisse pas une salle isolée derrière nous
+    return { ok: false, message: err.message };
+  }
+  return { ok: true, salle, ignores: analyse.ignores };
+}
+
+/** Crée la salle derrière une porte non reliée, puis la franchit (« le groupe suit » comme pour un passage normal). */
+export function creerSalleEtPasser(p, idSalle, idPorte, description, { nom, echelle, groupe = true } = {}) {
+  const c = creerSalleApresPorte(p, idSalle, idPorte, description, { nom, echelle });
+  if (!c.ok) return c;
+  return { ...passerPorte(p, idSalle, idPorte, { groupe }), salle: c.salle, ignores: c.ignores };
+}
+
 // --- Vue table : ce qui part vers l'écran des joueurs -------------------------------------------------
 
 /**
  * Plan de la salle courante tel que les joueurs peuvent le voir. Construit par LISTE BLANCHE :
  *  - rien d'autre que la salle courante (ni autres salles, ni liaisons, ni nom, ni description, ni notes) ;
  *  - aucun élément caché non révélé, portes comprises ;
- *  - aucun champ `cache` ni aucun champ inconnu.
+ *  - aucun champ `cache` ni aucun champ inconnu (le seul ajout propre au jeu : l'état blessé / mort d'un pion).
  * @returns {object|null} un plan, ou null s'il n'y a pas de salle courante
  */
 export function vueTable(p) {
@@ -288,7 +421,11 @@ export function vueTable(p) {
   if (!plan) return null;
   const rev = new Set(Array.isArray(p.reveles?.[p.salleCourante]) ? p.reveles[p.salleCourante] : []);
   const visible = (e) => !estCache(e) || rev.has(e.id);
-  const creature = (k) => ({ id: k.id, type: k.type, camp: k.camp, x: k.x, y: k.y, taille: k.taille, numero: k.numero, ...(k.couleur ? { couleur: k.couleur } : {}) });
+  const creature = (k) => ({
+    id: k.id, type: k.type, camp: k.camp, x: k.x, y: k.y, taille: k.taille, numero: k.numero,
+    ...(k.couleur ? { couleur: k.couleur } : {}),
+    ...(ETATS.includes(k.etat) ? { etat: k.etat } : {}), // liste blanche : blessé ou mort, rien d'autre
+  });
   return {
     version: 1, id: 'table', nom: '', forme: 'rectangle',
     largeur: plan.largeur, longueur: plan.longueur, sol: plan.sol, entree: 'sud',

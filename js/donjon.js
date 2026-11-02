@@ -32,7 +32,7 @@ export const TEXTE_SALLE_VIDE = 'Salle de 8 par 8 cases.';
 export const COTE_NOUVELLE_SALLE = 6;
 
 export const OPPOSE = { nord: 'sud', sud: 'nord', est: 'ouest', ouest: 'est' };
-const MAX_SALLES = 200;
+export const MAX_SALLES = 200;
 const MAX_LIAISONS = 1000;
 const LIMITES = { nom: 80, texte: 20000, notes: 20000 };
 const RE_ID = /^[A-Za-z0-9_-]{1,64}$/;

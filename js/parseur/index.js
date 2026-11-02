@@ -52,7 +52,7 @@ function hacher(s) {
 }
 
 /** Analyse une proposition et ajoute ses intentions à la liste. */
-function analyserProposition(prop, intentions, ignores) {
+export function analyserProposition(prop, intentions, ignores) {
   const mots = prop.split(' ');
   const position = analyserPosition(prop);
   const utilises = new Set(position.indices);
@@ -107,7 +107,7 @@ function analyserProposition(prop, intentions, ignores) {
 
 /**
  * @param {string} texte description du MJ
- * @param {{echelle?: number}} options echelle = mètres par case (1,5 par défaut)
+ * @param {{echelle?: number, entree?: string}} options echelle = mètres par case (1,5 par défaut) ; entree = mur d'entrée imposé
  * @returns {{plan: object, compris: string[], ignores: string[]}}
  */
 export function analyser(texte, options = {}) {
@@ -132,7 +132,7 @@ export function analyser(texte, options = {}) {
   }
 
   const { plan, journal } = construirePlan({
-    largeur: dims.largeur, longueur: dims.longueur, sol: sol.valeur, intentions, graine: hacher(t),
+    largeur: dims.largeur, longueur: dims.longueur, sol: sol.valeur, intentions, graine: hacher(t), entree: options.entree,
   });
 
   if (nom.nom) plan.nom = nom.nom.charAt(0).toUpperCase() + nom.nom.slice(1);

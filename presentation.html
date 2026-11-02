@@ -70,6 +70,32 @@
 
       <section id="selection" class="selection" aria-live="polite" hidden></section>
 
+      <section class="commande" aria-label="Commande rapide">
+        <h2>Commande rapide</h2>
+        <form id="form-commande" autocomplete="off">
+          <label for="commande">Faire évoluer la salle regardée <span id="nom-salle-commande" class="doux"></span></label>
+          <input id="commande" type="text" spellcheck="false" placeholder="ajoute trois gobelins">
+          <div class="actions">
+            <button id="executer-commande" type="submit">Exécuter</button>
+            <button id="micro-commande" type="button" title="Dicter la commande, puis la valider avec Exécuter">🎙️ Dicter</button>
+          </div>
+        </form>
+        <p id="message-commande" class="note" role="status" aria-live="polite" hidden></p>
+        <details class="exemples-commandes">
+          <summary>Exemples de commandes</summary>
+          <ul>
+            <li>ajoute trois gobelins</li>
+            <li>ajoute un coffre en C4</li>
+            <li>ajoute un gobelin caché</li>
+            <li>supprime le coffre</li>
+            <li>supprime le gobelin 2</li>
+            <li>déplace la statue à gauche</li>
+            <li>déplace le gobelin 2 en C4</li>
+          </ul>
+          <p class="note">Une commande floue ne change rien : le message dit quoi préciser. Ce qui est ajouté « caché » reste invisible à la table jusqu'à sa révélation.</p>
+        </details>
+      </section>
+
       <section class="cette-salle" aria-label="Cette salle">
         <h2>Cette salle</h2>
         <p id="comptage-caches" class="note"></p>
@@ -87,7 +113,10 @@
 
       <details class="bloc">
         <summary><h2>Notes de la salle</h2></summary>
-        <div id="notes" class="notes-lecture" tabindex="0" role="region" aria-label="Notes du MJ pour cette salle (lecture seule)"></div>
+        <p class="note">Préparation (lecture seule) :</p>
+        <div id="notes" class="notes-lecture" tabindex="0" role="region" aria-label="Notes de préparation du MJ pour cette salle (lecture seule)"></div>
+        <label for="notes-partie" class="note etiquette-notes">Notes de partie, prises en jouant (enregistrées avec la partie, jamais envoyées à la table) :</label>
+        <textarea id="notes-partie" rows="5" placeholder="Ce qui se passe dans cette salle…"></textarea>
       </details>
 
       <details class="bloc reglages">

@@ -49,6 +49,24 @@ body.presentation a { color: var(--accent); }
 .selection input[type="checkbox"] { accent-color: var(--accent); }
 .suit { display: flex; align-items: center; gap: 6px; margin-top: 8px; }
 
+/* --- Improvisation : commande rapide, notes de partie, état des pions, nouvelle salle --- */
+.commande { border: 1px solid var(--bord); border-radius: var(--rayon); padding: 10px; }
+.commande h2 { margin-bottom: 4px; }
+.commande label { font-weight: 600; margin-bottom: 6px; }
+.commande input[type="text"] { width: 100%; background: #121116; color: var(--texte); border: 1px solid var(--bord); border-radius: var(--rayon); padding: 8px 10px; font: inherit; }
+.commande .doux, .doux { color: var(--texte-doux); font-weight: 400; }
+.commande #message-commande { padding: 6px 8px; border-left: 3px solid #4f9a5c; background: #14281a; color: var(--texte); overflow-wrap: anywhere; }
+.commande #message-commande.refus { border-left-color: var(--erreur); background: #3a1a15; }
+.exemples-commandes { margin-top: 8px; font-size: 14px; }
+.exemples-commandes ul { margin: 4px 0 0; padding-left: 18px; color: var(--texte-doux); }
+.etiquette-notes { margin-top: 10px; }
+#notes-partie { margin-top: 4px; }
+.etats { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.etats button[aria-pressed="true"] { outline: 3px solid var(--texte); outline-offset: 1px; }
+.nouvelle-salle { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.nouvelle-salle label { font-weight: 600; }
+.nouvelle-salle input[type="text"], .nouvelle-salle textarea { width: 100%; background: #121116; color: var(--texte); border: 1px solid var(--bord); border-radius: var(--rayon); padding: 8px 10px; font: inherit; }
+
 /* --- Vue table : la carte seule --- */
 body.vue-table { overflow: hidden; background: #000; }
 #ecran-table { position: fixed; inset: 0; background: #000; z-index: 50; }

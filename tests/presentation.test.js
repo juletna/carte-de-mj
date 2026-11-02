@@ -6,6 +6,8 @@
 import * as m from '../js/donjon.js';
 import * as p from '../js/presentation.js';
 import { activerDeplacement } from '../js/deplacement.js';
+import { decrire } from '../js/parseur/decrire.js';
+import { validerPlan } from '../js/schema.js';
 import { chargerPresentations, sauverPresentations, chargerReglages, CLE_PRESENTATIONS, CLE_REGLAGES } from '../js/stockage.js';
 
 function verifier(condition, message) { if (!condition) throw new Error(message); }
@@ -61,7 +63,7 @@ function salleDePiliers(d, l, h, nom = 'Pleine') {
 const SENTINELLES = [
   'SENT-NOTE-A', 'SENT-NOTE-B', 'SENT-NOTE-C', 'SENT-TEXTE-A', 'SENT-TEXTE-C', 'SENT-NOM-A', 'SENT-NOM-C', 'SENT-DONJON', 'SENT-PLAN-NOM',
   'SENT-ID-COFFRE', 'SENT-CHAMP-COFFRE', 'SENT-ID-PORTE', 'SENT-CHAMP-PORTE', 'SENT-ID-GOBELIN', 'SENT-CHAMP-GOBELIN',
-  'SENT-LIAISON', 'SENT-CONNEXION', 'SENT-CONTENU-C', 'SENT-ID-PORTE-B',
+  'SENT-LIAISON', 'SENT-CONNEXION', 'SENT-CONTENU-C', 'SENT-ID-PORTE-B', 'SENT-NOTE-PARTIE-A', 'SENT-NOTE-PARTIE-B',
 ];
 
 /** Présentation dont tout ce qui est secret porte une valeur sentinelle. */
@@ -81,7 +83,10 @@ function presentationAvecSecrets() {
   a.plan.creatures.push({ id: 'SENT-ID-GOBELIN', type: 'gobelin', camp: 'monstre', x: 7, y: 7, taille: 1, numero: 2, cache: true, secret: 'SENT-CHAMP-GOBELIN' });
   b.plan.portes.push({ id: 'SENT-ID-PORTE-B', mur: 'nord', position: 4, type: 'porte', cache: true });
   a.plan.objets.find((o) => o.type === 'pilier').note = 'SENT-EXTRA-VISIBLE'; // champ inconnu sur un élément visible
-  return { pres: p.creerPresentation(d), d, a, b, c };
+  const pres = p.creerPresentation(d);
+  p.definirNotePartie(pres, a.id, 'SENT-NOTE-PARTIE-A');
+  p.definirNotePartie(pres, b.id, 'SENT-NOTE-PARTIE-B');
+  return { pres, d, a, b, c };
 }
 
 const TESTS = [
@@ -334,6 +339,333 @@ const TESTS = [
     verifier(!sortie.includes('SENT-') && !sortie.includes('"z"'), 'élément caché, nom et connexions écartés');
     egal(p.recevoirVueTable('n’importe quoi'), null, 'valeur absurde → null');
     egal(p.recevoirVueTable({ largeur: 0 }), null, 'plan invalide → null');
+  }],
+
+  // ===== Improvisation (étape 4) : notes de partie, état des pions, commandes, nouvelle salle =====
+
+  ['D3 notes de partie : séparées des notes de préparation, enregistrées, jamais dans la vue table', () => {
+    const { d, a } = donjonDeTest();
+    a.notes = 'préparation : le coffre est piégé';
+    const avant = JSON.stringify(d);
+    const pres = p.creerPresentation(d);
+    egal(p.notePartie(pres, a.id), '', 'aucune note de partie au départ');
+    verifier(p.definirNotePartie(pres, a.id, 'les joueurs ont forcé la serrure'), 'note posée');
+    egal(pres.donjon.salles[a.id].notes, 'préparation : le coffre est piégé', 'la note de préparation n’est jamais écrasée');
+    egal(p.notePartie(pres, a.id), 'les joueurs ont forcé la serrure', 'la note de partie est à part');
+    verifier(!p.definirNotePartie(pres, 'salle-fantome', 'x'), 'salle inconnue refusée');
+    const sortie = JSON.stringify(p.vueTable(pres));
+    verifier(!sortie.includes('forcé') && !sortie.includes('piégé') && !sortie.includes('notes'), 'aucune note dans la vue table');
+    egal(JSON.stringify(d), avant, 'le donjon préparé n’est pas modifié');
+    // Enregistrée et relue avec la partie.
+    const stock = fauxStock();
+    sauverPresentations({ [d.id]: pres }, stock);
+    const relu = chargerPresentations(stock)[d.id];
+    egal(relu.notesPartie[a.id], 'les joueurs ont forcé la serrure', 'relue après enregistrement');
+    egal(relu.donjon.salles[a.id].notes, 'préparation : le coffre est piégé', 'préparation intacte après enregistrement');
+    // Une note vide est retirée ; une note trop longue est bornée.
+    p.definirNotePartie(pres, a.id, '');
+    egal(pres.notesPartie, {}, 'note vide retirée');
+    p.definirNotePartie(pres, a.id, 'x'.repeat(30000));
+    egal(p.notePartie(pres, a.id).length, 20000, 'note bornée');
+  }],
+
+  ['D3 notes : une salle de la copie garde ses propres notes quand on change de salle', () => {
+    const { pres, a, b } = presentationAvecSecrets();
+    egal([p.notePartie(pres, a.id), p.notePartie(pres, b.id)], ['SENT-NOTE-PARTIE-A', 'SENT-NOTE-PARTIE-B'], 'une note par salle');
+    p.passerPorte(pres, a.id, 'p2', { groupe: false });
+    egal(p.notePartie(pres, a.id), 'SENT-NOTE-PARTIE-A', 'la note de la salle quittée est toujours là');
+    for (const vue of [p.vueTable(pres)]) verifier(!JSON.stringify(vue).includes('SENT-NOTE-PARTIE'), 'jamais à la table');
+  }],
+
+  ['compat : une partie enregistrée avant l’étape 4 (sans notesPartie ni etat) se charge ; les nouveaux champs sont validés', () => {
+    const { d, a } = donjonDeTest();
+    const ancienne = JSON.parse(JSON.stringify(p.creerPresentation(d)));
+    delete ancienne.notesPartie;
+    const v = p.validerPresentation(ancienne);
+    verifier(v.ok, v.erreurs.join(' '));
+    egal(v.presentation.notesPartie, {}, 'notes de partie absentes → vides');
+    verifier(v.presentation.donjon.salles[a.id].plan.creatures.every((k) => !('etat' in k)), 'aucun état inventé');
+    // Valeurs absurdes : écartées sans refuser la partie.
+    const piege = JSON.parse(JSON.stringify(p.creerPresentation(d)));
+    piege.notesPartie = { [a.id]: 'ok', 'salle-fantome': 'x', [Object.keys(d.salles)[1]]: 42 };
+    const pion = piege.donjon.salles[a.id].plan.creatures[0];
+    pion.etat = 'zombie';
+    piege.donjon.salles[a.id].plan.creatures[1].etat = 'mort';
+    const w = p.validerPresentation(piege);
+    verifier(w.ok, 'la partie se charge');
+    egal(w.presentation.notesPartie, { [a.id]: 'ok' }, 'seules les notes de salles connues, en texte, sont gardées');
+    const k = w.presentation.donjon.salles[a.id].plan.creatures;
+    egal([k[0].etat, k[1].etat], [undefined, 'mort'], 'état inconnu écarté, état valide gardé');
+    for (const mauvais of [null, 'texte', [], 7]) {
+      piege.notesPartie = mauvais;
+      verifier(p.validerPresentation(piege).ok, `notesPartie = ${JSON.stringify(mauvais)} : ignoré, pas fatal`);
+    }
+    piege.notesPartie = JSON.parse('{"__proto__": "x", "constructor": "y"}');
+    const x = p.validerPresentation(piege);
+    verifier(x.ok && Object.keys(x.presentation.notesPartie).length === 0 && ({}).x === undefined, 'clés dangereuses sans effet');
+  }],
+
+  ['D4 état des pions : blessé, mort, retour à normal ; visible à la table, enregistré', () => {
+    const { d, a } = donjonDeTest();
+    const pres = p.creerPresentation(d);
+    const plan = pres.donjon.salles[a.id].plan;
+    const gob = plan.creatures.find((k) => k.type === 'gobelin');
+    egal(p.vueTable(pres).creatures.find((k) => k.id === gob.id).etat, undefined, 'normal : pas de champ');
+    verifier(p.definirEtat(pres, a.id, gob.id, 'blesse'), 'blessé');
+    egal(p.vueTable(pres).creatures.find((k) => k.id === gob.id).etat, 'blesse', 'la table voit « blessé »');
+    p.definirEtat(pres, a.id, gob.id, 'mort');
+    egal(p.vueTable(pres).creatures.find((k) => k.id === gob.id).etat, 'mort', 'la table voit « mort »');
+    const stock = fauxStock();
+    sauverPresentations({ [d.id]: pres }, stock);
+    egal(chargerPresentations(stock)[d.id].donjon.salles[a.id].plan.creatures.find((k) => k.id === gob.id).etat, 'mort', 'enregistré');
+    const recu = p.recevoirVueTable(JSON.parse(JSON.stringify(p.vueTable(pres))));
+    egal(recu.creatures.find((k) => k.id === gob.id).etat, 'mort', 'la fenêtre table relit l’état');
+    p.definirEtat(pres, a.id, gob.id, 'normal');
+    verifier(!('etat' in plan.creatures.find((k) => k.id === gob.id)), 'retour à normal : champ retiré');
+    verifier(!p.definirEtat(pres, a.id, gob.id, 'zombie') && !p.definirEtat(pres, a.id, 'inconnu', 'mort') && !p.definirEtat(pres, 'x', gob.id, 'mort'), 'état, pion ou salle inconnus refusés');
+    // Un état écrit à la main dans la vue table reçue est borné.
+    const piege = JSON.parse(JSON.stringify(p.vueTable(pres)));
+    piege.creatures[0].etat = '<img src=x>';
+    verifier(!('etat' in p.recevoirVueTable(piege).creatures[0]), 'état inconnu écarté côté table');
+  }],
+
+  ['D4 état : un pion caché non révélé reste absent de la table, état compris ; le groupe qui passe garde ses états', () => {
+    const { pres, a } = presentationAvecSecrets();
+    p.definirEtat(pres, a.id, 'SENT-ID-GOBELIN', 'mort');
+    const sortie = JSON.stringify(p.vueTable(pres));
+    verifier(!sortie.includes('mort') && !sortie.includes('SENT-'), 'le pion caché mort n’apparaît pas');
+    p.revelerElement(pres, a.id, 'SENT-ID-GOBELIN');
+    verifier(JSON.stringify(p.vueTable(pres)).includes('"etat":"mort"'), 'révélé : on voit qu’il est mort');
+    // Le groupe suit avec son état.
+    const pj = pres.donjon.salles[a.id].plan.creatures.find((k) => k.camp === 'pj');
+    p.definirEtat(pres, a.id, pj.id, 'blesse');
+    p.passerPorte(pres, a.id, pres.donjon.salles[a.id].plan.portes.find((q) => !q.cache).id, { groupe: true });
+    const arrivee = pres.donjon.salles[pres.salleCourante].plan.creatures.find((k) => k.camp === 'pj' && k.numero === pj.numero);
+    egal(arrivee.etat, 'blesse', 'le pion blessé a gardé son état dans la salle d’arrivée');
+  }],
+
+  ['schéma : etat est facultatif sur une créature, borné à blessé / mort ; un plan sans état ne change pas', () => {
+    const base = { largeur: 4, longueur: 4, creatures: [{ type: 'gobelin', x: 0, y: 0 }, { type: 'gobelin', x: 1, y: 0, etat: 'blesse' }, { type: 'gobelin', x: 2, y: 0, etat: 'x' }] };
+    const r = validerPlan(base).plan.creatures;
+    egal(r.map((k) => k.etat), [undefined, 'blesse', undefined], 'états');
+    verifier(!JSON.stringify(validerPlan({ ...base, creatures: [base.creatures[0]] }).plan).includes('etat'), 'aucun champ « etat » inventé');
+  }],
+
+  ['commandes en partie : le plan de la copie change, pas le donjon préparé ; texte et liaisons intacts', () => {
+    const { d, a, b } = donjonDeTest();
+    const avant = JSON.stringify(d);
+    const pres = p.creerPresentation(d);
+    const texteA = pres.donjon.salles[a.id].texte;
+    const liaisons = JSON.stringify(pres.donjon.liaisons);
+    const portesA = JSON.stringify(pres.donjon.salles[a.id].plan.portes);
+    let r = p.appliquerCommande(pres, a.id, 'ajoute trois gobelins');
+    verifier(r.ok, r.message);
+    egal(pres.donjon.salles[a.id].plan.creatures.length, a.plan.creatures.length + 3, 'trois pions de plus dans la copie');
+    r = p.appliquerCommande(pres, a.id, 'supprime le pilier');
+    verifier(r.ok, r.message);
+    r = p.appliquerCommande(pres, a.id, 'déplace le gobelin 1 en C1');
+    verifier(r.ok, r.message);
+    egal(JSON.stringify(d), avant, 'le donjon préparé est identique octet pour octet');
+    egal(pres.donjon.salles[a.id].texte, texteA, 'le texte de préparation de la copie n’est pas réécrit (il n’est pas utilisé en partie)');
+    egal(JSON.stringify(pres.donjon.liaisons), liaisons, 'liaisons intactes');
+    egal(JSON.stringify(pres.donjon.salles[a.id].plan.portes), portesA, 'portes (id, mur, position) intactes');
+    for (const q of pres.donjon.salles[a.id].plan.portes) {
+      const dest = p.destinationPorte(pres, a.id, q.id);
+      egal(!!dest, !!m.liaisonDePorte(d, a.id, q), `la porte ${q.id} est toujours reliée comme avant`);
+    }
+    egal(pres.donjon.salles[b.id].plan.creatures.length, b.plan.creatures.length, 'l’autre salle n’est pas touchée');
+    // Une commande refusée ne change rien et le dit.
+    const figee = JSON.stringify(pres);
+    r = p.appliquerCommande(pres, a.id, 'supprime le gobelin 7');
+    verifier(!r.ok && /pas de gobelin 7/.test(r.message), r.message);
+    egal(JSON.stringify(pres), figee, 'rien n’a changé');
+    verifier(!p.appliquerCommande(pres, 'salle-fantome', 'ajoute un gobelin').ok, 'salle inconnue refusée');
+  }],
+
+  ['commandes en partie : la copie se recharge (validation) avec ses ajouts, états et identifiants', () => {
+    const { d, a } = donjonDeTest();
+    const pres = p.creerPresentation(d);
+    p.appliquerCommande(pres, a.id, 'ajoute deux gobelins caches');
+    p.appliquerCommande(pres, a.id, 'ajoute un coffre en A1');
+    const pion = pres.donjon.salles[a.id].plan.creatures.find((k) => k.type === 'gobelin');
+    p.definirEtat(pres, a.id, pion.id, 'blesse');
+    const brut = JSON.parse(JSON.stringify(pres));
+    const v = p.validerPresentation(brut);
+    verifier(v.ok, v.erreurs.join(' '));
+    egal(v.presentation.donjon.salles[a.id].plan, pres.donjon.salles[a.id].plan, 'le plan relu est identique (ids, états, cachés)');
+  }],
+
+  ['commandes en partie : un élément ajouté « caché » reste invisible à la table jusqu’à sa révélation', () => {
+    const { d, a } = donjonDeTest();
+    const pres = p.creerPresentation(d);
+    const avant = JSON.stringify(p.vueTable(pres));
+    const comptageAvant = p.comptageCaches(pres, a.id).total;
+    verifier(p.appliquerCommande(pres, a.id, 'ajoute un gobelin caché en B2').ok, 'ajout');
+    verifier(p.appliquerCommande(pres, a.id, 'ajoute un coffre secret en C2').ok, 'ajout');
+    egal(JSON.stringify(p.vueTable(pres)), avant, 'la table ne voit toujours rien de plus');
+    const cache = pres.donjon.salles[a.id].plan.creatures.find((k) => k.cache);
+    egal(p.comptageCaches(pres, a.id).total, comptageAvant + 2, 'la régie les compte parmi les cachés');
+    p.revelerElement(pres, a.id, cache.id);
+    egal(p.vueTable(pres).creatures.length, JSON.parse(avant).creatures.length + 1, 'révélé : il apparaît');
+    verifier(!JSON.stringify(p.vueTable(pres)).includes('"cache"'), 'sans champ cache');
+    p.recacherElement(pres, a.id, cache.id);
+    egal(JSON.stringify(p.vueTable(pres)), avant, 'recaché : de nouveau invisible');
+  }],
+
+  ['commandes en partie : supprimer un élément révélé ne laisse pas sa révélation à son successeur', () => {
+    const { d, a } = donjonDeTest();
+    const pres = p.creerPresentation(d);
+    p.appliquerCommande(pres, a.id, 'supprime le gobelin'); // un seul gobelin dans la salle de test
+    p.appliquerCommande(pres, a.id, 'ajoute un gobelin caché en B2');
+    const c = pres.donjon.salles[a.id].plan.creatures.find((k) => k.cache);
+    p.revelerElement(pres, a.id, c.id);
+    verifier(p.estRevele(pres, a.id, c.id), 'révélé');
+    const r = p.appliquerCommande(pres, a.id, 'supprime le gobelin caché');
+    verifier(r.ok, r.message);
+    verifier(!p.estRevele(pres, a.id, c.id) && !(a.id in pres.reveles), 'sa révélation a été retirée avec lui');
+    p.appliquerCommande(pres, a.id, 'ajoute un gobelin caché en B2'); // reprend le même identifiant libre
+    const neuf = pres.donjon.salles[a.id].plan.creatures.find((k) => k.cache);
+    egal(neuf.id, c.id, 'le même identifiant est réutilisé');
+    verifier(!p.estRevele(pres, a.id, neuf.id), 'mais le nouveau n’est pas révélé');
+    verifier(!JSON.stringify(p.vueTable(pres)).includes('"x":1,"y":1'), 'et la table ne le voit pas');
+  }],
+
+  ['secrets : après commandes, notes de partie et états, aucune sentinelle ne sort vers la table', () => {
+    const { pres, a } = presentationAvecSecrets();
+    for (const t of ['ajoute un gobelin caché', 'ajoute deux piliers', 'supprime le pilier 1', 'déplace le gobelin 1 en C1']) {
+      const r = p.appliquerCommande(pres, a.id, t);
+      verifier(r.ok, `${t} : ${r.message}`);
+    }
+    p.definirNotePartie(pres, a.id, 'SENT-NOTE-PARTIE-A');
+    p.definirEtat(pres, a.id, pres.donjon.salles[a.id].plan.creatures[0].id, 'blesse');
+    const sortie = JSON.stringify(p.vueTable(pres));
+    for (const s of SENTINELLES) verifier(!sortie.includes(s), `« ${s} » est sorti dans la vue table`);
+    verifier(!sortie.includes('"cache"') && sortie.includes('"etat":"blesse"'), 'pas de cache ; l’état, lui, est visible');
+    const ajoute = pres.donjon.salles[a.id].plan.creatures.filter((k) => k.cache && k.id !== 'SENT-ID-GOBELIN');
+    egal(ajoute.length, 1, 'le gobelin ajouté caché existe côté régie');
+    verifier(!sortie.includes(`"id":"${ajoute[0].id}"`), 'mais pas côté table');
+    // Les portes secrètes non révélées restent absentes, même après des commandes.
+    egal(p.vueTable(pres).portes.map((q) => q.mur), ['est'], 'porte secrète toujours absente');
+  }],
+
+  ['D1 créer une salle derrière une porte non reliée : reliée, découverte, courante, le groupe suit', () => {
+    const { d } = donjonDeTest();
+    const depart = salleDeDepart(d);
+    d.salleActive = depart.id;
+    const avant = JSON.stringify(d);
+    const pres = p.creerPresentation(d, { salleDepart: depart.id });
+    const porte = pres.donjon.salles[depart.id].plan.portes[0];
+    const idsAvant = pres.donjon.salles[depart.id].plan.portes.map((q) => q.id);
+    const nbSalles = Object.keys(pres.donjon.salles).length;
+    const nbLiaisons = pres.donjon.liaisons.length;
+    verifier(!p.destinationPorte(pres, depart.id, porte.id), 'la porte n’est pas reliée');
+    const creee = p.creerSalleApresPorte(pres, depart.id, porte.id, '');
+    verifier(creee.ok, creee.message);
+    egal(pres.donjon.salles[creee.salle.id].texte, decrire(pres.donjon.salles[creee.salle.id].plan), 'texte de la salle créée = decrire(plan)');
+    const res = { ...p.passerPorte(pres, depart.id, porte.id, { groupe: true }), salle: creee.salle };
+    verifier(res.ok, res.message);
+    egal(Object.keys(pres.donjon.salles).length, nbSalles + 1, 'une salle de plus');
+    egal(pres.donjon.liaisons.length, nbLiaisons + 1, 'une liaison de plus');
+    egal(res.vers, res.salle.id, 'on y est passé');
+    egal([pres.salleCourante, p.estDecouverte(pres, res.salle.id)], [res.salle.id, true], 'courante et découverte');
+    const dest = p.destinationPorte(pres, depart.id, porte.id);
+    verifier(dest && dest.salle.id === res.salle.id, 'la porte d’origine mène à la nouvelle salle');
+    egal(dest.arrivee.mur, 'ouest', 'porte de retour sur le mur opposé');
+    const retour = pres.donjon.salles[res.salle.id].plan.portes.find((q) => q.mur === 'ouest');
+    verifier(retour, 'porte de retour dessinée');
+    egal(p.destinationPorte(pres, res.salle.id, retour.id).salle.id, depart.id, 'et elle ramène au départ');
+    egal(pres.donjon.salles[depart.id].plan.portes.map((q) => q.id), idsAvant, 'les identifiants de portes de la salle d’origine sont inchangés');
+    // Le groupe a suivi, sans superposition ni sortie de la pièce.
+    const ici = pres.donjon.salles[res.salle.id].plan;
+    egal([res.deplaces, ici.creatures.filter((k) => k.camp === 'pj').length], [2, 2], 'les deux pj ont suivi');
+    egal(pres.donjon.salles[depart.id].plan.creatures.filter((k) => k.camp === 'pj').length, 0, 'et ont quitté la salle d’origine');
+    aucunePosition(ici);
+    egal(JSON.stringify(d), avant, 'le donjon préparé n’est pas modifié');
+    // Une porte reliée ne peut pas recevoir une seconde salle.
+    verifier(!p.creerSalleEtPasser(pres, depart.id, porte.id, '').ok, 'porte déjà reliée : refusé');
+    egal(Object.keys(pres.donjon.salles).length, nbSalles + 1, 'aucune salle de plus après le refus');
+  }],
+
+  ['D1 sans « le groupe suit » : les pions restent ; porte inconnue refusée', () => {
+    const { d } = donjonDeTest();
+    const depart = salleDeDepart(d);
+    const pres = p.creerPresentation(d, { salleDepart: depart.id });
+    const porte = pres.donjon.salles[depart.id].plan.portes[0];
+    const res = p.creerSalleEtPasser(pres, depart.id, porte.id, '', { groupe: false });
+    verifier(res.ok, res.message);
+    egal([pres.donjon.salles[depart.id].plan.creatures.length, pres.donjon.salles[res.salle.id].plan.creatures.length], [2, 0], 'les pions restent');
+    verifier(!p.creerSalleEtPasser(pres, depart.id, 'p99', '').ok && !p.creerSalleEtPasser(pres, 'x', 'p1', '').ok, 'porte ou salle inconnue refusée');
+  }],
+
+  ['D1 avec une description : lue par le parseur, reliée à la porte, éléments cachés invisibles à la table', () => {
+    const { d } = donjonDeTest();
+    const depart = salleDeDepart(d);
+    const pres = p.creerPresentation(d, { salleDepart: depart.id });
+    const porte = pres.donjon.salles[depart.id].plan.portes[0]; // mur est, position 2
+    const res = p.creerSalleEtPasser(pres, depart.id, porte.id, 'Salle du trône de 8 par 6 cases, quatre piliers, un autel au fond, un coffre caché en B2, deux gobelins en E3 F3', { groupe: true });
+    verifier(res.ok, res.message);
+    const salle = pres.donjon.salles[res.salle.id];
+    egal([salle.plan.largeur, salle.plan.longueur], [8, 6], 'dimensions lues');
+    egal(salle.nom, 'Salle du trône', 'le nom de la description sert de nom');
+    egal(salle.plan.objets.filter((o) => o.type === 'pilier').length, 4, 'quatre piliers');
+    egal(salle.plan.creatures.filter((k) => k.type === 'gobelin').length, 2, 'deux gobelins');
+    const retour = salle.plan.portes.find((q) => q.mur === 'ouest');
+    verifier(retour && !retour.cache, 'porte de retour visible sur le mur opposé');
+    egal(salle.plan.entree, 'ouest', 'les joueurs entrent par la porte de retour');
+    verifier(p.destinationPorte(pres, depart.id, porte.id).salle.id === salle.id, 'reliée à la porte cliquée');
+    aucunePosition(salle.plan);
+    const vue = p.vueTable(pres);
+    verifier(!vue.objets.some((o) => o.type === 'coffre'), 'le coffre caché de la description est invisible à la table');
+    const plusieurs = p.creerSalleApresPorte(pres, res.salle.id, retour.id, 'une salle');
+    verifier(!plusieurs.ok, 'la porte de retour est déjà reliée : on ne crée pas une autre salle');
+    // Mots non compris : signalés, pas devinés.
+    const p2 = p.creerPresentation(donjonDeTest().d);
+    const sal = Object.values(p2.donjon.salles)[0];
+    const porteLibre = sal.plan.portes.find((q) => q.cache) || sal.plan.portes[0];
+    const r2 = p.creerSalleApresPorte(p2, sal.id, porteLibre.id, 'petite pièce avec un machin');
+    verifier(r2.ok && r2.ignores.includes('machin'), 'mot non compris signalé');
+  }],
+
+  ['D1 : « au fond » se lit depuis la porte de retour, quel que soit le mur franchi', () => {
+    for (const [murFranchi, fondCoffre] of [['sud', (o) => o.y >= 3], ['nord', (o) => o.y < 3], ['ouest', (o) => o.x < 3], ['est', (o) => o.x >= 3]]) {
+      const pres = p.creerPresentation(m.creerDonjon({ texte: `Salle de 6 par 6 cases, une porte au mur ${murFranchi} en 3` }));
+      const depart = Object.values(pres.donjon.salles)[0];
+      const res = p.creerSalleApresPorte(pres, depart.id, depart.plan.portes[0].id, 'Salle de 6 par 6 cases, un coffre au fond');
+      verifier(res.ok, `création derrière le mur ${murFranchi}`);
+      const coffre = res.salle.plan.objets.find((o) => o.type === 'coffre');
+      verifier(coffre && fondCoffre(coffre), `coffre loin de la porte de retour (mur ${murFranchi} franchi) : ${coffre?.x},${coffre?.y}`);
+    }
+  }],
+
+  ['D1 : description sans porte sur le mur opposé → porte ajoutée à la même position ; mur opposé avec porte secrète → porte visible en plus', () => {
+    const { d } = donjonDeTest();
+    const depart = salleDeDepart(d);
+    const pres = p.creerPresentation(d, { salleDepart: depart.id });
+    const porte = pres.donjon.salles[depart.id].plan.portes[0]; // est, position 2
+    const r1 = p.creerSalleApresPorte(pres, depart.id, porte.id, 'Salle de 6 par 6 cases, une porte secrète au mur ouest en A, un coffre en C3');
+    verifier(r1.ok, r1.message);
+    const plan = pres.donjon.salles[r1.salle.id].plan;
+    const ouest = plan.portes.filter((q) => q.mur === 'ouest');
+    egal(ouest.length, 2, 'la porte secrète du texte est gardée, une porte visible est ajoutée');
+    const lien = m.liaisonDePorte(pres.donjon, depart.id, porte);
+    const visible = ouest.find((q) => !q.cache);
+    egal([lien.autre.salle, lien.autre.position], [r1.salle.id, visible.position], 'la liaison désigne la porte visible (salle + mur + position)');
+    verifier(plan.portes.every((q, i, l) => l.findIndex((o) => o.id === q.id) === i), 'identifiants de portes uniques');
+  }],
+
+  ['D1 : la partie se recharge avec la salle créée et sa liaison', () => {
+    const { d } = donjonDeTest();
+    const depart = salleDeDepart(d);
+    const pres = p.creerPresentation(d, { salleDepart: depart.id });
+    const porte = pres.donjon.salles[depart.id].plan.portes[0];
+    const res = p.creerSalleEtPasser(pres, depart.id, porte.id, 'Salle de 5 par 5 cases, trois piliers, un gobelin caché');
+    verifier(res.ok, res.message);
+    const stock = fauxStock();
+    sauverPresentations({ [d.id]: pres }, stock);
+    const relu = chargerPresentations(stock)[d.id];
+    verifier(relu, 'la partie se recharge');
+    egal([relu.salleCourante, Object.keys(relu.donjon.salles).length, relu.donjon.liaisons.length], [res.salle.id, Object.keys(pres.donjon.salles).length, pres.donjon.liaisons.length], 'salle courante, salles et liaisons');
+    egal(relu.donjon.salles[res.salle.id].plan, validerPlan(pres.donjon.salles[res.salle.id].plan).plan, 'plan de la salle créée identique (à l’ordre des champs près)');
   }],
 
   ['déplacement : l’option `deplacables` limite aux pions, sans option tout bouge comme avant', () => {

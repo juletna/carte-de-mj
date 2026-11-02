@@ -5,7 +5,7 @@
  *  - presentation.html            la RÉGIE du MJ : choix du donjon, carte complète, révélations, portes ;
  *  - presentation.html?vue=table  la VUE TABLE : uniquement la carte, alimentée par la régie.
  *
- * La logique (copie du donjon, portes, révélations, plan envoyé à la table) est dans presentation.js.
+ * La logique (copie du donjon, portes, révélations, improvisation, plan envoyé à la table) est dans presentation.js.
  * Ici : DOM, stockage et BroadcastChannel.
  *
  * SÉCURITÉ : la vue table ne lit jamais les présentations du localStorage et ne reçoit de la
@@ -19,6 +19,7 @@ import { activerDeplacement } from './deplacement.js';
 import { dessinerMiniCarte } from './minicarte.js';
 import { nomCase, lettreColonne } from './parseur/coordonnees.js';
 import { nomAffiche } from './parseur/lexique.js';
+import { creerMicro, voixDisponible } from './voix.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -133,6 +134,8 @@ function demarrerRegie() {
     consultee: null,     // salle que le MJ regarde (≠ forcément la salle à la table) : jamais sauvegardée
     selection: null,     // { genre, id } : les identifiants sont stables dans la copie
     message: '',
+    messageCommande: null, // { texte, ok } : réponse à la dernière commande rapide (régie seulement)
+    brouillon: null,     // { cle, texte, nom } : description de la salle à créer derrière une porte, gardée si on redessine
     groupeSuit: true,    // case « Le groupe suit »
     ajuster: true,       // adapter la carte de la régie à la fenêtre (n'agit pas sur la table)
     fichier: null,       // { donjon, avertissements } : donjon ouvert depuis un fichier
@@ -163,6 +166,16 @@ function demarrerRegie() {
     }
   }
   const sauverReglages = () => stockage.sauverReglages(r);
+  // Les notes de partie s'enregistrent pendant la frappe, sans redessiner la carte ni toucher à la table.
+  let minuteSauvegarde = null;
+  const planifierSauvegarde = () => { clearTimeout(minuteSauvegarde); minuteSauvegarde = setTimeout(viderSauvegarde, 300); };
+  function viderSauvegarde() {
+    if (minuteSauvegarde === null) return;
+    clearTimeout(minuteSauvegarde);
+    minuteSauvegarde = null;
+    sauvegarder();
+  }
+  window.addEventListener('pagehide', viderSauvegarde);
 
   // --- Écran de départ -------------------------------------------------------------------------
   function resumePartie(p) {
@@ -205,6 +218,7 @@ function demarrerRegie() {
   }
 
   function afficherDepart() {
+    viderSauvegarde();
     etat.p = null;
     etat.consultee = null;
     quitterPleinIci();
@@ -255,6 +269,9 @@ function demarrerRegie() {
     etat.consultee = p.salleCourante;
     etat.selection = null;
     etat.message = '';
+    etat.messageCommande = null;
+    etat.brouillon = null;
+    noteSalle = null;
     etat.enregistre = true;
     $('depart').hidden = true;
     $('regie').hidden = false;
@@ -304,6 +321,7 @@ function demarrerRegie() {
     majBandeau();
     majSelection();
     majSalle();
+    majCommande();
     majMiniCarte();
     majEcranLocal();
     diffuser();
@@ -313,9 +331,11 @@ function demarrerRegie() {
 
   function consulter(id) {
     if (!(id in etat.p.donjon.salles)) return;
+    viderSauvegarde();
     etat.consultee = id;
     etat.selection = null;
     etat.message = '';
+    etat.messageCommande = null;
     rendre();
   }
 
@@ -364,19 +384,81 @@ function demarrerRegie() {
     return b;
   };
 
+  /** Phrases communes à tout passage de porte : le groupe qui suit, les pions restés faute de place. */
+  function phrasesGroupe(res, depart) {
+    const parts = [];
+    if (etat.groupeSuit && res.deplaces) parts.push(`${pluriel(res.deplaces, 'pion du groupe a suivi', 'pions du groupe ont suivi')}.`);
+    if (res.restes) parts.push(`${pluriel(res.restes, 'pion n’a pas trouvé', 'pions n’ont pas trouvé')} de place et ${res.restes > 1 ? 'restent' : 'reste'} dans « ${depart} ».`);
+    return parts;
+  }
+
   function passer(porte) {
     const s = salleConsultee();
     const depart = s.nom;
     const res = pres.passerPorte(etat.p, s.id, porte.id, { groupe: etat.groupeSuit });
     if (!res.ok) { etat.message = res.message; rendre(); return; }
     const arrivee = etat.p.donjon.salles[res.vers].nom;
-    const parts = [`Passage dans « ${arrivee} » : la salle est maintenant à la table.`];
-    if (etat.groupeSuit && res.deplaces) parts.push(`${pluriel(res.deplaces, 'pion du groupe a suivi', 'pions du groupe ont suivi')}.`);
-    if (res.restes) parts.push(`${pluriel(res.restes, 'pion n’a pas trouvé', 'pions n’ont pas trouvé')} de place et ${res.restes > 1 ? 'restent' : 'reste'} dans « ${depart} ».`);
     etat.consultee = res.vers;
     etat.selection = null;
+    etat.messageCommande = null;
+    etat.message = [`Passage dans « ${arrivee} » : la salle est maintenant à la table.`, ...phrasesGroupe(res, depart)].join(' ');
+    modifie();
+  }
+
+  /** Porte non reliée : crée la salle décrite (ou une salle de 6 × 6), la relie à cette porte et y passe. */
+  function creerEtPasser(porte) {
+    const s = salleConsultee();
+    const depart = s.nom;
+    const b = etat.brouillon;
+    const res = pres.creerSalleEtPasser(etat.p, s.id, porte.id, b?.texte || '', { nom: b?.nom || '', echelle: r.echelle, groupe: etat.groupeSuit });
+    if (!res.ok) { etat.message = res.message; rendre(); return; }
+    const parts = [`Salle « ${res.salle.nom} » créée derrière la porte, reliée à « ${depart} » : elle est maintenant à la table.`, ...phrasesGroupe(res, depart)];
+    if (res.ignores?.length) parts.push(`Mots non compris dans la description : ${res.ignores.join(', ')}.`);
+    etat.consultee = res.vers;
+    etat.selection = null;
+    etat.brouillon = null;
+    etat.messageCommande = null;
     etat.message = parts.join(' ');
     modifie();
+  }
+
+  const LIBELLES_ETAT = { normal: 'normal', blesse: 'blessé', mort: 'mort' };
+  function changerEtat(pion, valeur) {
+    const s = salleConsultee();
+    pres.definirEtat(etat.p, s.id, pion.id, valeur);
+    const qui = `${nomAffiche(pion.type)} ${pion.numero}`;
+    const visible = !pion.cache || pres.estRevele(etat.p, s.id, pion.id);
+    const ou = !visible ? ' (pion caché : la table ne le voit pas)' : s.id === etat.p.salleCourante ? ' : visible sur la table' : ' (cette salle n’est pas à la table)';
+    etat.message = valeur === 'normal' ? `${qui} est de nouveau normal${ou}.` : `${qui} est ${LIBELLES_ETAT[valeur]}${ou}.`;
+    modifie();
+  }
+
+  /** Case « Le groupe suit » (partagée par le passage normal et la création de salle). */
+  function caseGroupe(s) {
+    const nbPj = s.plan.creatures.filter((k) => k.camp === 'pj').length;
+    const suit = h('input', { type: 'checkbox', id: 'groupe-suit', checked: etat.groupeSuit });
+    suit.addEventListener('change', () => { etat.groupeSuit = suit.checked; });
+    return h('label', { className: 'suit' }, suit, `Le groupe suit (${pluriel(nbPj, 'pion de joueur', 'pions de joueurs')} dans cette salle)`);
+  }
+
+  function formulaireNouvelleSalle(s, porte) {
+    const cle = `${s.id}|${porte.id}`;
+    if (etat.brouillon?.cle !== cle) etat.brouillon = { cle, texte: '', nom: '' };
+    const brouillon = etat.brouillon;
+    const description = h('textarea', { id: 'description-nouvelle', rows: 3, spellcheck: false, value: brouillon.texte,
+      placeholder: 'Ex. : salle de 8 par 6 cases, quatre piliers, un autel au fond, deux gobelins' });
+    description.addEventListener('input', () => { brouillon.texte = description.value; });
+    const nom = h('input', { type: 'text', id: 'nom-nouvelle', value: brouillon.nom, maxLength: 80, placeholder: 'Nom de la salle (facultatif)' });
+    nom.addEventListener('input', () => { brouillon.nom = nom.value; });
+    return [
+      h('p', { className: 'note', textContent: 'Cette porte n’est reliée à aucune salle. Vous pouvez créer la salle d’à côté maintenant : elle sera reliée à cette porte, et le groupe peut y passer.' }),
+      h('div', { className: 'nouvelle-salle' },
+        h('label', { htmlFor: 'description-nouvelle', textContent: 'Décrire la nouvelle salle (facultatif)' }), description,
+        h('p', { className: 'note', textContent: 'Même langage que dans le Donjon. Laissez vide pour une salle de 6 × 6 cases. Une porte de retour est ajoutée sur le mur opposé si la description n’en place pas.' }),
+        nom),
+      caseGroupe(s),
+      h('div', { className: 'actions' }, bouton('Créer la salle et y passer', () => creerEtPasser(porte))),
+    ];
   }
 
   function majSelection() {
@@ -399,17 +481,28 @@ function demarrerRegie() {
         : bouton('Révéler', () => { pres.revelerElement(p, s.id, el.id); etat.message = `Révélé${sur ? ' : il apparaît sur la table' : ', mais cette salle n’est pas à la table'}.`; modifie(); })));
     }
 
+    if (trouve.genre === 'creature') {
+      const actuel = el.etat || 'normal';
+      contenu.push(h('p', { className: 'note', id: 'etat-pion', textContent: `État : ${LIBELLES_ETAT[actuel]}. Un pion blessé porte une croix rouge, un pion mort est grisé et barré ; la table les voit.` }));
+      const boutons = h('div', { className: 'etats' });
+      boutons.setAttribute('role', 'group');
+      boutons.setAttribute('aria-label', 'État du pion');
+      for (const valeur of ['normal', 'blesse', 'mort']) {
+        const b = bouton(valeur === 'normal' ? 'Normal' : valeur === 'blesse' ? 'Blessé' : 'Mort', () => changerEtat(el, valeur), valeur === 'normal' ? 'discret' : '');
+        b.setAttribute('aria-pressed', String(actuel === valeur));
+        boutons.append(b);
+      }
+      contenu.push(boutons);
+    }
+
     if (trouve.genre === 'porte') {
       const dest = pres.destinationPorte(p, s.id, el.id);
       if (dest) {
-        const nbPj = s.plan.creatures.filter((k) => k.camp === 'pj').length;
         contenu.push(h('p', {}, 'Mène à ', h('strong', { textContent: dest.salle.nom }), pres.estDecouverte(p, dest.salle.id) ? ' (déjà découverte).' : ' (non découverte).'));
-        const suit = h('input', { type: 'checkbox', id: 'groupe-suit', checked: etat.groupeSuit });
-        suit.addEventListener('change', () => { etat.groupeSuit = suit.checked; });
-        contenu.push(h('label', { className: 'suit' }, suit, `Le groupe suit (${pluriel(nbPj, 'pion de joueur', 'pions de joueurs')} dans cette salle)`));
+        contenu.push(caseGroupe(s));
         contenu.push(h('div', { className: 'actions' }, bouton(`Passer dans la salle « ${dest.salle.nom} »`, () => passer(el), '')));
       } else {
-        contenu.push(h('p', { className: 'note', textContent: 'Cette porte n’est reliée à aucune salle : rien à passer pour l’instant. Les liaisons se font dans l’outil Donjon.' }));
+        contenu.push(...formulaireNouvelleSalle(s, el));
       }
     }
     zone.replaceChildren(...contenu);
@@ -433,6 +526,45 @@ function demarrerRegie() {
     const notes = $('notes');
     notes.textContent = s.notes || 'Aucune note pour cette salle.';
     notes.classList.toggle('vide', !s.notes);
+    if (noteSalle !== s.id) { champNotes.value = pres.notePartie(p, s.id); noteSalle = s.id; } // ne jamais écraser ce que le MJ est en train d'écrire
+  }
+  // Notes de partie : rattachées à la salle regardée, enregistrées avec la partie, jamais diffusées.
+  const champNotes = $('notes-partie');
+  let noteSalle = null; // salle dont la note est dans le champ
+  champNotes.addEventListener('input', () => {
+    if (!etat.p || noteSalle === null) return;
+    pres.definirNotePartie(etat.p, noteSalle, champNotes.value);
+    planifierSauvegarde();
+  });
+  champNotes.addEventListener('blur', viderSauvegarde);
+
+  // --- Commande rapide (ajoute, supprime, déplace) ---------------------------------------------------
+  function majCommande() {
+    $('nom-salle-commande').textContent = `(« ${salleConsultee().nom} »)`;
+    const m = $('message-commande'), mc = etat.messageCommande;
+    m.hidden = !mc;
+    m.textContent = mc ? `${mc.ok ? '' : 'Commande non appliquée. '}${mc.texte}` : '';
+    m.classList.toggle('refus', !!mc && !mc.ok);
+  }
+  $('form-commande').addEventListener('submit', (e) => {
+    e.preventDefault();
+    if (!etat.p) return;
+    viderSauvegarde();
+    const champ = $('commande');
+    const res = pres.appliquerCommande(etat.p, etat.consultee, champ.value);
+    etat.messageCommande = { texte: res.message, ok: res.ok };
+    if (res.ok) { champ.value = ''; modifie(); } else majCommande();
+  });
+  const microCommande = creerMicro({
+    onTexte: (texte) => { $('commande').value = texte; },
+    onEtat: (actif) => { $('micro-commande').textContent = actif ? '⏹ Arrêter' : '🎙️ Dicter'; },
+    onErreur: (texte) => { etat.messageCommande = { texte, ok: false }; majCommande(); },
+  });
+  if (!microCommande) {
+    $('micro-commande').disabled = true;
+    $('micro-commande').title = 'La dictée n’est pas disponible dans ce navigateur : la saisie au clavier marche partout.';
+  } else {
+    $('micro-commande').addEventListener('click', () => microCommande.basculer($('commande').value));
   }
   $('reveler-tout').addEventListener('click', () => {
     const s = salleConsultee();

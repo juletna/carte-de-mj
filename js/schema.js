@@ -19,6 +19,7 @@
  *
  * camp d'une créature : pj, pnj ou monstre ; taille = côté du pion en cases ;
  * couleur (facultative) : rouge, bleu, vert… (voir COULEURS dans lexique.js).
+ * etat (facultatif, posé en partie par la Présentation) : « blesse » ou « mort » ; absent = normal.
  * rotation : direction du regard de l'objet (0 nord, 90 est, 180 sud, 270 ouest).
  * position d'une porte : index de case le long du mur (de l'ouest vers l'est
  * pour nord/sud, du nord vers le sud pour est/ouest).
@@ -31,6 +32,8 @@ const TYPES_OBJETS = new Set(OBJETS.map((o) => o.type));
 const TYPES_PORTES = new Set(Object.values(PORTES));
 const TYPES_CREATURES = new Set(CREATURES.map((c) => c.type));
 const CAMPS = ['pj', 'pnj', 'monstre'];
+/** États d'un pion en jeu (absence de champ = normal). */
+export const ETATS = ['blesse', 'mort'];
 const MAX = 60;
 
 const entier = (v) => Number.isInteger(v);
@@ -94,6 +97,7 @@ export function validerPlan(brut) {
       x: k.x, y: k.y, taille, numero: entier(k.numero) ? k.numero : numeros[k.type],
     };
     if (COULEURS[k.couleur]) c.couleur = k.couleur;
+    if (ETATS.includes(k.etat)) c.etat = k.etat;
     Object.assign(c, marqueCache(k));
     plan.creatures.push(c);
   });

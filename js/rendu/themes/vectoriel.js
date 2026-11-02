@@ -10,6 +10,7 @@
  *   objets[type](ctx, w, h, t, objet)     dessin centré sur (0, 0) ; w × h en pixels ;
  *                                         l'AVANT de l'objet est vers le bas (+y)
  *   pion(ctx, creature, t)                pion d'une créature, en coordonnées de la pièce
+ *                                         (creature.etat « blesse » ou « mort » : pastille à croix, ou grisé et barré)
  *
  * Repères d'interface (facultatifs), rectangles { x, y, l, h } en CASES, origine au coin nord-ouest de la pièce :
  *   repereCache(ctx, rect, t)             contour en pointillés d'un élément secret
@@ -169,12 +170,16 @@ export function pion(ctx, k, t) {
   const cote = k.taille * t;
   const cx = k.x * t + cote / 2, cy = k.y * t + cote / 2;
   const r = cote * 0.42;
-  const fond = CAMP[k.camp] || CAMP.pnj;
+  const mort = k.etat === 'mort';
+  const fond = mort ? '#6e6c68' : CAMP[k.camp] || CAMP.pnj;
 
+  // Un pion mort est grisé (gris uni, sans anneau de couleur) et barré d'une croix : lisible sans la couleur.
+  ctx.save();
+  if (mort) ctx.globalAlpha *= 0.75;
   ombre(ctx, t, () => rond(ctx, cx, cy, r, fond));
   rond(ctx, cx, cy, r, fond, '#f4efe4', Math.max(2, t * 0.06));
   // Anneau de la couleur propre à la créature (dragon rouge, etc.).
-  if (k.couleur && COULEURS[k.couleur]) rond(ctx, cx, cy, r * 0.8, null, COULEURS[k.couleur], Math.max(3, r * 0.18));
+  if (!mort && k.couleur && COULEURS[k.couleur]) rond(ctx, cx, cy, r * 0.8, null, COULEURS[k.couleur], Math.max(3, r * 0.18));
 
   const texte = k.camp === 'pj' ? `P${k.numero}` : ABREVIATIONS[k.type] || '?';
   ctx.fillStyle = '#fff';
@@ -182,6 +187,7 @@ export function pion(ctx, k, t) {
   ctx.textBaseline = 'middle';
   ctx.font = `700 ${Math.max(9, r * (texte.length > 2 ? 0.62 : 0.8))}px system-ui, sans-serif`;
   ctx.fillText(texte, cx, cy + r * 0.04);
+  ctx.restore();
 
   // Pastille du numéro (inutile pour les PJ, déjà numérotés dans le pion).
   if (k.camp !== 'pj') {
@@ -190,8 +196,46 @@ export function pion(ctx, k, t) {
     rond(ctx, px, py, pr, '#f4efe4', '#1b1a17', 1.5);
     ctx.fillStyle = '#1b1a17';
     ctx.font = `700 ${pr * 1.2}px system-ui, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
     ctx.fillText(String(k.numero), px, py + pr * 0.06);
   }
+
+  if (mort) croix(ctx, cx, cy, r, t);
+  else if (k.etat === 'blesse') pansement(ctx, cx, cy, r, t);
+}
+
+/** Pion mort : grande croix noire cernée de blanc, qui se lit aussi en noir et blanc. */
+function croix(ctx, cx, cy, r, t) {
+  const a = r * 0.78;
+  ctx.save();
+  ctx.lineCap = 'round';
+  for (const [couleur, epaisseur] of [['#f4efe4', Math.max(6, r * 0.5)], ['#111', Math.max(3.5, r * 0.28)]]) {
+    ctx.strokeStyle = couleur;
+    ctx.lineWidth = epaisseur;
+    ctx.beginPath();
+    ctx.moveTo(cx - a, cy - a); ctx.lineTo(cx + a, cy + a);
+    ctx.moveTo(cx + a, cy - a); ctx.lineTo(cx - a, cy + a);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/** Pion blessé : pastille blanche à croix rouge foncée en bas à gauche, contour du pion en trait épais sombre. */
+function pansement(ctx, cx, cy, r, t) {
+  ctx.save();
+  rond(ctx, cx, cy, r + Math.max(1.5, t * 0.03), null, '#1b1a17', Math.max(2, t * 0.05)); // contour sombre : le pion paraît « entaillé »
+  const pr = Math.max(8, t * 0.2);
+  const px = cx - r * 0.72, py = cy + r * 0.72;
+  rond(ctx, px, py, pr, '#fff', '#1b1a17', Math.max(1.5, t * 0.035));
+  ctx.strokeStyle = '#a01818';
+  ctx.lineCap = 'butt';
+  ctx.lineWidth = Math.max(3, pr * 0.42);
+  ctx.beginPath();
+  ctx.moveTo(px - pr * 0.58, py); ctx.lineTo(px + pr * 0.58, py);
+  ctx.moveTo(px, py - pr * 0.58); ctx.lineTo(px, py + pr * 0.58);
+  ctx.stroke();
+  ctx.restore();
 }
 
 // --- Objets ------------------------------------------------------------------
