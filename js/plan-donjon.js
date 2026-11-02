@@ -12,7 +12,9 @@
  *  - si la place est prise, la salle ne change JAMAIS de côté : une porte à l'est mène toujours à une salle à l'est.
  *    C'est la salle de départ, avec tout ce qui se trouve de son côté, qui recule pour laisser la place. Les couloirs
  *    des liaisons ainsi écartées s'allongent. La salle insérée a alors 3 cases de chaque côté : une case de passage
- *    pour le couloir qui la contourne, et une case libre de part et d'autre pour qu'il ne colle à aucun mur ;
+ *    pour le couloir qui la contourne, et une case libre de part et d'autre pour qu'il ne colle à aucun mur.
+ *    Mais si son couloir peut filer tout droit le long de la salle qui gêne, la nouvelle salle se pose après celle-ci :
+ *    aucun couloir n'a alors à faire le tour, ni à croiser celui d'à côté ;
  *  - une porte qui mène à une salle déjà placée ne déplace rien : la liaison est simplement tracée ;
  *  - les salles sans aucune liaison vont en rangée sous le reste, sous l'étiquette « Salles non reliées » ;
  *    un groupe de salles reliées entre elles, mais pas à la première, forme un bloc posé sous le premier.
@@ -69,31 +71,46 @@ function positionIdeale(A, dimA, ici, autre, dimB) {
 
 /**
  * Place la salle B derrière le mur `ici.mur` de la salle A, sans jamais la mettre d'un autre côté.
- * Si une salle gêne, A et tout ce qui est de son côté du mur reculent, juste assez : reculer ne peut créer aucun
- * chevauchement, puisque ces salles s'éloignent seulement de celles qui ne bougent pas. B est alors à ECART_PASSAGE de
+ * Si une salle gêne sans barrer la ligne droite qui part de la porte, B se pose simplement après elle. Si elle la barre,
+ * B s'insère devant elle : A et tout ce qui est de son côté reculent, juste assez (reculer ne peut créer aucun
+ * chevauchement, puisque ces salles s'éloignent seulement de celles qui ne bougent pas), et B est à ECART_PASSAGE de
  * ses deux voisines, car un couloir devra passer de chaque côté d'elle pour la contourner. Modifie `rects`.
  */
 function placerDerriere(rects, A, ici, autre, dimB) {
   const mur = ici.mur;
   const horizontal = mur === 'est' || mur === 'ouest';
   const [debut, taille] = horizontal ? ['x', 'l'] : ['y', 'h'];
+  const [cote, tailleCote] = horizontal ? ['y', 'h'] : ['x', 'l'];
   const avance = mur === 'est' || mur === 'sud'; // B est du côté des coordonnées croissantes
-  const coupure = avance ? A[debut] + A[taille] : A[debut];
+  // Les deux bords d'une salle, comptés dans le sens du couloir (le même calcul sert alors pour les quatre murs).
+  const entree = (o) => (avance ? o[debut] : -(o[debut] + o[taille]));
+  const sortie = (o) => (avance ? o[debut] + o[taille] : -o[debut]);
   const liste = Object.values(rects);
-  const duCoteDeA = liste.filter((o) => (avance ? o[debut] + o[taille] <= coupure : o[debut] >= coupure));
   const ideal = positionIdeale(A, { l: A.l, h: A.h }, ici, autre, dimB);
   const r = { x: ideal.x, y: ideal.y, l: dimB.l, h: dimB.h };
+  // La ligne droite n'existe que si les portes se font face. Elle passe si une case libre la sépare du mur de la salle.
+  const ligne = autre.mur === OPPOSE[mur] ? A[cote] + borner(ici.position | 0, 0, longueurMur(A, mur) - 1) : null;
+  const barreLigne = (o) => ligne === null || (ligne > o[cote] - 2 && ligne <= o[cote] + o[tailleCote]);
+  const devantA = liste.filter((o) => o !== A && sortie(o) > sortie(A));
   const enPlus = ECART_PASSAGE - ECART_MIN; // ce qu'il faut de plus que l'écart minimum, seulement devant la salle
-  for (let tour = 0; tour <= liste.length; tour++) {
+  let ecartee = false;
+  for (let tour = 0; tour <= 2 * liste.length; tour++) {
     const zone = { ...r, [debut]: avance ? r[debut] : r[debut] - enPlus, [taille]: r[taille] + enPlus };
     const genes = liste.filter((o) => tropProches(zone, o));
     if (!genes.length) break;
-    if (tour === 0) r[debut] += (avance ? 1 : -1) * (ECART_PASSAGE - ECART_LIAISON); // le passage, côté salle de départ
-    const recul = Math.max(...genes.map((o) => (avance
-      ? r[debut] + r[taille] + ECART_PASSAGE - o[debut]
-      : o[debut] + o[taille] + ECART_PASSAGE - r[debut])));
+    const fin = Math.max(...genes.map(sortie));
+    if (!genes.some(barreLigne) && !devantA.some((o) => barreLigne(o) && entree(o) < fin)) {
+      const place = fin + ECART_PASSAGE;
+      r[debut] = avance ? place : -place - r[taille];
+      ecartee = true;
+      continue;
+    }
+    const aReculer = liste.filter((o) => sortie(o) <= entree(r) && !genes.includes(o));
+    if (!ecartee) r[debut] += (avance ? 1 : -1) * (ECART_PASSAGE - ECART_LIAISON); // le passage, côté salle de départ
+    ecartee = true;
+    const recul = Math.max(...genes.map((o) => sortie(r) + ECART_PASSAGE - entree(o)));
     const decalage = avance ? -recul : recul;
-    for (const o of duCoteDeA) o[debut] += decalage;
+    for (const o of aReculer) o[debut] += decalage;
     r[debut] += decalage;
   }
   return r;
@@ -233,7 +250,8 @@ export function disposerPlan(d) {
 const COUT_VIRAGE = 2;           // un couloir préfère les lignes droites
 const COUT_LONGE_SALLE = 0.5;    // et garde ses distances avec les murs quand il le peut
 const COUT_SORTIE_PORTE = 6;     // évite de passer devant une autre porte
-const COUT_CROISEMENT = 4;       // évite de suivre ou de croiser un autre couloir
+const COUT_CROISEMENT = 40;      // un croisement ne se justifie que si le détour est vraiment très long
+const PASSES_MAX = 3;            // retracés quand des couloirs se croisent encore : chacun réessaie, les autres étant posés
 const ETATS_MAX = 400000;        // au-delà (plan immense), on garde le tracé simple plutôt que de figer la page
 const DIRECTIONS = [[0, -1], [1, 0], [0, 1], [-1, 0]];
 const INDICE_DIRECTION = { nord: 0, est: 1, sud: 2, ouest: 3 };
@@ -316,14 +334,15 @@ function sansPointsAlignes(pts) {
 
 /**
  * Ajoute à chaque couloir son `chemin` : une suite de points à angle droit qui ne traverse aucune salle, quitte à
- * s'allonger. Les couloirs sont tracés dans l'ordre des liaisons, en évitant autant que possible ceux déjà posés.
+ * s'allonger. Les couloirs sont tracés dans l'ordre des liaisons, en évitant autant que possible ceux déjà posés ;
+ * s'il reste des croisements, chacun est retracé en connaissant tous les autres, car le premier tracé ignorait les suivants.
  * Pas de chemin possible (porte murée par une salle voisine, plan immense) : le couloir garde son tracé simple.
  */
 function tracerCouloirs(couloirs, positions, largeur, longueur) {
   const grille = new Uint8Array(largeur * longueur);     // 1 : une salle occupe cette case
   const proche = new Uint8Array(largeur * longueur);     // 1 : case qui touche une salle
   const devantPorte = new Uint8Array(largeur * longueur);
-  const pris = new Uint8Array(largeur * longueur);       // 1 : un couloir passe déjà ici
+  const pris = new Uint16Array(largeur * longueur);      // nombre de couloirs qui passent ici
   const indice = (x, y) => y * largeur + x;
   const dans = (x, y) => x >= 0 && y >= 0 && x < largeur && y < longueur;
   for (const r of Object.values(positions)) {
@@ -339,10 +358,12 @@ function tracerCouloirs(couloirs, positions, largeur, longueur) {
   const sorties = couloirs.flatMap((c) => [c.de, c.vers].map(caseDevant));
   for (const s of sorties) if (dans(s.x, s.y)) devantPorte[indice(s.x, s.y)] = 1;
 
-  for (const c of couloirs) {
+  const trace = new Map(); // couloir → ses cases
+  const marquer = (cases, n) => { for (const k of cases) pris[indice(k.x, k.y)] += n; };
+  const tracer = (c) => {
     const depart = caseDevant(c.de), arrivee = caseDevant(c.vers);
     const libre = (s) => dans(s.x, s.y) && !grille[indice(s.x, s.y)];
-    if (c.orpheline || !libre(depart) || !libre(arrivee)) continue;
+    if (c.orpheline || !libre(depart) || !libre(arrivee)) return;
     const estExtremite = (x, y) => (x === depart.x && y === depart.y) || (x === arrivee.x && y === arrivee.y);
     const coutCase = (x, y) => {
       if (estExtremite(x, y)) return 0;
@@ -351,13 +372,23 @@ function tracerCouloirs(couloirs, positions, largeur, longueur) {
     };
     const dirArrivee = INDICE_DIRECTION[OPPOSE[c.vers.mur]];
     const cases = chercherChemin(depart, arrivee, INDICE_DIRECTION[c.de.mur], dirArrivee, grille, largeur, longueur, coutCase);
-    if (!cases) continue;
-    for (const k of cases) pris[indice(k.x, k.y)] = 1;
+    if (!cases) return;
+    marquer(cases, 1);
+    trace.set(c, cases);
     c.chemin = sansPointsAlignes([
       { x: c.de.x, y: c.de.y },
       ...cases.map((k) => ({ x: k.x + 0.5, y: k.y + 0.5 })),
       { x: c.vers.x, y: c.vers.y },
     ]);
+  };
+  couloirs.forEach(tracer);
+  for (let passe = 1; passe < PASSES_MAX && pris.some((n) => n > 1); passe++) {
+    for (const c of couloirs) {
+      if (!trace.has(c)) continue;
+      marquer(trace.get(c), -1);
+      trace.delete(c);
+      tracer(c);
+    }
   }
 }
 

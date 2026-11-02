@@ -47,21 +47,44 @@ function sansChevauchement(disp, d, quoi) {
   }
 }
 
-/** Le cas signalé : la salle 5 est à l'ouest de la salle 1 ; une autre de ses portes est mène à une salle 6. */
-function casBarre() {
+/**
+ * Le cas signalé : la salle 5 est à l'ouest de la salle 1 ; une autre de ses portes est mène à une salle 6.
+ * `porte6` : rang de la porte ouest de la salle 6. `avec7` : une 3e porte est de la 5 mène à une salle 7, ajoutée après.
+ */
+function casBarre({ porte6 = 2, avec7 = false } = {}) {
   const d = donjonVide();
   const s1 = d.salleActive;
   const t1 = texteSalle(8, 8, [['nord', 3], ['est', 2], ['ouest', 5]]);
   m.definirTexte(d, s1, t1, m.planDepuisTexte(t1, s1));
   const s2 = salle(d, 'Salle 2', 6, 6, [['ouest', 2]]);
   const s4 = salle(d, 'Salle 4', 6, 6, [['sud', 3]]);
-  const s5 = salle(d, 'Salle 5', 6, 6, [['est', 2], ['est', 5]]);
-  const s6 = salle(d, 'Salle 6', 6, 6, [['ouest', 2]]);
+  const s5 = salle(d, 'Salle 5', 6, 6, [...(avec7 ? [['est', 0]] : []), ['est', 2], ['est', 5]]);
+  const s6 = salle(d, 'Salle 6', 6, 6, [['ouest', porte6]]);
+  const s7 = avec7 ? salle(d, 'Salle 7', 6, 6, [['ouest', 0]]) : null;
   m.relier(d, porte(s1, 'est', 2), porte(s2, 'ouest', 2));
   m.relier(d, porte(s1, 'nord', 3), porte(s4, 'sud', 3));
   m.relier(d, porte(s1, 'ouest', 5), porte(s5, 'est', 5));
-  m.relier(d, porte(s5, 'est', 2), porte(s6, 'ouest', 2));
-  return { d, s1, s5, s6 };
+  m.relier(d, porte(s5, 'est', 2), porte(s6, 'ouest', porte6));
+  if (avec7) m.relier(d, porte(s5, 'est', 0), porte(s7, 'ouest', 0));
+  return { d, s1, s5, s6, s7 };
+}
+
+/** Nombre de cases par lesquelles passent deux couloirs. */
+function casesPartagees(disp) {
+  const vues = new Map();
+  for (const c of disp.couloirs) {
+    const cases = new Set();
+    const pts = cheminCouloir(c);
+    for (let i = 1; i < pts.length; i++) {
+      const pas = Math.ceil(Math.abs(pts[i].x - pts[i - 1].x) + Math.abs(pts[i].y - pts[i - 1].y)) * 2;
+      for (let k = 0; k <= pas; k++) {
+        const x = pts[i - 1].x + (pts[i].x - pts[i - 1].x) * k / pas, y = pts[i - 1].y + (pts[i].y - pts[i - 1].y) * k / pas;
+        cases.add(`${Math.floor(x)},${Math.floor(y)}`);
+      }
+    }
+    for (const k of cases) vues.set(k, (vues.get(k) || 0) + 1);
+  }
+  return [...vues.values()].filter((n) => n > 1).length;
 }
 
 /** Chaque couloir part de sa porte, arrive à l'autre, reste à angle droit et n'entre dans aucune salle. */
@@ -262,6 +285,25 @@ const TESTS = [
     const mini = disposerSalles(d).positions;
     verifier(mini[s6].col === mini[s5].col + 1 && mini[s6].ligne === mini[s5].ligne, 'mini-plan : la 6 juste à droite de la 5');
     verifier(mini[s1].col > mini[s6].col, 'mini-plan : la 1 reste à droite');
+  }],
+  ['placement : le couloir qui peut filer tout droit passe le long de la salle déjà là', () => {
+    const { d, s1, s5, s6, s7 } = casBarre({ porte6: 0, avec7: true });
+    const disp = disposerPlan(d);
+    sansChevauchement(disp, d, 'trois portes à l’est');
+    const p = disp.positions;
+    verifier(p[s5].x < p[s6].x && p[s6].x < p[s7].x && p[s7].x < p[s1].x, 'de gauche à droite : 5, 6, 7, 1');
+    egal(p[s7].y, p[s5].y, 'les portes de la 5 et de la 7 se font face');
+    const vers7 = disp.couloirs.find((c) => [c.de.salle, c.vers.salle].includes(s7));
+    egal(cheminCouloir(vers7).length, 2, 'le couloir 5 → 7 est une ligne droite');
+    couloirsPropres(disp, 'trois portes à l’est');
+    egal(casesPartagees(disp), 0, 'aucun croisement');
+  }],
+  ['couloirs : ils se croisent seulement s’ils ne peuvent pas faire autrement', () => {
+    const { d } = casBarre({ porte6: 2, avec7: true }); // la ligne droite vers la 7 est barrée par la 6
+    const disp = disposerPlan(d);
+    sansChevauchement(disp, d, 'trois portes alignées');
+    couloirsPropres(disp, 'trois portes alignées');
+    egal(casesPartagees(disp), 0, 'aucun croisement');
   }],
   ['couloirs : aucun ne traverse une salle, tous à angle droit, sur un grand donjon', () => {
     couloirsPropres(disposerPlan(grande()), '12 salles');
