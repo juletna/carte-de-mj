@@ -68,9 +68,10 @@ const LIBELLES_PORTES = { porte: 'Porte', herse: 'Herse', arche: 'Arche' };
  * Groupes : 'portes', 'mobilier', 'creatures'. Ajouter un mot au lexique l'ajoute ici.
  */
 export function elementsPalette() {
-  const portes = [...new Set(Object.values(PORTES))].map((type) => ({ groupe: 'portes', genre: 'porte', type, libelle: LIBELLES_PORTES[type] || libelle(type) }));
-  const objets = OBJETS.map((d) => ({ groupe: 'mobilier', genre: 'objet', type: d.type, libelle: libelle(d.type) }));
-  const creatures = CREATURES.map((d) => ({ groupe: 'creatures', genre: 'creature', type: d.type, libelle: libelle(d.type) }));
+  const motsDePorte = (type) => Object.entries(PORTES).filter(([, t]) => t === type).map(([m]) => m);
+  const portes = [...new Set(Object.values(PORTES))].map((type) => ({ groupe: 'portes', genre: 'porte', type, libelle: LIBELLES_PORTES[type] || libelle(type), mots: motsDePorte(type) }));
+  const objets = OBJETS.map((d) => ({ groupe: 'mobilier', genre: 'objet', type: d.type, libelle: libelle(d.type), mots: d.mots }));
+  const creatures = CREATURES.map((d) => ({ groupe: 'creatures', genre: 'creature', type: d.type, libelle: libelle(d.type), mots: d.mots, sousGroupe: d.camp }));
   return [...portes, ...objets, ...creatures];
 }
 
@@ -79,6 +80,31 @@ export const GROUPES_PALETTE = [
   { id: 'mobilier', titre: 'Mobilier' },
   { id: 'creatures', titre: 'Créatures' },
 ];
+
+/** Intertitres d'un groupe, dans l'ordre d'affichage : les créatures sont rangées par camp (`sousGroupe`). */
+export const SOUS_GROUPES = {
+  creatures: [
+    { id: 'monstre', titre: 'Monstres' },
+    { id: 'pnj', titre: 'Peuples' },
+    { id: 'pj', titre: 'Personnage' },
+  ],
+};
+
+/** Minuscules, sans accents ni espaces de bord : « Élémentaire » et « elementaire » se valent. */
+export const sansAccents = (texte) => String(texte ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+
+/**
+ * Éléments de la palette qui répondent à une recherche : chaque mot saisi doit se retrouver dans le libellé, le type
+ * ou l'un des mots du lexique (sans accents ni casse : « orc » trouve l'orque). Recherche vide : tout.
+ */
+export function filtrerElements(elements, requete) {
+  const mots = sansAccents(requete).split(/\s+/).filter(Boolean);
+  if (!mots.length) return elements;
+  return elements.filter((e) => {
+    const botte = [e.libelle, e.type, ...(e.mots || [])].map(sansAccents).join(' | ');
+    return mots.every((m) => botte.includes(m));
+  });
+}
 
 // --- Ajouter ---------------------------------------------------------------------------
 

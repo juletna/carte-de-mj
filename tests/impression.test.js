@@ -9,6 +9,8 @@ import * as imp from '../js/impression.js';
 import { vueTable, planPublic } from '../js/presentation.js';
 import { dessinerFenetre } from '../js/rendu/moteur.js';
 import * as papier from '../js/rendu/themes/papier.js';
+import { CREATURES } from '../js/parseur/lexique.js';
+import { aPortrait } from '../js/rendu/portraits.js';
 
 function verifier(condition, message) { if (!condition) throw new Error(message); }
 function egal(obtenu, attendu, quoi) {
@@ -345,6 +347,20 @@ const TESTS = [
     const avec = vueTable({ ...p, reveles: { [a.id]: [cache.id] } });
     verifier(avec.objets.some((o) => o.id === cache.id), 'objet révélé montré');
     verifier(!JSON.stringify(avec).includes('cache'), 'aucun champ cache');
+  }],
+  ['portraits : tous les types de créatures ont le leur, sauf les personnages des joueurs', () => {
+    for (const c of CREATURES) {
+      if (c.type === 'pj') verifier(!aPortrait(c.type), 'pj garde P1, P2 : pas de portrait');
+      else verifier(aPortrait(c.type), `portrait manquant : ${c.type}`);
+    }
+  }],
+  ['rendu papier : le pion dessine le portrait, ou l\'abréviation quand il est très petit', () => {
+    const textes = [];
+    const ctx = new Proxy({}, { get: (c, nom) => (nom === 'fillText' ? (s) => textes.push(s) : nom === 'measureText' ? () => ({ width: 0 }) : () => {}), set: () => true });
+    const pion = (type, camp, t) => { textes.length = 0; papier.pion(ctx, { type, camp, numero: 3, x: 0, y: 0, taille: 1 }, t); return [...textes]; };
+    egal(pion('gobelin', 'monstre', 250), ['3'], 'portrait : seul le numéro est écrit');
+    egal(pion('gobelin', 'monstre', 20), ['Gob', '3'], 'très petit : abréviation de repli');
+    egal(pion('pj', 'pj', 250), ['P3'], 'joueur : P et son numéro, sans portrait');
   }],
   ['rendu papier : la fenêtre ne dessine que ses cases, sans erreur (canvas simulé)', () => {
     const { d, a } = donjonSentinelles();

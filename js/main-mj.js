@@ -9,8 +9,9 @@ import { analyser } from './parseur/index.js';
 import { validerPlan } from './schema.js';
 import { dessiner, MARGE, rectPorte } from './rendu/moteur.js';
 import { tailleRemplir } from './affichage.js';
-import { elementsPalette, GROUPES_PALETTE, redimensionner } from './pose.js';
+import { elementsPalette, GROUPES_PALETTE, SOUS_GROUPES, redimensionner } from './pose.js';
 import { creerPalette } from './palette.js';
+import { creerRail, OUTILS_CATALOGUE } from './rail.js';
 import { creerMicro, voixDisponible } from './voix.js';
 import * as stockage from './stockage.js';
 import { rapport } from './rapport.js';
@@ -195,7 +196,7 @@ function majAide() {
   zone.textContent = estDebutant() ? 'Clique une porte sur la carte pour créer la salle suivante.' : '';
   $('aide-salles').textContent = salle().plan.portes.length
     ? 'Clique une porte sur la carte pour la relier à une autre salle.'
-    : 'Cette salle n’a pas de porte : ajoutes-en une depuis la palette de la carte, ou écris-la dans la description.';
+    : 'Cette salle n’a pas de porte : ajoutes-en une avec l’outil Portes, ou écris-la dans la description.';
 }
 
 /**
@@ -458,7 +459,8 @@ $('scene').addEventListener('scroll', placerBulle, { passive: true });
 
 // Un clic dans le vide de la scène (hors carte et hors bulle) ferme la bulle, comme un clic dans le vide de la carte.
 $('scene').addEventListener('pointerdown', (e) => {
-  if (!etat.selection || (e.target !== $('scene') && e.target !== $('support'))) return;
+  if (tiroirOuvert() && (e.target === $('scene') || e.target === $('support'))) ouvrirTiroir(false); // un appui dans le vide ferme le tiroir
+  if (!etat.selection ||(e.target !== $('scene') && e.target !== $('support'))) return;
   etat.selection = null;
   etat.message = '';
   rendre();
@@ -526,11 +528,6 @@ new ResizeObserver(() => {
   dessinerCarte(salle().plan);
   majCarteRef();
 }).observe($('scene'));
-
-// --- Palette : ajouter à la souris ---------------------------------------------------------------
-const CLE_PALETTE = 'carte-de-mj:palette-repliee';
-const lirePaletteRepliee = () => { try { return localStorage.getItem(CLE_PALETTE) === '1'; } catch { return false; } };
-const ecrirePaletteRepliee = (v) => { try { localStorage.setItem(CLE_PALETTE, v ? '1' : '0'); } catch { /* stockage indisponible : le choix n'est pas retenu */ } };
 
 // --- Dimensions de la salle : bandes autour de la carte (glisser, ou boutons − et +) ---
 /** Applique de nouvelles dimensions : la description suit, et une liaison suit sa porte si elle s'est décalée. */
@@ -626,17 +623,28 @@ function poserSurCarte(item, clientX, clientY) {
   return true;
 }
 
+// --- Palette : catalogue de vignettes (panneau sur ordinateur, tiroir sur téléphone) ------------------------
+/** Tiroir du bas (téléphone) : ouvert par « + Ajouter », refermé tout seul quand un élément est armé. */
+function ouvrirTiroir(ouvert) {
+  $('palette').classList.toggle('tiroir-ouvert', ouvert);
+  $('ajouter').setAttribute('aria-expanded', String(ouvert));
+  if (ouvert) $('palette').querySelector('.palette-groupes [aria-pressed="true"]')?.focus({ preventScroll: true });
+}
+const tiroirOuvert = () => $('palette').classList.contains('tiroir-ouvert');
+$('ajouter').addEventListener('click', () => ouvrirTiroir(!tiroirOuvert()));
+
 const palette = creerPalette($('palette'), {
   elements: elementsPalette(),
   groupes: GROUPES_PALETTE,
-  replie: telephone() || lirePaletteRepliee(),
-  onReplier: (replie) => { if (!telephone()) ecrirePaletteRepliee(replie); },
+  sousGroupes: SOUS_GROUPES,
+  pastille: $('pose-pastille'),
+  onFermer: () => { ouvrirTiroir(false); $('ajouter').focus(); },
   onArmer: (item) => {
     $('carte').classList.toggle('arme', !!item);
     if (item) {
       etat.selection = null; // la bulle se ferme : le prochain clic sur la carte pose
       majSelection();
-      if (telephone()) palette.replier(true); // au doigt, la palette libère la carte une fois l'élément choisi
+      if (telephone()) ouvrirTiroir(false); // au doigt, le tiroir libère la carte une fois l'élément choisi
       annoncerCarte(`${item.libelle} : clique une case de la carte pour le poser. Échap pour arrêter.`);
     } else $('message-carte').hidden = true;
   },
@@ -646,6 +654,19 @@ const palette = creerPalette($('palette'), {
     return x >= Math.max(cv.left, sc.left) && x <= Math.min(cv.right, sc.right) && y >= Math.max(cv.top, sc.top) && y <= Math.min(cv.bottom, sc.bottom);
   },
 });
+
+// --- Rail d'outils et panneau contextuel ---------------------------------------------------------------
+// Portes, Mobilier et Créatures montrent le catalogue (le groupe suit l'outil) ; les autres outils, leur bloc du panneau.
+// Cliquer l'outil actif replie le panneau : la scène grandit et l'observateur de taille réajuste la carte.
+const TITRES_OUTILS = { salle: 'Salle', portes: 'Portes', mobilier: 'Mobilier', creatures: 'Créatures', notes: 'Notes', plan: 'Plan du donjon', reglages: 'Réglages' };
+const rail = creerRail($('rail'), {
+  cle: 'carte-de-mj:outil',
+  telephone,
+  titres: TITRES_OUTILS,
+  onChange: ({ outil }) => { if (OUTILS_CATALOGUE.includes(outil) && palette.groupe() !== outil) palette.afficherGroupe(outil); },
+});
+// Passage de l'ordinateur au téléphone (rotation, fenêtre redimensionnée) : le rail et le tiroir se remettent d'aplomb.
+matchMedia('(max-width: 760px)').addEventListener('change', () => { ouvrirTiroir(false); rail.appliquer(); });
 
 // --- Menu du donjon (barre du haut) -------------------------------------------------------------------
 function ouvrirMenu(ouvert) {
@@ -658,11 +679,12 @@ document.addEventListener('pointerdown', (e) => {
   if (!$('menu-donjon').hidden && !e.target.closest('.menu-donjon')) fermerMenu();
 });
 
-// Échap, du plus proche au plus lointain : glisser en cours, menu ouvert, élément armé, bulle ouverte.
+// Échap, du plus proche au plus lointain : glisser en cours, menu ouvert, tiroir ouvert, élément armé, bulle ouverte.
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape' || e.defaultPrevented) return;
   if (palette.annulerGlisser()) return;
   if (!$('menu-donjon').hidden) { fermerMenu(); $('menu-donjon-bouton').focus(); return; }
+  if (tiroirOuvert()) { ouvrirTiroir(false); $('ajouter').focus(); return; }
   if (palette.arme()) { palette.desarmer(); return; }
   if (etat.selection) { etat.selection = null; etat.message = ''; rendre(); }
 });

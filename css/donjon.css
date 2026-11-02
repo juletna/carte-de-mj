@@ -1,6 +1,6 @@
 /* Carte de MJ — mise en page de l'outil Donjon (donjon.html seulement).
    Charge après css/style.css : elle n'en change ni les couleurs, ni les polices, ni les jetons de css/base.css, seulement
-   l'organisation (barre du haut, colonne courte, bulle d'actions, palette et zoom flottants).
+   l'organisation (barre du haut, rail d'outils, panneau contextuel, bande des salles, bulle d'actions, zoom flottant).
    Au-dessus de 760 px : ordinateur. En dessous : onglets Texte / Carte, bandeau d'actions fixe (règles de style.css). */
 
 /* Texte réservé aux lecteurs d'écran (titre de page, étiquette de la description). */
@@ -31,18 +31,63 @@
 .menu-panneau .pied { margin-top: 12px; }
 .liens-site { display: none; }
 
-/* --- Colonne de gauche : courte, sans défiler dans le cas courant --- */
-.salles-barre { display: flex; align-items: center; gap: 6px; }
+/* --- Onglets des salles : fine bande au-dessus de la carte, quel que soit l'outil ouvert --- */
+[hidden] { display: none !important; }
+.salles-barre { display: flex; align-items: center; gap: 6px; min-width: 0; padding: 5px 12px; background: var(--panneau); border-bottom: 1px solid var(--bord); }
 .salles-onglets { list-style: none; margin: 0; padding: 0 0 2px; display: flex; gap: 4px; flex: 1 1 auto; min-width: 0; overflow-x: auto; scrollbar-width: thin; }
 .salles-onglets li { flex: none; }
-.onglet-salle { max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 5px 10px; font-size: 13px; font-weight: 400; min-height: max(var(--cible), 32px); background: transparent; color: var(--texte); border: 1px solid var(--bord); }
+.onglet-salle { max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 4px 10px; font-size: 13px; font-weight: 400; min-height: max(var(--cible), 30px); background: transparent; color: var(--texte); border: 1px solid var(--bord); }
 .onglet-salle.actif { background: var(--accent); color: var(--accent-texte); border-color: var(--accent); font-weight: 600; }
-#salle-ajouter { flex: none; padding: 5px 12px; min-height: max(var(--cible), 32px); font-size: 16px; line-height: 1; }
+#salle-ajouter { flex: none; padding: 4px 12px; min-height: max(var(--cible), 30px); font-size: 16px; line-height: 1; }
+
+/* --- Rail d'outils (icône + libellé, à la Canva) --- */
+.rail { display: flex; flex-direction: column; gap: 2px; padding: 8px 4px; background: var(--panneau); border-right: 1px solid var(--bord); overflow-y: auto; scrollbar-width: none; }
+.rail-outil { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; width: 100%; min-height: max(var(--cible), 56px); padding: 6px 2px; background: transparent; color: var(--texte-doux); border: 0; border-radius: var(--rayon); font-size: 11px; font-weight: 500; line-height: 1.1; }
+.rail-outil svg { width: 24px; height: 24px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.rail-outil:hover { color: var(--texte); background: rgba(255, 255, 255, 0.06); filter: none; }
+.rail-outil[aria-pressed="true"] { color: var(--accent); background: rgba(217, 169, 41, 0.14); font-weight: 600; }
+.rail-outil[aria-pressed="true"]::before { content: ''; position: absolute; left: -4px; top: 10px; bottom: 10px; width: 3px; border-radius: 0 3px 3px 0; background: var(--accent); }
+.rail-outil:focus-visible { outline: var(--focus); outline-offset: -2px; }
+.rail-sep { flex: none; height: 1px; margin: 6px 10px; background: var(--bord); }
+
+/* --- Panneau contextuel : le contenu de l'outil choisi --- */
+.panneau-tete { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex: none; }
+.panneau-tete h2 { margin: 0; font-size: 13px; }
+#panneau-replier { padding: 2px 10px; font-size: 16px; line-height: 1; }
+.outil { display: flex; flex-direction: column; gap: 8px; }
+.outil-etiquette { font-weight: 600; font-size: 13px; }
 .saisie textarea { padding: 6px 8px; }
 .retour h2 { margin-bottom: 2px; }
 #compris { font-size: 13px; line-height: 1.35; }
-details.bloc > summary h2 { font-size: 12px; }
 details.exemples summary { font-size: 13px; }
+.outil .minicarte { margin-top: 0; }
+
+/* --- Catalogue de vignettes (Portes, Mobilier, Créatures) --- */
+.catalogue { display: flex; flex-direction: column; gap: 8px; flex: 1 1 auto; min-height: 0; }
+.palette-tete, .palette-groupes { display: none; }
+.palette-recherche { flex: none; width: 100%; min-height: max(var(--cible), 32px); padding: 6px 10px; font: inherit; font-size: 14px; color: var(--texte); background: var(--champ); border: 1px solid var(--bord); border-radius: var(--rayon); }
+.palette-recherche:focus { outline: var(--focus); outline-offset: 1px; }
+.palette-liste { flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; scrollbar-width: thin; padding-right: 2px; }
+.palette-intertitre { margin: 12px 0 6px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--texte-doux); }
+.palette-groupe > .palette-intertitre:first-child { margin-top: 2px; }
+.palette-grille { display: grid; grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: 6px; }
+.palette-item { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; min-height: max(var(--cible), 40px); padding: 6px 2px 5px; background: var(--champ); color: var(--texte); border: 1px solid var(--bord); font-weight: 400; cursor: grab; user-select: none; -webkit-user-select: none; touch-action: pan-y; }
+.palette-item:hover { border-color: var(--texte-doux); filter: none; }
+.palette-item[aria-pressed="true"] { border-color: var(--accent); background: rgba(217, 169, 41, 0.16); box-shadow: inset 0 0 0 1px var(--accent); }
+.palette-vignette { display: block; width: 56px; height: 56px; line-height: 0; }
+.palette-vignette canvas { display: block; pointer-events: none; }
+.palette-nom { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; line-height: 1.2; }
+.palette-vide { margin: 8px 0 0; font-size: 13px; color: var(--texte-doux); }
+.palette-aide { flex: none; margin: 0; font-size: 12px; line-height: 1.35; color: var(--texte-doux); }
+.palette-fantome { position: fixed; z-index: 100; pointer-events: none; transform: translate(-50%, -110%); padding: 3px; line-height: 0; background: rgba(0, 0, 0, 0.85); border: 1px dashed var(--texte-doux); border-radius: var(--rayon); opacity: 0.92; }
+.palette-fantome canvas { display: block; }
+.palette-fantome.sur-carte { background: var(--accent); border: 1px solid var(--accent); }
+body.palette-glisse, body.palette-glisse * { cursor: grabbing !important; user-select: none; -webkit-user-select: none; }
+#carte.arme { cursor: crosshair !important; }
+
+/* Pastille d'état de la pose, en haut au centre de la carte (sous la bande du nord), quel que soit l'outil ouvert. */
+.pose-pastille { position: absolute; z-index: 28; top: 40px; left: 50%; transform: translateX(-50%); max-width: calc(100% - 24px); min-height: max(var(--cible), 30px); padding: 4px 14px; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: var(--panneau); color: var(--accent); border: 1px solid var(--accent); border-radius: 999px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45); }
+.bouton-ajouter { display: none; }
 
 /* --- Bandes de dimensions autour de la carte : on les glisse, ou on utilise leurs boutons − et + --- */
 :root { --bande-salle: 36px; }
@@ -66,46 +111,28 @@ details.exemples summary { font-size: 13px; }
 #zoom output { min-width: 50px; text-align: center; font-size: 13px; font-variant-numeric: tabular-nums; }
 #zoom button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
 
-#palette { left: 12px; top: 12px; width: min(300px, calc(100% - 24px)); }
-.palette-entete { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 4px; }
-.palette-titre { padding: 4px 12px; min-height: max(var(--cible), 30px); font-size: 13px; }
-.palette-pastille { padding: 3px 10px; min-height: max(var(--cible), 30px); font-size: 13px; background: transparent; color: var(--accent); border: 1px solid var(--accent); }
-#palette.arme { border-color: var(--accent); }
-.palette-corps { padding: 2px 8px 8px; }
-.palette-groupes { display: flex; gap: 4px; margin-bottom: 6px; }
-.palette-groupes button[aria-pressed="true"] { background: var(--accent); color: var(--accent-texte); border-color: var(--accent); }
-.palette-liste { display: flex; flex-wrap: wrap; gap: 4px; max-height: 188px; overflow-y: auto; scrollbar-width: thin; }
-.palette-item { padding: 3px 9px; font-size: 13px; font-weight: 400; min-height: max(var(--cible), 28px); cursor: grab; user-select: none; -webkit-user-select: none; touch-action: none; }
-.palette-item[aria-pressed="true"] { background: var(--accent); color: var(--accent-texte); border-color: var(--accent); font-weight: 600; }
-.palette-aide { margin: 6px 0 0; font-size: 12px; line-height: 1.35; color: var(--texte-doux); }
-.palette-fantome { position: fixed; z-index: 100; pointer-events: none; transform: translate(-50%, -130%); padding: 4px 10px; font-size: 13px; color: var(--texte); background: rgba(0, 0, 0, 0.85); border: 1px dashed var(--texte-doux); border-radius: var(--rayon); }
-.palette-fantome.sur-carte { background: var(--accent); color: var(--accent-texte); border: 1px solid var(--accent); }
-body.palette-glisse, body.palette-glisse * { cursor: grabbing !important; user-select: none; -webkit-user-select: none; }
-#carte.arme { cursor: crosshair !important; }
 
 .message-carte { position: absolute; z-index: 30; left: 50%; bottom: 48px; transform: translateX(-50%); max-width: min(560px, calc(100% - 24px)); margin: 0; padding: 8px 14px; font-size: 14px; background: var(--panneau); border: 1px solid var(--accent); border-radius: var(--rayon); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5); pointer-events: none; }
 .message-carte.erreur-pose { border-color: var(--erreur); }
 
-/* --- Ordinateur (au-dessus de 760 px) --- */
+
+/* --- Ordinateur (au-dessus de 760 px) : barre, rail 64 px, panneau 300 px, puis bande des salles et carte --- */
 @media (min-width: 761px) {
-  body { grid-template-columns: 300px minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); height: 100vh; height: 100dvh; overflow: hidden; }
+  body { grid-template-columns: 64px 300px minmax(0, 1fr); grid-template-rows: auto auto minmax(0, 1fr); height: 100vh; height: 100dvh; overflow: hidden; }
+  /* Panneau replié : la colonne disparaît et la carte récupère la place (l'ajustement passe par le ResizeObserver de la scène). */
+  body.panneau-replie { grid-template-columns: 64px 0 minmax(0, 1fr); }
+  body.panneau-replie #panneau { display: none; }
 
   #barre { grid-column: 1 / -1; grid-row: 1; position: relative; z-index: 50; display: flex; align-items: center; gap: var(--esp-3); padding: 0 var(--esp-3); min-height: 48px; }
   #barre .onglets { display: none; }
   #barre .menu-site nav { flex: 1 1 auto; }
 
-  #panneau { grid-column: 1; grid-row: 2; min-height: 0; padding: 10px 12px; gap: 8px; }
-  #cadre-scene { grid-column: 2; grid-row: 2; position: relative; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+  #rail { grid-column: 1; grid-row: 2 / 4; min-height: 0; }
+  #panneau { grid-column: 2; grid-row: 2 / 4; min-height: 0; min-width: 0; padding: 10px 12px; gap: 8px; }
+  .salles-barre { grid-column: 3; grid-row: 2; }
+  #cadre-scene { grid-column: 3; grid-row: 3; position: relative; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
   /* flex et marges automatiques (pas place-items) : une carte zoomée plus grande que la scène reste entièrement atteignable au défilement. */
   #scene { flex: 1 1 auto; display: flex; min-width: 0; min-height: 0; }
-  /* La palette est une bande au-dessus de la scène, jamais par-dessus la carte : l'ajustement automatique lui laisse sa place. */
-  #palette { order: -1; position: relative; left: auto; top: auto; width: auto; flex: none; display: flex; align-items: flex-start; gap: var(--esp-2); padding: 4px 8px; background: var(--panneau, #1f1e24); border-width: 0 0 1px; border-radius: 0; box-shadow: none; }
-  .palette-entete { flex: none; padding: 0; }
-  .palette-corps { flex: 1 1 auto; min-width: 0; display: flex; align-items: flex-start; gap: var(--esp-2); padding: 0; }
-  .palette-groupes { flex: none; margin: 0; }
-  /* Hauteur constante, deux lignes : changer de catégorie ne redimensionne pas la carte. */
-  .palette-liste { flex: 1 1 auto; min-width: 0; height: 64px; max-height: none; align-content: flex-start; }
-  .palette-aide { display: none; }
   #support { margin: auto; padding: var(--bande-salle); flex: none; }
   #scene:fullscreen #support { padding: 0; }
 
@@ -119,6 +146,7 @@ body.palette-glisse, body.palette-glisse * { cursor: grabbing !important; user-s
 
 /* --- Écran étroit (sous 760 px) : une seule barre, carte et commandes au doigt --- */
 @media (max-width: 760px) {
+  :root { --bande-salles: 53px; } /* bande des salles : boutons de 44 px + marges + filet */
   body[data-onglet] #barre { position: sticky; top: 0; z-index: 50; display: flex; align-items: center; gap: var(--esp-2); min-height: var(--barre-onglets); padding: var(--esp-2) var(--esp-4); }
   #barre .menu-int { display: none; }
   /* Les onglets prennent la place laissée par les deux boutons, dans la même barre. */
@@ -134,18 +162,44 @@ body.palette-glisse, body.palette-glisse * { cursor: grabbing !important; user-s
   .liens-site .bouton { flex: 1 1 40%; }
   .bouton.principal { padding: 0 var(--esp-3); }
 
-  .salles-barre { margin-top: var(--esp-1); }
+  /* Bande des salles : collée sous la barre, visible dans les deux onglets ; elle défile à l'horizontale. */
+  .salles-barre { position: sticky; top: var(--barre-onglets); z-index: 39; min-height: var(--bande-salles); padding: 4px var(--esp-2); }
+  .onglet-salle { max-width: 40vw; }
+
+  /* Onglet Texte : le rail devient une rangée d'outils (Salle, Notes, Plan, Réglages) ; Portes, Mobilier et Créatures passent par « + Ajouter ». */
+  .rail { flex-direction: row; gap: var(--esp-1); padding: var(--esp-1) var(--esp-2); border-right: 0; border-bottom: 1px solid var(--bord); overflow: visible; }
+  .rail-outil { flex: 1 1 0; min-width: 0; min-height: 48px; }
+  .rail-outil[data-outil="portes"], .rail-outil[data-outil="mobilier"], .rail-outil[data-outil="creatures"], .rail-sep { display: none; }
+  .rail-outil[aria-pressed="true"]::before { display: none; }
+  .rail-outil[aria-pressed="true"] { box-shadow: inset 0 -2px 0 var(--accent); border-radius: var(--rayon) var(--rayon) 0 0; }
+  body[data-onglet="carte"] #rail { display: none; }
+  .panneau-tete { display: none; }
   #panneau { gap: var(--esp-3); }
 
   /* La carte n'existe que dans l'onglet Carte ; ses commandes avec elle. */
   body[data-onglet="texte"] #cadre-scene { display: none; }
   #cadre-scene { position: relative; }
-  #palette { left: var(--esp-2); top: var(--esp-2); width: calc(100% - 2 * var(--esp-2)); }
-  #palette.replie { width: auto; max-width: calc(100% - 2 * var(--esp-2)); }
-  .palette-liste { max-height: 36vh; }
+  body:not(.presentation)[data-onglet="carte"] #scene { height: calc(100vh - var(--barre-onglets) - var(--bande-salles) - var(--reserve-selection)); height: calc(100dvh - var(--barre-onglets) - var(--bande-salles) - var(--reserve-selection)); }
+  .bouton-ajouter { display: inline-flex; align-items: center; top: var(--esp-2); right: var(--esp-2); min-height: 44px; padding: 0 var(--esp-4); font-size: 14px; font-weight: 600; background: var(--accent); color: var(--accent-texte); border-color: var(--accent); }
+  /* À côté de « + Ajouter » plutôt qu'au centre : au centre, elle serait rognée par le bouton. */
+  .pose-pastille { top: var(--esp-2); left: var(--esp-2); transform: none; min-height: 44px; max-width: calc(100% - 144px); }
   #zoom { left: var(--esp-2); right: auto; bottom: var(--esp-2); flex-wrap: wrap; max-width: calc(100% - 2 * var(--esp-2)); }
   .message-carte { bottom: 64px; }
+
+  /* Tiroir du bas : les trois catégories, la recherche et les vignettes. Il se referme tout seul quand un élément est armé. */
+  #palette { display: none; }
+  body:not(.presentation)[data-onglet="carte"] #panneau > #palette.tiroir-ouvert { display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 45; height: min(66vh, 500px); height: min(66dvh, 500px); padding: var(--esp-3) var(--esp-3) max(var(--esp-3), env(safe-area-inset-bottom)); gap: var(--esp-2); background: var(--panneau); border-top: 1px solid var(--accent); border-radius: 12px 12px 0 0; box-shadow: 0 -8px 28px rgba(0, 0, 0, 0.6); }
+  .palette-tete { display: flex; align-items: center; justify-content: space-between; flex: none; }
+  .palette-fermer { padding: 0 var(--esp-3); }
+  .palette-groupes { display: flex; flex: none; gap: var(--esp-1); }
+  .palette-groupes button { flex: 1 1 0; min-width: 0; min-height: 44px; padding: 0 var(--esp-1); font-size: 14px; font-weight: 500; }
+  .palette-groupes button[aria-pressed="true"] { background: var(--accent); color: var(--accent-texte); border-color: var(--accent); font-weight: 600; }
+  .palette-recherche { min-height: 44px; font-size: 16px; } /* 16 px : iOS ne zoome pas la page à la saisie */
+  .palette-aide { display: none; }
+  .palette-grille { grid-template-columns: repeat(auto-fill, minmax(86px, 1fr)); }
+  .palette-item { min-height: 88px; }
 }
+
 
 /* Après style.css, qui fixe la marge de la carte sur téléphone : les bandes de dimensions y gardent leur place. */
 @media (max-width: 759.98px) {

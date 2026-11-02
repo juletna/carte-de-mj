@@ -195,8 +195,8 @@ export function pion(ctx, k, t) {
   }
   ctx.restore();
 
-  // Pastille du numéro (inutile pour les PJ, déjà numérotés dans le pion).
-  if (k.camp !== 'pj') {
+  // Pastille du numéro (inutile pour les PJ, déjà numérotés dans le pion ; `sansNumero` : vignettes de la palette).
+  if (k.camp !== 'pj' && !k.sansNumero) {
     const pr = Math.max(7, t * 0.17);
     const px = cx + r * 0.72, py = cy - r * 0.72;
     rond(ctx, px, py, pr, '#f4efe4', '#1b1a17', 1.5);

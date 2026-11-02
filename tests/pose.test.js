@@ -5,7 +5,8 @@
  * Sans dépendance : marche sous Node et dans tests.html.
  */
 import * as m from '../js/donjon.js';
-import { ajouterElement, elementsPalette, evaluerPose, GROUPES_PALETTE, redimensionner } from '../js/pose.js';
+import { ajouterElement, elementsPalette, evaluerPose, filtrerElements, GROUPES_PALETTE, SOUS_GROUPES, redimensionner, sansAccents } from '../js/pose.js';
+import { etatDepuis, outilAffiche } from '../js/rail.js';
 import { analyser } from '../js/parseur/index.js';
 import { decrire } from '../js/parseur/decrire.js';
 import { OBJETS, CREATURES } from '../js/parseur/lexique.js';
@@ -51,6 +52,43 @@ const TESTS = [
     verifier(els.find((e) => e.type === 'bibliotheque').libelle === 'Bibliothèque', 'accent du libellé');
     verifier(els.find((e) => e.type === 'pj').libelle === 'Personnage', 'libellé du personnage');
     verifier(els.every((e) => /^[A-ZÉ]/.test(e.libelle)), 'majuscule initiale');
+  }],
+
+  ['palette : recherche sans accents ni casse, sur le libellé et les mots du lexique', () => {
+    const els = elementsPalette();
+    const types = (q) => filtrerElements(els, q).map((e) => e.type);
+    egal(sansAccents('  Élémentaire '), 'elementaire', 'sansAccents');
+    egal(filtrerElements(els, ''), els, 'recherche vide : tout');
+    egal(filtrerElements(els, '   '), els, 'espaces seuls : tout');
+    verifier(types('ELEMENTAIRE').includes('elementaire') && types('élémentaire').includes('elementaire'), 'accents et casse');
+    verifier(types('orc').includes('orque'), 'un mot du lexique trouve l’élément (« orc » → orque)');
+    verifier(types('sorcier').includes('mage'), 'synonyme : « sorcier » → mage');
+    verifier(types('bibli').includes('bibliotheque'), 'début de mot');
+    verifier(types('passage').includes('arche'), 'synonyme de porte : « passage » → arche');
+    egal(types('zzzz'), [], 'rien ne correspond');
+    verifier(types('loup garou').includes('loup-garou'), 'plusieurs mots : tous correspondent');
+    verifier(!types('loup garou').includes('rat'), 'plusieurs mots : « rat » ne répond pas à « loup garou »');
+    const creatures = els.filter((e) => e.groupe === 'creatures');
+    verifier(filtrerElements(creatures, 'squelette').every((e) => e.groupe === 'creatures'), 'la recherche respecte la liste donnée');
+  }],
+
+  ['palette : chaque créature a un camp qui figure dans les intertitres', () => {
+    const camps = SOUS_GROUPES.creatures.map((g) => g.id);
+    egal(camps, ['monstre', 'pnj', 'pj'], 'ordre des intertitres : monstres, peuples, personnage');
+    verifier(elementsPalette().filter((e) => e.groupe === 'creatures').every((e) => camps.includes(e.sousGroupe)), 'camp connu');
+  }],
+
+  ['rail : l’état mémorisé se relit sans jamais échouer', () => {
+    const valides = ['salle', 'portes', 'mobilier', 'creatures', 'notes', 'plan', 'reglages'];
+    egal(etatDepuis(null, valides), { outil: 'salle', replie: false }, 'rien de mémorisé : Salle ouverte');
+    egal(etatDepuis('pas du json', valides), { outil: 'salle', replie: false }, 'texte abîmé');
+    egal(etatDepuis('{"outil":"inconnu","replie":true}', valides), { outil: 'salle', replie: true }, 'outil inconnu');
+    egal(etatDepuis('{"outil":"creatures","replie":true}', valides), { outil: 'creatures', replie: true }, 'état valide');
+    egal(etatDepuis('{"outil":"plan","replie":"oui"}', valides), { outil: 'plan', replie: false }, 'replie doit être vrai');
+    egal(etatDepuis('null', valides), { outil: 'salle', replie: false }, 'null');
+    egal(outilAffiche('portes', true), 'salle', 'téléphone : un outil de catalogue montre la Salle');
+    egal(outilAffiche('notes', true), 'notes', 'téléphone : un outil de texte reste');
+    egal(outilAffiche('portes', false), 'portes', 'ordinateur : inchangé');
   }],
 
   ['ajouter un objet : posé sur la case visée, sans toucher au plan reçu', () => {

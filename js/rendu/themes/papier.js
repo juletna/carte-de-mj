@@ -8,6 +8,7 @@
  * Les tailles de trait sont proportionnelles à la case, avec un minimum en pixels (le canvas d'impression est à ~254 ppp).
  */
 import { CREATURES } from '../../parseur/lexique.js';
+import { dessinerPortrait } from '../portraits.js';
 
 const NOIR = '#111', GRIS = '#8c8c8c', CLAIR = '#e4e4e4', TRES_CLAIR = '#f3f3f3';
 /** Épaisseur de trait : proportionnelle à la case, jamais plus fine que 2 pixels. */
@@ -126,10 +127,12 @@ export function porte(ctx, p, plan, t) {
 // --- Pions (créatures) ---------------------------------------------------------
 
 const ABREVIATIONS = Object.fromEntries(CREATURES.map((c) => [c.type, c.abr]));
+const R_PORTRAIT_MIN = 11; // px : sous ce rayon, un pion garde son abréviation (comme le thème vectoriel)
 
 /**
- * Un pion rond par créature, couvrant ses cases. Le camp se lit sans couleur :
- * personnage = blanc, PNJ = gris clair, monstre = hachuré (anneau double).
+ * Un pion rond par créature, couvrant ses cases. Le camp se lit sans couleur, à l'anneau :
+ * personnage = blanc, PNJ = gris clair, monstre = anneau hachuré et doublé. Le portrait du type occupe
+ * le centre sur fond gris clair, pour ménager l'encre (les couleurs se rendent en gris) ; sans portrait, ou trop petit, c'est l'abréviation.
  */
 export function pion(ctx, k, t) {
   const cote = k.taille * t;
@@ -141,10 +144,16 @@ export function pion(ctx, k, t) {
     hachures(ctx, () => ctx.arc(cx, cy, r, 0, Math.PI * 2), cx - r, cy - r, 2 * r, 2 * r, t * 0.09, trait(t, 0.012));
     rond(ctx, cx, cy, r * 0.84, null, NOIR, trait(t, 0.015));
   }
-  const s = k.camp === 'pj' ? `P${k.numero}` : ABREVIATIONS[k.type] || '?';
-  // Un disque blanc sous le texte garde les lettres lisibles sur les hachures.
-  if (k.camp === 'monstre') rond(ctx, cx, cy, r * 0.5, '#fff');
-  texte(ctx, s, cx, cy + r * 0.04, r * (s.length > 2 ? 0.5 : 0.62));
+  // Le portrait laisse visible l'anneau du camp ; un liseré noir le sépare de la trame.
+  const portrait = r >= R_PORTRAIT_MIN && dessinerPortrait(ctx, k.type, cx, cy, r * 0.76, CLAIR);
+  if (portrait) {
+    rond(ctx, cx, cy, r * 0.76, null, NOIR, trait(t, 0.02));
+  } else {
+    const s = k.camp === 'pj' ? `P${k.numero}` : ABREVIATIONS[k.type] || '?';
+    // Un disque blanc sous le texte garde les lettres lisibles sur les hachures.
+    if (k.camp === 'monstre') rond(ctx, cx, cy, r * 0.5, '#fff');
+    texte(ctx, s, cx, cy + r * 0.04, r * (s.length > 2 ? 0.5 : 0.62));
+  }
   if (k.camp !== 'pj') {
     const pr = Math.max(7, t * 0.17);
     const px = cx + r * 0.72, py = cy - r * 0.72;
