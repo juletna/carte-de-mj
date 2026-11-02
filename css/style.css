@@ -135,7 +135,11 @@ select, input[type="text"] {
   min-height: var(--cible);
 }
 select:focus, input[type="text"]:focus { outline: var(--focus); outline-offset: 1px; }
-.donjons input[type="text"] { margin-top: 6px; }
+.donjons > label.doux { margin: 8px 0 4px; font-size: 13px; font-weight: 400; }
+.donjons input[type="text"] { margin-top: 0; }
+/* Navigation (Présenter, Imprimer) à part des actions qui modifient le donjon, pour qu'un clic de trop ne parte pas ailleurs. */
+.donjons .actions.navigation { margin-top: var(--esp-4); padding-top: var(--esp-3); border-top: 1px solid var(--bord); }
+#donjon-confirmation { margin-top: var(--esp-3); }
 
 /* Blocs repliables du panneau */
 details.bloc > summary { cursor: pointer; list-style: none; display: flex; align-items: center; gap: 6px; min-height: var(--cible); }

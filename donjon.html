@@ -23,19 +23,23 @@
     </header>
     <header>
       <h1>Donjon</h1>
-      <p class="sous-titre">Décris la pièce, la carte suit.</p>
+      <p id="aide-debut" class="sous-titre">Décris la pièce, la carte suit.</p>
     </header>
 
     <section class="donjons" aria-label="Donjon">
-      <label for="donjon-choix">Donjon</label>
+      <label for="donjon-choix">Donjon ouvert</label>
       <select id="donjon-choix"></select>
-      <input id="donjon-nom" type="text" maxlength="80" aria-label="Nom du donjon" spellcheck="false">
+      <label for="donjon-nom" class="doux">Renommer</label>
+      <input id="donjon-nom" type="text" maxlength="80" spellcheck="false">
       <div class="actions">
         <button id="donjon-nouveau" type="button" class="discret">+ Nouveau donjon</button>
         <button id="donjon-supprimer" type="button" class="discret">Supprimer</button>
+      </div>
+      <div class="actions navigation">
         <a class="bouton" href="presentation.html" title="Ouvre l'outil Présentation : choisis ce donjon dans la liste">Présenter ce donjon</a>
         <a class="bouton" href="impression.html" title="Ouvre la page d'impression du donjon actif : plans à l'échelle des figurines, version MJ ou joueurs">Imprimer ce donjon</a>
       </div>
+      <p id="donjon-confirmation" class="note erreur" role="status" hidden></p>
     </section>
 
     <section class="saisie">
@@ -62,7 +66,7 @@
         <button id="annuler" type="button" class="discret" hidden
           title="Revient à la description d'avant le dernier déplacement">↩ Annuler le déplacement</button>
         <button id="copier-rapport" type="button" class="discret"
-          title="Copie la description, ce qui a été compris, les mots ignorés et la carte en texte">📋 Copier pour signaler</button>
+          title="Copie la description, ce qui a été compris, les mots ignorés et la carte en texte, à coller dans ton message">📋 Copier pour signaler une erreur de lecture</button>
       </div>
       <p id="message-copie" class="note" hidden></p>
     </section>
@@ -74,7 +78,7 @@
       <ul id="salles-liste" class="salles-liste"></ul>
       <div class="actions"><button id="salle-ajouter" type="button" class="discret">+ Salle isolée</button></div>
       <div id="minicarte" class="minicarte" role="region" aria-label="Mini-carte du donjon"></div>
-      <p class="note">Clique une porte sur la carte pour la relier à une autre salle.</p>
+      <p id="aide-salles" class="note">Clique une porte sur la carte pour la relier à une autre salle.</p>
       <div id="orphelines" hidden></div>
     </details>
 

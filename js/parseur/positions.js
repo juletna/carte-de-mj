@@ -88,6 +88,34 @@ function analyserCases(prop, mots) {
   return res;
 }
 
+const MURS = new Set(['nord', 'sud', 'est', 'ouest']);
+
+/**
+ * Mur désigné juste après le mot « porte » (à l'indice k) : « la porte est », « la porte nord »,
+ * « la porte du mur est », « la porte de l'ouest ». Renvoie { mur, indices } ou null.
+ * « est » nu est aussi un verbe (« la porte est au nord », « la porte est fermée ») : il ne désigne
+ * un mur que s'il termine la proposition ; précédé de « du mur », « de l' », il est sans ambiguïté.
+ * « sud est », « nord ouest » désignent un angle, pas un mur : on n'y touche pas.
+ */
+function murDeLaPorte(mots, k) {
+  let j = k + 1;
+  let explicite = false;
+  if (mots[j] === 'du' || mots[j] === 'de') {
+    explicite = true;
+    j++;
+    if (mots[j] === 'l') j++;
+  }
+  if (['mur', 'cote', 'paroi'].includes(mots[j])) {
+    explicite = true;
+    j++;
+    if (mots[j] === 'de' && mots[j + 1] === 'l') j += 2;
+  }
+  const mur = mots[j];
+  if (!MURS.has(mur) || MURS.has(mots[j + 1])) return null;
+  if (!explicite && mur === 'est' && j + 1 < mots.length) return null; // « est » verbe
+  return { mur, indices: Array.from({ length: j - k }, (_, i) => k + 1 + i) };
+}
+
 /**
  * @param {string} prop proposition normalisée (« 2 coffres au fond de la salle »)
  * @returns {{zone:string|null, mur?:string, coin?:string[], cote?:string,
@@ -121,6 +149,13 @@ export function analyserPosition(prop) {
         res.relation = RELATIONS.find(([re]) => re.test(mr[1]))?.[1] || 'cote';
         res.cible = { type: trouve.def.type, genre: trouve.def.genre, index: k };
         for (let j = idx[0]; j < k; j++) res.indices.push(j);
+        if (trouve.def.genre === 'porte') {
+          const precis = murDeLaPorte(mots, k);
+          if (precis) {
+            res.cible.mur = precis.mur;
+            res.indices.push(...precis.indices);
+          }
+        }
         return res;
       }
     }

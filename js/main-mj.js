@@ -54,6 +54,7 @@ const etat = {
   message: '',       // retour d'une action sur la sélection
   retour: { compris: [], ignores: [] }, // dernier « compris / non compris », pour le rapport
   focusMini: null,   // salle à qui rendre le focus clavier après un redessin de la mini-carte
+  neuves: new Set(), // salles créées et pas encore affichées : la première fois, le focus va à la description
 };
 const r = etat.reglages;
 
@@ -104,6 +105,7 @@ function rendre() {
   majSelection();
   majOrphelines();
   majMiniCarte();
+  majAide();
   sauvegarder();
 }
 
@@ -139,8 +141,31 @@ function genererBientot() {
   minuterie = setTimeout(generer, 200);
 }
 
-/** Affiche la salle active : description, notes, listes. À appeler après tout changement de salle ou de donjon. */
+// --- Aide de première utilisation ---------------------------------------------------
+// Pas de texte en plus : le sous-titre et la note de « Salles » changent de contenu tant qu'ils servent.
+// Débutant = aucun donjon n'a encore plus d'une salle ni de liaison ; dès qu'on relie, l'aide s'efface.
+const SOUS_TITRE = 'Décris la pièce, la carte suit.';
+const NOTE_SALLES = 'Clique une porte sur la carte pour la relier à une autre salle.';
+const estDebutant = () => Object.values(etat.donjons).every((d) => d.liaisons.length === 0 && Object.keys(d.salles).length < 2);
+
+function majAide() {
+  $('aide-debut').textContent = estDebutant() ? 'Décris une porte, puis clique dessus pour créer la salle suivante.' : SOUS_TITRE;
+  $('aide-salles').textContent = salle().plan.portes.length
+    ? NOTE_SALLES
+    : 'Cette salle n’a aucune porte : écris-en une dans la description (« une porte au nord »), puis clique dessus sur la carte.';
+}
+
+/** Défilement doux, sans animation si l'utilisateur la réduit. */
+const comportementDefilement = () => (matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth');
+const telephone = () => matchMedia('(max-width: 760px)').matches;
+
+/**
+ * Affiche la salle active : description, notes, listes. À appeler après tout changement de salle ou de donjon.
+ * Le panneau revient en haut ; une salle qui vient d'être créée donne le focus à sa description (sauf au doigt,
+ * pour ne pas faire surgir le clavier, et sauf si le focus doit rester sur la mini-carte).
+ */
 function afficherSalleActive() {
+  const garderMini = etat.focusMini; // le redessin de la mini-carte l'efface pendant generer()
   clearTimeout(minuterie);
   etat.selection = null;
   etat.message = '';
@@ -150,6 +175,9 @@ function afficherSalleActive() {
   majDonjons();
   majListe();
   generer();
+  $('panneau').scrollTo({ top: 0 });
+  const nouvelle = etat.neuves.delete(salle().id);
+  if (nouvelle && !garderMini && !matchMedia('(pointer: coarse)').matches) $('description').focus({ preventScroll: true });
 }
 
 function activerSalle(id) {
@@ -169,6 +197,8 @@ $('exemples').replaceChildren(...EXEMPLES.map((ex) => {
   a.addEventListener('keydown', (e) => { if (e.key === 'Enter') choisir(); });
   return h('li', {}, a);
 }));
+
+if (estDebutant()) document.querySelector('details.exemples').open = true; // première utilisation seulement
 
 // --- Notes ---------------------------------------------------------------------
 let minuterieNotes;
@@ -197,6 +227,9 @@ activerDeplacement($('carte'), {
     etat.selection = touche ? modele.descripteur(touche.genre, touche.element) : null;
     etat.message = '';
     rendre();
+    // Les actions de la sélection sont plus bas dans le panneau : on les amène en vue, sans toucher à ce qui est saisi.
+    // (Sous 760 px le panneau est au-dessus de la carte : on ne fait pas remonter la page.)
+    if (touche && !telephone()) $('selection').scrollIntoView({ block: 'nearest', behavior: comportementDefilement() });
   },
 });
 
@@ -261,6 +294,7 @@ function majSelection() {
       contenu.push(h('div', { className: 'actions' }, bouton('Nouvelle salle derrière cette porte', () => {
         try {
           const { salle: nouvelle } = modele.creerSalleDerriere(d, { depuis, echelle: r.echelle });
+          etat.neuves.add(nouvelle.id);
           etat.message = `Salle « ${nouvelle.nom} » créée derrière cette porte (6 × 6 cases). Tu restes ici.`;
           majListe();
         } catch (err) { etat.message = err.message; }
@@ -310,16 +344,29 @@ function majOrphelines() {
 }
 
 // --- Liste des salles et mini-carte ----------------------------------------------
-/** Bouton qui demande confirmation au second clic, dans les 4 secondes. */
-function deuxTemps(bouton, libelle, confirmation, action) {
+/**
+ * Bouton qui demande confirmation au second clic, dans les 4 secondes.
+ * `annonce` (facultatif) : { zone, texte() } affiche, dans une zone à part, ce qui va être supprimé.
+ * Le bouton garde sa largeur (rien ne bouge autour) ; la zone, placée après les autres actions, ne les déplace pas.
+ */
+function deuxTemps(bouton, libelle, confirmation, action, annonce) {
   let attente;
-  const reinitialiser = () => { clearTimeout(attente); bouton.dataset.confirme = ''; bouton.textContent = libelle; bouton.classList.remove('danger'); };
+  const reinitialiser = () => {
+    clearTimeout(attente);
+    bouton.dataset.confirme = '';
+    bouton.textContent = libelle;
+    bouton.classList.remove('danger');
+    bouton.style.minWidth = '';
+    if (annonce) { annonce.zone.hidden = true; annonce.zone.textContent = ''; }
+  };
   reinitialiser();
   bouton.addEventListener('click', () => {
     if (bouton.dataset.confirme === '1') { reinitialiser(); action(); return; }
     bouton.dataset.confirme = '1';
+    if (annonce) bouton.style.minWidth = `${bouton.offsetWidth}px`;
     bouton.textContent = confirmation;
     bouton.classList.add('danger');
+    if (annonce) { annonce.zone.textContent = annonce.texte(); annonce.zone.hidden = false; }
     attente = setTimeout(reinitialiser, 4000);
   });
   bouton.addEventListener('blur', reinitialiser);
@@ -364,7 +411,7 @@ function majMiniCarte() {
 
 $('salle-ajouter').addEventListener('click', () => {
   const d = donjon();
-  modele.ajouterSalle(d, { echelle: r.echelle });
+  etat.neuves.add(modele.ajouterSalle(d, { echelle: r.echelle }).id);
   etat.message = '';
   majListe();
   rendre();
@@ -395,9 +442,18 @@ $('donjon-nouveau').addEventListener('click', () => {
   const d = modele.creerDonjon({ nom: `Donjon ${Object.keys(etat.donjons).length + 1}`, echelle: r.echelle });
   etat.donjons[d.id] = d;
   etat.actif = d.id;
+  etat.neuves.add(d.salleActive);
   afficherSalleActive();
 });
-deuxTemps($('donjon-supprimer'), 'Supprimer', 'Confirmer la suppression ?', () => {
+/** Ce que la confirmation annonce : le nom, le nombre de salles, et le sort d'une partie en cours. */
+function annonceSuppressionDonjon() {
+  const d = donjon();
+  const n = Object.keys(d.salles).length;
+  const partie = d.id in stockage.chargerPresentations();
+  return `Supprimer « ${d.nom} » et ${n > 1 ? `ses ${n} salles` : 'sa salle'} ? Clique sur Confirmer dans les 4 secondes.`
+    + (partie ? ' La partie en cours reste disponible dans la Présentation.' : '');
+}
+deuxTemps($('donjon-supprimer'), 'Supprimer', 'Confirmer', () => {
   for (const cle of [...historiques.keys()]) if (cle.startsWith(`${etat.actif}/`)) historiques.delete(cle);
   delete etat.donjons[etat.actif];
   if (!Object.keys(etat.donjons).length) {
@@ -406,7 +462,7 @@ deuxTemps($('donjon-supprimer'), 'Supprimer', 'Confirmer la suppression ?', () =
   }
   etat.actif = Object.keys(etat.donjons)[0];
   afficherSalleActive();
-});
+}, { zone: $('donjon-confirmation'), texte: annonceSuppressionDonjon });
 
 // --- Copier pour signaler -----------------------------------------------------
 $('copier-rapport').addEventListener('click', async () => {

@@ -465,15 +465,28 @@ export function marqueLiaison(ctx, r, mur, t) {
   ctx.restore();
 }
 
-/** Sélection : cadre épais de la couleur d'accent, avec un halo. */
+/**
+ * Sélection : cadre épais de la couleur d'accent, doublé d'un liseré sombre (il ressort sur tous les sols)
+ * et avec un halo. Un élément fin comme une porte reçoit un cadre d'au moins 0,7 case de côté.
+ */
 export function marqueSelection(ctx, r, t) {
+  const minimum = t * 0.7;
+  const l = Math.max(r.l * t, minimum), h = Math.max(r.h * t, minimum);
+  const x = r.x * t + (r.l * t - l) / 2, y = r.y * t + (r.h * t - h) / 2;
+  const trace = () => {
+    ctx.beginPath();
+    ctx.roundRect(x - 3, y - 3, l + 6, h + 6, t * 0.12);
+    ctx.stroke();
+  };
+  const epaisseur = Math.max(3, t * 0.08);
   ctx.save();
-  ctx.shadowColor = 'rgba(217, 169, 41, 0.9)';
-  ctx.shadowBlur = t * 0.2;
+  ctx.strokeStyle = 'rgba(0, 0, 0, 0.75)';
+  ctx.lineWidth = epaisseur + 4;
+  trace();
+  ctx.shadowColor = 'rgba(217, 169, 41, 0.95)';
+  ctx.shadowBlur = t * 0.25;
   ctx.strokeStyle = C.or;
-  ctx.lineWidth = Math.max(2.5, t * 0.07);
-  ctx.beginPath();
-  ctx.roundRect(r.x * t - 3, r.y * t - 3, r.l * t + 6, r.h * t + 6, t * 0.12);
-  ctx.stroke();
+  ctx.lineWidth = epaisseur;
+  trace();
   ctx.restore();
 }

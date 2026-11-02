@@ -52,6 +52,10 @@ ou en ligne de commande avec `node tests/node.mjs`.
 - **Positions** : au fond, à l'entrée, au centre, contre le mur nord/sud/est/ouest, à gauche/droite,
   au fond à gauche, dans les coins, dans le coin sud-est, de chaque côté, le long des murs, en cercle, en ligne,
   devant / derrière / à côté de / de chaque côté de / autour de / en face de X.
+  « Devant la porte est » (ou « du mur est », « de l'ouest », « nord », « sud ») désigne la porte de ce mur, et « Compris »
+  nomme le mur retenu. Sans porte sur ce mur, le repère est signalé (⚠) et pris sur la première porte ; sans aucune porte,
+  la porte citée est créée sur ce mur. « est » nu ne compte comme un mur qu'en fin de proposition : « la porte est au nord »
+  reste une phrase avec un verbe.
 - **Cases exactes** : « un coffre en C4 », « deux tonneaux en A1 H1 », « un lit de A2 à B2 tourné vers l'est »,
   « une porte au mur sud en D », « une herse au mur est en 4 ». Les lettres et numéros sont affichés autour de la carte.
 - **Éléments cachés** : l'adjectif caché / cachée / cachés / cachées / secret / secrète / secrets / secrètes rend un
@@ -70,13 +74,22 @@ Un **donjon** est un ensemble de salles, de liaisons entre leurs portes et d'un 
 Dans chaque salle, la description reste la seule référence (texte → plan → carte et JSON).
 
 - **Salles** : liste dans le panneau (nom modifiable, salle affichée en évidence, « + Salle isolée », suppression
-  en deux clics). Supprimer une salle retire ses liaisons ; supprimer la dernière en recrée une vide.
+  en deux clics). Supprimer un donjon se fait aussi en deux clics : un message donne son nom et son nombre de salles, le bouton
+  garde sa largeur, et « Présenter » / « Imprimer » sont sur une autre ligne. Sa partie en cours reste dans la Présentation
+  (« Autres parties en cours »). Supprimer une salle retire ses liaisons ; supprimer la dernière en recrée une vide.
 - **Mini-carte** : schéma sans échelle des salles et de leurs liaisons. Une porte au nord place la salle voisine au-dessus,
-  etc. ; les salles non reliées sont à part, en dessous. Un clic, ou Tab puis Entrée, affiche la salle.
+  etc. ; les salles non reliées sont à part, en dessous. Un clic, ou Tab puis Entrée, affiche la salle. Chaque case a une zone
+  cliquable d'au moins 44 px à l'écran.
+- **Première utilisation** : tant qu'aucun donjon n'a plus d'une salle, les exemples sont dépliés au démarrage et le sous-titre
+  dit « Décris une porte, puis clique dessus pour créer la salle suivante » ; il reprend son texte dès qu'une deuxième salle existe.
+  Une salle sans porte l'indique dans la note de « Salles ».
+- **Changer de salle** : le panneau revient en haut ; une salle qui vient d'être créée donne le focus à sa description
+  (pas au doigt, ni quand le focus est sur la mini-carte).
 - **Relier** : un clic (sans glisser) sur une porte la sélectionne. Non reliée, elle propose « Nouvelle salle derrière cette
   porte » (6 × 6 cases, porte de retour sur le mur opposé, écrite dans sa description) ou « Relier à une salle existante »
   (une porte est ajoutée sur le mur opposé de cette salle : même position si elle est libre, sinon la première libre).
   Reliée, elle propose « Aller à la salle… » et « Délier ». Une porte reliée porte une pastille bleue sur la carte.
+  Au clic, la zone « Sélection » est amenée en vue (défilement doux, au plus court ; pas sous 760 px) et la porte est cerclée d'or avec un liseré sombre.
 - **Liaisons et textes** : une liaison désigne une porte par salle + mur + position, jamais par son identifiant (les `p1`, `p2`…
   sont recalculés à chaque lecture du texte). Déplacer la porte au glisser fait suivre la liaison. Si vous retouchez le texte
   et que la porte disparaît, la liaison n'est pas supprimée : elle est signalée comme **orpheline**, avec un bouton pour la
@@ -274,7 +287,7 @@ outils/serveur.py   serveur local sans cache
 - **Tout reste synchronisé** : la description est le seul point de vérité. Un déplacement la réécrit avec des positions
   exactes (« deux coffres en A1 C1 », « une porte au mur sud en D »), ce qui remplace vos tournures d'origine ;
   « ↩ Annuler le déplacement » les rétablit (pile propre à chaque salle). Modifier le JSON de la salle réécrit aussi sa description.
-- **Signaler un résultat bizarre** : « 📋 Copier pour signaler » copie la description, ce qui a été compris,
+- **Signaler un résultat bizarre** : « 📋 Copier pour signaler une erreur de lecture » copie la description, ce qui a été compris,
   les mots ignorés et la carte en caractères, pour la salle affichée.
 
 ## Bon à savoir

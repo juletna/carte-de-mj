@@ -8,6 +8,7 @@
  *   portes: [{ mur: 'sud' }]         les portes, dans l'ordre, champs donnés
  *   objets: [{ type, x, y }]         chaque objet décrit doit exister dans le plan
  *   ignores: ['immobile']            mots signalés comme non compris
+ *   compris: ['mur est']             morceaux de texte attendus dans le panneau « Compris »
  *   verifier(plan) → true | message  vérification libre
  */
 export function comparer(resultat, attendu) {
@@ -46,6 +47,10 @@ export function comparer(resultat, attendu) {
   if (attendu.ignores) {
     const a = [...attendu.ignores].sort().join(','), b = [...ignores].sort().join(',');
     if (a !== b) ecarts.push(`mots ignorés : attendu [${a}], obtenu [${b}]`);
+  }
+
+  for (const morceau of attendu.compris || []) {
+    if (!resultat.compris.some((l) => l.includes(morceau))) ecarts.push(`« compris » devrait contenir « ${morceau} » : ${resultat.compris.join(' | ')}`);
   }
 
   if (attendu.verifier) {

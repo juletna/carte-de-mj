@@ -13,6 +13,8 @@ const VECTEUR = { nord: [0, -1], sud: [0, 1], est: [1, 0], ouest: [-1, 0] };
 const NS = 'http://www.w3.org/2000/svg';
 const PAS_X = 120, PAS_Y = 70, LARG = 100, HAUT = 44, MARGE = 14, ETIQUETTE = 22;
 const PAR_LIGNE_ISOLEES = 5;
+const CIBLE = 44;          // taille tactile visée, en pixels écran (donc CIBLE / échelle en unités du schéma)
+const ECHELLE_MIN = 0.65;  // en dessous, une zone de 70 unités (le pas entre deux lignes) ferait moins de 44 px
 
 /** Salles voisines d'une salle : [{ vers, mur }] dans l'ordre des liaisons. */
 function voisins(d, id) {
@@ -124,7 +126,7 @@ export function dessinerMiniCarte(conteneur, donjon, { actif, onChoisir, focus, 
   };
 
   // Lisible même avec beaucoup de salles : réduit un peu si besoin, défile sinon (dans le conteneur).
-  const echelle = Math.max(0.6, Math.min(1, (conteneur.clientWidth || 320) / L));
+  const echelle = Math.max(ECHELLE_MIN, Math.min(1, (conteneur.clientWidth || 320) / L));
   const svg = el('svg', {
     viewBox: `0 0 ${L} ${H}`, width: Math.round(L * echelle), height: Math.round(H * echelle),
     role: 'group', 'aria-label': 'Plan du donjon : salles et liaisons',
@@ -159,6 +161,9 @@ export function dessinerMiniCarte(conteneur, donjon, { actif, onChoisir, focus, 
     });
     if (id === actif) g.setAttribute('aria-current', 'true');
     g.append(el('title', {}, `${salle.nom}${etats.length ? ` : ${etats.join(', ')}` : ''}`));
+    // Zone cliquable invisible : au moins 44 px à l'écran, sans dépasser le pas entre salles (pas de chevauchement).
+    const zoneL = Math.max(LARG, CIBLE / echelle), zoneH = Math.min(PAS_Y, Math.max(HAUT, CIBLE / echelle));
+    g.append(el('rect', { x: cx - zoneL / 2, y: cy - zoneH / 2, width: zoneL, height: zoneH, style: 'fill: transparent; stroke: none' }));
     g.append(el('rect', { x: cx - LARG / 2, y: cy - HAUT / 2, width: LARG, height: HAUT, rx: 8 }));
     g.append(el('text', { x: cx, y: cy + (vues ? 1 : 5), 'text-anchor': 'middle' }, tronque(salle.nom)));
     if (vues) g.append(el('text', { x: cx, y: cy + 16, 'text-anchor': 'middle', class: 'statut' }, inconnue ? 'non découverte' : 'découverte'));

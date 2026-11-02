@@ -200,3 +200,47 @@ PHRASES.push(
     },
   },
 );
+
+// --- « devant la porte est » : le mur nommé désigne la porte, « est » verbe reste un verbe ---------
+const BASE = 'salle de 6 par 6 cases, une porte au sud, une porte à l’est';
+PHRASES.push(
+  {
+    phrase: `${BASE}, une statue devant la porte est`,
+    attendu: { ignores: [], objets: [{ type: 'statue', x: 4, y: 2 }], compris: ['devant porte du mur est'] },
+  },
+  {
+    phrase: `${BASE}, une statue devant la porte du mur est`,
+    attendu: { ignores: [], objets: [{ type: 'statue', x: 4, y: 2 }] },
+  },
+  {
+    phrase: `${BASE}, une statue devant la porte de l’est`,
+    attendu: { ignores: [], objets: [{ type: 'statue', x: 4, y: 2 }] },
+  },
+  {
+    phrase: `${BASE}, une statue devant la porte sud, un coffre devant la porte est`,
+    attendu: { ignores: [], objets: [{ type: 'statue', x: 2, y: 4 }, { type: 'coffre', x: 4, y: 2 }] },
+  },
+  {
+    phrase: `${BASE}, une statue devant la porte`,
+    attendu: { objets: [{ type: 'statue', x: 2, y: 4 }], compris: ['devant porte'] },
+  },
+  {
+    // Aucune porte à l'ouest : le repère n'est pas remplacé en silence.
+    phrase: `${BASE}, une statue devant la porte ouest`,
+    attendu: { objets: [{ type: 'statue', x: 2, y: 4 }], compris: ['pas de porte au mur ouest'] },
+  },
+  {
+    // Sans aucune porte, celle qui est citée est créée sur le mur nommé, sans devenir l'entrée.
+    phrase: 'salle de 6 par 6 cases, une statue devant la porte est',
+    attendu: { portes: [{ mur: 'est' }], objets: [{ type: 'statue', x: 4, y: 2 }] },
+  },
+  {
+    // « est » est ici un verbe : la porte est au nord, et la statue est devant elle.
+    phrase: 'salle de 6 par 6 cases, la porte est au nord, une statue devant la porte',
+    attendu: { portes: [{ mur: 'nord' }], objets: [{ type: 'statue', x: 2, y: 1 }], ignores: [] },
+  },
+  {
+    phrase: 'salle de 6 par 6 cases, une statue devant la porte, la porte est au nord',
+    attendu: { portes: [{ mur: 'nord' }], objets: [{ type: 'statue', x: 2, y: 1 }] },
+  },
+);

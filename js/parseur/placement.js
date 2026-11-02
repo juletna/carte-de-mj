@@ -119,7 +119,9 @@ export function construirePlan({ largeur: W, longueur: L, sol, intentions, grain
   // Une porte citée comme repère (« devant une porte ») existe forcément.
   const ciblesPorte = intentions.filter((i) => i.position.cible?.genre === 'porte');
   if (!intPortes.length && ciblesPorte.length) {
-    intPortes.push({ genre: 'porte', type: ciblesPorte[0].position.cible.type, n: 1, position: { zone: null }, implicite: true });
+    // « devant la porte est » sans aucune porte : on la crée sur ce mur (sans en faire le mur d'entrée).
+    const c = ciblesPorte[0].position.cible;
+    intPortes.push({ genre: 'porte', type: c.type, n: 1, position: { zone: null }, implicite: true, murImpose: c.mur });
   }
 
   plan.entree = null; // renseigné juste après
@@ -139,7 +141,7 @@ export function construirePlan({ largeur: W, longueur: L, sol, intentions, grain
       else if (pos.zone === 'fond') mur = fond;
       else if (pos.zone === 'entree') mur = entree;
       else if (pos.zone === 'lateral') mur = (pos.cote === 'gauche' ? GAUCHE : DROITE)[entree];
-      else mur = ordreDefaut[Math.min(defaut++, 3)];
+      else mur = it.murImpose || ordreDefaut[Math.min(defaut++, 3)];
       parMur[mur].push({ type: it.type, position: pos.positionMur, cache: it.cache }); // position : seulement si précisée
     }
   }
@@ -223,7 +225,9 @@ export function construirePlan({ largeur: W, longueur: L, sol, intentions, grain
   /** Repère d'une relation : objet existant ou case devant une porte. */
   function repere(cible) {
     if (cible.genre === 'porte') {
-      const p = plan.portes.find((q) => q.type === cible.type) || plan.portes[0];
+      // « devant la porte est » : la porte de ce mur ; sinon (le journal le signale) la première porte du type.
+      const p = (cible.mur && (plan.portes.find((q) => q.mur === cible.mur && q.type === cible.type) || plan.portes.find((q) => q.mur === cible.mur)))
+        || plan.portes.find((q) => q.type === cible.type) || plan.portes[0];
       if (!p) return null;
       const [x, y] = devantPorte(p, W, L);
       return { x, y, l: 1, h: 1, rotation: FACE[p.mur], porte: true };
@@ -464,6 +468,13 @@ export function construirePlan({ largeur: W, longueur: L, sol, intentions, grain
     if (zone === 'mur') ou = `contre le mur ${pos.mur}`;
     if (zone === 'cases') ou = pos.libelle;
     if (zone === 'relation') ou = `${LIBELLES_REL[pos.relation]} ${nomAffiche(pos.cible.type)}`;
+    if (zone === 'relation' && pos.cible.genre === 'porte' && pos.cible.mur) {
+      ou += ` du mur ${pos.cible.mur}`;
+      if (!plan.portes.some((p) => p.mur === pos.cible.mur)) {
+        const reprise = plan.portes.find((p) => p.type === pos.cible.type) || plan.portes[0];
+        if (reprise) ou += ` ⚠ pas de porte au mur ${pos.cible.mur} : repère pris sur la porte du mur ${reprise.mur}`;
+      }
+    }
     if (!pos.zone) ou += ' (par défaut)';
     let nom = nomAffiche(it.type, it.n);
     if (it.couleur) nom += ` ${it.couleur}${it.n > 1 && !/s$/.test(it.couleur) ? 's' : ''}`;

@@ -221,6 +221,11 @@ const TESTS = [
     egal(cases(r.plan.objets.filter((o) => o.type === 'coffre')), 'D5 F2', 'le coffre de C4 est en D5');
     verifier(commande('déplace le gobelin 1 devant la statue', p).ok, 'devant la statue');
     verifier(commande('déplace le gobelin 1 devant la porte', p).ok, 'devant la porte');
+    const murEst = commande('déplace le gobelin 1 devant la porte est', p);
+    verifier(murEst.ok, `devant la porte est : ${murEst.message}`);
+    egal(cases(murEst.plan.creatures.filter((k) => k.numero === 1 && k.type === 'gobelin')), 'G3', 'le gobelin 1 est devant la porte est (porte en 3, mur est)');
+    verifier(commande('déplace le gobelin 1 devant la porte du mur est', p).ok, 'devant la porte du mur est');
+    refusee('déplace le gobelin 1 devant la porte nord', p, ['pas de porte au mur nord'], 'mur sans porte');
     verifier(commande('déplace le gobelin 1 au fond', p).ok, 'au fond');
     refusee('déplace le coffre à gauche', p, ['2 coffres', 'Précise', 'déplace le coffre 1'], 'deux coffres');
     refusee('déplace le coffre', p, ['2 coffres'], 'ambigu avant même la destination');

@@ -64,7 +64,10 @@ const occupants = (plan) => [
 function repereAbsent(plan, position, sauf) {
   const c = position.cible;
   if (!c) return null;
-  if (c.genre === 'porte') return plan.portes.length ? null : 'Il n’y a aucune porte dans cette salle pour s’y repérer.';
+  if (c.genre === 'porte') {
+    if (!plan.portes.length) return 'Il n’y a aucune porte dans cette salle pour s’y repérer.';
+    return !c.mur || plan.portes.some((p) => p.mur === c.mur) ? null : `Il n’y a pas de porte au mur ${c.mur} dans cette salle pour s’y repérer.`;
+  }
   const existe = occupants(plan).some((o) => o.e !== sauf && o.e.type === c.type);
   return existe ? null : `Il n’y a pas de ${nomAffiche(c.type)} dans cette salle pour s’y repérer.`;
 }
