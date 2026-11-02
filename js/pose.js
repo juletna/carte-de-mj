@@ -162,3 +162,34 @@ export function retirerElement(plan, trouve) {
   const liste = LISTES[trouve.genre];
   return { ...plan, [liste]: plan[liste].filter((_, i) => i !== trouve.index) };
 }
+
+// --- Dimensions de la salle ---------------------------------------------------------
+
+export const COTES = ['nord', 'sud', 'ouest', 'est'];
+const CASES_MAX = 60; // même limite que le parseur et schema.js
+
+/**
+ * Agrandit (delta > 0) ou réduit (delta < 0) la salle du côté demandé, de `delta` rangées de cases.
+ * Le mur bouge, tout le reste garde sa place dans la salle : au nord et à l'ouest, les éléments sont donc décalés.
+ * Une porte reste sur son mur. On refuse de réduire si un objet, un pion ou une porte se retrouverait hors de la salle.
+ * @returns {{plan:object}|{erreur:string}}
+ */
+export function redimensionner(plan, cote, delta) {
+  const horizontal = cote === 'nord' || cote === 'sud'; // ces côtés changent la longueur
+  const dimension = horizontal ? plan.longueur : plan.largeur;
+  const cible = dimension + delta;
+  if (cible < 1) return { erreur: 'La salle ne peut pas être plus petite.' };
+  if (cible > CASES_MAX) return { erreur: `La salle ne peut pas dépasser ${CASES_MAX} cases.` };
+  const dx = cote === 'ouest' ? delta : 0, dy = cote === 'nord' ? delta : 0;
+  const largeur = plan.largeur + (horizontal ? 0 : delta), longueur = plan.longueur + (horizontal ? delta : 0);
+  const creatures = plan.creatures || [];
+  const decale = (e) => ({ ...e, x: e.x + dx, y: e.y + dy });
+  const dehors = (e) => e.x < 0 || e.y < 0 || e.x + largeurDe(e) > largeur || e.y + hauteurDe(e) > longueur;
+  const gene = [...plan.objets, ...creatures].find((e) => dehors(decale(e)));
+  if (gene) return { erreur: `Impossible de réduire : ${nomAffiche(gene.type)} en ${nomCase(gene.x, gene.y)}.` };
+  // Le long de son mur, une porte se décale comme le reste ; le mur où elle se trouve ne change pas.
+  const portes = plan.portes.map((p) => ({ ...p, position: p.position + (p.mur === 'nord' || p.mur === 'sud' ? dx : dy) }));
+  const porteDehors = portes.find((p) => p.position < 0 || p.position >= (p.mur === 'nord' || p.mur === 'sud' ? largeur : longueur));
+  if (porteDehors) return { erreur: `Impossible de réduire : une ${porteDehors.type} au mur ${porteDehors.mur} serait hors de la salle.` };
+  return { plan: { ...plan, largeur, longueur, portes, objets: plan.objets.map(decale), creatures: creatures.map(decale) } };
+}

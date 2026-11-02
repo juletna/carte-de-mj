@@ -9,7 +9,7 @@ import { analyser } from './parseur/index.js';
 import { validerPlan } from './schema.js';
 import { dessiner, MARGE, rectPorte } from './rendu/moteur.js';
 import { tailleRemplir } from './affichage.js';
-import { elementsPalette, GROUPES_PALETTE } from './pose.js';
+import { elementsPalette, GROUPES_PALETTE, redimensionner } from './pose.js';
 import { creerPalette } from './palette.js';
 import { creerMicro, voixDisponible } from './voix.js';
 import * as stockage from './stockage.js';
@@ -103,7 +103,6 @@ function marques(planAffiche) {
 }
 
 // --- Taille de la carte : ajustement automatique et zoom -------------------------------------
-const RETRAIT_CARTE = 24;        // px de chaque côté réservés autour de la carte (12 de marge de #support, de chaque côté)
 const ZOOM_MIN = 8, ZOOM_MAX = 300;
 
 /**
@@ -118,7 +117,8 @@ function tailleAffichee(plan) {
   if ($('calibrage').checked) return r.taille;
   if (etat.zoom) return etat.zoom;
   const scene = $('scene');
-  return tailleRemplir(plan, scene.clientWidth - RETRAIT_CARTE, scene.clientHeight - RETRAIT_CARTE) ?? r.taille;
+  const retrait = 2 * (parseFloat(getComputedStyle($('support')).paddingLeft) || 0); // la place des bandes de dimensions
+  return tailleRemplir(plan, scene.clientWidth - retrait, scene.clientHeight - retrait) ?? r.taille;
 }
 const optionsDessin = (plan) => ({ taille: tailleAffichee(plan), grille: r.grille, marques: marques(plan) });
 
@@ -531,6 +531,72 @@ new ResizeObserver(() => {
 const CLE_PALETTE = 'carte-de-mj:palette-repliee';
 const lirePaletteRepliee = () => { try { return localStorage.getItem(CLE_PALETTE) === '1'; } catch { return false; } };
 const ecrirePaletteRepliee = (v) => { try { localStorage.setItem(CLE_PALETTE, v ? '1' : '0'); } catch { /* stockage indisponible : le choix n'est pas retenu */ } };
+
+// --- Dimensions de la salle : bandes autour de la carte (glisser, ou boutons − et +) ---
+/** Applique de nouvelles dimensions : la description suit, et une liaison suit sa porte si elle s'est décalée. */
+function appliquerDimensions(cote, delta) {
+  const s = salle();
+  const res = redimensionner(s.plan, cote, delta);
+  if (res.erreur) { annoncerCarte(res.erreur, true); return; }
+  memoriser();
+  modele.suivrePortesDeplacees(donjon(), s.id, s.plan, res.plan);
+  etat.selection = null;
+  etat.message = '';
+  changerTexte(decrire(res.plan));
+  annoncerCarte(`Salle de ${res.plan.largeur} × ${res.plan.longueur} cases.`);
+}
+
+const NOMS_COTES = { nord: 'au nord', sud: 'au sud', ouest: 'à l’ouest', est: 'à l’est' };
+for (const bande of document.querySelectorAll('.bord-salle')) {
+  const cote = bande.dataset.cote;
+  const bouton = (texte, delta, titre) => {
+    const b = h('button', { type: 'button', className: 'discret', textContent: texte, title: titre, 'aria-label': titre });
+    b.addEventListener('click', () => appliquerDimensions(cote, delta));
+    return b;
+  };
+  bande.title = `Glisse pour changer la taille de la salle ${NOMS_COTES[cote]}`;
+  bande.append(
+    bouton('−', -1, `Retirer une rangée ${NOMS_COTES[cote]}`),
+    h('span', { className: 'lettre-cote', textContent: bande.dataset.lettre }),
+    bouton('+', 1, `Ajouter une rangée ${NOMS_COTES[cote]}`),
+  );
+
+  // Glisser : aperçu sans rien enregistrer, à taille de case constante ; le lâcher applique. Si la réduction est
+  // impossible, l'aperçu reste au dernier résultat valable et le message dit ce qui gêne.
+  let prise = null; // { depart, taille, delta, plan }
+  const deltaDe = (e) => {
+    const px = { nord: prise.depart[1] - e.clientY, sud: e.clientY - prise.depart[1], ouest: prise.depart[0] - e.clientX, est: e.clientX - prise.depart[0] }[cote];
+    return Math.round(px / prise.taille);
+  };
+  bande.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0 || e.target.closest('button')) return;
+    e.preventDefault();
+    bande.setPointerCapture(e.pointerId);
+    bande.classList.add('tiree');
+    prise = { depart: [e.clientX, e.clientY], taille: tailleAffichee(salle().plan), delta: 0, plan: salle().plan };
+  });
+  bande.addEventListener('pointermove', (e) => {
+    if (!prise) return;
+    const delta = deltaDe(e);
+    if (delta === prise.delta) return;
+    const res = redimensionner(salle().plan, cote, delta);
+    if (res.erreur) { annoncerCarte(res.erreur, true); return; }
+    prise.delta = delta;
+    prise.plan = res.plan;
+    dessiner($('carte'), res.plan, { ...optionsDessin(res.plan), taille: prise.taille });
+    annoncerCarte(`Salle de ${res.plan.largeur} × ${res.plan.longueur} cases.`);
+  });
+  const lacher = (e) => {
+    if (!prise) return;
+    const { delta } = prise;
+    prise = null;
+    bande.classList.remove('tiree');
+    if (delta && e.type === 'pointerup') appliquerDimensions(cote, delta);
+    else dessinerCarte(salle().plan);
+  };
+  bande.addEventListener('pointerup', lacher);
+  bande.addEventListener('pointercancel', lacher);
+}
 
 let minuterieMessage;
 /** Retour d'une pose, posé sur la carte (hors du flux : rien ne bouge). */

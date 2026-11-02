@@ -44,6 +44,20 @@
 details.bloc > summary h2 { font-size: 12px; }
 details.exemples summary { font-size: 13px; }
 
+/* --- Bandes de dimensions autour de la carte : on les glisse, ou on utilise leurs boutons − et + --- */
+:root { --bande-salle: 36px; }
+.bord-salle { position: absolute; display: flex; align-items: center; justify-content: center; gap: 4px; border-radius: var(--rayon); touch-action: none; user-select: none; -webkit-user-select: none; }
+.bord-salle:hover, .bord-salle.tiree { background: rgba(255, 255, 255, 0.08); }
+.bord-salle[data-cote="nord"], .bord-salle[data-cote="sud"] { left: var(--bande-salle); right: var(--bande-salle); height: 30px; cursor: ns-resize; }
+.bord-salle[data-cote="nord"] { top: 3px; }
+.bord-salle[data-cote="sud"] { bottom: 3px; }
+.bord-salle[data-cote="ouest"], .bord-salle[data-cote="est"] { top: var(--bande-salle); bottom: var(--bande-salle); width: 30px; flex-direction: column; cursor: ew-resize; }
+.bord-salle[data-cote="ouest"] { left: 3px; }
+.bord-salle[data-cote="est"] { right: 3px; }
+.bord-salle button { width: 28px; height: 28px; min-height: 0; padding: 0; font-size: 15px; line-height: 1; touch-action: manipulation; }
+.bord-salle .lettre-cote { min-width: 14px; text-align: center; font-size: 12px; font-weight: 600; color: var(--texte-doux); }
+#scene:fullscreen .bord-salle { display: none; }
+
 /* --- Scène, bulle, commandes flottantes --- */
 .flottant { position: absolute; z-index: 20; background: rgba(31, 30, 36, 0.95); border: 1px solid var(--bord); border-radius: var(--rayon); box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45); }
 
@@ -69,7 +83,7 @@ details.exemples summary { font-size: 13px; }
 body.palette-glisse, body.palette-glisse * { cursor: grabbing !important; user-select: none; -webkit-user-select: none; }
 #carte.arme { cursor: crosshair !important; }
 
-.message-carte { position: absolute; z-index: 30; left: 50%; bottom: 24px; transform: translateX(-50%); max-width: min(560px, calc(100% - 24px)); margin: 0; padding: 8px 14px; font-size: 14px; background: var(--panneau); border: 1px solid var(--accent); border-radius: var(--rayon); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5); pointer-events: none; }
+.message-carte { position: absolute; z-index: 30; left: 50%; bottom: 48px; transform: translateX(-50%); max-width: min(560px, calc(100% - 24px)); margin: 0; padding: 8px 14px; font-size: 14px; background: var(--panneau); border: 1px solid var(--accent); border-radius: var(--rayon); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5); pointer-events: none; }
 .message-carte.erreur-pose { border-color: var(--erreur); }
 
 /* --- Ordinateur (au-dessus de 760 px) --- */
@@ -92,7 +106,7 @@ body.palette-glisse, body.palette-glisse * { cursor: grabbing !important; user-s
   /* Hauteur constante, deux lignes : changer de catégorie ne redimensionne pas la carte. */
   .palette-liste { flex: 1 1 auto; min-width: 0; height: 64px; max-height: none; align-content: flex-start; }
   .palette-aide { display: none; }
-  #support { margin: auto; padding: 12px; flex: none; }
+  #support { margin: auto; padding: var(--bande-salle); flex: none; }
   #scene:fullscreen #support { padding: 0; }
 
   /* Bulle d'actions : posée à côté de l'élément (js/main-mj.js, placerBulle). */
@@ -131,4 +145,9 @@ body.palette-glisse, body.palette-glisse * { cursor: grabbing !important; user-s
   .palette-liste { max-height: 36vh; }
   #zoom { left: var(--esp-2); right: auto; bottom: var(--esp-2); flex-wrap: wrap; max-width: calc(100% - 2 * var(--esp-2)); }
   .message-carte { bottom: 64px; }
+}
+
+/* Après style.css, qui fixe la marge de la carte sur téléphone : les bandes de dimensions y gardent leur place. */
+@media (max-width: 759.98px) {
+  body:not(.presentation)[data-onglet="carte"] #support { padding: var(--bande-salle); }
 }

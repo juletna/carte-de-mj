@@ -5,7 +5,7 @@
  * Sans dépendance : marche sous Node et dans tests.html.
  */
 import * as m from '../js/donjon.js';
-import { ajouterElement, elementsPalette, evaluerPose, GROUPES_PALETTE } from '../js/pose.js';
+import { ajouterElement, elementsPalette, evaluerPose, GROUPES_PALETTE, redimensionner } from '../js/pose.js';
 import { analyser } from '../js/parseur/index.js';
 import { decrire } from '../js/parseur/decrire.js';
 import { OBJETS, CREATURES } from '../js/parseur/lexique.js';
@@ -239,6 +239,44 @@ const TESTS = [
     m.retablirLiaisons(d, r.liaisonsRetirees);
     egal(d.liaisons.length, 1, 'rétablir deux fois ne duplique pas');
     egal(m.liaisonsOrphelines(d).length, 0, 'et la porte existe encore : pas d’orpheline');
+  }],
+  ['dimensions : agrandir à l’est ou au sud ne déplace rien', () => {
+    const p = planDe();
+    const r = redimensionner(p, 'est', 2);
+    egal([r.plan.largeur, r.plan.longueur], [8, 6], 'dimensions');
+    egal(r.plan.objets.map((o) => [o.x, o.y]), p.objets.map((o) => [o.x, o.y]), 'objets immobiles');
+    egal(r.plan.portes[0].position, p.portes[0].position, 'porte immobile');
+    egal(empreinte(analyser(decrire(r.plan), { echelle: 1.5 }).plan), empreinte(r.plan), 'aller-retour');
+  }],
+  ['dimensions : agrandir à l’ouest ou au nord décale tout, porte comprise', () => {
+    const p = planDe();
+    const o = redimensionner(p, 'ouest', 1).plan;
+    egal(o.objets[0].x, p.objets[0].x + 1, 'objet décalé vers l’est');
+    egal(o.portes[0].position, p.portes[0].position + 1, 'porte du mur sud décalée');
+    const n = redimensionner(p, 'nord', 2).plan;
+    egal(n.creatures[0].y, p.creatures[0].y + 2, 'pion décalé vers le sud');
+    egal(n.portes[0].position, p.portes[0].position, 'porte du mur sud : même position le long du mur');
+    egal(empreinte(analyser(decrire(n), { echelle: 1.5 }).plan), empreinte(n), 'aller-retour');
+  }],
+  ['dimensions : réduire est refusé si un élément ou une porte sortirait', () => {
+    const p = planDe();
+    verifier(redimensionner(p, 'nord', -1).erreur, 'coffres en rangée 1');
+    verifier(redimensionner(p, 'ouest', -1).erreur, 'coffre en colonne A');
+    verifier(!redimensionner(p, 'sud', -1).erreur, 'la rangée 6 est libre');
+    verifier(redimensionner(planDe('Salle de 6 par 6 cases, une porte au mur est en 6'), 'sud', -1).erreur, 'porte du mur est');
+    verifier(redimensionner(p, 'est', 60).erreur, 'plafond de 60 cases');
+    verifier(redimensionner(planDe('Salle de 1 par 1 cases'), 'est', -1).erreur, 'au moins une case');
+  }],
+  ['dimensions : une liaison suit sa porte décalée', () => {
+    const d = m.creerDonjon({ texte: 'Salle de 6 par 6 cases, une porte au mur sud en B' });
+    const s = Object.values(d.salles)[0];
+    const porte = s.plan.portes[0];
+    m.creerSalleDerriere(d, { depuis: { salle: s.id, mur: porte.mur, position: porte.position }, echelle: 1.5 });
+    const n = redimensionner(s.plan, 'ouest', 1).plan;
+    m.suivrePortesDeplacees(d, s.id, s.plan, n);
+    s.plan = n;
+    egal(m.liaisonsOrphelines(d).length, 0, 'pas de liaison orpheline');
+    egal(m.liaisonDePorte(d, s.id, n.portes[0]) !== null, true, 'la liaison retrouve la porte');
   }],
 ];
 

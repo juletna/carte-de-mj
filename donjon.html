@@ -148,6 +148,11 @@
     <main id="scene">
       <div id="support">
         <canvas id="carte" aria-label="Carte de la pièce"></canvas>
+        <!-- Dimensions de la salle : glisser la bande d'un côté, ou ses boutons − et + (js/main-mj.js). -->
+        <div class="bord-salle" data-cote="nord" data-lettre="N"></div>
+        <div class="bord-salle" data-cote="sud" data-lettre="S"></div>
+        <div class="bord-salle" data-cote="ouest" data-lettre="O"></div>
+        <div class="bord-salle" data-cote="est" data-lettre="E"></div>
         <div id="carte-ref" hidden></div>
         <!-- Actions de l'élément cliqué : bulle posée à côté de lui (ordinateur) ou bandeau fixe en bas (écran étroit). -->
         <section id="selection" class="selection" aria-live="polite" hidden></section>
