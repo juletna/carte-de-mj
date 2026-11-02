@@ -36,6 +36,7 @@ input,textarea,select{background:var(--bg);border:1px solid var(--line);border-r
 .big{min-height:58px;font-family:var(--display);font-size:1.45rem;font-weight:700;letter-spacing:.01em}
 .red{background:var(--blood);border-color:var(--blood);color:var(--surface)}
 .linkbtn{background:transparent;border-color:transparent;color:var(--muted);font-weight:400;font-size:.88rem;padding:0 8px}
+.linkbtn.mini{min-height:28px;padding:0;--ext:-8px 0}
 
 /* Navigation commune (css/base.css) : couleurs de la Fiche, zone sûre du haut, et colonne alignée sur .wrap */
 .menu-site{--m-fond:var(--surface);--m-texte:var(--ink);--m-doux:var(--muted);--m-bord:var(--line);--m-accent:var(--brass);margin:0;padding-top:env(safe-area-inset-top,0px)}
@@ -46,6 +47,10 @@ header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background
 header.top .wrap{display:flex;flex-direction:column;gap:6px;padding-block:8px 10px}
 .idrow{display:flex;align-items:baseline;gap:8px;min-width:0}
 .idrow h1{font-family:var(--display);font-weight:700;font-size:1.35rem;line-height:1.1;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:0 1 auto;min-width:0}
+.idrow h1:has(.who){overflow:visible;display:flex;margin-left:-6px}
+.who{display:flex;align-items:center;gap:6px;max-width:100%;min-width:0;min-height:44px;margin-block:-8px;padding:0 6px;background:transparent;border-color:transparent;font-weight:inherit;text-align:left}
+.who span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.who i{flex:none;font-style:normal;font-family:var(--body);font-size:.8rem;color:var(--muted)}
 .idrow p{margin:0;color:var(--muted);font-size:.8rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1 1 0;min-width:0}
 .vitals{display:grid;grid-template-columns:1fr auto auto;gap:6px}
 .vitals.two{grid-template-columns:1fr auto}
@@ -79,15 +84,15 @@ main{display:flex;flex-direction:column;gap:12px;padding-block:12px 190px}
 /* Bascule de phase */
 .phase{display:grid;grid-template-columns:1fr auto;gap:6px;align-items:center}
 .seg{display:grid;grid-template-columns:repeat(var(--n,3),1fr);gap:4px;background:var(--surface);padding:4px;border-radius:12px}
-.seg button{border-color:transparent;background:transparent;min-height:40px;font-size:.9rem}
+.seg button{border-color:transparent;background:transparent;min-height:40px;--ext:-2px 0;font-size:.9rem}
 .seg button.on{background:var(--ink);color:var(--surface)}
 .seg.light{background:var(--bg)}
 .seg.light button.on{background:var(--surface);color:var(--ink);border-color:var(--line)}
 .seg.light button.on.a1{color:var(--heal)}.seg.light button.on.a2{color:var(--blood)}
 
 /* Sur moi */
-.onme{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
-.pill{min-height:36px;border-radius:18px;font-size:.85rem;padding:0 12px;background:var(--bg);font-weight:700}
+.onme{display:flex;flex-wrap:wrap;gap:8px 6px;align-items:center}
+.pill{min-height:36px;--ext:-4px 0;border-radius:18px;font-size:.85rem;padding:0 12px;background:var(--bg);font-weight:700}
 .pill.fx{border-color:var(--arcane);color:var(--arcane)}
 .pill.neg,.pill.cond{border-color:var(--blood);color:var(--blood)}
 .pill.conc{border-color:var(--brass);color:var(--brass)}
@@ -107,17 +112,20 @@ main{display:flex;flex-direction:column;gap:12px;padding-block:12px 190px}
 
 /* Lignes compactes */
 .lines{display:flex;flex-direction:column}
-.ln{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding-block:8px;border-bottom:1px solid var(--line)}
+.ln{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;padding-block:8px;border-bottom:1px solid var(--line)}
 .ln:first-child{padding-top:0}.ln:last-child{border-bottom:0;padding-bottom:0}
+.ln:has(.pip){padding-block:2px}
 .ln .t{min-width:0;overflow-wrap:anywhere}
 .ln .t small{display:block;color:var(--muted);font-size:.8rem}
-.pips{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
-.pip{width:32px;height:32px;min-height:32px;padding:0;border-radius:50%;border:2px solid var(--line);background:transparent}
-.pip.on{background:var(--ink);border-color:var(--ink)}
-.pip.sp.on{background:var(--brass);border-color:var(--brass)}
-.pip.rs.on{background:var(--heal);border-color:var(--heal)}
-.pip.f.on{background:var(--blood);border-color:var(--blood)}
-.pip.s.on{background:var(--heal);border-color:var(--heal)}
+.pips{display:flex;flex-wrap:wrap;justify-content:flex-end;max-width:176px}
+/* Pastille : 44 px à toucher, 32 px dessinés (le rond est le ::before) */
+.pip{position:relative;width:44px;height:44px;min-height:44px;padding:0;border:0;border-radius:50%;background:transparent}
+.pip::before{content:"";position:absolute;inset:6px;border-radius:50%;border:2px solid var(--line)}
+.pip.on::before{background:var(--ink);border-color:var(--ink)}
+.pip.sp.on::before{background:var(--brass);border-color:var(--brass)}
+.pip.rs.on::before{background:var(--heal);border-color:var(--heal)}
+.pip.f.on::before{background:var(--blood);border-color:var(--blood)}
+.pip.s.on::before{background:var(--heal);border-color:var(--heal)}
 
 /* Attaques */
 .atk{display:grid;grid-template-columns:1fr auto auto;gap:6px;align-items:center;padding-block:8px;border-bottom:1px solid var(--line)}
@@ -131,11 +139,11 @@ main{display:flex;flex-direction:column;gap:12px;padding-block:12px 190px}
 .qty{display:flex;align-items:center;gap:6px}
 .qty b{min-width:2.4ch;text-align:center;font-size:1.25rem;font-variant-numeric:tabular-nums}
 .qty button{width:44px;padding:0;font-size:1.2rem}
-.x{background:transparent;border-color:transparent;color:var(--muted);min-width:40px;padding:0}
+.x{background:transparent;border-color:transparent;color:var(--muted);min-width:44px;padding:0}
 .heal{background:var(--heal);border-color:var(--heal);color:var(--surface)}
 
 .chips{display:flex;flex-wrap:wrap;gap:6px}
-.chip{min-height:38px;border-radius:19px;font-weight:400;font-size:.9rem}
+.chip{min-height:38px;--ext:-3px 0;border-radius:19px;font-weight:400;font-size:.9rem}
 .chip.on{background:var(--ink);color:var(--surface);border-color:var(--ink);font-weight:700}
 
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -152,7 +160,7 @@ main{display:flex;flex-direction:column;gap:12px;padding-block:12px 190px}
 .edit .head{display:flex;gap:6px;align-items:center}
 .edit .head input{flex:1}
 .danger-btn{background:transparent;border-color:var(--blood);color:var(--blood)}
-.danger-btn.armed{background:var(--blood);color:var(--surface)}
+.danger-btn.armed{background:var(--blood);color:var(--surface);font-weight:700;height:auto;padding-block:8px}
 .card h2 small a{color:inherit}
 .plist{display:flex;flex-direction:column;gap:6px}
 .pc{display:flex;justify-content:space-between;align-items:baseline;gap:8px;text-align:left;font-weight:400;padding:6px 12px}
@@ -160,7 +168,7 @@ main{display:flex;flex-direction:column;gap:12px;padding-block:12px 190px}
 .pc small{color:var(--muted);flex:none}
 .pc.on{border-color:var(--ink);background:var(--surface)}.pc.on b{font-weight:700}
 .prof{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-.prof button{display:flex;justify-content:space-between;align-items:center;gap:6px;font-weight:400;text-align:left;min-height:42px;padding:0 10px;font-size:.88rem}
+.prof button{display:flex;justify-content:space-between;align-items:center;gap:6px;font-weight:400;text-align:left;min-height:44px;padding:0 10px;font-size:.88rem}
 .prof button i{font-style:normal;font-weight:700;color:var(--muted);font-size:.75rem}
 .prof button.p1{border-color:var(--ink);font-weight:700}
 .prof button.p2{border-color:var(--brass);background:var(--surface);font-weight:700}
@@ -176,17 +184,21 @@ main{display:flex;flex-direction:column;gap:12px;padding-block:12px 190px}
 .item .nm small{color:var(--muted);font-size:.78rem}
 .item .nm small.eq{color:var(--arcane);font-weight:700}
 .item .qty b{font-size:1.1rem}
-.item .qty button{width:40px;min-height:40px;font-size:1.1rem}
+.item .qty button{width:40px;min-height:40px;--ext:-2px;font-size:1.1rem}
 .item .edit{grid-column:1/-1}
 
 .entry{border-left:3px solid var(--line);padding:2px 0 2px 10px;display:flex;flex-direction:column;gap:2px}
 .entry[data-k="Idée"]{border-color:var(--brass)}
 .entry[data-k="Quête"]{border-color:var(--blood)}
 .entry[data-k="PNJ"]{border-color:var(--heal)}
+.entry .eh .x{min-height:32px;--ext:-6px 0}
 .entry .eh{display:flex;justify-content:space-between;align-items:center;font-size:.78rem;color:var(--muted)}
 .entry p{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
 textarea{min-height:84px;resize:vertical}
 
+/* Zone de toucher élargie à 44 px sans agrandir le dessin : --ext est la marge du ::after (qui couvre déjà la bordure) */
+.pill,.chip,.presets button,.seg button,.rbar .rtx,.rbar .ex button,.item .qty button,.linkbtn.mini,.entry .eh .x{position:relative}
+.pill::after,.chip::after,.presets button::after,.seg button::after,.rbar .rtx::after,.rbar .ex button::after,.item .qty button::after,.linkbtn.mini::after,.entry .eh .x::after{content:"";position:absolute;inset:-1px;margin:var(--ext)}
 .dice{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
 .dice button{min-height:56px;font-size:1.15rem;font-family:var(--display);font-weight:700}
 .dice button.d20{grid-column:span 2;background:var(--ink);color:var(--surface);border-color:var(--ink)}
@@ -211,14 +223,14 @@ textarea{min-height:84px;resize:vertical}
 .rbar .in{max-width:640px;margin:0 auto;display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px}
 .rbar .rt{font-size:2.2rem;line-height:1;font-variant-numeric:tabular-nums;min-width:2ch;text-align:center}
 .rbar.crit .rt{color:var(--heal)}.rbar.fumble .rt{color:var(--blood)}
-.rbar .rtx{flex:1 1 0;min-width:0;background:transparent;border-color:transparent;text-align:left;padding:0;min-height:40px;font-weight:400;display:flex;flex-direction:column;justify-content:center}
+.rbar .rtx{--ext:-2px 0;flex:1 1 0;min-width:0;background:transparent;border-color:transparent;text-align:left;padding:0;min-height:40px;font-weight:400;display:flex;flex-direction:column;justify-content:center}
 .rbar .rl{font-weight:700;font-size:.92rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rbar .rl i{font-style:normal;font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;padding:1px 6px;border-radius:6px;margin-left:6px;vertical-align:1px}
 .rbar.crit .rl i{background:var(--heal);color:var(--surface)}.rbar.fumble .rl i{background:var(--blood);color:var(--surface)}
 .rbar .rd{color:var(--muted);font-size:.8rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rbar .rd.open{white-space:normal}
 .rbar .ex{display:flex;gap:6px;flex-wrap:wrap;width:100%}
-.rbar .ex button{min-height:36px;font-size:.82rem;background:var(--arcane);border-color:var(--arcane);color:var(--surface);flex:1 1 auto}
+.rbar .ex button{min-height:36px;--ext:-4px 0;font-size:.82rem;background:var(--arcane);border-color:var(--arcane);color:var(--surface);flex:1 1 auto}
 
 /* Feuille modale */
 .scrim{position:fixed;inset:0;background:var(--scrim);z-index:20}
@@ -238,7 +250,7 @@ textarea{min-height:84px;resize:vertical}
 .fx small{grid-column:1;color:var(--muted)}
 .fx .x{grid-row:1/span 2;grid-column:2}
 .presets{display:flex;flex-wrap:wrap;gap:6px}
-.presets button{min-height:38px;border-radius:19px;font-weight:400;font-size:.88rem}
+.presets button{min-height:38px;--ext:-3px 0;border-radius:19px;font-weight:400;font-size:.88rem}
 .presets button.neg{border-color:var(--blood);color:var(--blood)}
 
 nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:7;background:var(--surface);border-top:1px solid var(--line);
@@ -247,7 +259,9 @@ nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:7;background:var(--surfa
 nav.tabs button{background:transparent;border-color:transparent;font-size:.82rem;min-height:48px;color:var(--muted);padding:0 2px}
 nav.tabs button.on{color:var(--ink);background:var(--chip)}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(150px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--surface);
-  padding:10px 16px;border-radius:12px;font-size:.9rem;z-index:30;max-width:calc(100% - 32px)}
+  padding:10px 16px;border-radius:12px;font-size:.9rem;z-index:30;width:max-content;max-width:calc(100% - 32px)}
+.toast button{vertical-align:middle;margin-left:10px;background:transparent;color:inherit;border-color:currentColor}
+.confirm{color:var(--blood);font-weight:700}
 @media (max-width:380px){.tests{grid-template-columns:1fr 1fr}.vt{min-width:52px}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}button:active{transform:none}}
 </style>
@@ -274,7 +288,7 @@ nav.tabs button.on{color:var(--ink);background:var(--chip)}
   <button data-tab="fiche">Fiche</button>
 </nav>
 <div id="sheetRoot"></div>
-<div class="toast" id="toast" hidden></div>
+<div class="toast" id="toast" role="status" hidden></div>
 <input type="file" id="impf" accept=".json,application/json" hidden>
 
 <script>
@@ -343,6 +357,8 @@ Object.values(DB.persos).forEach(complete);
 S=DB.persos[DB.actif];
 /* Change de personnage en remettant à zéro l'état d'interface (feuilles, pavé, objet ouvert…) */
 function setActive(id,tab){const t=tab||S.tab;DB.actif=id;S=DB.persos[id];Object.assign(S,{tab:t,sheet:null,pad:'',openItem:-1,showCustom:false,rbOpen:false});armed=false}
+/* Empreinte d'une fiche sans son état d'interface, pour savoir si elle a bougé */
+const snapP=p=>JSON.stringify(Object.assign({},p,{tab:'',sheet:null,rbOpen:false,pad:'',openItem:-1,showCustom:false}));
 function addP(p,tab){const id=uid();DB.persos[id]=p;setActive(id,tab)}
 const save=()=>{DB.persos[DB.actif]=S;try{localStorage.setItem(KEY2,JSON.stringify(DB))}catch(e){}};
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -360,8 +376,13 @@ const negFx=f=>['dieneg','dis'].includes(f.kind)||(f.kind==='flat'&&f.val<0);
 const acTotal=()=>S.ac+S.inv.reduce((s,it)=>s+(it.type==='equip'&&it.eq?(+it.acb||0):0),0)+fxOf('ac').reduce((s,f)=>s+(f.kind==='flat'?+f.val||0:0),0);
 function baseSpeed(){if(S.conds.includes('Agrippé')||S.conds.includes('Entravé'))return 0;return Math.max(0,S.speed*(hasHaste()?2:1)-1.5*S.exh)}
 const speedNow=()=>baseSpeed()*(S.turn.dash?2:1);
-let tt;
-function toast(m){const e=document.getElementById('toast');e.textContent=m;e.hidden=false;clearTimeout(tt);tt=setTimeout(()=>e.hidden=true,2200)}
+let tt,undo=null,shownSheet=null;
+/* Toast court ; avec act (libellé du bouton), il reste plus longtemps et porte un bouton data-a="undo" */
+function toast(m,act){const e=document.getElementById('toast');e.textContent=m;e.hidden=false;clearTimeout(tt);if(!act)undo=null;
+ if(act){const b=document.createElement('button');b.dataset.a='undo';b.textContent=act;e.appendChild(b)}
+ tt=setTimeout(()=>{e.hidden=true;undo=null},act?7000:2200)}
+/* Bonus de maîtrise de la règle, pour un niveau de 1 à 20 */
+const profFor=l=>2+Math.floor((Math.max(1,Math.min(20,l))-1)/4);
 function note(k,x){S.log.unshift({t:Date.now(),k,x})}
 
 /* Dés : "1d8+3", "2d6+1d4+2", "d10-1" */
@@ -407,7 +428,7 @@ function spend(k){if(S.mode==='combat'&&k&&k!=='none'){if(k==='action'&&S.turn.a
 /* ---------- Rendu ---------- */
 function vHeader(){
  const C=S.mode==='combat',pct=Math.max(0,Math.min(100,S.hp/Math.max(1,S.hpMax)*100)),ac=acTotal();
- return`<div class="idrow"><h1>${esc(S.name||'Sans nom')}</h1><p>${esc([S.cls&&`${S.cls} niv. ${S.lvl}`,S.race,S.guild].filter(Boolean).join(' · '))}</p></div>
+ return`<div class="idrow"><h1><button class="who" data-a="sheet" data-v="perso" aria-haspopup="dialog" aria-label="${esc((S.name||'Sans nom')+' : changer de personnage ou en créer un')}"><span>${esc(S.name||'Sans nom')}</span><i aria-hidden="true">▾</i></button></h1><p>${esc([S.cls&&`${S.cls} niv. ${S.lvl}`,S.race,S.guild].filter(Boolean).join(' · '))}</p></div>
  <div class="vitals ${C?'':'two'}">
   <button class="hpbtn" data-a="sheet" data-v="hp" aria-label="Modifier les points de vie">
    <span class="n"><b>${S.hp}</b>/ ${S.hpMax} PV${S.tmp?` <em>+${S.tmp} temp</em>`:''}<small>± PV</small></span>
@@ -438,7 +459,7 @@ function fxSummary(f){
 
 function vAlerts(){
  const out=[];
- if(S.example)out.push(`<div class="notice"><span>Personnage d'exemple. Saisis le tien dans l'onglet Fiche.</span><button data-tab="fiche">Fiche</button></div>`);
+ if(S.example)out.push(`<div class="notice"><span>Personnage d'exemple. Crée le tien, ou modifie celui-ci dans l'onglet Fiche.</span><span class="row"><button class="primary" data-a="newp">Créer mon personnage</button><button data-tab="fiche">Fiche</button></span></div>`);
  if(S.hp===0)out.push(`<section class="card alert danger"><h2>À terre, 0 PV <small>jets contre la mort</small></h2>
   <div class="lines"><div class="ln"><span class="t">Succès</span><div class="pips">${[0,1,2].map(i=>`<button class="pip s ${i<S.saves.s?'on':''}" data-a="ds" data-k="s" data-i="${i}" aria-label="Succès ${i+1}"></button>`).join('')}</div></div>
   <div class="ln"><span class="t">Échecs</span><div class="pips">${[0,1,2].map(i=>`<button class="pip f ${i<S.saves.f?'on':''}" data-a="ds" data-k="f" data-i="${i}" aria-label="Échec ${i+1}"></button>`).join('')}</div></div></div>
@@ -504,11 +525,11 @@ function vWait(){
 function vExplo(){
  const quickSk=[...new Set([...SKILLS.filter(([n])=>S.skills[n]).map(s=>s[0]),'Perception','Investigation','Intuition'])];
  return`<button class="red big" data-a="fight">Combat ! · initiative ${sg(S.init)}</button>
- <section class="card"><h2>Tests rapides <small><button class="linkbtn" data-tab="jets" style="min-height:28px;padding:0">Tous les jets →</button></small></h2>
+ <section class="card"><h2>Tests rapides <small><button class="linkbtn mini" data-tab="jets">Tous les jets →</button></small></h2>
   <div class="sk">${quickSk.map(n=>`<button class="${S.skills[n]?'pr':''} ${S.skills[n]===2?'ex':''}" data-a="skill" data-n="${n}"><span>${n}</span><b>${sg(skB(n))}</b></button>`).join('')}</div>
  </section>
  ${vRes()}
- ${S.ammo.length?`<section class="card"><h2>Munitions</h2><div class="lines">${S.ammo.map((a,i)=>`<div class="ln"><span class="t">${esc(a.n)}${a.spent?`<small>${a.spent} tirée${a.spent>1?'s':''} · <button class="linkbtn" style="min-height:28px;padding:0;text-decoration:underline" data-a="pick" data-i="${i}">ramasser ½</button></small>`:''}</span>
+ ${S.ammo.length?`<section class="card"><h2>Munitions</h2><div class="lines">${S.ammo.map((a,i)=>`<div class="ln"><span class="t">${esc(a.n)}${a.spent?`<small>${a.spent} tirée${a.spent>1?'s':''} · <button class="linkbtn mini" style="text-decoration:underline" data-a="pick" data-i="${i}">ramasser ½</button></small>`:''}</span>
    <div class="qty"><button data-a="aq" data-i="${i}" data-v="-1" aria-label="Retirer">−</button><b>${a.q}</b><button data-a="aq" data-i="${i}" data-v="1" aria-label="Ajouter">+</button></div></div>`).join('')}</div></section>`:''}
  <section class="card"><h2>Repos</h2>
   <div class="spread"><span><span class="lbl">Dés de vie</span><br><b style="font-size:1.2rem">${hdLeft()}/${S.lvl}</b> <span class="muted">d${S.hd.die} ${sg(mod(S.stats.CON))}</span></span>
@@ -549,6 +570,7 @@ function vJets(){
 
 function fld(label,f,v,type='text',extra=''){return`<label class="field"><span class="lbl">${label}</span><input id="f_${f.replace(/\./g,'_')}" data-f="${f}" type="${type}" ${type==='number'?'inputmode="numeric"':''} value="${esc(v)}" ${extra}></label>`}
 function sel(label,f,v,opts){return`<label class="field"><span class="lbl">${label}</span><select id="f_${f.replace(/\./g,'_')}" data-f="${f}">${opts.map(([val,l])=>`<option value="${esc(val)}" ${String(val)===String(v)?'selected':''}>${esc(l)}</option>`).join('')}</select></label>`}
+function plist(){return Object.entries(DB.persos).map(([id,p])=>`<button class="pc ${id===DB.actif?'on':''}" data-a="psw" data-id="${esc(id)}" aria-pressed="${id===DB.actif}"><b>${esc(p.name||'Sans nom')}</b><small>${esc((p.cls||'Sans classe')+' · niv. '+p.lvl)}</small></button>`).join('')}
 function vFiche(){
  const ammoOpts=[['','Aucune'],...S.ammo.map(a=>[a.n,a.n])];
  return `<section class="card"><h2>Identité</h2>
@@ -595,10 +617,11 @@ function vFiche(){
   <div class="slotsEdit">${S.slots.map((s,l)=>`<label class="field"><span class="lbl">N${l+1}</span><input id="f_sl_${l}" data-f="slots.${l}" type="number" inputmode="numeric" min="0" value="${s.max}"></label>`).join('')}</div>
  </section>
  <section class="card"><h2>Personnage</h2>
-  <div class="plist">${Object.entries(DB.persos).map(([id,p])=>`<button class="pc ${id===DB.actif?'on':''}" data-a="psw" data-id="${esc(id)}" aria-pressed="${id===DB.actif}"><b>${esc(p.name||'Sans nom')}</b><small>${esc((p.cls||'Sans classe')+' · niv. '+p.lvl)}</small></button>`).join('')}</div>
-  <div class="grid2"><button data-a="newp">Nouveau personnage</button><button data-a="demo">Recharger l'exemple</button></div>
+  <div class="plist">${plist()}</div>
+  <div class="grid2"><button data-a="newp">Nouveau personnage</button><button data-a="demo">Ajouter l'exemple</button></div>
   <div class="grid2"><button data-a="exp">Exporter</button><button data-a="imp">Importer</button></div>
-  <button class="danger-btn ${armed?'armed':''}" data-a="pdel">${armed?'Confirmer : supprimer':'Supprimer ce personnage'}</button>
+  <button class="danger-btn ${armed?'armed':''}" data-a="pdel">${armed?`Confirmer : supprimer « ${esc(S.name||'Sans nom')} »`:'Supprimer ce personnage'}</button>
+  ${armed?'<small class="confirm">Touche encore une fois pour confirmer. Tu pourras annuler quelques secondes.</small>':''}
   <small class="muted">Les données restent sur cet appareil, dans ce navigateur. « Exporter » enregistre ce personnage dans un fichier.</small>
  </section>`;
 }
@@ -641,7 +664,7 @@ function vJournal(){
   <button class="primary" data-a="jadd">Ajouter au journal</button>
  </section>
  <section class="card"><h2>Journal <small>${S.log.length} entrée${S.log.length>1?'s':''}</small></h2>
-  ${S.log.map((e,i)=>`<article class="entry" data-k="${esc(e.k)}"><div class="eh"><span><b>${esc(e.k)}</b> · ${hhmm(e.t)}</span><button class="x" data-a="jdel" data-i="${i}" aria-label="Supprimer" style="min-height:32px">✕</button></div><p>${esc(e.x)}</p></article>`).join('')||'<small class="muted">Rien pour l\'instant.</small>'}
+  ${S.log.map((e,i)=>`<article class="entry" data-k="${esc(e.k)}"><div class="eh"><span><b>${esc(e.k)}</b> · ${hhmm(e.t)}</span><button class="x" data-a="jdel" data-i="${i}" aria-label="Supprimer">✕</button></div><p>${esc(e.x)}</p></article>`).join('')||'<small class="muted">Rien pour l\'instant.</small>'}
  </section>`;
 }
 
@@ -653,6 +676,13 @@ function vSheetHp(){
  <div class="padv ${v?'':'ph'}">${v||'0'}</div>
  <div class="keys">${[1,2,3,4,5,6,7,8,9].map(n=>`<button data-a="key" data-v="${n}">${n}</button>`).join('')}<button data-a="key" data-v="c" aria-label="Effacer tout">C</button><button data-a="key" data-v="0">0</button><button data-a="key" data-v="b" aria-label="Effacer un chiffre">⌫</button></div>
  <div class="padact"><button class="red" data-a="padgo" data-v="dmg">Dégâts</button><button class="heal" data-a="padgo" data-v="heal">Soins</button><button data-a="padgo" data-v="tmp">Temp</button></div>`;
+}
+function vSheetPerso(){
+ return`<h2>Personnages <button class="x" data-a="close" aria-label="Fermer">✕</button></h2>
+ <div class="plist">${plist()}</div>
+ <button class="primary" data-a="newp">+ Nouveau personnage</button>
+ <button data-a="imp">Importer un fichier</button>
+ <small class="muted">Exporter et supprimer : onglet Fiche, tout en bas.</small>`;
 }
 function vSheetAdd(){
  const D=S.fxD;
@@ -688,10 +718,14 @@ function render(){
  const rb=document.getElementById('rbar');rb.className='rbar';rb.innerHTML=vRbar();
  const sr=document.getElementById('sheetRoot');
  if(S.sheet){const prev=sr.querySelector('.sheet');const sy=prev?prev.scrollTop:0;
-  sr.innerHTML=`<div class="scrim" data-a="close"></div><div class="sheet" role="dialog" aria-modal="true"><div class="in">${S.sheet==='hp'?vSheetHp():vSheetAdd()}</div></div>`;
+  sr.innerHTML=`<div class="scrim" data-a="close"></div><div class="sheet" role="dialog" aria-modal="true"><div class="in">${S.sheet==='hp'?vSheetHp():S.sheet==='perso'?vSheetPerso():vSheetAdd()}</div></div>`;
   sr.querySelector('.sheet').scrollTop=sy;document.body.style.overflow='hidden'}
  else{sr.innerHTML='';document.body.style.overflow=''}
  document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===S.tab));
+ /* Focus : dans la liste à l'ouverture, de retour sur le nom à la fermeture */
+ if(S.sheet==='perso'&&shownSheet!=='perso')sr.querySelector('.pc.on')?.focus({preventScroll:true});
+ else if(shownSheet==='perso'&&!S.sheet)document.querySelector('.who')?.focus({preventScroll:true});
+ shownSheet=S.sheet;
  save();
 }
 
@@ -793,9 +827,17 @@ document.addEventListener('click',e=>{
   case 'rsdel':S.res.splice(i,1);break;
   case 'psw':if(DB.persos[id])setActive(id);break;
   case 'newp':addP(blank(),'fiche');toast('Nouveau personnage');break;
-  case 'demo':addP(sample(),'combat');toast('Exemple ajouté');break;
-  case 'pdel':{if(!armed){armed=true;break}armed=false;delete DB.persos[DB.actif];const ids=Object.keys(DB.persos);
-   if(ids.length)setActive(ids[0]);else addP(blank(),'fiche');toast('Personnage supprimé');break}
+  case 'demo':addP(sample(),'combat');toast('Exemple ajouté');window.scrollTo(0,0);break;
+  case 'pdel':{if(!armed){armed=true;break}armed=false;
+   const gone=DB.actif,u={id:gone,p:DB.persos[gone],order:Object.keys(DB.persos),auto:null,snap:''};
+   delete DB.persos[gone];const ids=Object.keys(DB.persos);
+   if(ids.length)setActive(ids[0]);else{addP(blank(),'fiche');u.auto=DB.actif;u.snap=snapP(S)}
+   toast(`« ${u.p.name||'Sans nom'} » supprimé`,'Annuler');undo=u;break}
+  case 'undo':{const u=undo;if(!u)break;
+   if(u.auto&&DB.persos[u.auto]&&snapP(DB.persos[u.auto])===u.snap)delete DB.persos[u.auto];
+   const back={};u.order.forEach(k=>{if(k===u.id)back[k]=u.p;else if(DB.persos[k])back[k]=DB.persos[k]});
+   for(const k in DB.persos)if(!(k in back))back[k]=DB.persos[k];
+   DB.persos=back;setActive(u.id,S.tab);toast('Personnage restauré');break}
   case 'exp':{const n=(S.name||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/gi,'-').replace(/^-+|-+$/g,'').toLowerCase()||'personnage';
    const u=URL.createObjectURL(new Blob([JSON.stringify({format:'fiche-partie',version:1,personnage:S},null,1)],{type:'application/json'}));
    const l=document.createElement('a');l.href=u;l.download=n+'.json';document.body.appendChild(l);l.click();l.remove();setTimeout(()=>URL.revokeObjectURL(u),1000);toast('Fichier exporté');return}
@@ -819,6 +861,7 @@ document.addEventListener('click',e=>{
   default:return;
  }
  render();
+ if(a==='newp'){window.scrollTo(0,0);const n=document.getElementById('f_name');if(n){n.focus({preventScroll:true});n.select()}}
 });
 document.getElementById('impf').addEventListener('change',async e=>{
  const f=e.target.files[0];e.target.value='';if(!f)return;
@@ -853,10 +896,14 @@ document.addEventListener('change',e=>{
  else if(k==='hd')S.hd.die=num||8;
  else if(k==='attacks'){const at=S.attacks[+p[1]];at[p[2]]=p[2]==='hit'?num:raw.trim()}
  else if(k==='res'){const r=S.res[+p[1]];if(p[2]==='max'){r.max=Math.max(0,Math.min(20,num));r.used=Math.min(r.used,r.max)}else r[p[2]]=raw.trim()}
+ else if(k==='lvl'){
+  /* Niveau vide ou illisible : on garde l'ancien. Le bonus suit seulement s'il valait celui de l'ancien niveau. */
+  if(!/^\s*-?\d/.test(raw)){e.target.value=S.lvl;return}
+  const old=S.lvl,n=Math.max(1,Math.min(20,num));S.lvl=n;e.target.value=n;S.hd.used=Math.min(S.hd.used,n);
+  if(S.prof===profFor(old)&&profFor(n)!==S.prof){S.prof=profFor(n);const pf=document.getElementById('f_prof');if(pf)pf.value=S.prof;toast(`Bonus de maîtrise : +${S.prof}`)}}
  else if(['name','cls','race','guild'].includes(k))S[k]=raw.trim();
  else S[k]=num;
  if(k==='hpMax')S.hpMax=Math.max(1,S.hpMax);
- if(k==='lvl'){S.lvl=Math.max(1,Math.min(20,S.lvl));S.hd.used=Math.min(S.hd.used,S.lvl)}
  S.hp=Math.max(0,Math.min(S.hp,S.hpMax));
  S.example=false;
  document.getElementById('hdr').innerHTML=vHeader();save();
