@@ -17,6 +17,7 @@
  *   marqueLiaison(ctx, rect, mur, t)      porte reliée à une autre salle
  *   marqueSelection(ctx, rect, t)         élément sélectionné
  */
+import { dessinerPortrait } from '../portraits.js';
 import { CREATURES, COULEURS } from '../../parseur/lexique.js';
 
 const C = {
@@ -159,6 +160,7 @@ export function porte(ctx, p, plan, t) {
 // --- Pions (créatures) ---------------------------------------------------------
 
 const ABREVIATIONS = Object.fromEntries(CREATURES.map((c) => [c.type, c.abr]));
+const R_PORTRAIT_MIN = 11; // px : sous ce rayon, un pion affiche son abréviation
 // Couleur du camp : bleu pour les joueurs, or pour les neutres, rouge pour les monstres.
 const CAMP = { pj: '#2e6fd1', pnj: '#c9a227', monstre: '#b02a2a' };
 
@@ -181,12 +183,16 @@ export function pion(ctx, k, t) {
   // Anneau de la couleur propre à la créature (dragon rouge, etc.).
   if (!mort && k.couleur && COULEURS[k.couleur]) rond(ctx, cx, cy, r * 0.8, null, COULEURS[k.couleur], Math.max(3, r * 0.18));
 
-  const texte = k.camp === 'pj' ? `P${k.numero}` : ABREVIATIONS[k.type] || '?';
-  ctx.fillStyle = '#fff';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.font = `700 ${Math.max(9, r * (texte.length > 2 ? 0.62 : 0.8))}px system-ui, sans-serif`;
-  ctx.fillText(texte, cx, cy + r * 0.04);
+  // Portrait du monstre dans l'anneau du camp ; très petit, il deviendrait illisible : on garde alors l'abréviation.
+  const portrait = !mort && r >= R_PORTRAIT_MIN && dessinerPortrait(ctx, k.type, cx, cy, r * 0.84);
+  if (!portrait) {
+    const texte = k.camp === 'pj' ? `P${k.numero}` : ABREVIATIONS[k.type] || '?';
+    ctx.fillStyle = '#fff';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = `700 ${Math.max(9, r * (texte.length > 2 ? 0.62 : 0.8))}px system-ui, sans-serif`;
+    ctx.fillText(texte, cx, cy + r * 0.04);
+  }
   ctx.restore();
 
   // Pastille du numéro (inutile pour les PJ, déjà numérotés dans le pion).
