@@ -43,7 +43,7 @@ export const RACCORD_MM = 4;         // bande de raccord, côtés est et sud d'u
 export const RECOUVREMENT = 1;       // rangées de cases partagées entre deux pages voisines
 export const REGLE_MM = 50;          // règle de contrôle : 5 cm exacts
 export const PPP = 254;              // résolution des canvas : 10 pixels par mm (dans la plage 200–300 ppp)
-export const MESSAGE_REGLE = 'Cette règle doit mesurer exactement 5 cm. Sinon, imprimez à 100 % (échelle « Réelle »), sans « Ajuster à la page ».';
+export const MESSAGE_REGLE = 'Cette règle doit mesurer exactement 5 cm. Sinon, imprime à 100 % (échelle « Réelle »), sans « Ajuster à la page ».';
 export const VERSIONS = ['mj', 'joueurs'];
 
 const EPS = 1e-9;

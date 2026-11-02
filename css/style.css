@@ -1,16 +1,6 @@
-/* Carte de MJ — styles de la vue MJ et du plein écran. */
-:root {
-  --fond: #16151a;
-  --panneau: #1f1e24;
-  --bord: #34323b;
-  --texte: #e8e4dc;
-  --texte-doux: #a29d94;
-  --accent: #d9a929;
-  --accent-texte: #1a1508;
-  --erreur: #e06c5a;
-  --rayon: 6px;
-  color-scheme: dark;
-}
+/* Carte de MJ — styles de la vue MJ et du plein écran.
+   Les jetons (couleurs, rayon, focus, taille de cible) viennent de css/base.css, à charger avant cette feuille. */
+:root { color-scheme: dark; }
 
 * { box-sizing: border-box; }
 
@@ -42,16 +32,18 @@ label { display: block; }
 
 textarea, input[type="number"] {
   width: 100%;
-  background: #121116;
+  background: var(--champ);
   color: var(--texte);
   border: 1px solid var(--bord);
   border-radius: var(--rayon);
   padding: 8px 10px;
   font: inherit;
+  min-height: var(--cible);
 }
 textarea { resize: vertical; }
 #json { font: 12px/1.4 ui-monospace, Menlo, monospace; margin-top: 8px; }
-textarea:focus, input:focus, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+textarea:focus, input:focus, button:focus-visible { outline: var(--focus); outline-offset: 1px; }
+a:focus-visible, select:focus-visible, summary:focus-visible, [tabindex]:focus-visible { outline: var(--focus); outline-offset: var(--focus-decalage); }
 
 .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
 button, .bouton {
@@ -63,6 +55,7 @@ button, .bouton {
   font: inherit;
   font-weight: 600;
   cursor: pointer;
+  min-height: var(--cible);
 }
 button.discret, .bouton { background: transparent; color: var(--texte); border: 1px solid var(--bord); }
 button:hover { filter: brightness(1.1); }
@@ -80,12 +73,12 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .exemples { margin-top: 10px; font-size: 14px; }
 .exemples summary, details summary { cursor: pointer; color: var(--texte-doux); }
 #exemples { padding-left: 18px; margin: 6px 0 0; }
-#exemples a { color: var(--texte); text-decoration: underline dotted; cursor: pointer; }
+#exemples a { color: var(--texte); text-decoration: underline dotted; cursor: pointer; display: inline-flex; align-items: center; min-height: var(--cible); }
 
-.ligne { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 6px 0; }
+.ligne { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 6px 0; min-height: var(--cible); }
 .ligne span { display: flex; align-items: center; gap: 6px; }
 .ligne input[type="number"] { width: 70px; }
-.ligne input[type="range"] { width: 130px; accent-color: var(--accent); }
+.ligne input[type="range"] { width: 130px; accent-color: var(--accent); min-height: var(--cible); }
 .case { justify-content: flex-start; }
 .case input { accent-color: var(--accent); }
 output { min-width: 52px; text-align: right; font-variant-numeric: tabular-nums; }
@@ -93,7 +86,7 @@ output { min-width: 52px; text-align: right; font-variant-numeric: tabular-nums;
 /* --- Scène (carte) --- */
 #scene {
   overflow: auto;
-  background: #0c0b0e;
+  background: var(--scene);
   display: grid;
   place-items: center;
   position: relative;
@@ -133,27 +126,28 @@ output { min-width: 52px; text-align: right; font-variant-numeric: tabular-nums;
 select, input[type="text"] {
   width: 100%;
   min-width: 0;
-  background: #121116;
+  background: var(--champ);
   color: var(--texte);
   border: 1px solid var(--bord);
   border-radius: var(--rayon);
   padding: 7px 10px;
   font: inherit;
+  min-height: var(--cible);
 }
-select:focus, input[type="text"]:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+select:focus, input[type="text"]:focus { outline: var(--focus); outline-offset: 1px; }
 .donjons input[type="text"] { margin-top: 6px; }
 
 /* Blocs repliables du panneau */
-details.bloc > summary { cursor: pointer; list-style: none; display: flex; align-items: center; gap: 6px; }
+details.bloc > summary { cursor: pointer; list-style: none; display: flex; align-items: center; gap: 6px; min-height: var(--cible); }
 details.bloc > summary::-webkit-details-marker { display: none; }
 details.bloc > summary::before { content: '▸'; color: var(--texte-doux); font-size: 12px; }
 details.bloc[open] > summary::before { content: '▾'; }
 details.bloc > summary h2 { margin: 0; }
 details.bloc[open] > summary { margin-bottom: 6px; }
-details.bloc summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+details.bloc summary:focus-visible { outline: var(--focus); outline-offset: var(--focus-decalage); }
 
 button.danger { background: var(--erreur); color: #fff; border-color: var(--erreur); }
-button.petit { padding: 4px 8px; font-size: 13px; }
+button.petit { padding: 4px 8px; font-size: 13px; min-height: max(var(--cible), var(--cible-petit)); }
 
 .salles-liste { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .salles-liste li { display: flex; gap: 6px; align-items: center; padding: 4px; border-radius: var(--rayon); border: 1px solid transparent; }
@@ -170,7 +164,7 @@ button.petit { padding: 4px 8px; font-size: 13px; }
 #orphelines strong { color: var(--texte); }
 
 /* La mini-carte défile dans son cadre : jamais de défilement horizontal de la page. */
-.minicarte { margin-top: 10px; overflow: auto; max-width: 100%; border: 1px solid var(--bord); border-radius: var(--rayon); background: #121116; }
+.minicarte { margin-top: 10px; overflow: auto; max-width: 100%; border: 1px solid var(--bord); border-radius: var(--rayon); background: var(--champ); }
 .minicarte-svg { display: block; max-width: none; font: 15px system-ui, sans-serif; }
 .minicarte-svg .lien { stroke: var(--texte-doux); stroke-width: 3; }
 .minicarte-svg .lien.orpheline { stroke: var(--erreur); stroke-dasharray: 6 5; }
@@ -197,4 +191,7 @@ button.petit { padding: 4px 8px; font-size: 13px; }
 .minicarte-svg .salle.table.actif rect { stroke: var(--accent); }
 .minicarte-svg .salle text.etiquette-table { font-size: 11px; font-weight: 700; fill: #7cc47c; }
 
-a.bouton { text-decoration: none; display: inline-block; }
+.bouton { display: inline-flex; align-items: center; justify-content: center; }
+a.bouton { text-decoration: none; }
+/* Cases à cocher et boutons radio : la ligne entière est la cible (44 px sous 760 px). */
+label:has(> input[type="checkbox"]), label:has(> input[type="radio"]), details summary { min-height: var(--cible); align-content: center; }

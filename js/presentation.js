@@ -384,7 +384,7 @@ export function creerSalleApresPorte(p, idSalle, idPorte, description = '', { no
     const prises = new Set(plan.portes.filter((q) => q.mur === mur).map((q) => q.position));
     const voulue = Math.min(porte.position, long - 1);
     const position = prises.has(voulue) ? Array.from({ length: long }, (_, i) => i).find((i) => !prises.has(i)) : voulue;
-    if (position === undefined) return { ok: false, message: `Le mur ${mur} de cette salle n’a plus de place pour la porte de retour : décrivez-la plus petite ou sans porte sur ce mur.` };
+    if (position === undefined) return { ok: false, message: `Le mur ${mur} de cette salle n’a plus de place pour la porte de retour : décris-la plus petite ou sans porte sur ce mur.` };
     retour = { id: idLibre(plan, 'p'), mur, position, type: porte.type };
     plan.portes.push(retour);
   }

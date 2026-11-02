@@ -40,9 +40,9 @@ function lireDonjons() {
     if (!globalThis.localStorage) throw new Error('absent');
     brut = localStorage.getItem(CLE_DONJONS);
   } catch {
-    return { erreur: 'Le stockage du navigateur est indisponible (navigation privée, ou données de site bloquées) : impossible de lire vos donjons. Autorisez le stockage pour ce site, ou imprimez depuis un navigateur normal.' };
+    return { erreur: 'Le stockage du navigateur est indisponible (navigation privée, ou données de site bloquées) : impossible de lire tes donjons. Autorise le stockage pour ce site, ou imprime depuis un navigateur normal.' };
   }
-  if (!brut) return { erreur: 'Aucun donjon enregistré dans ce navigateur. Préparez-en un dans l’outil Donjon, puis revenez ici.' };
+  if (!brut) return { erreur: 'Aucun donjon enregistré dans ce navigateur. Prépare-en un dans l’outil Donjon, puis reviens ici.' };
   const etat = chargerDonjons();
   if (!etat) return { erreur: 'Les donjons enregistrés dans ce navigateur sont illisibles ou vides : rien à imprimer. Rien n’a été modifié.' };
   return etat;
@@ -279,7 +279,7 @@ async function rendre() {
       try {
         await dessinerPage(canvas, salle, salle.decoupage, p, page);
       } catch (err) {
-        afficherMessage(`Le dessin d’une page a échoué (${err.message}). Essayez avec moins de salles.`);
+        afficherMessage(`Le dessin d’une page a échoué (${err.message}). Essaie avec moins de salles.`);
         etatPages.textContent = '';
         return false;
       }

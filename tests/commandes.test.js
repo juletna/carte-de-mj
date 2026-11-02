@@ -135,13 +135,13 @@ const TESTS = [
     refusee('ajoute', p, ['Que faut-il ajouter'], 'verbe seul');
     refusee('ajoute quelque chose', p, ['quelque', 'chose'], 'rien de reconnu');
     refusee('danse sur la table', p, ['commence par ajoute, supprime ou déplace'], 'verbe inconnu');
-    refusee('', p, ['Écrivez une commande'], 'vide');
-    refusee('   ', p, ['Écrivez une commande'], 'espaces');
+    refusee('', p, ['Écris une commande'], 'vide');
+    refusee('   ', p, ['Écris une commande'], 'espaces');
   }],
 
   ['supprime le coffre : deux coffres → ambigu, le message dit quoi préciser', () => {
     const p = plan();
-    const r = refusee('supprime le coffre', p, ['2 coffres', 'C4', 'F2', 'Précisez', 'supprime le coffre 1', 'supprime le coffre en', 'tous les coffres', 'Rien n’a été modifié']);
+    const r = refusee('supprime le coffre', p, ['2 coffres', 'C4', 'F2', 'Précise', 'supprime le coffre 1', 'supprime le coffre en', 'tous les coffres', 'Rien n’a été modifié']);
     verifier(!r.plan, 'aucun plan');
     // Précisé par la case, par le rang (de haut en bas puis de gauche à droite), ou par « tous ».
     const parCase = commande('supprime le coffre en C4', p);
@@ -168,7 +168,7 @@ const TESTS = [
     refusee('supprime le coffre en A8', p, ['Aucun coffre', 'A8'], 'aucun à cette case');
     refusee('supprime la porte', p, ['portes'], 'porte');
     refusee('supprime', p, ['Que faut-il supprimer'], 'sans objet');
-    refusee('supprime le truc', p, ['Nommez-le'], 'aucun nom du lexique');
+    refusee('supprime le truc', p, ['Nomme-le'], 'aucun nom du lexique');
     refusee('supprime 2 gobelins', p, ['Je ne sais pas lequel'], 'quantité sans précision');
   }],
 
@@ -222,7 +222,7 @@ const TESTS = [
     verifier(commande('déplace le gobelin 1 devant la statue', p).ok, 'devant la statue');
     verifier(commande('déplace le gobelin 1 devant la porte', p).ok, 'devant la porte');
     verifier(commande('déplace le gobelin 1 au fond', p).ok, 'au fond');
-    refusee('déplace le coffre à gauche', p, ['2 coffres', 'Précisez', 'déplace le coffre 1'], 'deux coffres');
+    refusee('déplace le coffre à gauche', p, ['2 coffres', 'Précise', 'déplace le coffre 1'], 'deux coffres');
     refusee('déplace le coffre', p, ['2 coffres'], 'ambigu avant même la destination');
     refusee('déplace la statue', p, ['Où faut-il déplacer', 'à gauche'], 'sans destination');
     refusee('déplace la statue n’importe où', p, ['« n importe ou »'], 'destination incompréhensible');

@@ -35,7 +35,7 @@ export function creerMicro({ onTexte, onEtat, onErreur }) {
   };
   rec.onerror = (e) => {
     const messages = {
-      'not-allowed': "Accès au micro refusé. Autorisez-le dans les réglages du navigateur.",
+      'not-allowed': "Accès au micro refusé. Autorise-le dans les réglages du navigateur.",
       'no-speech': 'Aucune parole détectée.',
       network: 'La dictée a besoin d’une connexion Internet dans ce navigateur.',
     };

@@ -243,7 +243,7 @@ function majSelection() {
     memoriser();
     changerTexte(decrire(nouveau));
   }, 'discret')));
-  if (el.cache === true) contenu.push(h('p', { className: 'note', textContent: 'Caché aux joueurs. Vous le voyez ici, en translucide avec un contour en pointillés.' }));
+  if (el.cache === true) contenu.push(h('p', { className: 'note', textContent: 'Caché aux joueurs. Tu le vois ici, en translucide avec un contour en pointillés.' }));
 
   if (trouve.genre === 'porte') {
     const lien = modele.liaisonDePorte(d, s.id, el);
@@ -261,7 +261,7 @@ function majSelection() {
       contenu.push(h('div', { className: 'actions' }, bouton('Nouvelle salle derrière cette porte', () => {
         try {
           const { salle: nouvelle } = modele.creerSalleDerriere(d, { depuis, echelle: r.echelle });
-          etat.message = `Salle « ${nouvelle.nom} » créée derrière cette porte (6 × 6 cases). Vous restez ici.`;
+          etat.message = `Salle « ${nouvelle.nom} » créée derrière cette porte (6 × 6 cases). Tu restes ici.`;
           majListe();
         } catch (err) { etat.message = err.message; }
         rendre();
@@ -283,7 +283,7 @@ function majSelection() {
       });
       relier.disabled = autres.length === 0;
       contenu.push(h('div', { className: 'ligne-relier' }, choix, relier));
-      if (autres.length === 0) contenu.push(h('p', { className: 'note', textContent: 'Ajoutez d’abord une autre salle pour pouvoir y relier cette porte.' }));
+      if (autres.length === 0) contenu.push(h('p', { className: 'note', textContent: 'Ajoute d’abord une autre salle pour pouvoir y relier cette porte.' }));
     }
   }
   if (etat.message) contenu.push(h('p', { className: 'note', textContent: etat.message }));
@@ -304,7 +304,7 @@ function majOrphelines() {
     return h('div', { className: 'orpheline' },
       h('p', { className: 'note erreur' },
         `Liaison orpheline : il n’y a plus de porte au mur ${o.mur} (repère ${o.mur === 'nord' || o.mur === 'sud' ? lettreColonne(o.position) : o.position + 1}), `
-        + 'qui menait à « ', h('strong', { textContent: autre?.nom ?? '?' }), ' ». Rétablissez la porte dans le texte, ou retirez la liaison.'),
+        + 'qui menait à « ', h('strong', { textContent: autre?.nom ?? '?' }), ' ». Rétablis la porte dans le texte, ou retire la liaison.'),
       b);
   }));
 }
@@ -415,13 +415,13 @@ $('copier-rapport').addEventListener('click', async () => {
   message.hidden = false;
   try {
     await navigator.clipboard.writeText(texte);
-    message.textContent = 'Copié ! Collez-le dans votre message.';
+    message.textContent = 'Copié ! Colle-le dans ton message.';
   } catch {
     // Presse-papiers refusé (page non sécurisée…) : on montre le texte à copier à la main.
     for (let d = $('json').closest('details'); d; d = d.parentElement?.closest('details')) d.open = true;
     $('json').value = texte;
     $('json').select();
-    message.textContent = 'Copie automatique impossible : le texte est sélectionné dans la zone JSON, faites Cmd+C.';
+    message.textContent = 'Copie automatique impossible : le texte est sélectionné dans la zone JSON, fais Cmd+C.';
   }
   clearTimeout(message.minuterie);
   message.minuterie = setTimeout(() => { message.hidden = true; }, 4000);

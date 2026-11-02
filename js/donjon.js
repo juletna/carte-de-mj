@@ -306,7 +306,7 @@ export function creerSalleDerriere(d, { depuis, echelle }) {
 export function relierASalle(d, depuis, versSalle, { echelle } = {}) {
   const source = d.salles[depuis.salle], cible = d.salles[versSalle];
   if (!source || !cible) throw new Error('salle inconnue');
-  if (source === cible) throw new Error('choisissez une autre salle');
+  if (source === cible) throw new Error('choisis une autre salle');
   const porteSource = source.plan.portes.find((p) => p.mur === depuis.mur && p.position === depuis.position);
   if (!porteSource) throw new Error('aucune porte à cet endroit');
   if (liaisonDePorte(d, depuis.salle, depuis)) throw new Error('cette porte est déjà reliée');
@@ -334,7 +334,7 @@ export function relierASalle(d, depuis, versSalle, { echelle } = {}) {
 
 function messageVersion(version) {
   if (!Number.isInteger(version) || version < 1) return 'numéro de version invalide';
-  if (version > VERSION) return `fichier de version ${version}, plus récente que celle que cet outil comprend (${VERSION}) : mettez l'outil à jour`;
+  if (version > VERSION) return `fichier de version ${version}, plus récente que celle que cet outil comprend (${VERSION}) : mets l'outil à jour`;
   return null;
 }
 

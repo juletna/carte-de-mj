@@ -108,7 +108,7 @@ function demarrerTable() {
       recu = true;
       ecran.affichage = affichageValide(m.affichage, ecran.affichage);
       const plan = m.plan ? pres.recevoirVueTable(m.plan) : null;
-      if (plan) { ecran.plan = plan; rendreEcranTable(); } else attendre('La présentation n’a pas commencé. Lancez-la depuis la régie.');
+      if (plan) { ecran.plan = plan; rendreEcranTable(); } else attendre('La présentation n’a pas commencé. Lance-la depuis la régie.');
     } else if (m.type === 'defiler') {
       defilerEcranTable({ dx: entierSigne(m.dx), dy: entierSigne(m.dy), recentrer: m.recentrer === true });
     }
@@ -118,7 +118,7 @@ function demarrerTable() {
   demander();
   const relance = setInterval(() => { if (recu) clearInterval(relance); else demander(); }, 2000);
   setTimeout(() => {
-    if (!recu) attendre('Aucune régie ne répond. Ouvrez presentation.html dans une autre fenêtre de ce navigateur et lancez une présentation.');
+    if (!recu) attendre('Aucune régie ne répond. Ouvre presentation.html dans une autre fenêtre de ce navigateur et lance une présentation.');
   }, 1500);
 }
 
@@ -224,7 +224,7 @@ function demarrerRegie() {
     quitterPleinIci();
     $('regie').hidden = true;
     $('depart').hidden = false;
-    document.title = 'Présenter un donjon · Carte de MJ';
+    document.title = 'Présentation · Carte de MJ';
     const charge = stockage.chargerDonjons();
     const donjons = charge ? Object.values(charge.donjons) : [];
     etat.presentations = stockage.chargerPresentations();
@@ -355,7 +355,7 @@ function demarrerRegie() {
     if (meme) {
       texte.append(h('span', { className: 'pastille', textContent: 'À la table' }), 'Les joueurs voient cette salle : ', h('strong', { textContent: courante.nom }), '.');
     } else {
-      texte.append(h('span', { className: 'pastille', textContent: 'Consultation' }), 'Vous regardez ', h('strong', { textContent: consultee.nom }),
+      texte.append(h('span', { className: 'pastille', textContent: 'Consultation' }), 'Tu regardes ', h('strong', { textContent: consultee.nom }),
         pres.estDecouverte(p, consultee.id) ? ' (déjà découverte)' : ' (non découverte)', '. La table montre toujours ', h('strong', { textContent: courante.nom }), '.');
     }
     const actions = h('div', { className: 'actions' });
@@ -451,10 +451,10 @@ function demarrerRegie() {
     const nom = h('input', { type: 'text', id: 'nom-nouvelle', value: brouillon.nom, maxLength: 80, placeholder: 'Nom de la salle (facultatif)' });
     nom.addEventListener('input', () => { brouillon.nom = nom.value; });
     return [
-      h('p', { className: 'note', textContent: 'Cette porte n’est reliée à aucune salle. Vous pouvez créer la salle d’à côté maintenant : elle sera reliée à cette porte, et le groupe peut y passer.' }),
+      h('p', { className: 'note', textContent: 'Cette porte n’est reliée à aucune salle. Tu peux créer la salle d’à côté maintenant : elle sera reliée à cette porte, et le groupe peut y passer.' }),
       h('div', { className: 'nouvelle-salle' },
         h('label', { htmlFor: 'description-nouvelle', textContent: 'Décrire la nouvelle salle (facultatif)' }), description,
-        h('p', { className: 'note', textContent: 'Même langage que dans le Donjon. Laissez vide pour une salle de 6 × 6 cases. Une porte de retour est ajoutée sur le mur opposé si la description n’en place pas.' }),
+        h('p', { className: 'note', textContent: 'Même langage que dans le Donjon. Laisse vide pour une salle de 6 × 6 cases. Une porte de retour est ajoutée sur le mur opposé si la description n’en place pas.' }),
         nom),
       caseGroupe(s),
       h('div', { className: 'actions' }, bouton('Créer la salle et y passer', () => creerEtPasser(porte))),
@@ -475,7 +475,7 @@ function demarrerRegie() {
       const revele = pres.estRevele(p, s.id, el.id);
       contenu.push(h('p', { className: 'note', textContent: revele
         ? `Révélé : visible sur la table${sur ? '' : ' dès que la salle y sera affichée'}.`
-        : 'Caché : les joueurs ne le voient pas. Vous le voyez ici en translucide, contour en pointillés.' }));
+        : 'Caché : les joueurs ne le voient pas. Tu le vois ici en translucide, contour en pointillés.' }));
       contenu.push(h('div', { className: 'actions' }, revele
         ? bouton('Recacher', () => { pres.recacherElement(p, s.id, el.id); etat.message = 'Recaché : il disparaît de la table.'; modifie(); }, 'discret')
         : bouton('Révéler', () => { pres.revelerElement(p, s.id, el.id); etat.message = `Révélé${sur ? ' : il apparaît sur la table' : ', mais cette salle n’est pas à la table'}.`; modifie(); })));
@@ -606,8 +606,8 @@ function demarrerRegie() {
   }
   $('ouvrir-table').addEventListener('click', () => {
     const w = window.open(new URL('presentation.html?vue=table', location.href).href, 'carte-de-mj-table', 'popup,width=1024,height=768');
-    if (w) { w.focus(); messageTable('Fenêtre table ouverte : glissez-la sur l’écran de la table, puis son bouton « Plein écran » (au survol, en haut à droite).'); }
-    else messageTable('Le navigateur a bloqué la fenêtre. Autorisez les fenêtres pour ce site, ou ouvrez presentation.html?vue=table dans un nouvel onglet.');
+    if (w) { w.focus(); messageTable('Fenêtre table ouverte : glisse-la sur l’écran de la table, puis son bouton « Plein écran » (au survol, en haut à droite).'); }
+    else messageTable('Le navigateur a bloqué la fenêtre. Autorise les fenêtres pour ce site, ou ouvre presentation.html?vue=table dans un nouvel onglet.');
   });
 
   /** Met à jour l'écran de table local (plein écran ici) avec le plan de vueTable(). */

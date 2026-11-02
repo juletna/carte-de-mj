@@ -156,7 +156,7 @@ function ajouter(reste, plan, graine) {
   if (ignores.length) return refus(`Je n’ai pas compris : ${citer([...new Set(ignores)])}. Rien n’a été modifié. ${AIDE}`);
   if (!intentions.length) return refus(`Je n’ai pas trouvé quoi ajouter. ${AIDE}`);
   if (intentions.some((i) => i.genre === 'porte')) {
-    return refus('Les portes ne s’ajoutent pas par commande : elles relient les salles. Franchissez une porte non reliée pour créer la salle d’à côté, ou préparez la porte dans l’outil Donjon. Rien n’a été modifié.');
+    return refus('Les portes ne s’ajoutent pas par commande : elles relient les salles. Franchis une porte non reliée pour créer la salle d’à côté, ou prépare la porte dans l’outil Donjon. Rien n’a été modifié.');
   }
   for (const it of intentions) {
     const manque = (it.position.cible && !intentions.some((i) => i !== it && i.type === it.position.cible.type) && repereAbsent(plan, it.position, null))
@@ -168,7 +168,7 @@ function ajouter(reste, plan, graine) {
   const poses = rejouer(plan, null, intentions, graine);
   const { gardes, refuses } = controlerPose(plan, null, [...poses.objets, ...poses.creatures]);
   if (!gardes.length) {
-    return refus(`${refuses[0]?.raison || 'Il n’y a plus de place dans la salle pour ça.'} Précisez une autre case ou un autre endroit. Rien n’a été modifié.`);
+    return refus(`${refuses[0]?.raison || 'Il n’y a plus de place dans la salle pour ça.'} Précise une autre case ou un autre endroit. Rien n’a été modifié.`);
   }
 
   const id = fabriqueIds(plan);
@@ -205,7 +205,7 @@ function ajouter(reste, plan, graine) {
  */
 function lireDesignation(mots, exemple) {
   const i = mots.findIndex((m) => trouverObjet(m));
-  if (i < 0) return { erreur: `Je n’ai pas trouvé de quel élément il s’agit. Nommez-le, par exemple « ${exemple} ».` };
+  if (i < 0) return { erreur: `Je n’ai pas trouvé de quel élément il s’agit. Nomme-le, par exemple « ${exemple} ».` };
   const trouve = trouverObjet(mots[i]);
   if (trouve.def.genre === 'porte') {
     return { erreur: 'Les portes ne se gèrent pas par commande : elles portent les liaisons entre les salles (outil Donjon). Rien n’a été modifié.' };
@@ -218,7 +218,7 @@ function lireDesignation(mots, exemple) {
     else if (estChiffres(m)) quantite = Number(m);
     else if (!MOTS_VIDES.has(m) && m.length > 1) ignores.push(m);
   }
-  if (quantite > 1) return { erreur: `Je ne sais pas lequel prendre parmi ${quantite} ${nomAffiche(trouve.def.type, quantite)}. Dites « ${exemple} » (avec son numéro) ou « tous les ${nomAffiche(trouve.def.type, 2)} ».` };
+  if (quantite > 1) return { erreur: `Je ne sais pas lequel prendre parmi ${quantite} ${nomAffiche(trouve.def.type, quantite)}. Dis « ${exemple} » (avec son numéro) ou « tous les ${nomAffiche(trouve.def.type, 2)} ».` };
   let j = i + 1;
   for (; j < mots.length; j++) {
     if (estChiffres(mots[j]) && numero === null) numero = Number(mots[j]);
@@ -256,7 +256,7 @@ function chercherCandidats(plan, d, casePrecise, verbe) {
     if (retenus.some((e) => e.cache) && retenus.some((e) => !e.cache)) conseil.push(`« ${verbe} le ${nom} caché »`);
     if (verbe === 'supprime') conseil.push(`« supprime tous les ${nomAffiche(type, 2)} »`);
     const rang = d.genre === 'creature' ? '' : ' (numérotés de haut en bas, puis de gauche à droite)';
-    return { erreur: `Il y a ${retenus.length} ${nomAffiche(type, retenus.length)} dans cette salle${rang} : ${enumerer(d.genre, retenus)}. Précisez lequel : ${conseil.join(', ')}.` };
+    return { erreur: `Il y a ${retenus.length} ${nomAffiche(type, retenus.length)} dans cette salle${rang} : ${enumerer(d.genre, retenus)}. Précise lequel : ${conseil.join(', ')}.` };
   }
   return { retenus };
 }
@@ -313,9 +313,9 @@ function deplacer(mots, plan) {
   const nom = `« ${libelle(d.genre, element)} »`;
 
   const destination = apres.join(' ').replace(/\b(?:vers|sur|a|au|jusqu a|jusqu en)\s+([a-z]{1,2}\d{1,2})\b/g, 'en $1');
-  if (!destination.trim()) return refus(`Où faut-il déplacer ${nom} ? Dites par exemple « à gauche », « au fond », « en C4 » ou « devant la porte ».`);
+  if (!destination.trim()) return refus(`Où faut-il déplacer ${nom} ? Dis par exemple « à gauche », « au fond », « en C4 » ou « devant la porte ».`);
   const position = analyserPosition(destination);
-  if (!position.zone) return refus(`Je n’ai pas compris où déplacer ${nom} (« ${destination.trim()} »). Dites par exemple « à gauche », « au fond », « en C4 » ou « devant la porte ». Rien n’a été modifié.`);
+  if (!position.zone) return refus(`Je n’ai pas compris où déplacer ${nom} (« ${destination.trim()} »). Dis par exemple « à gauche », « au fond », « en C4 » ou « devant la porte ». Rien n’a été modifié.`);
   const mDest = destination.split(' ');
   const ignores = [...d.ignores, ...mDest.filter((m, i) => !position.indices.includes(i) && position.cible?.index !== i
     && !MOTS_VIDES.has(m) && !estChiffres(m) && m.length > 1)];
@@ -324,13 +324,13 @@ function deplacer(mots, plan) {
   if (manque) return refus(`${manque} Rien n’a été modifié.`);
 
   const taille = supplementTaille(d.genre, element);
-  if (taille === null) return refus(`${nom} a une taille particulière : déplacez-le plutôt à la souris. Rien n’a été modifié.`);
+  if (taille === null) return refus(`${nom} a une taille particulière : déplace-le plutôt à la souris. Rien n’a été modifié.`);
   const intention = d.genre === 'creature'
     ? { genre: 'creature', type: element.type, n: 1, taille, camp: element.camp, couleur: element.couleur ?? null, position }
     : { genre: 'objet', type: element.type, n: 1, taille, position };
   const poses = rejouer(plan, element, [intention], graineDe(destination));
   const { gardes, refuses } = controlerPose(plan, element, [...poses.objets, ...poses.creatures]);
-  if (!gardes.length) return refus(`${refuses[0]?.raison || `Il n’y a pas de place pour ${nom} à cet endroit.`} Précisez une autre destination. Rien n’a été modifié.`);
+  if (!gardes.length) return refus(`${refuses[0]?.raison || `Il n’y a pas de place pour ${nom} à cet endroit.`} Précise une autre destination. Rien n’a été modifié.`);
 
   const placé = gardes[0].e;
   const deplace = d.genre === 'creature'
@@ -356,7 +356,7 @@ function deplacer(mots, plan) {
  */
 export function interpreterCommande(texte, plan) {
   const brut = String(texte ?? '').trim();
-  if (!brut) return refus(`Écrivez une commande. ${AIDE}`);
+  if (!brut) return refus(`Écris une commande. ${AIDE}`);
   const t = souderExpressions(convertirNombres(normaliser(brut)));
   const mots = t.replace(/[,;:!?]/g, ' ').replace(/\.(?!\d)/g, ' ').split(' ').filter(Boolean);
   const action = ACTION[mots[0]];

@@ -19,6 +19,10 @@ Chaque outil est complet seul : il a ses propres données (dans le navigateur) e
 | Donjon (`donjon.html`) | <http://localhost:8765/donjon.html> | le MJ, qui prépare ses salles et les relie (voir la section Donjon) |
 | Présentation (`presentation.html`) | <http://localhost:8765/presentation.html> | le MJ à la table : ouvre un donjon déjà prêt, régie pour lui, carte en grand pour les joueurs (voir la section Présentation) |
 
+## Navigation et feuille commune
+
+Chaque page commence par le même en-tête, écrit en HTML statique (aucun script) : « Carte de MJ » (accueil), Fiche, Donjon, Présentation, Imprimer, la page courante portant `aria-current="page"`. Il vient de `css/base.css`, qui porte aussi les jetons partagés des pages sombres (couleurs, rayons, espacements, focus, `--cible` : 44 px sous 760 px, aucune exigence au-dessus). Il n'apparaît ni sur la vue table (`?vue=table`), ni à l'impression. La Fiche garde sa palette : elle ne réutilise de `base.css` que l'en-tête, recoloré avec ses variables.
+
 ## Lancer en local
 
 Les modules JavaScript ne se chargent pas en ouvrant `donjon.html` d'un double-clic (protocole `file://`).
@@ -211,9 +215,11 @@ index.html          accueil (présente les trois outils)
 donjon.html         outil Donjon (vue MJ)
 impression.html     impression des plans d'un donjon (A4, version MJ ou joueurs)
 presentation.html   outil Présentation (régie, ou vue table avec ?vue=table)
-fiche.html          outil Fiche, fichier autonome
+fiche.html          outil Fiche (palette et polices propres, en ligne ; seul l'en-tête vient de css/base.css)
 tests.html          tests du parseur, du donjon, de la présentation et de l'impression dans le navigateur
+css/base.css        socle commun : jetons (couleurs du thème sombre, rayons, espacements, focus, taille de cible tactile) et en-tête de navigation
 css/style.css
+css/presentation.css  écran de départ, régie et vue table
 css/impression.css  pages A4 et réglages de l'impression
 js/main-mj.js       branchement de l'interface (donjons, salles, sélection)
 js/presentation.js  partie en cours, portes, révélations, improvisation, vueTable (pur, sans DOM)

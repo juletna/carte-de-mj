@@ -3,18 +3,29 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Imprimer un donjon · Carte de MJ</title>
-  <meta name="description" content="Imprimez les plans d'un donjon à l'échelle des figurines (25 mm par case) pour jouer sur papier.">
+  <title>Impression · Carte de MJ</title>
+  <meta name="description" content="Imprime les plans d'un donjon à l'échelle des figurines (25 mm par case) pour jouer sur papier.">
+  <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/impression.css">
 </head>
 <body class="impression">
 
   <main id="commandes" class="commandes">
+    <header class="menu-site">
+      <div class="menu-int">
+        <a class="menu-nom" href="index.html">Carte de MJ</a>
+        <nav aria-label="Navigation principale">
+          <a class="menu-lien" href="fiche.html">Fiche</a>
+          <a class="menu-lien" href="donjon.html">Donjon</a>
+          <a class="menu-lien" href="presentation.html">Présentation</a>
+          <a class="menu-lien" href="impression.html" aria-current="page">Imprimer</a>
+        </nav>
+      </div>
+    </header>
     <header>
-      <h1>Imprimer un donjon</h1>
-      <p class="sous-titre">Des plans à l'échelle des figurines, pour jouer sur papier sans l'application. Cette page lit votre donjon sans jamais le modifier.</p>
-      <p class="note"><a href="donjon.html">← Retour au Donjon</a> · <a href="index.html">Accueil</a></p>
+      <h1>Impression</h1>
+      <p class="sous-titre">Des plans à l'échelle des figurines, pour jouer sur papier sans l'application. Cette page lit ton donjon sans jamais le modifier.</p>
     </header>
 
     <p id="message-global" class="alerte" role="alert" hidden></p>
@@ -53,9 +64,9 @@
     <section id="avant-impression" class="consigne" hidden>
       <h2>Avant d'imprimer</h2>
       <ul>
-        <li>Papier <b>A4</b>. Dans la fenêtre d'impression, choisissez l'échelle <b>100 %</b> (« Réelle »), et <b>jamais</b> « Ajuster à la page ».</li>
-        <li>Chaque page porte une règle de 5 cm : mesurez-la. Si elle ne fait pas 5 cm, recommencez à 100 %.</li>
-        <li id="consigne-assemblage">Une grande salle tient sur plusieurs pages qui se recouvrent d'une rangée de cases : découpez la marge blanche de la page de droite (ou du bas) le long du trait pointillé, puis posez sa première rangée sur la dernière rangée de la page voisine, les cases bien alignées. L'en-tête de chaque page dit « page 2/6 » et quelles pages l'entourent.</li>
+        <li>Papier <b>A4</b>. Dans la fenêtre d'impression, choisis l'échelle <b>100 %</b> (« Réelle »), et <b>jamais</b> « Ajuster à la page ».</li>
+        <li>Chaque page porte une règle de 5 cm : mesure-la. Si elle ne fait pas 5 cm, recommence à 100 %.</li>
+        <li id="consigne-assemblage">Une grande salle tient sur plusieurs pages qui se recouvrent d'une rangée de cases : découpe la marge blanche de la page de droite (ou du bas) le long du trait pointillé, puis pose sa première rangée sur la dernière rangée de la page voisine, les cases bien alignées. L'en-tête de chaque page dit « page 2/6 » et quelles pages l'entourent.</li>
       </ul>
       <div class="actions">
         <button id="imprimer" type="button" disabled>Imprimer</button>

@@ -3,15 +3,27 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Carte de MJ</title>
-  <meta name="description" content="Décrivez une pièce, la carte s'affiche sur une grille pour vos figurines.">
+  <title>Donjon · Carte de MJ</title>
+  <meta name="description" content="Décris une pièce, la carte s'affiche sur une grille pour tes figurines.">
+  <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
   <aside id="panneau">
+    <header class="menu-site">
+      <div class="menu-int">
+        <a class="menu-nom" href="index.html">Carte de MJ</a>
+        <nav aria-label="Navigation principale">
+          <a class="menu-lien" href="fiche.html">Fiche</a>
+          <a class="menu-lien" href="donjon.html" aria-current="page">Donjon</a>
+          <a class="menu-lien" href="presentation.html">Présentation</a>
+          <a class="menu-lien" href="impression.html">Imprimer</a>
+        </nav>
+      </div>
+    </header>
     <header>
-      <h1>Carte de MJ</h1>
-      <p class="sous-titre">Décrivez la pièce, la carte suit.</p>
+      <h1>Donjon</h1>
+      <p class="sous-titre">Décris la pièce, la carte suit.</p>
     </header>
 
     <section class="donjons" aria-label="Donjon">
@@ -21,14 +33,14 @@
       <div class="actions">
         <button id="donjon-nouveau" type="button" class="discret">+ Nouveau donjon</button>
         <button id="donjon-supprimer" type="button" class="discret">Supprimer</button>
-        <a class="bouton" href="presentation.html" title="Ouvre l'outil Présentation : choisissez ce donjon dans la liste">Présenter ce donjon</a>
+        <a class="bouton" href="presentation.html" title="Ouvre l'outil Présentation : choisis ce donjon dans la liste">Présenter ce donjon</a>
         <a class="bouton" href="impression.html" title="Ouvre la page d'impression du donjon actif : plans à l'échelle des figurines, version MJ ou joueurs">Imprimer ce donjon</a>
       </div>
     </section>
 
     <section class="saisie">
       <label for="description">Description <span id="nom-salle-active" class="doux"></span></label>
-      <p class="note astuce">Déplacez pions, objets et portes sur la carte : la description et le JSON suivent. Un simple clic sélectionne.</p>
+      <p class="note astuce">Déplace pions, objets et portes sur la carte : la description et le JSON suivent. Un simple clic sélectionne.</p>
       <textarea id="description" rows="5" spellcheck="false"
         placeholder="Ex. : grande pièce de 4 m par 12, quatre piliers, deux coffres au fond de la salle, une statue devant une porte"></textarea>
       <div class="actions">
@@ -62,7 +74,7 @@
       <ul id="salles-liste" class="salles-liste"></ul>
       <div class="actions"><button id="salle-ajouter" type="button" class="discret">+ Salle isolée</button></div>
       <div id="minicarte" class="minicarte" role="region" aria-label="Mini-carte du donjon"></div>
-      <p class="note">Cliquez une porte sur la carte pour la relier à une autre salle.</p>
+      <p class="note">Clique une porte sur la carte pour la relier à une autre salle.</p>
       <div id="orphelines" hidden></div>
     </details>
 
@@ -83,7 +95,7 @@
       <label class="ligne case"><input id="grille" type="checkbox" checked> Afficher la grille</label>
       <label class="ligne case"><input id="calibrage" type="checkbox"> Calibrer avec une carte bancaire</label>
       <p id="aide-calibrage" class="note" hidden>
-        Posez une carte bancaire sur l'écran et ajustez « Taille d'une case » jusqu'à ce que le rectangle
+        Pose une carte bancaire sur l'écran et ajuste « Taille d'une case » jusqu'à ce que le rectangle
         pointillé ait exactement sa taille. Une case fera alors 2,5 cm.
       </p>
       <div class="actions">
@@ -107,7 +119,7 @@
       </details>
     </details>
 
-    <footer class="note">Projet libre (MIT) · fonctionne hors ligne au clavier · <a href="index.html" style="color:inherit">Accueil</a></footer>
+    <footer class="note">Projet libre (MIT) · fonctionne hors ligne au clavier</footer>
   </aside>
 
   <main id="scene">

@@ -2,9 +2,10 @@
 <html lang="fr">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Fiche de Partie</title>
+<title>Fiche · Carte de MJ</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="css/base.css">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Grenze+Gotisch:wght@600;700&display=swap">
 <style>
 /* Layout : en-tête collant (PV, CA, round) · contenu selon la phase de jeu · barre de résultat fixe · onglets en bas */
@@ -35,6 +36,10 @@ input,textarea,select{background:var(--bg);border:1px solid var(--line);border-r
 .big{min-height:58px;font-family:var(--display);font-size:1.45rem;font-weight:700;letter-spacing:.01em}
 .red{background:var(--blood);border-color:var(--blood);color:var(--surface)}
 .linkbtn{background:transparent;border-color:transparent;color:var(--muted);font-weight:400;font-size:.88rem;padding:0 8px}
+
+/* Navigation commune (css/base.css) : couleurs de la Fiche, zone sûre du haut, et colonne alignée sur .wrap */
+.menu-site{--m-fond:var(--surface);--m-texte:var(--ink);--m-doux:var(--muted);--m-bord:var(--line);--m-accent:var(--brass);margin:0;padding-top:env(safe-area-inset-top,0px)}
+.menu-int.wrap{column-gap:12px}
 
 /* En-tête */
 header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
@@ -247,6 +252,17 @@ nav.tabs button.on{color:var(--ink);background:var(--chip)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}button:active{transform:none}}
 </style>
 
+<header class="menu-site">
+  <div class="menu-int wrap">
+    <a class="menu-nom" href="index.html">Carte de MJ</a>
+    <nav aria-label="Navigation principale">
+      <a class="menu-lien" href="fiche.html" aria-current="page">Fiche</a>
+      <a class="menu-lien" href="donjon.html">Donjon</a>
+      <a class="menu-lien" href="presentation.html">Présentation</a>
+      <a class="menu-lien" href="impression.html">Imprimer</a>
+    </nav>
+  </div>
+</header>
 <header class="top"><div class="wrap" id="hdr"></div></header>
 <main class="wrap" id="view"></main>
 <div class="rbar" id="rbar"></div>
@@ -422,7 +438,7 @@ function fxSummary(f){
 
 function vAlerts(){
  const out=[];
- if(S.example)out.push(`<div class="notice"><span>Personnage d'exemple. Saisis le tien dans l'onglet Fiche.</span><button data-tab="fiche">Ma fiche</button></div>`);
+ if(S.example)out.push(`<div class="notice"><span>Personnage d'exemple. Saisis le tien dans l'onglet Fiche.</span><button data-tab="fiche">Fiche</button></div>`);
  if(S.hp===0)out.push(`<section class="card alert danger"><h2>À terre, 0 PV <small>jets contre la mort</small></h2>
   <div class="lines"><div class="ln"><span class="t">Succès</span><div class="pips">${[0,1,2].map(i=>`<button class="pip s ${i<S.saves.s?'on':''}" data-a="ds" data-k="s" data-i="${i}" aria-label="Succès ${i+1}"></button>`).join('')}</div></div>
   <div class="ln"><span class="t">Échecs</span><div class="pips">${[0,1,2].map(i=>`<button class="pip f ${i<S.saves.f?'on':''}" data-a="ds" data-k="f" data-i="${i}" aria-label="Échec ${i+1}"></button>`).join('')}</div></div></div>
@@ -578,7 +594,7 @@ function vFiche(){
  <section class="card"><h2>Emplacements de sorts <small>max par niveau</small></h2>
   <div class="slotsEdit">${S.slots.map((s,l)=>`<label class="field"><span class="lbl">N${l+1}</span><input id="f_sl_${l}" data-f="slots.${l}" type="number" inputmode="numeric" min="0" value="${s.max}"></label>`).join('')}</div>
  </section>
- <section class="card"><h2>Personnage <small><a href="index.html">← Accueil</a></small></h2>
+ <section class="card"><h2>Personnage</h2>
   <div class="plist">${Object.entries(DB.persos).map(([id,p])=>`<button class="pc ${id===DB.actif?'on':''}" data-a="psw" data-id="${esc(id)}" aria-pressed="${id===DB.actif}"><b>${esc(p.name||'Sans nom')}</b><small>${esc((p.cls||'Sans classe')+' · niv. '+p.lvl)}</small></button>`).join('')}</div>
   <div class="grid2"><button data-a="newp">Nouveau personnage</button><button data-a="demo">Recharger l'exemple</button></div>
   <div class="grid2"><button data-a="exp">Exporter</button><button data-a="imp">Importer</button></div>
