@@ -128,11 +128,17 @@ const TESTS = [
   ['découpage : l’orientation donne le moins de pages', () => {
     egal(imp.decouper(30, 5).orientation, 'paysage', 'salle large');
     egal(imp.decouper(6, 30).orientation, 'portrait', 'salle haute');
-    egal(imp.decouper(30, 6).orientation, 'portrait', 'le choix suit le nombre de pages, pas la forme de la salle');
+    egal(imp.decouper(30, 7).orientation, 'portrait', 'le choix suit le nombre de pages, pas la forme de la salle');
     egal(imp.decouper(10, 5).orientation, 'paysage', 'salle large qui tient sur une page paysage');
     // 10 × 5 : une page en paysage, deux en portrait.
     egal(imp.decouper(10, 5, { orientation: 'paysage' }).pages.length, 1, '10×5 paysage');
     egal(imp.decouper(10, 5, { orientation: 'portrait' }).pages.length, 2, '10×5 portrait');
+  }],
+  ['découpage : chaque page se remplit, seule la dernière garde le reste', () => {
+    egal(imp.decouper(8, 6).pages.length, 1, '8×6 tient sur une page paysage');
+    const d = imp.decouper(8, 10);
+    egal(d.pages.map((p) => p.fenetre.y1 - p.fenetre.y0), [6, 5], '8×10 : première page pleine');
+    for (const p of d.pages) verifier(p.image.y + p.image.h + (p.bords.sud ? 0 : imp.RACCORD_MM) <= imp.ZONE.paysage.h - imp.PIED_MM + 1e-6, `page ${p.numero} : la grille ne touche pas le pied`);
   }],
   ['découpage : repères A1… corrects pour la partie imprimée, positions dans l’assemblage', () => {
     const d = imp.decouper(12, 12);

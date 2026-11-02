@@ -49,8 +49,8 @@ body.impression a { color: var(--accent); }
 .page { overflow: hidden; }
 
 /* En-tête : titre, position dans l'assemblage, échelle, pages voisines */
-.page .entete { position: absolute; left: 0; right: 0; top: 0; height: 10mm; overflow: hidden; border-bottom: 0.2mm solid #000; }
-.page .ligne-entete { display: flex; justify-content: space-between; gap: 4mm; white-space: nowrap; height: 4.6mm; line-height: 4.6mm; }
+.page .entete { position: absolute; left: 0; right: 0; top: 0; height: 9mm; overflow: hidden; border-bottom: 0.2mm solid #000; }
+.page .ligne-entete { display: flex; justify-content: space-between; gap: 4mm; white-space: nowrap; height: 4.3mm; line-height: 4.3mm; }
 .page .titre { font-weight: 700; font-size: 3.8mm; overflow: hidden; text-overflow: ellipsis; }
 .page .position { font-weight: 600; font-size: 3.2mm; }
 .page .detail-entete { font-size: 2.8mm; }
@@ -75,10 +75,10 @@ body.impression a { color: var(--accent); }
 .page .raccord.ouest { left: 0.8mm; top: 100%; }
 
 /* Pied : règle de contrôle de 5 cm et consigne */
-.page .pied { position: absolute; left: 0; right: 0; bottom: 0; height: 15mm; border-top: 0.2mm solid #000; display: flex; gap: 4mm; align-items: center; }
+.page .pied { position: absolute; left: 0; right: 0; bottom: 0; height: 9mm; border-top: 0.2mm solid #000; display: flex; gap: 4mm; align-items: center; }
 .page .regle { flex: none; display: block; width: 50mm; height: 8mm; }
 .page .consigne-regle { font-size: 2.9mm; line-height: 1.25; }
-.page .consigne-regle b { display: block; }
+.page .consigne-regle b { margin-right: 1.5mm; }
 
 /* Feuille du MJ : texte, qui peut courir sur plusieurs pages */
 .feuille-mj { width: 190mm; min-height: 100mm; padding: 0; }

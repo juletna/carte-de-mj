@@ -35,8 +35,8 @@ export const ZONE = {
   portrait: { l: FEUILLE.portrait.l - 2 * MARGE_PAGE_MM, h: FEUILLE.portrait.h - 2 * MARGE_PAGE_MM },
   paysage: { l: FEUILLE.paysage.l - 2 * MARGE_PAGE_MM, h: FEUILLE.paysage.h - 2 * MARGE_PAGE_MM },
 };
-export const ENTETE_MM = 10;         // titre, position dans l'assemblage, échelle
-export const PIED_MM = 16;           // règle de contrôle et consigne
+export const ENTETE_MM = 9;          // titre, position dans l'assemblage, échelle
+export const PIED_MM = 10;           // règle de contrôle et consigne
 export const REPERE_COLONNES_MM = 5; // lettres au-dessus de la grille
 export const REPERE_LIGNES_MM = 6;   // numéros à gauche de la grille
 export const RACCORD_MM = 4;         // bande de raccord, côtés est et sud d'une page qui a une voisine
@@ -63,7 +63,8 @@ const axe = (orientation, nom) => (nom === 'x'
  * Découpe `n` cases en fenêtres de cases entières le long d'un axe : [{ debut, fin }] (fin exclue).
  * Capacités (en cases) : une page seule réserve un mur de chaque côté ; la première un mur et une bande de raccord ;
  * une page du milieu deux bandes de raccord ; la dernière une bande et un mur.
- * Le nombre de pages est le plus petit possible, puis les fenêtres sont rééquilibrées (aucune n'a moins de 2 cases).
+ * Le nombre de pages est le plus petit possible. Chaque page se remplit au maximum ; la place restante va à la dernière
+ * (aucune n'a moins de 2 cases).
  */
 function decouperAxe(n, { dispo, repere }, c) {
   const mur = EPAISSEUR_MUR * c;
@@ -79,10 +80,9 @@ function decouperAxe(n, { dispo, repere }, c) {
   while (somme(capacites(k)) - (k - 1) * RECOUVREMENT < n) k++;
   const tailles = capacites(k);
   let exces = somme(tailles) - (k - 1) * RECOUVREMENT - n;
-  while (exces > 0) {
-    const i = tailles.indexOf(Math.max(...tailles));
-    if (tailles[i] <= 2) break;
-    tailles[i]--; exces--;
+  for (let i = k - 1; i >= 0 && exces > 0; i--) { // on retire depuis la fin : les premières pages restent pleines
+    const retrait = Math.min(exces, tailles[i] - 2);
+    tailles[i] -= retrait; exces -= retrait;
   }
   let debut = 0;
   return tailles.map((taille) => {
