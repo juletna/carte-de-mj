@@ -69,13 +69,20 @@ function copierDonjon(donjon) {
 }
 
 /**
+ * Salle par laquelle commencer par défaut : la première du donjon (dans l'ordre où elles ont été créées).
+ * Le modèle ne marque pas de salle « entrée » (`entree` d'un plan est un mur) : la première fait foi.
+ * Ce n'est pas `salleActive`, qui est la dernière salle modifiée dans le Donjon (souvent la plus avancée).
+ */
+export const salleDepart = (donjon) => Object.keys(donjon?.salles || {})[0] || null;
+
+/**
  * Démarre une présentation : COPIE du donjon, salle de départ découverte, rien de révélé.
  * Le donjon passé n'est pas modifié.
  */
 export function creerPresentation(donjon, { salleDepart } = {}) {
   if (!donjon?.salles || !Object.keys(donjon.salles).length) throw new Error('ce donjon n’a aucune salle');
   const copie = copierDonjon(donjon);
-  const depart = [salleDepart, copie.salleActive].find((id) => typeof id === 'string' && id in copie.salles) || Object.keys(copie.salles)[0];
+  const depart = typeof salleDepart === 'string' && salleDepart in copie.salles ? salleDepart : Object.keys(copie.salles)[0];
   return {
     format: FORMAT_PRESENTATION, version: VERSION_PRESENTATION,
     donjon: copie, salleCourante: depart, decouvertes: [depart], reveles: dictionnaire(), notesPartie: dictionnaire(),

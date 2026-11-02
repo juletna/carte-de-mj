@@ -14,12 +14,19 @@
  * déplacent ; les autres restent cliquables (signalés à `cliquer`) mais ne bougent jamais.
  * Sans cette option, tout se déplace (comportement de donjon.html).
  *
+ * Option `portesLarges` (régie de la Présentation seulement) : la zone de clic d'une porte s'élargit de BANDE_PORTE case
+ * vers l'intérieur de la salle (le mur seul fait environ 8 px). Règle unique dans cette bande : un CLIC y est toujours
+ * pour la porte, même si un pion s'y trouve ; un GLISSEMENT commencé sur un pion déplace ce pion (la porte ne bouge
+ * jamais par ce biais). Sans l'option (Donjon), rien ne change.
+ *
  * Ce module ne modifie rien : il propose un nouveau plan à `deposer`.
  */
 import { MARGE } from './rendu/moteur.js';
 import { definition } from './parseur/lexique.js';
 
 const SEUIL_GLISSEMENT = 4; // px : en dessous, c'est un clic
+export const BANDE_PORTE = 0.5; // cases : profondeur ajoutée à la zone de clic d'une porte (option `portesLarges`)
+const EPAISSEUR_CLIC = 0.2;     // cases : profondeur de la zone de clic d'une porte sans l'option
 const REGARD = { nord: 180, sud: 0, ouest: 90, est: 270 }; // dos au mur, vers l'intérieur
 const SOUS_LES_AUTRES = new Set(['fosse', 'debris']);
 
@@ -41,10 +48,10 @@ function positionSurMur(mur, cx, cy, plan) {
   return Math.max(0, Math.min(long - 1, Math.floor(horizontal ? cx : cy)));
 }
 
-/** La porte attrapée sous le pointeur, dans l'épaisseur du mur. */
-function porteSous(cx, cy, plan) {
-  const W = plan.largeur, L = plan.longueur;
-  const dansMur = { nord: cy >= -0.6 && cy < 0.2, sud: cy > L - 0.2 && cy <= L + 0.6, ouest: cx >= -0.6 && cx < 0.2, est: cx > W - 0.2 && cx <= W + 0.6 };
+/** La porte attrapée sous le pointeur, dans l'épaisseur du mur (et jusqu'à `profondeur` cases vers l'intérieur). */
+export function porteSous(cx, cy, plan, profondeur = EPAISSEUR_CLIC) {
+  const W = plan.largeur, L = plan.longueur, d = profondeur;
+  const dansMur = { nord: cy >= -0.6 && cy < d, sud: cy > L - d && cy <= L + 0.6, ouest: cx >= -0.6 && cx < d, est: cx > W - d && cx <= W + 0.6 };
   return plan.portes.find((p) => {
     const horizontal = p.mur === 'nord' || p.mur === 'sud';
     const le = horizontal ? cx : cy;
@@ -64,7 +71,7 @@ function porteSous(cx, cy, plan) {
  *   deplacables?: string[]              genres qui peuvent bouger (par défaut : tous)
  * }} options
  */
-export function activerDeplacement(canvas, { plan, taille, apercu, deposer, cliquer, deplacables }) {
+export function activerDeplacement(canvas, { plan, taille, apercu, deposer, cliquer, deplacables, portesLarges = false }) {
   const peutBouger = (genre) => !deplacables || deplacables.includes(genre);
   let prise = null; // { genre, element, depart, glisse, decalX, decalY, x, y } ou, pour une porte, { mur, position }
   let image = 0;
@@ -107,13 +114,20 @@ export function activerDeplacement(canvas, { plan, taille, apercu, deposer, cliq
   canvas.addEventListener('pointerdown', (e) => {
     if (e.button !== 0) return;
     const [cx, cy] = enCases(e);
-    const trouve = elementSous(cx, cy);
+    let trouve = elementSous(cx, cy);
+    // Bande de la porte : un clic y est pour la porte ; un pion attrapé là reste déplaçable (voir l'en-tête).
+    let auClic = null;
+    const large = portesLarges ? porteSous(cx, cy, plan(), BANDE_PORTE) : null;
+    if (large && trouve?.element !== large) {
+      if (trouve?.genre === 'creature' && peutBouger('creature')) auClic = { genre: 'porte', element: large };
+      else trouve = { genre: 'porte', element: large };
+    }
     if (!trouve) { cliquer?.(null); return; }
     const { genre, element } = trouve;
     if (!peutBouger(genre) && !cliquer) return; // ni déplaçable ni cliquable : on ignore
     e.preventDefault();
     canvas.setPointerCapture(e.pointerId);
-    const commun = { genre, element, depart: [e.clientX, e.clientY], glisse: !cliquer, fixe: !peutBouger(genre) };
+    const commun = { genre, element, auClic, depart: [e.clientX, e.clientY], glisse: !cliquer, fixe: !peutBouger(genre) };
     prise = genre === 'porte'
       ? { ...commun, mur: element.mur, position: element.position }
       : { ...commun, decalX: cx - element.x, decalY: cy - element.y, x: element.x, y: element.y };
@@ -175,10 +189,10 @@ export function activerDeplacement(canvas, { plan, taille, apercu, deposer, cliq
     if (!prise) return;
     if (!prise.glisse && e.type === 'pointerup') {
       // Un clic : rien ne bouge, on signale l'élément touché.
-      const { genre, element } = prise;
+      const { genre, element, auClic } = prise;
       prise = null;
       canvas.style.cursor = '';
-      cliquer({ genre, element });
+      cliquer(auClic || { genre, element });
       return;
     }
     const nouveau = prise.glisse ? planDepose() : null;

@@ -68,7 +68,8 @@
       <header>
         <h1>Régie</h1>
         <p class="sous-titre"><span id="nom-donjon"></span></p>
-        <p class="note"><button id="quitter" type="button" class="discret petit">Changer de donjon</button></p>
+        <p id="alerte-stockage" class="note erreur" role="alert" hidden></p>
+        <p class="note"><button id="quitter" type="button" class="discret petit">← Liste des donjons</button></p>
       </header>
 
       <section class="bloc-table" aria-label="Table">
@@ -77,7 +78,12 @@
           <button id="ouvrir-table" type="button" title="Ouvre presentation.html?vue=table dans une nouvelle fenêtre, à glisser sur l'écran de la table">Ouvrir la fenêtre table</button>
           <button id="plein-ici" type="button" title="Montre la vue table en plein écran sur cet écran">Plein écran ici</button>
         </div>
-        <p id="message-table" class="note" hidden></p>
+        <fieldset class="mode-table">
+          <legend>Taille de la carte à la table</legend>
+          <label class="ligne case"><input type="radio" name="mode-table" id="mode-remplir" value="remplir"> Remplir l’écran</label>
+          <label class="ligne case"><input type="radio" name="mode-table" id="mode-reel" value="reel"> Échelle réelle (figurines)</label>
+          <p id="aide-mode-table" class="note"></p>
+        </fieldset>
         <details class="defilement">
           <summary>Faire défiler la vue table</summary>
           <p class="note">Utile si la carte dépasse l'écran de la table. Tu peux aussi réduire la taille d'une case dans les réglages.</p>
@@ -90,8 +96,6 @@
           </div>
         </details>
       </section>
-
-      <section id="selection" class="selection" aria-live="polite" hidden></section>
 
       <section class="commande" aria-label="Commande rapide">
         <h2>Commande rapide</h2>
@@ -125,6 +129,11 @@
         <div class="actions"><button id="reveler-tout" type="button">Révéler toute la salle</button></div>
         <p class="note">Portes de la salle :</p>
         <ul id="liste-portes" class="liste-portes"></ul>
+        <details id="elements-salle" class="elements-salle">
+          <summary>Éléments de la salle <span id="nb-elements" class="doux"></span></summary>
+          <p class="note">Pions, objets et éléments cachés : choisis-en un pour le sélectionner (Échap pour désélectionner).</p>
+          <ul id="liste-elements" class="liste-portes"></ul>
+        </details>
       </section>
 
       <details class="bloc" open>
@@ -150,7 +159,7 @@
         <label class="ligne case"><input id="grille" type="checkbox" checked> Afficher la grille</label>
         <label class="ligne case"><input id="reperes" type="checkbox" checked> Afficher les repères (A, B… et 1, 2…)</label>
         <label class="ligne case"><input id="ajuster" type="checkbox" checked> Adapter la carte de la régie à la fenêtre</label>
-        <p class="note">La taille d'une case est celle de la table (réglage partagé avec le Donjon, où se fait le calibrage avec une carte bancaire).
+        <p class="note">La taille d'une case sert à la table en « échelle réelle » (réglage partagé avec le Donjon, où se fait le calibrage avec une carte bancaire) et de plafond à la régie.
           « Adapter » ne change que l'affichage de cette régie.</p>
       </details>
 
@@ -164,7 +173,12 @@
           <canvas id="carte" aria-label="Carte de la salle consultée"></canvas>
         </div>
       </div>
+      <!-- Retour d'action : transitoire, hors du flux (ne décale jamais la carte), annoncé aux lecteurs d'écran. -->
+      <div id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
     </main>
+
+    <!-- Sélection : panneau superposé en bas à droite de la fenêtre, hors du flux (n'écarte jamais la commande rapide). -->
+    <section id="selection" class="selection" role="region" aria-label="Sélection" tabindex="-1" hidden></section>
   </div>
 
   <!-- Vue table : uniquement la carte. Fenêtre ?vue=table, ou « Plein écran ici » depuis la régie. -->

@@ -10,7 +10,7 @@
  *   objets[type](ctx, w, h, t, objet)     dessin centré sur (0, 0) ; w × h en pixels ;
  *                                         l'AVANT de l'objet est vers le bas (+y)
  *   pion(ctx, creature, t)                pion d'une créature, en coordonnées de la pièce
- *                                         (creature.etat « blesse » ou « mort » : pastille à croix, ou grisé et barré)
+ *                                         (creature.etat « blesse » ou « mort » : anneau en tirets et grosse pastille à croix, ou grisé et barré)
  *
  * Repères d'interface (facultatifs), rectangles { x, y, l, h } en CASES, origine au coin nord-ouest de la pièce :
  *   repereCache(ctx, rect, t)             contour en pointillés d'un élément secret
@@ -221,19 +221,27 @@ function croix(ctx, cx, cy, r, t) {
   ctx.restore();
 }
 
-/** Pion blessé : pastille blanche à croix rouge foncée en bas à gauche, contour du pion en trait épais sombre. */
+/**
+ * Pion blessé : anneau en tirets (blanc sur sombre, lisible sans la couleur) autour du pion, et grosse pastille
+ * blanche à croix rouge foncée en bas à gauche. Tout est proportionnel au pion (r), pas à une taille fixe.
+ */
 function pansement(ctx, cx, cy, r, t) {
   ctx.save();
-  rond(ctx, cx, cy, r + Math.max(1.5, t * 0.03), null, '#1b1a17', Math.max(2, t * 0.05)); // contour sombre : le pion paraît « entaillé »
-  const pr = Math.max(8, t * 0.2);
-  const px = cx - r * 0.72, py = cy + r * 0.72;
-  rond(ctx, px, py, pr, '#fff', '#1b1a17', Math.max(1.5, t * 0.035));
+  const anneau = r + Math.max(2.5, r * 0.1);
+  const epais = Math.max(3.5, r * 0.15);
+  rond(ctx, cx, cy, anneau, null, '#111', epais + Math.max(2, r * 0.08)); // fond sombre
+  ctx.setLineDash([Math.max(5, r * 0.34), Math.max(3, r * 0.2)]);
+  rond(ctx, cx, cy, anneau, null, '#fff', epais * 0.7);                   // tirets clairs : se lit en noir et blanc
+  ctx.setLineDash([]);
+  const pr = Math.max(11, r * 0.62);
+  const px = cx - r * 0.74, py = cy + r * 0.74;
+  rond(ctx, px, py, pr, '#fff', '#111', Math.max(2, pr * 0.14));
   ctx.strokeStyle = '#a01818';
   ctx.lineCap = 'butt';
-  ctx.lineWidth = Math.max(3, pr * 0.42);
+  ctx.lineWidth = Math.max(4, pr * 0.46);
   ctx.beginPath();
-  ctx.moveTo(px - pr * 0.58, py); ctx.lineTo(px + pr * 0.58, py);
-  ctx.moveTo(px, py - pr * 0.58); ctx.lineTo(px, py + pr * 0.58);
+  ctx.moveTo(px - pr * 0.6, py); ctx.lineTo(px + pr * 0.6, py);
+  ctx.moveTo(px, py - pr * 0.6); ctx.lineTo(px, py + pr * 0.6);
   ctx.stroke();
   ctx.restore();
 }

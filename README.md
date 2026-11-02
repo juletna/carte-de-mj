@@ -120,6 +120,10 @@ ni de la Fiche ni d'un réseau, et n'exige de décrire quoi que ce soit : elle o
 - **Ouvrir** : l'écran de départ liste les donjons enregistrés dans ce navigateur, ou accepte un fichier exporté (validé comme à l'import
   du Donjon, mais **non ajouté** à sa bibliothèque). Si une partie est en cours pour ce donjon : « Reprendre », ou « Recommencer »
   (confirmation en deux clics). Un fichier de donjon garde son identifiant, ce qui permet de retrouver sa partie.
+  - *Commencer par* : un choix de salle au lancement (et pour « Recommencer »). Présélection : la **première salle du donjon**, pas
+    la dernière modifiée dans le Donjon (le modèle ne marque pas de salle « entrée »). Elle devient la salle à la table et la première découverte.
+  - *Reprise* : la régie mémorise la partie ouverte (`carte-de-mj:partie-ouverte-v1`, seulement l'identifiant du donjon). Un rechargement
+    la rouvre telle quelle, sans rien écrire ni relancer ; « ← Liste des donjons » ramène à l'écran de départ et l'oublie.
 - **Une copie, jamais l'original** : démarrer copie le donjon. Tout ce qui se passe en jeu (pions déplacés, éléments révélés, salles
   découvertes, salle courante) est enregistré dans `carte-de-mj:presentations-v1`, séparément. Le donjon préparé n'est jamais modifié et
   aucun texte n'est réécrit : un pion déplacé ne change que son x et son y. Une salle retrouve donc son état quand on y revient.
@@ -127,6 +131,17 @@ ni de la Fiche ni d'un réseau, et n'exige de décrire quoi que ce soit : elle o
   seule, mini-carte avec salles découvertes (trait plein) et non découvertes (pointillés).
   - *Pions* : se déplacent à la souris ou au doigt. Objets et portes ne bougent pas (option `deplacables` de `deplacement.js` ; le
     Donjon ne l'utilise pas et garde son comportement).
+  - *Porte et pion voisins* (option `portesLarges`, régie seule) : la zone de clic d'une porte s'étend d'une demi-case vers l'intérieur
+    de la salle. Règle unique dans cette bande : un **clic** est toujours pour la porte, même si un pion s'y trouve ; un **glissement**
+    commencé sur le pion déplace le pion. Le reste de la case du pion répond au pion. Le Donjon n'active pas l'option.
+  - *Sélection* : un panneau superposé en bas à droite de la fenêtre (jamais dans le flux de la colonne : il reste visible quelle que soit
+    sa position de défilement et ne décale pas la commande rapide). « ✕ Fermer » ou Échap le ferme (Échap sert déjà à quitter le plein
+    écran et dans un champ de saisie : il ne désélectionne pas alors). Les éléments se choisissent aussi au clavier dans le bloc
+    « Cette salle » : « Portes de la salle » et « Éléments de la salle » (pions, objets, éléments cachés repérés ; repliable), qui
+    portent `aria-pressed` ; le focus passe au panneau, et revient à la liste quand on ferme.
+  - *Retour d'action* : le bandeau « À LA TABLE / CONSULTATION » a une **hauteur fixe** ; les messages (passage de porte, révélation,
+    état d'un pion…) s'affichent dans un toast transitoire posé sur la carte, annoncé aux lecteurs d'écran (`aria-live`), qu'un clic ferme.
+    L'alerte « impossible d'enregistrer » reste, elle, affichée en haut de la régie.
   - *Portes* : un clic sur une porte reliée propose « Passer dans la salle X » ; la salle devient courante et découverte. « Le groupe suit »
     (coché par défaut) emmène les pions de camp `pj` de la salle, placés au plus près de la porte d'arrivée, sans superposition ni sortie de
     la pièce (dans une salle pleine, un pion monte sur un objet, jamais sur un autre pion ; sans aucune place il reste en arrière, avec un message).
@@ -137,9 +152,17 @@ ni de la Fiche ni d'un réseau, et n'exige de décrire quoi que ce soit : elle o
     est à la table ; « Afficher à la table » la rend courante et découverte.
 - **Vue table** : uniquement la carte, sans interface. Deux façons :
   - « Ouvrir la fenêtre table » (`presentation.html?vue=table`) : à glisser sur l'écran de la table ; un bouton « Plein écran » discret
-    apparaît au survol. Synchronisée par BroadcastChannel (canal `carte-de-mj-presentation`, même navigateur). Ouverte seule ou rechargée, elle
+    apparaît quelques secondes après un mouvement de **souris** (inactif sinon : `pointer-events: none`, et un toucher ne le réveille pas). Synchronisée par BroadcastChannel (canal `carte-de-mj-presentation`, même navigateur). Ouverte seule ou rechargée, elle
     demande l'état à la régie, et affiche un message d'attente si aucune régie ne répond.
-  - « Plein écran ici » : pour un seul écran ; Échap ou « Retour à la régie » pour revenir.
+  - « Plein écran ici » : pour un seul écran ; Échap pour revenir, ou « Retour à la régie », qui demande **deux appuis**
+    (le premier arme le bouton, le second confirme dans les 4 secondes).
+  - *Taille de la carte* (choix de la régie, mémorisé dans les réglages, `modeTable`) :
+    **« Remplir l'écran »** calcule la case pour que la salle et sa marge de roche occupent la fenêtre table (entière, entre 16 et 300 px ;
+    recalculée au redimensionnement, au changement de salle et de mode ; repères agrandis avec la case) ;
+    **« Échelle réelle (figurines) »** garde exactement la taille calibrée, sans aucune adaptation (une salle trop grande défile).
+    Sans choix explicite, le défaut est l'échelle réelle si la taille a été calibrée (indicateur `calibre` posé par le Donjon quand
+    on règle la taille avec la case « Calibrer avec une carte bancaire », ou à défaut une taille différente de 48 px), sinon « Remplir ».
+    Le mode est un simple mot joint aux réglages d'affichage envoyés à la table : il ne passe pas par `vueTable()` et ne contient aucun secret.
 - **Sécurité** : ce que reçoit la table est le résultat de `vueTable()` (`js/presentation.js`), construit par liste blanche : salle courante
   uniquement, sans notes, sans nom ni description, sans notes (ni de préparation, ni de partie), sans élément caché non révélé (portes comprises), sans `cache`,
   sans liaisons ni autres salles. Seul ajout propre au jeu : l'état blessé / mort des pions. Les secrets ne quittent donc jamais la régie, ils ne sont pas seulement masqués à l'affichage. La fenêtre table ne lit jamais les
@@ -167,15 +190,16 @@ ni de la Fiche ni d'un réseau, et n'exige de décrire quoi que ce soit : elle o
     table jusqu'à sa révélation ; supprimer un élément retire aussi sa révélation.
   - *Notes de partie* : bloc « Notes de la salle », un champ par salle, enregistré avec la partie, **jamais envoyé à la table**. Les notes
     de préparation de la salle restent affichées au-dessus, en lecture seule, et ne sont jamais écrasées.
-  - *État des pions* : cliquer un pion ouvre son panneau : « Normal », « Blessé », « Mort ». Un pion blessé porte une pastille blanche à
-    croix rouge ; un pion mort est grisé et barré d'une grande croix : lisible aussi en noir et blanc. L'état est une information de jeu :
+  - *État des pions* : cliquer un pion ouvre son panneau : « Normal », « Blessé », « Mort ». Un pion blessé porte un **anneau en tirets** (clair sur fond sombre) et
+    une grosse pastille blanche à croix rouge, proportionnels au pion (boutons Normal / Blessé / Mort : inactifs en contour, actif plein et
+    coché, `aria-pressed`) ; un pion mort est grisé et barré d'une grande croix : lisible aussi en noir et blanc. L'état est une information de jeu :
     la table le voit (sauf pour un pion caché non révélé). Il suit le pion quand le groupe change de salle.
   - *Cohérence* : en partie, c'est le **plan** de la salle qui fait référence. Une commande ou un état le modifient directement, sans
     relire de texte : les identifiants (pions, objets, portes), les numéros, les états et les liaisons (salle + mur + position) restent
     intacts. Le `texte` des salles de la copie est la description de préparation, figée au démarrage et non utilisée en partie (déplacer un
     pion ne le réécrit pas non plus) ; seule une salle créée en jeu reçoit un texte, écrit par `decrire(plan)`.
-- **Réglages** (`carte-de-mj:reglages-v1`, partagés avec le Donjon) : taille d'une case (le calibrage à la carte bancaire se fait dans le
-  Donjon), grille, repères. « Adapter la carte de la régie à la fenêtre » ne change que la régie.
+- **Réglages** (`carte-de-mj:reglages-v1`, partagés avec le Donjon ; clés facultatives `reperes`, `calibre`, `modeTable`) : taille d'une case
+  (le calibrage à la carte bancaire se fait dans le Donjon), grille, repères, mode de taille de la table. « Adapter la carte de la régie à la fenêtre » ne change que la régie.
 - **Carte plus grande que l'écran de la table** : la table défile à la molette ou au doigt, et la régie propose des flèches
   (« Faire défiler la vue table ») ; on peut aussi réduire la taille d'une case.
 
@@ -222,6 +246,7 @@ css/style.css
 css/presentation.css  écran de départ, régie et vue table
 css/impression.css  pages A4 et réglages de l'impression
 js/main-mj.js       branchement de l'interface (donjons, salles, sélection)
+js/affichage.js     taille de la carte à la table : modes « remplir » / « échelle réelle », mode par défaut (pur, sans DOM)
 js/presentation.js  partie en cours, portes, révélations, improvisation, vueTable (pur, sans DOM)
 js/main-presentation.js  régie et vue table (DOM, stockage, BroadcastChannel)
 js/impression.js    découpage en pages A4, échelle, versions MJ / joueurs (pur, sans DOM)

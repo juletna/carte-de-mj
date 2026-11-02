@@ -16,6 +16,7 @@ import { validerPresentation } from './presentation.js';
 export const CLE_DONJONS = 'carte-de-mj:donjons-v1';
 export const CLE_REGLAGES = 'carte-de-mj:reglages-v1';
 export const CLE_PRESENTATIONS = 'carte-de-mj:presentations-v1';
+export const CLE_PARTIE_OUVERTE = 'carte-de-mj:partie-ouverte-v1';
 const CLE = 'jdr-carte:v1';
 const TAILLE_MAX_FICHIER = 5 * 1024 * 1024;
 const REGLAGES_DEFAUT = { echelle: 1.5, taille: 48, grille: true };
@@ -47,6 +48,10 @@ export function chargerReglages(stock = stockParDefaut()) {
     grille: typeof r.grille === 'boolean' ? r.grille : REGLAGES_DEFAUT.grille,
     // Facultatif (écran de table) : absent tant que personne ne l'a réglé, donc le Donjon n'en tient pas compte.
     ...(typeof r.reperes === 'boolean' ? { reperes: r.reperes } : {}),
+    // Facultatifs aussi : `calibre` (posé par le Donjon quand la taille est réglée avec la carte bancaire) et
+    // `modeTable` (« remplir » ou « reel », choisi dans la régie de la Présentation). Absents tant que personne n'y a touché.
+    ...(r.calibre === true ? { calibre: true } : {}),
+    ...(r.modeTable === 'remplir' || r.modeTable === 'reel' ? { modeTable: r.modeTable } : {}),
   };
 }
 export const sauverReglages = (reglages, stock = stockParDefaut()) => ecrireJson(stock, CLE_REGLAGES, reglages);
@@ -81,6 +86,19 @@ export function chargerPresentations(stock = stockParDefaut()) {
   return res;
 }
 export const sauverPresentations = (presentations, stock = stockParDefaut()) => ecrireJson(stock, CLE_PRESENTATIONS, { presentations });
+
+/**
+ * Partie ouverte dans la régie : on ne mémorise que l'identifiant du donjon (la partie elle-même est dans
+ * `carte-de-mj:presentations-v1`). Sert à rouvrir la régie là où elle était après un rechargement.
+ */
+export const memoriserPartieOuverte = (idDonjon, stock = stockParDefaut()) => ecrireJson(stock, CLE_PARTIE_OUVERTE, { id: idDonjon });
+export const oublierPartieOuverte = (stock = stockParDefaut()) => { try { stock?.removeItem?.(CLE_PARTIE_OUVERTE); } catch { /* sans mémoire */ } };
+
+/** La partie à rouvrir parmi `presentations` ({ idDonjon: partie }), ou null (rien de mémorisé, ou partie disparue). */
+export function partieAReprendre(presentations, stock = stockParDefaut()) {
+  const id = lireJson(stock, CLE_PARTIE_OUVERTE)?.id;
+  return typeof id === 'string' && Object.prototype.hasOwnProperty.call(presentations, id) ? presentations[id] : null;
+}
 
 /**
  * Point d'entrée au démarrage : donjons et réglages à utiliser.

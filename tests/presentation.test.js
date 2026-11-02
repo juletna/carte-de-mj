@@ -5,10 +5,11 @@
  */
 import * as m from '../js/donjon.js';
 import * as p from '../js/presentation.js';
-import { activerDeplacement } from '../js/deplacement.js';
+import { activerDeplacement, porteSous, BANDE_PORTE } from '../js/deplacement.js';
+import { modeTableDefaut, modeTable, tailleRemplir, tailleTable, TAILLE_MIN, TAILLE_MAX_REMPLIR } from '../js/affichage.js';
 import { decrire } from '../js/parseur/decrire.js';
 import { validerPlan } from '../js/schema.js';
-import { chargerPresentations, sauverPresentations, chargerReglages, CLE_PRESENTATIONS, CLE_REGLAGES } from '../js/stockage.js';
+import { chargerPresentations, sauverPresentations, chargerReglages, CLE_PRESENTATIONS, CLE_REGLAGES, CLE_PARTIE_OUVERTE, memoriserPartieOuverte, oublierPartieOuverte, partieAReprendre } from '../js/stockage.js';
 
 function verifier(condition, message) { if (!condition) throw new Error(message); }
 function egal(obtenu, attendu, quoi) {
@@ -17,7 +18,7 @@ function egal(obtenu, attendu, quoi) {
 }
 function fauxStock(initial = {}) {
   const donnees = { ...initial };
-  return { donnees, getItem: (k) => (k in donnees ? donnees[k] : null), setItem: (k, v) => { donnees[k] = String(v); } };
+  return { donnees, getItem: (k) => (k in donnees ? donnees[k] : null), setItem: (k, v) => { donnees[k] = String(v); }, removeItem: (k) => { delete donnees[k]; } };
 }
 
 const TEXTE_A = 'Salle de 8 par 8 cases, une porte au mur est en 3, une porte secrète au mur nord en B, un coffre caché en D4, deux personnages en B7 C7, un gobelin en F2, un pilier en E5.';
@@ -708,6 +709,135 @@ const TESTS = [
     } finally {
       globalThis.requestAnimationFrame = raf;
     }
+  }],
+
+  // --- LOT 2 : taille à la table, porte / pion, salle de départ, reprise -------------------------------------
+
+  ['table : « remplir » calcule la case sur la fenêtre (entière, bornée), « échelle réelle » garde exactement la taille calibrée', () => {
+    const plan = { largeur: 6, longueur: 6 };
+    egal(tailleRemplir(plan, 1920, 1080), 135, 'salle 6×6 sur 1920×1080 : 1080 / 8 = 135');
+    egal(tailleRemplir(plan, 800, 1080), 100, 'limitée par la largeur : 800 / 8');
+    egal(tailleRemplir({ largeur: 60, longueur: 60 }, 800, 600), TAILLE_MIN, 'salle trop grande : jamais sous la case minimale (elle défile)');
+    egal(tailleRemplir({ largeur: 1, longueur: 1 }, 4000, 4000), TAILLE_MAX_REMPLIR, 'petite salle : plafonnée');
+    egal(tailleRemplir(plan, 0, 0), null, 'fenêtre sans dimensions : pas de calcul');
+    egal(Number.isInteger(tailleRemplir({ largeur: 7, longueur: 5 }, 1000, 777)), true, 'toujours un entier');
+    // Le calcul tient dans la fenêtre : (6 + 2) cases ne dépassent ni la largeur ni la hauteur.
+    verifier(8 * tailleRemplir(plan, 1366, 650) <= 650, 'la carte tient en hauteur');
+    // Échelle réelle : la valeur calibrée, à l'identique, quelle que soit la fenêtre ou la salle.
+    for (const [l, h] of [[1920, 1080], [300, 300], [0, 0]]) {
+      egal(tailleTable({ mode: 'reel', plan, vue: { largeur: l, hauteur: h }, taille: 61 }), 61, `échelle réelle exacte (${l}×${h})`);
+    }
+    egal(tailleTable({ mode: 'remplir', plan, vue: { largeur: 1920, hauteur: 1080 }, taille: 61 }), 135, 'remplir : calculé');
+    egal(tailleTable({ mode: 'remplir', plan, vue: { largeur: 0, hauteur: 0 }, taille: 61 }), 61, 'remplir sans fenêtre : repli sur la taille réglée');
+  }],
+
+  ['table : mode par défaut = échelle réelle si calibré (taille ≠ 48 ou indicateur), sinon remplir ; un choix explicite l’emporte', () => {
+    egal(modeTableDefaut({ taille: 48 }), 'remplir', 'taille par défaut');
+    egal(modeTableDefaut({ taille: 61 }), 'reel', 'taille changée');
+    egal(modeTableDefaut({ taille: 48, calibre: true }), 'reel', 'indicateur de calibrage, même si la taille retombe sur 48');
+    egal(modeTable({ taille: 61, modeTable: 'remplir' }), 'remplir', 'choix explicite remplir');
+    egal(modeTable({ taille: 48, modeTable: 'reel' }), 'reel', 'choix explicite reel');
+    egal(modeTable({ taille: 61, modeTable: 'nimporte' }), 'reel', 'valeur invalide : défaut');
+  }],
+
+  ['réglages : modeTable et calibre sont relus s’ils sont valides, absents sinon (le Donjon ne les voit pas)', () => {
+    egal(chargerReglages(fauxStock({ [CLE_REGLAGES]: JSON.stringify({ taille: 60 }) })), { echelle: 1.5, taille: 60, grille: true }, 'rien de réglé : aucune clé ajoutée');
+    const r = chargerReglages(fauxStock({ [CLE_REGLAGES]: JSON.stringify({ taille: 60, modeTable: 'reel', calibre: true }) }));
+    egal([r.modeTable, r.calibre], ['reel', true], 'relus');
+    const bad = chargerReglages(fauxStock({ [CLE_REGLAGES]: JSON.stringify({ modeTable: '<img>', calibre: 'oui' }) }));
+    egal(['modeTable' in bad, 'calibre' in bad], [false, false], 'valeurs invalides écartées');
+  }],
+
+  ['table : le mode de taille ne contient aucun secret et ne passe pas par le plan (vueTable inchangée)', () => {
+    const { pres } = presentationAvecSecrets();
+    const vue = JSON.stringify(p.vueTable(pres));
+    verifier(!/modeTable|"mode"|calibre/.test(vue), 'ni mode ni calibrage dans le plan envoyé à la table');
+  }],
+
+  ['porte / pion : zone de clic élargie vers l’intérieur ; clic = porte, glissement = pion ; sans option, rien ne change', () => {
+    const raf = globalThis.requestAnimationFrame;
+    globalThis.requestAnimationFrame = (f) => { f(); return 1; };
+    try {
+      const plan8 = () => ({
+        largeur: 8, longueur: 8,
+        portes: [{ id: 'p1', mur: 'nord', position: 5, type: 'porte' }],
+        objets: [],
+        creatures: [{ id: 'c1', type: 'pj', camp: 'pj', x: 5, y: 0, taille: 1, numero: 1 }], // pion juste devant la porte
+      });
+      // Fonction pure : la zone de la porte s'étend de BANDE_PORTE case vers l'intérieur, pas au-delà, pas à côté.
+      const p = plan8();
+      egal(porteSous(5.5, 0.1, p)?.id, 'p1', 'porte : dans le mur élargi par défaut (0,2 case)');
+      egal(porteSous(5.5, 0.4, p), null, 'sans bande : 0,4 case à l’intérieur n’est plus la porte');
+      egal(porteSous(5.5, 0.4, p, BANDE_PORTE)?.id, 'p1', 'avec la bande : 0,4 case à l’intérieur est la porte');
+      egal(porteSous(5.5, BANDE_PORTE + 0.05, p, BANDE_PORTE), null, 'au-delà de la bande : plus la porte');
+      egal(porteSous(4.5, 0.3, p, BANDE_PORTE), null, 'à côté de la porte (autre case du mur) : rien');
+      const sonde = (options) => {
+        const ecouteurs = {};
+        const canvas = { style: {}, addEventListener: (t, f) => { ecouteurs[t] = f; }, getBoundingClientRect: () => ({ left: 0, top: 0 }), setPointerCapture() {} };
+        const journal = { deposes: [], clics: [] };
+        let courant = plan8();
+        activerDeplacement(canvas, {
+          plan: () => courant, taille: () => 10, apercu: () => {},
+          deposer: (n) => { journal.deposes.push(n); courant = n; }, cliquer: (t) => journal.clics.push(t && `${t.genre}:${t.element.id}`),
+          deplacables: ['creature'], ...options,
+        });
+        const evt = (cx, cy) => ({ button: 0, pointerId: 1, clientX: (cx + 1) * 10, clientY: (cy + 1) * 10, type: 'pointerup', preventDefault() {} });
+        return {
+          journal,
+          clic: (cx, cy) => { ecouteurs.pointerdown(evt(cx, cy)); ecouteurs.pointerup(evt(cx, cy)); },
+          glisser: (de, vers) => { ecouteurs.pointerdown(evt(...de)); ecouteurs.pointermove(evt(...vers)); ecouteurs.pointerup(evt(...vers)); },
+        };
+      };
+      // Avec l'option (régie) : dans la bande, le clic va à la porte même si un pion est dessous ; plus bas, au pion.
+      let t = sonde({ portesLarges: true });
+      t.clic(5.5, 0.3);
+      t.clic(5.5, 0.8);
+      egal(t.journal.clics, ['porte:p1', 'creature:c1'], 'bande de bord : porte ; reste de la case : pion');
+      // Un glissement commencé dans la bande, sur le pion, déplace le pion (et ne clique pas la porte).
+      t = sonde({ portesLarges: true });
+      t.glisser([5.5, 0.3], [5.5, 3.5]);
+      egal([t.journal.clics.length, t.journal.deposes[0]?.creatures[0].y], [0, 3], 'glissement : le pion bouge, aucun clic');
+      egal(t.journal.deposes[0].portes[0].position, 5, 'la porte n’a pas bougé');
+      // Sans l'option (Donjon) : comportement d'avant, le pion capte le clic dans la bande.
+      t = sonde({ deplacables: undefined });
+      t.clic(5.5, 0.3);
+      egal(t.journal.clics, ['creature:c1'], 'sans option : le pion capte le clic comme avant');
+      t.clic(5.5, -0.2);
+      egal(t.journal.clics, ['creature:c1', 'porte:p1'], 'sans option : la porte reste cliquable dans le mur');
+    } finally {
+      globalThis.requestAnimationFrame = raf;
+    }
+  }],
+
+  ['démarrage : salle de départ = la première du donjon, pas la dernière modifiée ; choix explicite respecté', () => {
+    const { d, a, b, c } = donjonDeTest();
+    d.salleActive = c.id; // dans le Donjon, la dernière salle modifiée (souvent la plus avancée)
+    egal(p.salleDepart(d), a.id, 'salleDepart : la première');
+    const pres = p.creerPresentation(d);
+    egal([pres.salleCourante, pres.decouvertes], [a.id, [a.id]], 'par défaut : la première salle, découverte');
+    const choisie = p.creerPresentation(d, { salleDepart: b.id });
+    egal([choisie.salleCourante, choisie.decouvertes], [b.id, [b.id]], 'choix explicite');
+    egal(p.creerPresentation(d, { salleDepart: 'inconnue' }).salleCourante, a.id, 'choix invalide : la première');
+    egal(p.salleDepart({ salles: {} }), null, 'donjon sans salle');
+  }],
+
+  ['reprise : l’identifiant de la partie ouverte est mémorisé ; rien à reprendre si absent, oublié ou disparu', () => {
+    const { d } = donjonDeTest();
+    const pres = p.creerPresentation(d);
+    const parties = { [d.id]: pres };
+    const stock = fauxStock();
+    egal(partieAReprendre(parties, stock), null, 'rien de mémorisé : liste des donjons');
+    memoriserPartieOuverte(d.id, stock);
+    egal(partieAReprendre(parties, stock) === pres, true, 'la partie ouverte est rouverte');
+    egal(JSON.parse(stock.donnees[CLE_PARTIE_OUVERTE]), { id: d.id }, 'on ne garde que l’identifiant (la partie est ailleurs)');
+    egal(partieAReprendre({}, stock), null, 'partie disparue : liste des donjons');
+    memoriserPartieOuverte('__proto__', stock);
+    egal(partieAReprendre({}, stock), null, 'identifiant piégé : rien');
+    memoriserPartieOuverte(d.id, stock);
+    oublierPartieOuverte(stock);
+    egal(partieAReprendre(parties, stock), null, '« Liste des donjons » oublie la partie ouverte');
+    stock.donnees[CLE_PARTIE_OUVERTE] = '{pas du json';
+    egal(partieAReprendre(parties, stock), null, 'donnée corrompue : liste des donjons');
   }],
 ];
 

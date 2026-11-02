@@ -20,6 +20,7 @@ import { dessinerMiniCarte } from './minicarte.js';
 import { nomCase, lettreColonne } from './parseur/coordonnees.js';
 import { nomAffiche } from './parseur/lexique.js';
 import { creerMicro, voixDisponible } from './voix.js';
+import { MODES_TABLE, modeTable, tailleTable } from './affichage.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -47,6 +48,7 @@ function deuxTemps(bouton, libelle, confirmation, action) {
     attente = setTimeout(reinitialiser, 4000);
   });
   bouton.addEventListener('blur', reinitialiser);
+  return reinitialiser;
 }
 
 const ouvrirCanal = () => { try { return new BroadcastChannel(pres.CANAL); } catch { return null; } };
@@ -55,14 +57,46 @@ const pluriel = (n, un, plusieurs) => `${n} ${n > 1 ? plusieurs : un}`;
 // =============================================================================
 // Écran de table (partagé : fenêtre ?vue=table et « Plein écran ici »)
 // =============================================================================
-const ecran = { plan: null, affichage: { taille: 48, grille: true, reperes: true } };
+const ecran = { plan: null, affichage: { taille: 48, grille: true, reperes: true, mode: 'remplir' } };
+
+/** Côté de case à la table : « échelle réelle » = la taille calibrée, exacte ; « remplir » = calculé sur la fenêtre. */
+function tailleEcranTable() {
+  const v = $('vue-table');
+  return tailleTable({ mode: ecran.affichage.mode, plan: ecran.plan, vue: { largeur: v.clientWidth, hauteur: v.clientHeight }, taille: ecran.affichage.taille });
+}
 
 function rendreEcranTable() {
   const carte = $('carte-table');
   $('attente').hidden = !!ecran.plan;
   carte.hidden = !ecran.plan;
-  if (ecran.plan) dessiner(carte, ecran.plan, { ...ecran.affichage, marques: {} }); // aucun repère de liaison ni de sélection
+  if (!ecran.plan) return;
+  const taille = tailleEcranTable();
+  carte.dataset.taille = String(taille); // mesurable (tests, vérification) ; aucun secret
+  const { grille, reperes } = ecran.affichage;
+  dessiner(carte, ecran.plan, { taille, grille, reperes, marques: {} }); // aucun repère de liaison ni de sélection
 }
+// Recalculé quand la fenêtre change de taille (le mode « remplir » suit ; « échelle réelle » ne bouge pas).
+let minuteTaille;
+window.addEventListener('resize', () => {
+  clearTimeout(minuteTaille);
+  minuteTaille = setTimeout(() => { if (ecran.plan && !$('ecran-table').hidden) rendreEcranTable(); }, 120);
+});
+
+// Boutons de coin : invisibles ET inactifs (pointer-events: none) tant que la souris n'a pas bougé, puis quelques
+// secondes. Un toucher (joueur qui pose le doigt sur la carte) ne les réveille jamais.
+const DUREE_COINS = 3500;
+let minuteCoins;
+function cacherCoins() { clearTimeout(minuteCoins); $('ecran-table').classList.remove('coins-visibles'); reinitialiserRetour?.(); }
+function montrerCoins() {
+  $('ecran-table').classList.add('coins-visibles');
+  clearTimeout(minuteCoins);
+  minuteCoins = setTimeout(cacherCoins, DUREE_COINS);
+}
+$('ecran-table').addEventListener('pointermove', (e) => { if (e.pointerType === 'mouse') montrerCoins(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Tab' && !$('ecran-table').hidden) montrerCoins(); });
+let reinitialiserRetour = null;
+// « Retour à la régie » demande deux gestes : un premier appui arme le bouton, le second (dans les 4 s) confirme.
+// Il est défini dans demarrerRegie (il n'existe que là).
 
 /** Fait défiler la vue table d'une part de l'écran (-1, 0 ou 1 par axe), ou la recentre. */
 function defilerEcranTable({ dx = 0, dy = 0, recentrer = false }) {
@@ -82,6 +116,7 @@ document.addEventListener('fullscreenchange', () => {
 
 const entierSigne = (v) => (v === -1 || v === 0 || v === 1 ? v : 0);
 const affichageValide = (a, defaut) => ({
+  mode: MODES_TABLE.includes(a?.mode) ? a.mode : defaut.mode,
   taille: Number.isFinite(a?.taille) && a.taille >= 16 && a.taille <= 160 ? a.taille : defaut.taille,
   grille: typeof a?.grille === 'boolean' ? a.grille : defaut.grille,
   reperes: typeof a?.reperes === 'boolean' ? a.reperes : defaut.reperes,
@@ -95,7 +130,7 @@ function demarrerTable() {
   document.title = 'Table · Carte de MJ';
   $('ecran-table').hidden = false;
   const reglages = stockage.chargerReglages(); // seuls les réglages d'affichage : jamais les présentations
-  ecran.affichage = { taille: reglages.taille, grille: reglages.grille, reperes: reglages.reperes !== false };
+  ecran.affichage = { taille: reglages.taille, grille: reglages.grille, reperes: reglages.reperes !== false, mode: modeTable(reglages) };
   const attendre = (texte) => { ecran.plan = null; $('attente').textContent = texte; rendreEcranTable(); };
 
   const canal = ouvrirCanal();
@@ -140,16 +175,33 @@ function demarrerRegie() {
     ajuster: true,       // adapter la carte de la régie à la fenêtre (n'agit pas sur la table)
     fichier: null,       // { donjon, avertissements } : donjon ouvert depuis un fichier
     focusMini: null,
+    focusSelection: false, // le focus doit passer au panneau de sélection au prochain rendu
     pleinIci: false,
     enregistre: true,
   };
+
+  // --- Retour d'action : toast transitoire, hors du flux, annoncé par aria-live (#toast) ------------------
+  let minuteToast, minuteEffacement;
+  function annoncer(texte, duree = 7000) {
+    const t = $('toast');
+    clearTimeout(minuteToast); clearTimeout(minuteEffacement);
+    t.textContent = texte;
+    t.classList.add('visible');
+    minuteToast = setTimeout(effacerToast, duree);
+  }
+  function effacerToast() {
+    clearTimeout(minuteToast);
+    $('toast').classList.remove('visible');
+    minuteEffacement = setTimeout(() => { $('toast').textContent = ''; }, 300);
+  }
+  $('toast').addEventListener('click', effacerToast);
 
   const salleCourante = () => etat.p.donjon.salles[etat.p.salleCourante];
   const salleConsultee = () => etat.p.donjon.salles[etat.consultee];
   const idsReveles = (idSalle) => etat.p.reveles[idSalle] || [];
 
   // --- Communication avec la fenêtre table -------------------------------------------------------
-  const affichageTable = () => ({ taille: r.taille, grille: r.grille, reperes: r.reperes !== false });
+  const affichageTable = () => ({ taille: r.taille, grille: r.grille, reperes: r.reperes !== false, mode: modeTable(r) });
   /** Envoie à la table le plan de vueTable() et rien d'autre. */
   function diffuser() {
     canal?.postMessage({ type: 'etat', plan: etat.p ? pres.vueTable(etat.p) : null, affichage: affichageTable() });
@@ -161,8 +213,10 @@ function demarrerRegie() {
     etat.presentations[etat.p.donjon.id] = etat.p;
     const ok = stockage.sauverPresentations(etat.presentations);
     if (!ok && etat.enregistre) {
-      etat.enregistre = false;
-      etat.message = 'Attention : impossible d’enregistrer la partie dans ce navigateur (stockage plein ou bloqué). Elle continue, mais ne pourra pas être reprise.';
+      etat.enregistre = false; // alerte permanente (en haut de la régie) : un toast serait manqué
+      const alerte = $('alerte-stockage');
+      alerte.hidden = false;
+      alerte.textContent = 'Attention : impossible d’enregistrer la partie dans ce navigateur (stockage plein ou bloqué). Elle continue, mais ne pourra pas être reprise.';
     }
   }
   const sauverReglages = () => stockage.sauverReglages(r);
@@ -183,6 +237,7 @@ function demarrerRegie() {
     return `Partie en cours : salle « ${nom} », ${p.decouvertes.length} salle${p.decouvertes.length > 1 ? 's' : ''} découverte${p.decouvertes.length > 1 ? 's' : ''} sur ${Object.keys(p.donjon.salles).length}.`;
   }
 
+  let compteurDepart = 0;
   function ligneDonjon(d) {
     const enCours = etat.presentations[d.id];
     const n = Object.keys(d.salles).length;
@@ -190,23 +245,32 @@ function demarrerRegie() {
       h('span', { textContent: pluriel(n, 'salle', 'salles') }));
     if (enCours) infos.append(h('br'), h('span', { className: 'en-cours', textContent: resumePartie(enCours) }));
     const boutons = h('div', { className: 'boutons' });
+    // « Commencer par » : la première salle du donjon est présélectionnée (pas la dernière modifiée dans le Donjon).
+    const salles = Object.values(d.salles);
+    const depart = h('select', { id: `depart-${++compteurDepart}` });
+    salles.forEach((sa, i) => depart.append(h('option', { value: sa.id, textContent: `${i + 1}. ${sa.nom}` })));
+    depart.value = pres.salleDepart(d);
+    const commencer = () => pres.creerPresentation(d, { salleDepart: depart.value });
+    const choix = salles.length > 1
+      ? h('div', { className: 'depart-choix' }, h('label', { htmlFor: depart.id, textContent: enCours ? 'Recommencer par' : 'Commencer par' }), depart)
+      : null;
     if (enCours) {
       const reprendre = h('button', { type: 'button', textContent: 'Reprendre' });
-      reprendre.addEventListener('click', () => entrer(enCours));
+      reprendre.addEventListener('click', () => entrer(enCours, { reprise: true }));
       const recommencer = h('button', { type: 'button', className: 'discret' });
-      deuxTemps(recommencer, 'Recommencer', 'Effacer la partie ?', () => entrer(pres.creerPresentation(d)));
+      deuxTemps(recommencer, 'Recommencer', 'Effacer la partie ?', () => entrer(commencer()));
       boutons.append(reprendre, recommencer);
     } else {
       const demarrer = h('button', { type: 'button', textContent: 'Présenter' });
-      demarrer.addEventListener('click', () => entrer(pres.creerPresentation(d)));
+      demarrer.addEventListener('click', () => entrer(commencer()));
       boutons.append(demarrer);
     }
-    return h('li', {}, infos, boutons);
+    return h('li', {}, infos, ...(choix ? [choix] : []), boutons);
   }
 
   function ligneOrpheline(p) {
     const reprendre = h('button', { type: 'button', textContent: 'Reprendre' });
-    reprendre.addEventListener('click', () => entrer(p));
+    reprendre.addEventListener('click', () => entrer(p, { reprise: true }));
     const abandonner = h('button', { type: 'button', className: 'discret' });
     deuxTemps(abandonner, 'Abandonner', 'Supprimer la partie ?', () => {
       delete etat.presentations[p.donjon.id];
@@ -264,7 +328,8 @@ function demarrerRegie() {
     }
   });
 
-  function entrer(p) {
+  /** `reprise` : on rouvre une partie déjà enregistrée, sans rien réécrire (aucune sauvegarde tant que rien ne change). */
+  function entrer(p, { reprise = false } = {}) {
     etat.p = p;
     etat.consultee = p.salleCourante;
     etat.selection = null;
@@ -273,14 +338,17 @@ function demarrerRegie() {
     etat.brouillon = null;
     noteSalle = null;
     etat.enregistre = true;
+    $('alerte-stockage').hidden = true;
     $('depart').hidden = true;
     $('regie').hidden = false;
     $('nom-donjon').textContent = p.donjon.nom;
     document.title = `${p.donjon.nom} · Présentation · Carte de MJ`;
-    sauvegarder();
+    if (!reprise) sauvegarder();
+    stockage.memoriserPartieOuverte(p.donjon.id); // un rechargement rouvre cette partie
+    if (reprise) etat.message = `Partie « ${p.donjon.nom} » rouverte, salle « ${salleConsultee().nom} ». « ← Liste des donjons » ramène à l’écran de départ.`;
     rendre();
   }
-  $('quitter').addEventListener('click', afficherDepart);
+  $('quitter').addEventListener('click', () => { stockage.oublierPartieOuverte(); afficherDepart(); });
 
   // --- Rendu de la régie ---------------------------------------------------------------------------
   const LISTES = { porte: 'portes', objet: 'objets', creature: 'creatures' };
@@ -319,6 +387,7 @@ function demarrerRegie() {
     dessinerRegie(s.plan);
     $('support').className = etat.consultee === etat.p.salleCourante ? 'sur-table' : 'consultation';
     majBandeau();
+    if (etat.message) { annoncer(etat.message); etat.message = ''; } // hors du flux : la carte ne bouge jamais
     majSelection();
     majSalle();
     majCommande();
@@ -366,9 +435,8 @@ function demarrerRegie() {
       retour.addEventListener('click', () => consulter(courante.id));
       actions.append(afficher, retour);
     }
-    const enfants = [texte, actions];
-    if (etat.message) enfants.push(h('div', { className: 'note texte', id: 'message', textContent: etat.message }));
-    bandeau.replaceChildren(...enfants);
+    texte.title = texte.textContent; // si le texte est tronqué (hauteur fixe), la phrase entière reste lisible
+    bandeau.replaceChildren(texte, actions);
   }
 
   function libelleElement(trouve) {
@@ -461,6 +529,32 @@ function demarrerRegie() {
     ];
   }
 
+  /** Sélectionne un élément. `clavier` : on vient d'une liste, le focus passe au panneau pour agir sans souris. */
+  function selectionner(genre, id, { clavier = false } = {}) {
+    etat.selection = { genre, id };
+    etat.focusSelection = clavier;
+    etat.message = '';
+    rendre();
+  }
+  /** Ferme la sélection (bouton, Échap ou clic dans le vide) ; le focus revient à l'élément dans la liste. */
+  function deselectionner() {
+    const zone = $('selection');
+    const sel = etat.selection;
+    const avaitFocus = !!sel && zone.contains(document.activeElement);
+    etat.selection = null;
+    etat.message = '';
+    rendre();
+    if (avaitFocus) (document.querySelector(`[data-el="${sel.genre}:${sel.id}"]`) || $('elements-salle').querySelector('summary')).focus?.({ preventScroll: true });
+  }
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape' || e.defaultPrevented || !etat.p || !etat.selection) return;
+    if (etat.pleinIci || document.fullscreenElement) return; // Échap sert déjà à quitter le plein écran
+    const cible = e.target;
+    if (cible instanceof HTMLElement && cible.matches('input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), textarea, select, [contenteditable]')) return; // Échap sert déjà dans un champ
+    e.preventDefault();
+    deselectionner();
+  });
+
   function majSelection() {
     const zone = $('selection');
     const p = etat.p, s = salleConsultee();
@@ -468,7 +562,10 @@ function demarrerRegie() {
     if (!trouve) { etat.selection = null; zone.hidden = true; zone.replaceChildren(); return; }
     zone.hidden = false;
     const el = trouve.element;
-    const contenu = [h('h2', { textContent: 'Sélection' }), h('p', { className: 'selection-titre', textContent: libelleElement(trouve) })];
+    const fermer = bouton('✕ Fermer', deselectionner, 'discret petit');
+    fermer.setAttribute('aria-label', 'Fermer la sélection (Échap)');
+    const contenu = [h('div', { className: 'selection-entete' }, h('h2', { textContent: 'Sélection' }), fermer),
+      h('p', { className: 'selection-titre', textContent: libelleElement(trouve) })];
     const sur = s.id === p.salleCourante;
 
     if (el.cache) {
@@ -488,7 +585,7 @@ function demarrerRegie() {
       boutons.setAttribute('role', 'group');
       boutons.setAttribute('aria-label', 'État du pion');
       for (const valeur of ['normal', 'blesse', 'mort']) {
-        const b = bouton(valeur === 'normal' ? 'Normal' : valeur === 'blesse' ? 'Blessé' : 'Mort', () => changerEtat(el, valeur), valeur === 'normal' ? 'discret' : '');
+        const b = bouton(valeur === 'normal' ? 'Normal' : valeur === 'blesse' ? 'Blessé' : 'Mort', () => changerEtat(el, valeur), 'discret');
         b.setAttribute('aria-pressed', String(actuel === valeur));
         boutons.append(b);
       }
@@ -506,6 +603,7 @@ function demarrerRegie() {
       }
     }
     zone.replaceChildren(...contenu);
+    if (etat.focusSelection) { etat.focusSelection = false; zone.focus({ preventScroll: true }); }
   }
 
   /** Bloc « Cette salle » : éléments cachés, portes (accessibles au clavier) et notes en lecture seule. */
@@ -516,13 +614,27 @@ function demarrerRegie() {
       ? `Éléments cachés : ${total}, dont ${reveles} révélé${reveles > 1 ? 's' : ''}.`
       : 'Aucun élément caché dans cette salle.';
     $('reveler-tout').disabled = total === reveles;
+    const choisi = (genre, id) => etat.selection?.genre === genre && etat.selection.id === id;
+    /** Bouton de liste (portes et éléments) : sélectionne au clavier comme à la souris, `aria-pressed` = élément sélectionné. */
+    const boutonListe = (genre, e, texte, cachee) => {
+      const b = bouton(texte, () => selectionner(genre, e.id, { clavier: true }), `discret${cachee ? ' cachee' : ''}`);
+      b.dataset.el = `${genre}:${e.id}`;
+      b.setAttribute('aria-pressed', String(choisi(genre, e.id)));
+      return h('li', {}, b);
+    };
     $('liste-portes').replaceChildren(...s.plan.portes.map((q) => {
       const lien = modele.liaisonDePorte(p.donjon, s.id, q);
       const vers = lien && p.donjon.salles[lien.autre.salle];
-      const b = bouton(`${q.type} · mur ${q.mur}, repère ${reperePorte(q)} · ${vers ? `→ ${vers.nom}` : 'non reliée'}${q.cache ? ' · cachée' : ''}`,
-        () => { etat.selection = { genre: 'porte', id: q.id }; etat.message = ''; rendre(); }, `discret${q.cache ? ' cachee' : ''}`);
-      return h('li', {}, b);
+      return boutonListe('porte', q, `${q.type} · mur ${q.mur}, repère ${reperePorte(q)} · ${vers ? `→ ${vers.nom}` : 'non reliée'}${q.cache ? ' · cachée' : ''}`, q.cache);
     }));
+    // Éléments de la salle : pions puis objets, cachés repérés (comme sur la carte du MJ). Liste repliable.
+    const marque = (e) => (!e.cache ? '' : pres.estRevele(p, s.id, e.id) ? ' · caché, révélé' : ' · caché');
+    const elements = [
+      ...s.plan.creatures.map((k) => boutonListe('creature', k, `${nomAffiche(k.type)} ${k.numero} · ${nomCase(k.x, k.y)}${k.etat ? ` · ${LIBELLES_ETAT[k.etat]}` : ''}${marque(k)}`, k.cache && !pres.estRevele(p, s.id, k.id))),
+      ...s.plan.objets.map((o) => boutonListe('objet', o, `${nomAffiche(o.type)} · ${nomCase(o.x, o.y)}${marque(o)}`, o.cache && !pres.estRevele(p, s.id, o.id))),
+    ];
+    $('nb-elements').textContent = `(${elements.length})`;
+    $('liste-elements').replaceChildren(...(elements.length ? elements : [h('li', { className: 'note', textContent: 'Aucun pion ni objet dans cette salle.' })]));
     const notes = $('notes');
     notes.textContent = s.notes || 'Aucune note pour cette salle.';
     notes.classList.toggle('vide', !s.notes);
@@ -596,14 +708,11 @@ function demarrerRegie() {
       rendre();
     },
     deplacables: ['creature'],
+    portesLarges: true, // zone de clic des portes élargie vers l'intérieur ; un glissement sur un pion déplace toujours le pion
   });
 
   // --- Fenêtre table et plein écran ici -------------------------------------------------------------
-  function messageTable(texte) {
-    const m = $('message-table');
-    m.hidden = !texte;
-    m.textContent = texte || '';
-  }
+  const messageTable = (texte) => annoncer(texte, 10000);
   $('ouvrir-table').addEventListener('click', () => {
     const w = window.open(new URL('presentation.html?vue=table', location.href).href, 'carte-de-mj-table', 'popup,width=1024,height=768');
     if (w) { w.focus(); messageTable('Fenêtre table ouverte : glisse-la sur l’écran de la table, puis son bouton « Plein écran » (au survol, en haut à droite).'); }
@@ -636,7 +745,7 @@ function demarrerRegie() {
     $('plein-ici').focus?.();
   }
   $('plein-ici').addEventListener('click', entrerPleinIci);
-  $('retour-regie').addEventListener('click', quitterPleinIci);
+  reinitialiserRetour = deuxTemps($('retour-regie'), '← Retour à la régie', 'Appuie encore pour revenir', quitterPleinIci);
   document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && etat.pleinIci) quitterPleinIci(); });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && etat.pleinIci) quitterPleinIci(); });
 
@@ -656,14 +765,31 @@ function demarrerRegie() {
   $('grille').checked = r.grille;
   $('reperes').checked = r.reperes !== false;
   $('ajuster').checked = etat.ajuster;
-  $('taille').addEventListener('input', (e) => { r.taille = Number(e.target.value); $('taille-val').textContent = `${r.taille} px`; sauverReglages(); rendre(); });
+  function majModeTable() {
+    const mode = modeTable(r);
+    $('mode-remplir').checked = mode === 'remplir';
+    $('mode-reel').checked = mode === 'reel';
+    $('aide-mode-table').textContent = mode === 'remplir'
+      ? 'La case s’adapte à la fenêtre de la table : la salle occupe tout l’écran. Les figurines ne sont plus à l’échelle.'
+      : `Chaque case garde sa taille calibrée (${r.taille} px) : les figurines restent à l’échelle. Une grande salle défile.`;
+  }
+  majModeTable();
+  for (const radio of [$('mode-remplir'), $('mode-reel')]) {
+    radio.addEventListener('change', () => { r.modeTable = radio.value; sauverReglages(); majModeTable(); diffuser(); majEcranLocal(); });
+  }
+  $('taille').addEventListener('input', (e) => { r.taille = Number(e.target.value); $('taille-val').textContent = `${r.taille} px`; sauverReglages(); majModeTable(); rendre(); });
   $('grille').addEventListener('change', (e) => { r.grille = e.target.checked; sauverReglages(); rendre(); });
   $('reperes').addEventListener('change', (e) => { r.reperes = e.target.checked; sauverReglages(); rendre(); });
   $('ajuster').addEventListener('change', (e) => { etat.ajuster = e.target.checked; rendre(); });
   let minuterie;
   window.addEventListener('resize', () => { clearTimeout(minuterie); minuterie = setTimeout(() => { if (etat.p) rendre(); }, 150); });
 
-  afficherDepart();
+  // Démarrage : la partie ouverte au dernier passage est rouverte telle quelle (rien n'est relancé ni écrasé) ;
+  // « ← Liste des donjons » ramène à l'écran de départ, et l'oublie.
+  etat.presentations = stockage.chargerPresentations();
+  const aReprendre = stockage.partieAReprendre(etat.presentations);
+  if (aReprendre) entrer(aReprendre, { reprise: true });
+  else afficherDepart();
 }
 
 if (new URLSearchParams(location.search).get('vue') === 'table') demarrerTable();

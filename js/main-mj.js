@@ -454,6 +454,7 @@ $('echelle').addEventListener('change', (e) => {
 });
 $('taille').addEventListener('input', (e) => {
   r.taille = Number(e.target.value);
+  if ($('calibrage').checked) r.calibre = true; // indicateur lu par la Présentation (échelle réelle par défaut), sans effet ici
   $('taille-val').textContent = `${r.taille} px`;
   rendre();
 });
