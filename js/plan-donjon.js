@@ -207,7 +207,137 @@ export function disposerPlan(d) {
     });
   }
 
-  return { positions, largeur: droite + 2 * MARGE_PLAN, longueur: bas + 2 * MARGE_PLAN, couloirs, isolees, etiquetteIsolees };
+  const largeur = droite + 2 * MARGE_PLAN, longueur = bas + 2 * MARGE_PLAN;
+  tracerCouloirs(couloirs, positions, largeur, longueur);
+  return { positions, largeur, longueur, couloirs, isolees, etiquetteIsolees };
+}
+
+// --- Tracé des couloirs : ils contournent les salles ------------------------------------------
+
+const COUT_VIRAGE = 2;           // un couloir préfère les lignes droites
+const COUT_LONGE_SALLE = 0.5;    // et garde ses distances avec les murs quand il le peut
+const COUT_SORTIE_PORTE = 6;     // évite de passer devant une autre porte
+const COUT_CROISEMENT = 4;       // évite de suivre ou de croiser un autre couloir
+const ETATS_MAX = 400000;        // au-delà (plan immense), on garde le tracé simple plutôt que de figer la page
+const DIRECTIONS = [[0, -1], [1, 0], [0, 1], [-1, 0]];
+const INDICE_DIRECTION = { nord: 0, est: 1, sud: 2, ouest: 3 };
+
+/** Case juste devant une porte, côté extérieur de la salle (les points de porte tombent au milieu d'une case). */
+const caseDevant = (p) => ({
+  x: Math.floor(p.x) - (p.mur === 'ouest' ? 1 : 0),
+  y: Math.floor(p.y) - (p.mur === 'nord' ? 1 : 0),
+});
+
+/** Cherche le chemin le moins coûteux, de case en case, à angle droit (A*). Renvoie les cases, ou null. */
+function chercherChemin(depart, arrivee, dirDepart, grille, largeur, longueur, coutCase) {
+  const cle = (x, y, dir) => (y * largeur + x) * 4 + dir;
+  const distance = (x, y) => Math.abs(x - arrivee.x) + Math.abs(y - arrivee.y);
+  const couts = new Map([[cle(depart.x, depart.y, dirDepart), 0]]);
+  const parents = new Map();
+  // Tas binaire minimal : [priorité, x, y, direction].
+  const tas = [[distance(depart.x, depart.y), depart.x, depart.y, dirDepart]];
+  const pousser = (n) => {
+    let i = tas.push(n) - 1;
+    while (i > 0) {
+      const h = (i - 1) >> 1;
+      if (tas[h][0] <= tas[i][0]) break;
+      [tas[h], tas[i]] = [tas[i], tas[h]];
+      i = h;
+    }
+  };
+  const retirer = () => {
+    const haut = tas[0], fin = tas.pop();
+    if (tas.length) {
+      tas[0] = fin;
+      for (let i = 0; ;) {
+        const g = 2 * i + 1, d = g + 1;
+        let m = i;
+        if (g < tas.length && tas[g][0] < tas[m][0]) m = g;
+        if (d < tas.length && tas[d][0] < tas[m][0]) m = d;
+        if (m === i) break;
+        [tas[m], tas[i]] = [tas[i], tas[m]];
+        i = m;
+      }
+    }
+    return haut;
+  };
+  for (let vus = 0; tas.length && vus < ETATS_MAX; vus++) {
+    const [, x, y, dir] = retirer();
+    const k = cle(x, y, dir);
+    if (x === arrivee.x && y === arrivee.y) {
+      const cases = [];
+      for (let c = k; c !== undefined; c = parents.get(c)) {
+        const v = Math.floor(c / 4);
+        cases.unshift({ x: v % largeur, y: Math.floor(v / largeur) });
+      }
+      return cases;
+    }
+    DIRECTIONS.forEach(([dx, dy], nd) => {
+      if (Math.abs(nd - dir) === 2) return; // pas de demi-tour
+      const nx = x + dx, ny = y + dy;
+      if (nx < 0 || ny < 0 || nx >= largeur || ny >= longueur || grille[ny * largeur + nx]) return;
+      const cout = couts.get(k) + 1 + (nd === dir ? 0 : COUT_VIRAGE) + coutCase(nx, ny);
+      const nk = cle(nx, ny, nd);
+      if (cout >= (couts.get(nk) ?? Infinity)) return;
+      couts.set(nk, cout);
+      parents.set(nk, k);
+      pousser([cout + distance(nx, ny), nx, ny, nd]);
+    });
+  }
+  return null;
+}
+
+/** Retire les points alignés : il ne reste que les extrémités et les virages. */
+function sansPointsAlignes(pts) {
+  const uniques = pts.filter((p, i) => i === 0 || p.x !== pts[i - 1].x || p.y !== pts[i - 1].y);
+  return uniques.filter((p, i) => i === 0 || i === uniques.length - 1
+    || !((uniques[i - 1].x === p.x && p.x === uniques[i + 1].x) || (uniques[i - 1].y === p.y && p.y === uniques[i + 1].y)));
+}
+
+/**
+ * Ajoute à chaque couloir son `chemin` : une suite de points à angle droit qui ne traverse aucune salle, quitte à
+ * s'allonger. Les couloirs sont tracés dans l'ordre des liaisons, en évitant autant que possible ceux déjà posés.
+ * Pas de chemin possible (porte murée par une salle voisine, plan immense) : le couloir garde son tracé simple.
+ */
+function tracerCouloirs(couloirs, positions, largeur, longueur) {
+  const grille = new Uint8Array(largeur * longueur);     // 1 : une salle occupe cette case
+  const proche = new Uint8Array(largeur * longueur);     // 1 : case qui touche une salle
+  const devantPorte = new Uint8Array(largeur * longueur);
+  const pris = new Uint8Array(largeur * longueur);       // 1 : un couloir passe déjà ici
+  const indice = (x, y) => y * largeur + x;
+  const dans = (x, y) => x >= 0 && y >= 0 && x < largeur && y < longueur;
+  for (const r of Object.values(positions)) {
+    for (let y = r.y - 1; y <= r.y + r.longueur; y++) {
+      for (let x = r.x - 1; x <= r.x + r.largeur; x++) {
+        if (!dans(x, y)) continue;
+        const dedans = x >= r.x && x < r.x + r.largeur && y >= r.y && y < r.y + r.longueur;
+        if (dedans) grille[indice(x, y)] = 1;
+        else proche[indice(x, y)] = 1;
+      }
+    }
+  }
+  const sorties = couloirs.flatMap((c) => [c.de, c.vers].map(caseDevant));
+  for (const s of sorties) if (dans(s.x, s.y)) devantPorte[indice(s.x, s.y)] = 1;
+
+  for (const c of couloirs) {
+    const depart = caseDevant(c.de), arrivee = caseDevant(c.vers);
+    const libre = (s) => dans(s.x, s.y) && !grille[indice(s.x, s.y)];
+    if (c.orpheline || !libre(depart) || !libre(arrivee)) continue;
+    const estExtremite = (x, y) => (x === depart.x && y === depart.y) || (x === arrivee.x && y === arrivee.y);
+    const coutCase = (x, y) => {
+      if (estExtremite(x, y)) return 0;
+      const i = indice(x, y);
+      return (proche[i] ? COUT_LONGE_SALLE : 0) + (devantPorte[i] ? COUT_SORTIE_PORTE : 0) + (pris[i] ? COUT_CROISEMENT : 0);
+    };
+    const cases = chercherChemin(depart, arrivee, INDICE_DIRECTION[c.de.mur], grille, largeur, longueur, coutCase);
+    if (!cases) continue;
+    for (const k of cases) pris[indice(k.x, k.y)] = 1;
+    c.chemin = sansPointsAlignes([
+      { x: c.de.x, y: c.de.y },
+      ...cases.map((k) => ({ x: k.x + 0.5, y: k.y + 0.5 })),
+      { x: c.vers.x, y: c.vers.y },
+    ]);
+  }
 }
 
 /**
@@ -217,6 +347,7 @@ export function disposerPlan(d) {
  * @returns {Array<{x:number,y:number}>}
  */
 export function cheminCouloir(c) {
+  if (c.chemin) return c.chemin; // tracé calculé par disposerPlan, qui contourne les salles
   const { de: a, vers: b } = c;
   const horizontal = (p) => p.mur === 'est' || p.mur === 'ouest';
   const pts = [{ x: a.x, y: a.y }];

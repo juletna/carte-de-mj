@@ -47,6 +47,42 @@ function sansChevauchement(disp, d, quoi) {
   }
 }
 
+/** Le cas signalé : la salle 5 est à l'ouest de la salle 1, et sa porte est mène à une salle 6 que la salle 1 sépare d'elle. */
+function casBarre() {
+  const d = donjonVide();
+  const s1 = d.salleActive;
+  m.definirTexte(d, s1, texteSalle(8, 8, [['nord', 3], ['est', 2], ['ouest', 2]]), m.planDepuisTexte(texteSalle(8, 8, [['nord', 3], ['est', 2], ['ouest', 2]]), s1));
+  const s4 = salle(d, 'Salle 4', 6, 6, [['sud', 3]]);
+  const s2 = salle(d, 'Salle 2', 6, 6, [['ouest', 2]]);
+  const s5 = salle(d, 'Salle 5', 6, 6, [['est', 2], ['sud', 1]]);
+  const s6 = salle(d, 'Salle 6', 6, 6, [['ouest', 2]]);
+  m.relier(d, porte(s1, 'nord', 3), porte(s4, 'sud', 3));
+  m.relier(d, porte(s1, 'est', 2), porte(s2, 'ouest', 2));
+  m.relier(d, porte(s1, 'ouest', 2), porte(s5, 'est', 2));
+  m.relier(d, porte(s5, 'sud', 1), porte(s6, 'ouest', 2));
+  return { d, s5, s6 };
+}
+
+/** Chaque couloir part de sa porte, arrive à l'autre, reste à angle droit et n'entre dans aucune salle. */
+function couloirsPropres(disp, quoi) {
+  for (const c of disp.couloirs) {
+    const pts = cheminCouloir(c);
+    egal([pts[0].x, pts[0].y], [c.de.x, c.de.y], `${quoi} : départ à la porte`);
+    egal([pts.at(-1).x, pts.at(-1).y], [c.vers.x, c.vers.y], `${quoi} : arrivée à la porte`);
+    for (let i = 1; i < pts.length; i++) {
+      const a = pts[i - 1], b = pts[i];
+      verifier(a.x === b.x || a.y === b.y, `${quoi} : segment en diagonale`);
+      const n = Math.ceil((Math.abs(a.x - b.x) + Math.abs(a.y - b.y)) * 4);
+      for (let k = 1; k < n; k++) {
+        const x = a.x + (b.x - a.x) * k / n, y = a.y + (b.y - a.y) * k / n;
+        for (const [id, r] of Object.entries(disp.positions)) {
+          verifier(!(x > r.x && x < r.x + r.largeur && y > r.y && y < r.y + r.longueur), `${quoi} : couloir à travers la salle ${id} en ${x},${y}`);
+        }
+      }
+    }
+  }
+}
+
 /** Grille de 3 × 4 salles reliées de tailles variées (avec des cycles) : 12 salles. */
 function grande() {
   const d = donjonVide();
@@ -206,6 +242,19 @@ const TESTS = [
     egal(salleVoisine(pos, 'a', 'sud'), 'e2', 'au sud : la plus proche dans le cône, à côté');
     egal(salleVoisine(pos, 'n', 'nord'), null, 'rien au nord');
     egal(salleVoisine(pos, 'absente', 'nord'), null, 'salle inconnue');
+  }],
+  ['couloirs : une salle sur le chemin est contournée, le couloir s’allonge', () => {
+    const { d, s5, s6 } = casBarre();
+    const disp = disposerPlan(d);
+    sansChevauchement(disp, d, 'cas signalé');
+    const c = disp.couloirs.find((x) => x.de.salle === s5 || x.vers.salle === s5 && x.de.salle === s6);
+    const trajet = cheminCouloir(disp.couloirs.find((x) => [x.de.salle, x.vers.salle].includes(s6)));
+    verifier(c && trajet.length > 2, 'le couloir fait des virages');
+    couloirsPropres(disp, 'cas signalé');
+    egal(JSON.stringify(disposerPlan(d)), JSON.stringify(disp), 'même tracé à chaque calcul');
+  }],
+  ['couloirs : aucun ne traverse une salle, tous à angle droit, sur un grand donjon', () => {
+    couloirsPropres(disposerPlan(grande()), '12 salles');
   }],
 ];
 
