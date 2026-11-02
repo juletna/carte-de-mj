@@ -313,3 +313,7 @@ outils/serveur.py   serveur local sans cache
 ## Licence
 
 MIT. Voir `LICENSE`.
+
+Les polices de la Fiche (Atkinson Hyperlegible, Grenze Gotisch) sont embarquées dans `assets/polices/`, sous licence SIL Open Font License : voir les fichiers `OFL-*.txt` du même dossier.
+
+Outil non officiel, sans lien avec un éditeur de jeu.
