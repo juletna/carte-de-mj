@@ -1,0 +1,68 @@
+/* Présentation : écran de départ, régie du MJ et vue table. Complète css/style.css. */
+[hidden] { display: none !important; }
+
+body.presentation { display: block; height: auto; min-height: 100vh; }
+body.presentation a { color: var(--accent); }
+
+/* --- Écran de départ --- */
+#depart { max-width: 680px; margin: 0 auto; padding: 28px max(16px, env(safe-area-inset-left)) 40px; }
+#depart h2 { margin-top: 28px; }
+.liste-depart { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.liste-depart li { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 10px 12px; background: var(--panneau); border: 1px solid var(--bord); border-radius: var(--rayon); }
+.liste-depart .infos { flex: 1 1 200px; min-width: 0; }
+.liste-depart .infos b { display: block; overflow-wrap: anywhere; }
+.liste-depart .infos span { color: var(--texte-doux); font-size: 13px; }
+.liste-depart .en-cours { color: #7cc47c; }
+.liste-depart .boutons { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* --- Régie --- */
+#regie { display: grid; grid-template-columns: 360px minmax(0, 1fr); height: 100vh; }
+#principal { display: flex; flex-direction: column; min-width: 0; min-height: 0; background: #0c0b0e; }
+#principal #scene { flex: 1; display: flex; overflow: auto; min-height: 0; }
+#principal #support { margin: auto; padding: 24px; flex: none; }
+#support .cadre { display: inline-block; }
+#support.sur-table #carte { outline: 3px solid #4f9a5c; outline-offset: 6px; }
+#support.consultation #carte { outline: 3px dashed var(--accent); outline-offset: 6px; }
+
+#bandeau { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 10px 16px; border-bottom: 1px solid var(--bord); font-size: 15px; }
+#bandeau.sur-table { background: #14281a; border-bottom-color: #2f6b3a; }
+#bandeau.consultation { background: #33280a; border-bottom-color: #8a6d17; }
+#bandeau .texte { flex: 1 1 260px; min-width: 0; overflow-wrap: anywhere; }
+#bandeau .pastille { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; margin-right: 6px; }
+#bandeau.sur-table .pastille { background: #4f9a5c; color: #06140a; }
+#bandeau.consultation .pastille { background: var(--accent); color: var(--accent-texte); }
+#bandeau .actions { margin: 0; }
+
+.bloc-table, .cette-salle { border: 1px solid var(--bord); border-radius: var(--rayon); padding: 10px; }
+.bloc-table h2, .cette-salle h2 { margin-bottom: 4px; }
+.croix { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+.croix button { min-width: 40px; }
+.defilement { margin-top: 8px; font-size: 14px; }
+
+.liste-portes { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.liste-portes button { width: 100%; text-align: left; font-weight: 400; font-size: 13px; padding: 5px 8px; }
+.liste-portes .cachee { opacity: 0.75; font-style: italic; }
+
+.notes-lecture { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14px; padding: 8px 10px; background: #121116; border: 1px solid var(--bord); border-radius: var(--rayon); max-height: 220px; overflow: auto; }
+.notes-lecture.vide { color: var(--texte-doux); font-style: italic; }
+.selection .actions label { display: flex; align-items: center; gap: 6px; }
+.selection input[type="checkbox"] { accent-color: var(--accent); }
+.suit { display: flex; align-items: center; gap: 6px; margin-top: 8px; }
+
+/* --- Vue table : la carte seule --- */
+body.vue-table { overflow: hidden; background: #000; }
+#ecran-table { position: fixed; inset: 0; background: #000; z-index: 50; }
+#vue-table { position: absolute; inset: 0; overflow: auto; display: flex; scrollbar-width: none; }
+#vue-table::-webkit-scrollbar { display: none; }
+#carte-table { display: block; margin: auto; flex: none; }
+#attente { position: absolute; inset: 0; margin: 0; display: grid; place-items: center; padding: 24px; text-align: center; color: var(--texte-doux); font-size: 20px; background: #000; }
+.coin { position: fixed; top: 12px; opacity: 0; transition: opacity 0.2s; z-index: 2; }
+.coin-droite { right: 12px; }
+.coin-gauche { left: 12px; }
+#ecran-table:hover .coin { opacity: 0.4; }
+.coin:hover, .coin:focus-visible { opacity: 1 !important; }
+
+@media (max-width: 760px) {
+  #regie { grid-template-columns: 1fr; grid-template-rows: auto minmax(70vh, auto); height: auto; }
+  #principal #scene { min-height: 60vh; }
+}

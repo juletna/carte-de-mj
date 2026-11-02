@@ -139,17 +139,17 @@ export function construirePlan({ largeur: W, longueur: L, sol, intentions, grain
       else if (pos.zone === 'entree') mur = entree;
       else if (pos.zone === 'lateral') mur = (pos.cote === 'gauche' ? GAUCHE : DROITE)[entree];
       else mur = ordreDefaut[Math.min(defaut++, 3)];
-      parMur[mur].push({ type: it.type, position: pos.positionMur }); // position : seulement si précisée
+      parMur[mur].push({ type: it.type, position: pos.positionMur, cache: it.cache }); // position : seulement si précisée
     }
   }
   for (const [mur, liste] of Object.entries(parMur)) {
     const long = mur === 'nord' || mur === 'sud' ? W : L;
-    const ajouter = (position, type) => plan.portes.push({ id: `p${plan.portes.length + 1}`, mur, position, type });
+    const ajouter = (position, type, cache) => plan.portes.push({ id: `p${plan.portes.length + 1}`, mur, position, type, ...(cache ? { cache: true } : {}) });
     const prises = new Set();
     for (const d of liste.filter((e) => e.position !== undefined)) {
       const position = Math.min(long - 1, d.position);
       prises.add(position);
-      ajouter(position, d.type);
+      ajouter(position, d.type, d.cache);
     }
     // Les autres portes se répartissent sur ce mur, sans tomber sur une porte déjà placée.
     const libres = liste.filter((e) => e.position === undefined);
@@ -157,7 +157,7 @@ export function construirePlan({ largeur: W, longueur: L, sol, intentions, grain
       let position = voulue;
       while (prises.has(position) && position < long - 1) position++;
       prises.add(position);
-      ajouter(position, libres[k].type);
+      ajouter(position, libres[k].type, libres[k].cache);
     });
   }
   for (const p of plan.portes) {
@@ -192,10 +192,12 @@ export function construirePlan({ largeur: W, longueur: L, sol, intentions, grain
       const numero = plan.creatures.filter((k) => k.type === def.type).length + 1;
       const k = { id: `c${plan.creatures.length + 1}`, type: def.type, camp: def.camp, x: c[0], y: c[1], taille: l, numero };
       if (def.couleur) k.couleur = def.couleur;
+      if (def.cache) k.cache = true;
       plan.creatures.push(k);
       return k;
     }
     const o = { id: `o${plan.objets.length + 1}`, type: def.type, x: c[0], y: c[1], l, h, rotation };
+    if (def.cache) o.cache = true;
     plan.objets.push(o);
     return o;
   }
@@ -449,7 +451,7 @@ export function construirePlan({ largeur: W, longueur: L, sol, intentions, grain
   for (const it of objets) {
     if (it.position.etendue) it.n = 1;
     if (it.position.cases) it.n = Math.max(it.n, it.position.cases.length);
-    const def = { ...definition(it.type), camp: it.camp, couleur: it.couleur };
+    const def = { ...definition(it.type), camp: it.camp, couleur: it.couleur, cache: it.cache };
     const cote = Math.max(1, def.l + it.taille); // une créature reste carrée, même rapetissée
     const l = Math.min(W, def.genre === 'creature' ? cote : def.l + it.taille);
     const h = Math.min(L, def.genre === 'creature' ? cote : def.h + it.taille);

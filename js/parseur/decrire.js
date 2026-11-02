@@ -28,10 +28,13 @@ function accord(mot, type, n) {
   return `${mot}${FEMININS.has(type) ? 'e' : ''}${n > 1 ? 's' : ''}`;
 }
 
-/** Une porte : « une porte au mur sud en D », « une herse au mur est en 4 ». */
+/** Un élément secret : « caché », « cachés »… accordé comme le nom (voir ADJ_CACHE dans lexique.js). */
+const motCache = (type, n) => ` ${accord('caché', type, n)}`;
+
+/** Une porte : « une porte au mur sud en D », « une herse au mur est en 4 », « une porte secrète au mur nord en B ». */
 function decrirePorte(p) {
   const repere = p.mur === 'nord' || p.mur === 'sud' ? lettreColonne(p.position) : p.position + 1;
-  return `${quantite(p.type, 1)} ${p.type} au mur ${p.mur} en ${repere}`;
+  return `${quantite(p.type, 1)} ${p.type}${p.cache ? ' secrète' : ''} au mur ${p.mur} en ${repere}`;
 }
 
 /** « deux coffres en A1 C1 » ou, si la taille n'est pas celle par défaut, « un lit de A2 à B2 ». */
@@ -48,18 +51,20 @@ function decrireObjets(objets, regardDefaut) {
     const def = definition(o.type);
     const rotation = SYMETRIQUES.has(o.type) || o.rotation === regardDefaut ? null : o.rotation;
     const etendue = emplacement(o, o.l, o.h, def);
+    const cache = o.cache === true;
     const suite = rotation === null ? '' : (n) => ` ${accord('tourné', o.type, n)} vers ${DIRECTIONS[rotation]}`;
     if (etendue) {
-      seuls.push(`${quantite(o.type, 1)} ${nomAffiche(o.type)} ${etendue}${suite ? suite(1) : ''}`);
+      seuls.push(`${quantite(o.type, 1)} ${nomAffiche(o.type)}${cache ? motCache(o.type, 1) : ''} ${etendue}${suite ? suite(1) : ''}`);
     } else {
-      const cle = `${o.type}|${rotation}`;
-      if (!groupes.has(cle)) groupes.set(cle, { type: o.type, suite, cases: [] });
+      // Un élément caché n'est jamais regroupé avec un visible.
+      const cle = `${o.type}|${rotation}|${cache}`;
+      if (!groupes.has(cle)) groupes.set(cle, { type: o.type, suite, cache, cases: [] });
       groupes.get(cle).cases.push(nomCase(o.x, o.y));
     }
   }
-  const lignes = [...groupes.values()].map(({ type, suite, cases }) => {
+  const lignes = [...groupes.values()].map(({ type, suite, cache, cases }) => {
     const n = cases.length;
-    return `${quantite(type, n)} ${nomAffiche(type, n)} en ${cases.join(' ')}${suite ? suite(n) : ''}`;
+    return `${quantite(type, n)} ${nomAffiche(type, n)}${cache ? motCache(type, n) : ''} en ${cases.join(' ')}${suite ? suite(n) : ''}`;
   });
   return [...lignes, ...seuls];
 }
@@ -71,6 +76,7 @@ function qualificatifs(k, n) {
   if (k.camp !== definition(k.type).camp) {
     mots.push(k.camp === 'monstre' ? `hostile${n > 1 ? 's' : ''}` : accord('allié', k.type, n));
   }
+  if (k.cache) mots.push(accord('caché', k.type, n).trim());
   return mots.length ? ` ${mots.join(' ')}` : '';
 }
 
@@ -82,7 +88,7 @@ function decrireCreatures(creatures) {
   for (const k of tries) {
     const def = definition(k.type);
     const etendue = emplacement(k, k.taille, k.taille, def);
-    const identite = `${k.type}|${k.camp}|${k.couleur || ''}`;
+    const identite = `${k.type}|${k.camp}|${k.couleur || ''}|${k.cache === true}`;
     if (etendue) {
       lignes.push(`${quantite(k.type, 1)} ${nomAffiche(k.type)}${qualificatifs(k, 1)} ${etendue}`);
       groupe = null;

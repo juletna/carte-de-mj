@@ -111,6 +111,12 @@ export const PORTES = {
   arche: 'arche', passage: 'arche', ouverture: 'arche', arcade: 'arche',
 };
 
+/**
+ * Adjectifs qui rendent un élément secret (« un coffre caché », « une porte secrète »),
+ * sans accents comme le texte normalisé. Ils produisent `cache: true` dans le plan.
+ */
+export const ADJ_CACHE = new Set(['cache', 'cachee', 'caches', 'cachees', 'secret', 'secrete', 'secrets', 'secretes']);
+
 /** Adjectifs qui agrandissent un objet d'une case (« une grande table »). */
 export const ADJ_GRAND = new Set(['grand', 'grande', 'grands', 'grandes', 'large', 'larges', 'immense', 'immenses', 'enorme', 'enormes']);
 

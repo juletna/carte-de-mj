@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Présenter un donjon · Carte de MJ</title>
+  <meta name="description" content="Ouvrez un donjon préparé et montrez-le à la table : régie du MJ et carte en grand pour les joueurs.">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/presentation.css">
+</head>
+<body class="presentation">
+
+  <!-- Écran de départ : choisir le donjon à présenter -->
+  <main id="depart" hidden>
+    <header>
+      <h1>Présenter un donjon</h1>
+      <p class="sous-titre">Ouvrez un donjon déjà préparé. La partie se joue sur une copie : votre préparation n'est jamais modifiée.</p>
+      <p class="note"><a href="index.html">← Accueil</a> · <a href="donjon.html">Préparer un donjon</a></p>
+    </header>
+
+    <section aria-labelledby="titre-biblio">
+      <h2 id="titre-biblio">Donjons de ce navigateur</h2>
+      <ul id="liste-donjons" class="liste-depart"></ul>
+      <p id="biblio-vide" class="note" hidden>Aucun donjon enregistré ici. Préparez-en un dans <a href="donjon.html">l'outil Donjon</a>, ou ouvrez un fichier exporté ci-dessous.</p>
+    </section>
+
+    <section id="orphelines-presentations" aria-labelledby="titre-orphelines" hidden>
+      <h2 id="titre-orphelines">Autres parties en cours</h2>
+      <p class="note">Parties dont le donjon n'est plus dans ce navigateur (fichier ouvert, ou donjon supprimé).</p>
+      <ul id="liste-orphelines" class="liste-depart"></ul>
+    </section>
+
+    <section aria-labelledby="titre-fichier">
+      <h2 id="titre-fichier">Ou ouvrir un fichier exporté</h2>
+      <p class="note">Le fichier n'est pas ajouté à la bibliothèque du Donjon : il sert seulement à cette présentation.</p>
+      <div class="actions"><label class="bouton">Choisir un fichier… <input id="fichier" type="file" accept=".json,application/json" hidden></label></div>
+      <ul id="liste-fichier" class="liste-depart"></ul>
+      <p id="erreur-fichier" class="note erreur" hidden></p>
+    </section>
+  </main>
+
+  <!-- Régie : l'écran du MJ -->
+  <div id="regie" hidden>
+    <aside id="panneau">
+      <header>
+        <h1>Régie</h1>
+        <p class="sous-titre"><span id="nom-donjon"></span></p>
+        <p class="note"><a href="index.html">← Accueil</a> · <button id="quitter" type="button" class="discret petit">Changer de donjon</button></p>
+      </header>
+
+      <section class="bloc-table" aria-label="Table">
+        <h2>Table</h2>
+        <div class="actions">
+          <button id="ouvrir-table" type="button" title="Ouvre presentation.html?vue=table dans une nouvelle fenêtre, à glisser sur l'écran de la table">Ouvrir la fenêtre table</button>
+          <button id="plein-ici" type="button" title="Montre la vue table en plein écran sur cet écran">Plein écran ici</button>
+        </div>
+        <p id="message-table" class="note" hidden></p>
+        <details class="defilement">
+          <summary>Faire défiler la vue table</summary>
+          <p class="note">Utile si la carte dépasse l'écran de la table. Vous pouvez aussi réduire la taille d'une case dans les réglages.</p>
+          <div class="croix" role="group" aria-label="Faire défiler la vue table">
+            <button type="button" class="discret" data-defiler="0,-1" aria-label="Vers le haut">↑</button>
+            <button type="button" class="discret" data-defiler="-1,0" aria-label="Vers la gauche">←</button>
+            <button type="button" class="discret" data-defiler="0,0" aria-label="Recentrer" title="Recentrer">⌖</button>
+            <button type="button" class="discret" data-defiler="1,0" aria-label="Vers la droite">→</button>
+            <button type="button" class="discret" data-defiler="0,1" aria-label="Vers le bas">↓</button>
+          </div>
+        </details>
+      </section>
+
+      <section id="selection" class="selection" aria-live="polite" hidden></section>
+
+      <section class="cette-salle" aria-label="Cette salle">
+        <h2>Cette salle</h2>
+        <p id="comptage-caches" class="note"></p>
+        <div class="actions"><button id="reveler-tout" type="button">Révéler toute la salle</button></div>
+        <p class="note">Portes de la salle :</p>
+        <ul id="liste-portes" class="liste-portes"></ul>
+      </section>
+
+      <details class="bloc" open>
+        <summary><h2>Salles</h2></summary>
+        <div id="minicarte" class="minicarte" role="region" aria-label="Mini-carte du donjon"></div>
+        <p class="note">Contour plein : salle découverte. Pointillés : non découverte. Étiquette verte : salle à la table.
+          Cliquer une salle la consulte seulement ; elle n'est montrée aux joueurs qu'avec « Afficher à la table ».</p>
+      </details>
+
+      <details class="bloc">
+        <summary><h2>Notes de la salle</h2></summary>
+        <div id="notes" class="notes-lecture" tabindex="0" role="region" aria-label="Notes du MJ pour cette salle (lecture seule)"></div>
+      </details>
+
+      <details class="bloc reglages">
+        <summary><h2>Réglages</h2></summary>
+        <label class="ligne">Taille d'une case
+          <span><input id="taille" type="range" min="16" max="160" step="1" value="48"> <output id="taille-val">48 px</output></span>
+        </label>
+        <label class="ligne case"><input id="grille" type="checkbox" checked> Afficher la grille</label>
+        <label class="ligne case"><input id="reperes" type="checkbox" checked> Afficher les repères (A, B… et 1, 2…)</label>
+        <label class="ligne case"><input id="ajuster" type="checkbox" checked> Adapter la carte de la régie à la fenêtre</label>
+        <p class="note">La taille d'une case est celle de la table (réglage partagé avec le Donjon, où se fait le calibrage avec une carte bancaire).
+          « Adapter » ne change que l'affichage de cette régie.</p>
+      </details>
+
+      <footer class="note">Projet libre (MIT) · fonctionne hors ligne</footer>
+    </aside>
+
+    <main id="principal">
+      <div id="bandeau" role="status"></div>
+      <div id="scene">
+        <div id="support">
+          <canvas id="carte" aria-label="Carte de la salle consultée"></canvas>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Vue table : uniquement la carte. Fenêtre ?vue=table, ou « Plein écran ici » depuis la régie. -->
+  <div id="ecran-table" hidden>
+    <div id="vue-table" tabindex="-1">
+      <canvas id="carte-table" aria-label="Carte de la salle"></canvas>
+    </div>
+    <p id="attente" role="status" hidden></p>
+    <button id="retour-regie" type="button" class="coin coin-gauche" hidden>← Retour à la régie</button>
+    <button id="plein-ecran-table" type="button" class="coin coin-droite">⛶ Plein écran</button>
+  </div>
+
+  <script type="module" src="js/main-presentation.js"></script>
+</body>
+</html>

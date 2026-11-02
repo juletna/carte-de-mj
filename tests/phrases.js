@@ -173,4 +173,30 @@ PHRASES.push(
       },
     },
   },
+  {
+    phrase: 'salle de 6 cases sur 6, un coffre caché au fond, deux gobelins cachés, un gobelin, une porte secrète au mur nord, une porte au mur sud',
+    attendu: {
+      ignores: [],
+      portes: [{ mur: 'nord', cache: true }, { mur: 'sud' }],
+      verifier: (plan) => {
+        const coffre = plan.objets.filter((o) => o.type === 'coffre');
+        if (coffre.length !== 1 || coffre[0].cache !== true) return 'le coffre devrait être caché';
+        const g = plan.creatures.filter((k) => k.type === 'gobelin');
+        if (g.length !== 3 || g.filter((k) => k.cache).length !== 2) return 'deux gobelins sur trois devraient être cachés';
+        return true;
+      },
+    },
+  },
+  {
+    phrase: 'une pièce de 6 par 6 cases, des tonneaux secrets, deux tables cachées, un coffre',
+    attendu: {
+      ignores: [],
+      verifier: (plan) => {
+        const cache = (t) => plan.objets.filter((o) => o.type === t).map((o) => o.cache === true);
+        if (!cache('tonneau').length || !cache('tonneau').every(Boolean)) return 'les tonneaux secrets devraient être cachés';
+        if (cache('table').length !== 2 || !cache('table').every(Boolean)) return 'les deux tables devraient être cachées';
+        return cache('coffre').length === 1 && !cache('coffre')[0] ? true : 'le coffre devrait rester visible, sans champ cache';
+      },
+    },
+  },
 );

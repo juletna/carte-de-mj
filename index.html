@@ -2,91 +2,48 @@
 <html lang="fr">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Carte de MJ</title>
-  <meta name="description" content="Décrivez une pièce, la carte s'affiche sur une grille pour vos figurines.">
-  <link rel="stylesheet" href="css/style.css">
+  <meta name="description" content="Trois outils de jeu de rôle indépendants : une fiche de personnage, un préparateur de donjon et un écran de table.">
+  <style>
+    /* Même palette que css/style.css (variables recopiées : cette page n'embarque pas la mise en page à deux colonnes). */
+    :root { --fond: #16151a; --panneau: #1f1e24; --bord: #34323b; --texte: #e8e4dc; --texte-doux: #a29d94; --accent: #d9a929; --rayon: 6px; color-scheme: dark; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; background: var(--fond); color: var(--texte); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+    main { max-width: 560px; margin: 0 auto; padding: 32px max(16px, env(safe-area-inset-right)) 32px max(16px, env(safe-area-inset-left)); }
+    h1 { margin: 0; font-size: 28px; letter-spacing: 0.02em; }
+    .sous-titre { margin: 4px 0 24px; color: var(--texte-doux); }
+    .choix { display: flex; flex-direction: column; gap: 12px; }
+    .outil { display: block; padding: 16px; background: var(--panneau); border: 1px solid var(--bord); border-radius: var(--rayon); color: inherit; text-decoration: none; }
+    a.outil:hover, a.outil:focus-visible { border-color: var(--accent); }
+    a.outil:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .outil b { display: block; font-size: 18px; color: var(--accent); }
+    .outil span { color: var(--texte-doux); }
+    .outil.bientot { opacity: 0.55; }
+    .outil.bientot b { color: var(--texte); }
+    .outil.bientot em { font-style: normal; font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; border: 1px solid var(--bord); border-radius: 10px; padding: 1px 8px; margin-left: 6px; vertical-align: 2px; }
+    footer { margin-top: 24px; font-size: 13px; color: var(--texte-doux); }
+  </style>
 </head>
 <body>
-  <aside id="panneau">
-    <header>
-      <h1>Carte de MJ</h1>
-      <p class="sous-titre">Décrivez la pièce, la carte suit.</p>
-    </header>
-
-    <section class="saisie">
-      <label for="description">Description</label>
-      <p class="note astuce">Déplacez pions, objets et portes sur la carte : la description et le JSON suivent.</p>
-      <textarea id="description" rows="5" spellcheck="false"
-        placeholder="Ex. : grande pièce de 4 m par 12, quatre piliers, deux coffres au fond de la salle, une statue devant une porte"></textarea>
-      <div class="actions">
-        <button id="micro" type="button" title="Dicter la description">🎙️ Dicter</button>
-        <button id="effacer" type="button" class="discret">Effacer</button>
-      </div>
-      <p id="message-micro" class="note" hidden></p>
-      <details class="exemples">
-        <summary>Exemples</summary>
-        <ul id="exemples"></ul>
-      </details>
-    </section>
-
-    <section class="retour">
-      <h2>Compris</h2>
-      <ul id="compris"></ul>
-      <p id="ignores" class="note" hidden></p>
-      <div class="actions">
-        <button id="annuler" type="button" class="discret" hidden
-          title="Revient à la description d'avant le dernier déplacement">↩ Annuler le déplacement</button>
-        <button id="copier-rapport" type="button" class="discret"
-          title="Copie la description, ce qui a été compris, les mots ignorés et la carte en texte">📋 Copier pour signaler</button>
-      </div>
-      <p id="message-copie" class="note" hidden></p>
-    </section>
-
-    <section class="reglages">
-      <h2>Réglages</h2>
-      <label class="ligne">Échelle
-        <span><input id="echelle" type="number" min="0.5" max="5" step="0.5" value="1.5"> m par case</span>
-      </label>
-      <label class="ligne">Taille d'une case
-        <span><input id="taille" type="range" min="16" max="160" step="1" value="48"> <output id="taille-val">48 px</output></span>
-      </label>
-      <label class="ligne case"><input id="grille" type="checkbox" checked> Afficher la grille</label>
-      <label class="ligne case"><input id="calibrage" type="checkbox"> Calibrer avec une carte bancaire</label>
-      <p id="aide-calibrage" class="note" hidden>
-        Posez une carte bancaire sur l'écran et ajustez « Taille d'une case » jusqu'à ce que le rectangle
-        pointillé ait exactement sa taille. Une case fera alors 2,5 cm.
-      </p>
-      <div class="actions">
-        <button id="plein-ecran" type="button">⛶ Plein écran (table)</button>
-      </div>
-    </section>
-
-    <section class="fichiers">
-      <h2>Fichiers</h2>
-      <div class="actions">
-        <button id="exporter" type="button">Exporter</button>
-        <label class="bouton">Importer <input id="importer" type="file" accept=".json,application/json" hidden></label>
-      </div>
-      <details>
-        <summary>Plan JSON (modifiable)</summary>
-        <textarea id="json" rows="12" spellcheck="false"></textarea>
-        <div class="actions"><button id="appliquer-json" type="button">Appliquer le JSON</button></div>
-        <p id="erreurs-json" class="note erreur" hidden></p>
-      </details>
-    </section>
-
-    <footer class="note">Projet libre (MIT) · fonctionne hors ligne au clavier</footer>
-  </aside>
-
-  <main id="scene">
-    <div id="support">
-      <canvas id="carte" aria-label="Carte de la pièce"></canvas>
-      <div id="carte-ref" hidden></div>
-    </div>
-    <button id="quitter-plein-ecran" type="button" hidden>Quitter le plein écran</button>
+  <main>
+    <h1>Carte de MJ</h1>
+    <p class="sous-titre">Trois outils de jeu de rôle. Chacun s'utilise seul, sans compte ni réseau.</p>
+    <nav class="choix" aria-label="Outils">
+      <a class="outil" href="fiche.html">
+        <b>Ma fiche</b>
+        <span>La fiche de ton personnage sur téléphone, avec jets de dés et suivi des PV. Elle s'utilise seule.</span>
+      </a>
+      <a class="outil" href="donjon.html">
+        <b>Préparer un donjon</b>
+        <span>Décris une salle en français, la carte s'affiche sur une grille. Il s'utilise seul.</span>
+      </a>
+      <a class="outil" href="presentation.html">
+        <b>Présenter un donjon</b>
+        <span>Ouvre un donjon déjà prêt : régie pour le MJ, carte en grand pour la table. Il s'utilise seul.</span>
+      </a>
+    </nav>
+    <footer>Projet libre (MIT) · les données restent dans ton navigateur</footer>
   </main>
-
-  <script type="module" src="js/main-mj.js"></script>
 </body>
 </html>

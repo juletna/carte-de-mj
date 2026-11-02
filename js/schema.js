@@ -14,6 +14,9 @@
  *   "connexions": []                    // V3 : [{ "porte": "p1", "vers": "salle-2" }]
  * }
  *
+ * cache (facultatif, sur une porte, un objet ou une créature) : true = élément secret,
+ * à ne pas montrer aux joueurs. Il reste visible dans la vue MJ (dessiné en translucide).
+ *
  * camp d'une créature : pj, pnj ou monstre ; taille = côté du pion en cases ;
  * couleur (facultative) : rouge, bleu, vert… (voir COULEURS dans lexique.js).
  * rotation : direction du regard de l'objet (0 nord, 90 est, 180 sud, 270 ouest).
@@ -31,6 +34,8 @@ const CAMPS = ['pj', 'pnj', 'monstre'];
 const MAX = 60;
 
 const entier = (v) => Number.isInteger(v);
+/** `cache: true` conservé tel quel ; toute autre valeur est ignorée (le champ n'existe alors pas). */
+const marqueCache = (e) => (e?.cache === true ? { cache: true } : {});
 
 /**
  * Valide (et corrige quand c'est sans risque) un plan venant d'un fichier
@@ -62,7 +67,7 @@ export function validerPlan(brut) {
     const long = p?.mur === 'nord' || p?.mur === 'sud' ? W : L;
     if (!MURS.includes(p?.mur)) return erreurs.push(`porte ${i + 1} : mur inconnu « ${p?.mur} »`);
     if (!entier(p.position) || p.position < 0 || p.position >= long) return erreurs.push(`porte ${i + 1} : position hors du mur`);
-    plan.portes.push({ id: String(p.id || `p${i + 1}`), mur: p.mur, position: p.position, type: TYPES_PORTES.has(p.type) ? p.type : 'porte' });
+    plan.portes.push({ id: String(p.id || `p${i + 1}`), mur: p.mur, position: p.position, type: TYPES_PORTES.has(p.type) ? p.type : 'porte', ...marqueCache(p) });
   });
 
   (Array.isArray(brut.objets) ? brut.objets : []).forEach((o, i) => {
@@ -72,7 +77,7 @@ export function validerPlan(brut) {
       return erreurs.push(`objet ${i + 1} (${o.type}) : hors de la pièce`);
     }
     const rotation = ((Math.round((Number(o.rotation) || 0) / 90) * 90) % 360 + 360) % 360;
-    plan.objets.push({ id: String(o.id || `o${i + 1}`), type: o.type, x: o.x, y: o.y, l, h, rotation });
+    plan.objets.push({ id: String(o.id || `o${i + 1}`), type: o.type, x: o.x, y: o.y, l, h, rotation, ...marqueCache(o) });
   });
 
   const numeros = {};
@@ -89,6 +94,7 @@ export function validerPlan(brut) {
       x: k.x, y: k.y, taille, numero: entier(k.numero) ? k.numero : numeros[k.type],
     };
     if (COULEURS[k.couleur]) c.couleur = k.couleur;
+    Object.assign(c, marqueCache(k));
     plan.creatures.push(c);
   });
 

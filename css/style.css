@@ -126,3 +126,75 @@ output { min-width: 52px; text-align: right; font-variant-numeric: tabular-nums;
   #panneau { border-right: 0; border-bottom: 1px solid var(--bord); }
   #scene { min-height: 70vh; }
 }
+
+/* --- Donjon : plusieurs salles, sélection, mini-carte --- */
+.doux { font-weight: 400; color: var(--texte-doux); overflow-wrap: anywhere; }
+.donjons > label { font-weight: 600; margin-bottom: 6px; }
+select, input[type="text"] {
+  width: 100%;
+  min-width: 0;
+  background: #121116;
+  color: var(--texte);
+  border: 1px solid var(--bord);
+  border-radius: var(--rayon);
+  padding: 7px 10px;
+  font: inherit;
+}
+select:focus, input[type="text"]:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.donjons input[type="text"] { margin-top: 6px; }
+
+/* Blocs repliables du panneau */
+details.bloc > summary { cursor: pointer; list-style: none; display: flex; align-items: center; gap: 6px; }
+details.bloc > summary::-webkit-details-marker { display: none; }
+details.bloc > summary::before { content: '▸'; color: var(--texte-doux); font-size: 12px; }
+details.bloc[open] > summary::before { content: '▾'; }
+details.bloc > summary h2 { margin: 0; }
+details.bloc[open] > summary { margin-bottom: 6px; }
+details.bloc summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+button.danger { background: var(--erreur); color: #fff; border-color: var(--erreur); }
+button.petit { padding: 4px 8px; font-size: 13px; }
+
+.salles-liste { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.salles-liste li { display: flex; gap: 6px; align-items: center; padding: 4px; border-radius: var(--rayon); border: 1px solid transparent; }
+.salles-liste li.actif { border-color: var(--accent); background: rgba(217, 169, 41, 0.1); }
+.salles-liste button { padding: 5px 8px; font-size: 13px; flex: none; }
+
+.selection { border: 1px solid var(--accent); border-radius: var(--rayon); padding: 10px; }
+.selection > p { margin: 4px 0; }
+.selection-titre { font-weight: 600; overflow-wrap: anywhere; }
+.ligne-relier { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+.ligne-relier select { flex: 1 1 120px; width: auto; }
+.orpheline { border: 1px dashed var(--erreur); border-radius: var(--rayon); padding: 8px; margin-top: 8px; }
+.orpheline p { margin: 0 0 6px; }
+#orphelines strong { color: var(--texte); }
+
+/* La mini-carte défile dans son cadre : jamais de défilement horizontal de la page. */
+.minicarte { margin-top: 10px; overflow: auto; max-width: 100%; border: 1px solid var(--bord); border-radius: var(--rayon); background: #121116; }
+.minicarte-svg { display: block; max-width: none; font: 15px system-ui, sans-serif; }
+.minicarte-svg .lien { stroke: var(--texte-doux); stroke-width: 3; }
+.minicarte-svg .lien.orpheline { stroke: var(--erreur); stroke-dasharray: 6 5; }
+.minicarte-svg .salle { cursor: pointer; }
+.minicarte-svg .salle rect { fill: #2a2830; stroke: var(--bord); stroke-width: 2; }
+.minicarte-svg .salle:hover rect { stroke: var(--texte-doux); }
+.minicarte-svg .salle.actif rect { fill: #4a3d12; stroke: var(--accent); stroke-width: 3; }
+.minicarte-svg .salle text { fill: var(--texte); pointer-events: none; }
+.minicarte-svg .salle:focus { outline: none; }
+.minicarte-svg .salle:focus-visible rect { stroke: #fff; stroke-width: 3; stroke-dasharray: 5 3; }
+.minicarte-svg .porte { fill: #2a6fdb; stroke: #f4efe4; stroke-width: 1.5; }
+.minicarte-svg .etiquette { fill: var(--texte-doux); font-size: 13px; }
+
+@media (max-width: 760px) {
+  body { overflow-x: hidden; }
+  #panneau { min-width: 0; }
+}
+
+/* --- Mini-carte en Présentation : découverte / non découverte, salle à la table --- */
+.minicarte-svg .salle.inconnue rect { fill: #1a191e; stroke-dasharray: 6 4; }
+.minicarte-svg .salle.inconnue text { fill: var(--texte-doux); }
+.minicarte-svg .salle text.statut { font-size: 11px; fill: var(--texte-doux); }
+.minicarte-svg .salle.table rect { stroke: #7cc47c; stroke-width: 3; }
+.minicarte-svg .salle.table.actif rect { stroke: var(--accent); }
+.minicarte-svg .salle text.etiquette-table { font-size: 11px; font-weight: 700; fill: #7cc47c; }
+
+a.bouton { text-decoration: none; display: inline-block; }

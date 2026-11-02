@@ -6,11 +6,20 @@
  * Il revient à sa place s'il finit hors de la pièce ou sur un élément qui
  * le gêne. Une porte glisse le long des murs et peut changer de mur.
  *
+ * Un appui sans glissement réel (le pointeur bouge de moins de SEUIL_GLISSEMENT px)
+ * n'est pas un déplacement : c'est un clic, signalé à `cliquer` (élément touché, ou
+ * null si on a appuyé dans le vide).
+ *
+ * Option `deplacables` (liste de genres : 'creature', 'objet', 'porte') : seuls ces genres se
+ * déplacent ; les autres restent cliquables (signalés à `cliquer`) mais ne bougent jamais.
+ * Sans cette option, tout se déplace (comportement de donjon.html).
+ *
  * Ce module ne modifie rien : il propose un nouveau plan à `deposer`.
  */
 import { MARGE } from './rendu/moteur.js';
 import { definition } from './parseur/lexique.js';
 
+const SEUIL_GLISSEMENT = 4; // px : en dessous, c'est un clic
 const REGARD = { nord: 180, sud: 0, ouest: 90, est: 270 }; // dos au mur, vers l'intérieur
 const SOUS_LES_AUTRES = new Set(['fosse', 'debris']);
 
@@ -50,10 +59,14 @@ function porteSous(cx, cy, plan) {
  *   taille: () => number,               côté d'une case en px CSS
  *   apercu: (plan: object) => void,     redessine sans rien enregistrer
  *   deposer: (plan: object) => void     déplacement validé : le nouveau plan
+ *   cliquer?: (touche: {genre: string, element: object} | null) => void
+ *                                       appui sans glissement ; sans ce rappel, tout appui est un déplacement
+ *   deplacables?: string[]              genres qui peuvent bouger (par défaut : tous)
  * }} options
  */
-export function activerDeplacement(canvas, { plan, taille, apercu, deposer }) {
-  let prise = null; // { genre, element, decalX, decalY, x, y } ou, pour une porte, { mur, position }
+export function activerDeplacement(canvas, { plan, taille, apercu, deposer, cliquer, deplacables }) {
+  const peutBouger = (genre) => !deplacables || deplacables.includes(genre);
+  let prise = null; // { genre, element, depart, glisse, decalX, decalY, x, y } ou, pour une porte, { mur, position }
   let image = 0;
 
   function enCases(e) {
@@ -95,21 +108,29 @@ export function activerDeplacement(canvas, { plan, taille, apercu, deposer }) {
     if (e.button !== 0) return;
     const [cx, cy] = enCases(e);
     const trouve = elementSous(cx, cy);
-    if (!trouve) return;
+    if (!trouve) { cliquer?.(null); return; }
+    const { genre, element } = trouve;
+    if (!peutBouger(genre) && !cliquer) return; // ni déplaçable ni cliquable : on ignore
     e.preventDefault();
     canvas.setPointerCapture(e.pointerId);
-    const { genre, element } = trouve;
+    const commun = { genre, element, depart: [e.clientX, e.clientY], glisse: !cliquer, fixe: !peutBouger(genre) };
     prise = genre === 'porte'
-      ? { genre, element, mur: element.mur, position: element.position }
-      : { genre, element, decalX: cx - element.x, decalY: cy - element.y, x: element.x, y: element.y };
+      ? { ...commun, mur: element.mur, position: element.position }
+      : { ...commun, decalX: cx - element.x, decalY: cy - element.y, x: element.x, y: element.y };
     canvas.style.cursor = 'grabbing';
   });
 
   canvas.addEventListener('pointermove', (e) => {
     const [cx, cy] = enCases(e);
     if (!prise) {
-      canvas.style.cursor = elementSous(cx, cy) ? 'grab' : '';
+      const sous = elementSous(cx, cy);
+      canvas.style.cursor = sous ? (peutBouger(sous.genre) ? 'grab' : 'pointer') : '';
       return;
+    }
+    if (prise.fixe) return; // cet élément ne bouge pas : seul le clic compte
+    if (!prise.glisse) {
+      if (Math.hypot(e.clientX - prise.depart[0], e.clientY - prise.depart[1]) < SEUIL_GLISSEMENT) return;
+      prise.glisse = true;
     }
     if (prise.genre === 'porte') {
       prise.mur = murProche(cx, cy, plan());
@@ -150,9 +171,17 @@ export function activerDeplacement(canvas, { plan, taille, apercu, deposer }) {
     return planAvec({ x, y });
   }
 
-  function lacher() {
+  function lacher(e) {
     if (!prise) return;
-    const nouveau = planDepose();
+    if (!prise.glisse && e.type === 'pointerup') {
+      // Un clic : rien ne bouge, on signale l'élément touché.
+      const { genre, element } = prise;
+      prise = null;
+      canvas.style.cursor = '';
+      cliquer({ genre, element });
+      return;
+    }
+    const nouveau = prise.glisse ? planDepose() : null;
     prise = null;
     canvas.style.cursor = '';
     if (nouveau) deposer(nouveau);

@@ -16,7 +16,7 @@ import { convertirNombres } from './nombres.js';
 import { extraireDimensions, extraireSol } from './dimensions.js';
 import {
   trouverObjet, definition, nomAffiche, souderExpressions,
-  ADJ_GRAND, MOTS_VIDES, COULEURS, CAMPS, TAILLES_CREATURE,
+  ADJ_GRAND, ADJ_CACHE, MOTS_VIDES, COULEURS, CAMPS, TAILLES_CREATURE,
 } from './lexique.js';
 import { analyserPosition } from './positions.js';
 import { construirePlan } from './placement.js';
@@ -66,9 +66,10 @@ function analyserProposition(prop, intentions, ignores) {
     const creature = trouve.def.genre === 'creature';
 
     // Quantité et taille : on regarde jusqu'à 3 mots en arrière (« deux grands coffres »).
-    let n = null, taille = 0;
+    let n = null, taille = 0, cache = false;
     for (let j = i - 1; j >= Math.max(0, i - 3); j--) {
       if (trouverObjet(mots[j]) && !utilises.has(j)) break;
+      if (ADJ_CACHE.has(mots[j])) { cache = true; utilises.add(j); continue; }
       if (/^\d+(\.\d+)?$/.test(mots[j])) { n = Math.max(1, Math.round(parseFloat(mots[j]))); utilises.add(j); break; }
       if (ADJ_GRAND.has(mots[j])) { taille = 1; utilises.add(j); }
       if (creature && mots[j] in TAILLES_CREATURE) { taille += TAILLES_CREATURE[mots[j]]; utilises.add(j); }
@@ -79,6 +80,7 @@ function analyserProposition(prop, intentions, ignores) {
     for (let j = i + 1; j <= i + 3 && j < mots.length; j++) {
       const m = mots[j], sing = m.replace(/s$/, '');
       if (ADJ_GRAND.has(m)) { taille = 1; utilises.add(j); continue; }
+      if (ADJ_CACHE.has(m)) { cache = true; utilises.add(j); continue; }
       if (!creature) break;
       if (m in TAILLES_CREATURE) { taille += TAILLES_CREATURE[m]; utilises.add(j); continue; }
       if (COULEURS[m] || COULEURS[sing]) { couleur = m in COULEURS ? m : sing; utilises.add(j); continue; }
@@ -94,6 +96,7 @@ function analyserProposition(prop, intentions, ignores) {
 
     const intention = { genre: trouve.def.genre, type: trouve.def.type, n, taille, position };
     if (creature) Object.assign(intention, { camp, couleur });
+    if (cache) intention.cache = true;
     intentions.push(intention);
   }
 

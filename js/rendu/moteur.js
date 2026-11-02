@@ -14,13 +14,40 @@ export const MARGE = 1; // cases de roche autour de la pièce
 // Ordre de dessin : ce qui est au sol d'abord, ce qui est accroché aux murs en dernier.
 const COUCHE = { fosse: 0, debris: 1, torche: 9 };
 
+// Épaisseur des murs en cases (celle du thème vectoriel) : sert à situer une porte pour les repères.
+const EPAISSEUR_MUR = 0.32;
+
+/** Rectangle d'une porte dans le mur, en cases (origine : coin nord-ouest de la pièce). */
+export function rectPorte(plan, p) {
+  const e = EPAISSEUR_MUR;
+  return {
+    nord: { x: p.position, y: -e, l: 1, h: e },
+    sud: { x: p.position, y: plan.longueur, l: 1, h: e },
+    ouest: { x: -e, y: p.position, l: e, h: 1 },
+    est: { x: plan.largeur, y: p.position, l: e, h: 1 },
+  }[p.mur];
+}
+
+/** Rectangle occupé par un élément, en cases. */
+function rectDe(genre, e, plan) {
+  if (genre === 'porte') return rectPorte(plan, e);
+  if (genre === 'creature') return { x: e.x, y: e.y, l: e.taille, h: e.taille };
+  return { x: e.x, y: e.y, l: e.l, h: e.h };
+}
+
 /**
  * @param {HTMLCanvasElement} canvas
  * @param {object} plan     plan validé (voir schema.js)
- * @param {{taille?:number, grille?:boolean, theme?:object}} options
+ * @param {{taille?:number, grille?:boolean, theme?:object, marques?:object}} options
  *        taille = côté d'une case en pixels CSS
+ *        reperes = lettres et numéros dans la marge (par défaut : suit `grille`)
+ *        marques = repères d'interface dessinés par-dessus (le thème en décide l'apparence) :
+ *          portesReliees: [{mur, position}]            portes reliées à une autre salle
+ *          selection: {genre, element}                 élément sélectionné (porte, objet ou créature)
+ *        Les éléments `cache: true` (secrets) restent visibles dans la vue MJ : dessinés en
+ *        translucide avec un repère en pointillés.
  */
-export function dessiner(canvas, plan, { taille = 48, grille = true, theme = vectoriel } = {}) {
+export function dessiner(canvas, plan, { taille = 48, grille = true, theme = vectoriel, marques = {}, reperes = grille } = {}) {
   const t = taille;
   const largeurPx = (plan.largeur + 2 * MARGE) * t;
   const hauteurPx = (plan.longueur + 2 * MARGE) * t;
@@ -49,11 +76,25 @@ export function dessiner(canvas, plan, { taille = 48, grille = true, theme = vec
   auSol.forEach((o) => dessinerObjet(ctx, o, t, theme));
   if (grille) dessinerGrille(ctx, plan, t);
   theme.murs(ctx, plan, t);
-  if (grille) dessinerReperes(ctx, plan, t);
-  plan.portes.forEach((p) => theme.porte(ctx, p, plan, t));
+  if (reperes) dessinerReperes(ctx, plan, t);
+  plan.portes.forEach((p) => secret(ctx, p.cache, rectPorte(plan, p), t, theme, () => theme.porte(ctx, p, plan, t)));
   autres.forEach((o) => dessinerObjet(ctx, o, t, theme));
   // Les pions passent par-dessus tout le décor.
-  (plan.creatures || []).forEach((k) => theme.pion(ctx, k, t));
+  (plan.creatures || []).forEach((k) => secret(ctx, k.cache, rectDe('creature', k), t, theme, () => theme.pion(ctx, k, t)));
+
+  // Repères d'interface, tout au-dessus.
+  for (const p of marques.portesReliees || []) theme.marqueLiaison?.(ctx, rectPorte(plan, p), p.mur, t);
+  if (marques.selection) theme.marqueSelection?.(ctx, rectDe(marques.selection.genre, marques.selection.element, plan), t);
+}
+
+/** Dessine un élément ; s'il est secret, en translucide avec le repère en pointillés du thème. */
+function secret(ctx, cache, rect, t, theme, dessin) {
+  if (!cache) { dessin(); return; }
+  ctx.save();
+  ctx.globalAlpha = 0.5;
+  dessin();
+  ctx.restore();
+  theme.repereCache?.(ctx, rect, t);
 }
 
 /** Repères de cases dans la marge : lettres en haut, numéros à gauche (« C4 »). */
@@ -86,6 +127,10 @@ function dessinerGrille(ctx, plan, t) {
  * Ainsi chaque fonction de dessin n'a qu'une seule orientation à gérer.
  */
 function dessinerObjet(ctx, o, t, theme) {
+  secret(ctx, o.cache, { x: o.x, y: o.y, l: o.l, h: o.h }, t, theme, () => dessinerObjetOpaque(ctx, o, t, theme));
+}
+
+function dessinerObjetOpaque(ctx, o, t, theme) {
   const dessin = theme.objets[o.type] || theme.objets.inconnu;
   const quart = o.rotation === 90 || o.rotation === 270;
   const w = (quart ? o.h : o.l) * t; // dimensions dans le repère local

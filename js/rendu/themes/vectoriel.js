@@ -10,6 +10,11 @@
  *   objets[type](ctx, w, h, t, objet)     dessin centré sur (0, 0) ; w × h en pixels ;
  *                                         l'AVANT de l'objet est vers le bas (+y)
  *   pion(ctx, creature, t)                pion d'une créature, en coordonnées de la pièce
+ *
+ * Repères d'interface (facultatifs), rectangles { x, y, l, h } en CASES, origine au coin nord-ouest de la pièce :
+ *   repereCache(ctx, rect, t)             contour en pointillés d'un élément secret
+ *   marqueLiaison(ctx, rect, mur, t)      porte reliée à une autre salle
+ *   marqueSelection(ctx, rect, t)         élément sélectionné
  */
 import { CREATURES, COULEURS } from '../../parseur/lexique.js';
 
@@ -378,3 +383,45 @@ export const objets = {
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('?', 0, 0);
   },
 };
+
+// --- Repères d'interface -------------------------------------------------------
+
+/** Élément secret (déjà dessiné en translucide) : contour en pointillés. */
+export function repereCache(ctx, r, t) {
+  ctx.save();
+  ctx.strokeStyle = '#d6b8ff';
+  ctx.lineWidth = Math.max(1.5, t * 0.04);
+  ctx.setLineDash([t * 0.1, t * 0.08]);
+  ctx.beginPath();
+  ctx.roundRect(r.x * t - 2, r.y * t - 2, r.l * t + 4, r.h * t + 4, t * 0.1);
+  ctx.stroke();
+  ctx.restore();
+}
+
+/** Porte reliée : pastille bleue avec deux maillons, posée côté pièce. */
+export function marqueLiaison(ctx, r, mur, t) {
+  const dedans = { nord: [0, 1], sud: [0, -1], ouest: [1, 0], est: [-1, 0] }[mur];
+  const cx = (r.x + r.l / 2) * t + dedans[0] * t * 0.42;
+  const cy = (r.y + r.h / 2) * t + dedans[1] * t * 0.42;
+  const rayon = Math.max(6, t * 0.16);
+  ctx.save();
+  rond(ctx, cx, cy, rayon, '#2a6fdb', '#f4efe4', Math.max(1.5, t * 0.03));
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = Math.max(1.5, rayon * 0.28);
+  rond(ctx, cx - rayon * 0.28, cy, rayon * 0.4, null, '#fff', ctx.lineWidth);
+  rond(ctx, cx + rayon * 0.28, cy, rayon * 0.4, null, '#fff', ctx.lineWidth);
+  ctx.restore();
+}
+
+/** Sélection : cadre épais de la couleur d'accent, avec un halo. */
+export function marqueSelection(ctx, r, t) {
+  ctx.save();
+  ctx.shadowColor = 'rgba(217, 169, 41, 0.9)';
+  ctx.shadowBlur = t * 0.2;
+  ctx.strokeStyle = C.or;
+  ctx.lineWidth = Math.max(2.5, t * 0.07);
+  ctx.beginPath();
+  ctx.roundRect(r.x * t - 3, r.y * t - 3, r.l * t + 6, r.h * t + 6, t * 0.12);
+  ctx.stroke();
+  ctx.restore();
+}
