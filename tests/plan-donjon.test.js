@@ -250,7 +250,8 @@ const TESTS = [
     sansChevauchement(disp, d, 'cas signalé');
     const p = disp.positions;
     verifier(p[s6].x >= p[s5].x + p[s5].largeur + ECART_LIAISON, 'la salle 6 est à droite de la salle 5, à la distance normale');
-    verifier(p[s6].x + p[s6].largeur + ECART_MIN <= p[s1].x, 'la salle 6 est entre la salle 5 et la salle 1');
+    egal(p[s6].x - (p[s5].x + p[s5].largeur), ECART_LIAISON, 'écart à gauche de la salle 6');
+    egal(p[s1].x - (p[s6].x + p[s6].largeur), ECART_LIAISON, 'même écart à droite de la salle 6');
     egal(p[s6].y, p[s5].y, 'les portes de la 5 et de la 6 se font face');
     couloirsPropres(disp, 'cas signalé');
     egal(JSON.stringify(disposerPlan(d)), JSON.stringify(disp), 'même plan à chaque calcul');

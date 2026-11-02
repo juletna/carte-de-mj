@@ -68,7 +68,8 @@ function positionIdeale(A, dimA, ici, autre, dimB) {
 /**
  * Place la salle B derrière le mur `ici.mur` de la salle A, sans jamais la mettre d'un autre côté.
  * Si une salle gêne, A et tout ce qui est de son côté du mur reculent, juste assez : reculer ne peut créer aucun
- * chevauchement, puisque ces salles s'éloignent seulement de celles qui ne bougent pas. Modifie `rects`.
+ * chevauchement, puisque ces salles s'éloignent seulement de celles qui ne bougent pas. Devant B, on garde le même
+ * écart que derrière elle, pour que la salle soit bien au milieu de ses voisines. Modifie `rects`.
  */
 function placerDerriere(rects, A, ici, autre, dimB) {
   const mur = ici.mur;
@@ -80,12 +81,14 @@ function placerDerriere(rects, A, ici, autre, dimB) {
   const duCoteDeA = liste.filter((o) => (avance ? o[debut] + o[taille] <= coupure : o[debut] >= coupure));
   const ideal = positionIdeale(A, { l: A.l, h: A.h }, ici, autre, dimB);
   const r = { x: ideal.x, y: ideal.y, l: dimB.l, h: dimB.h };
+  const enPlus = ECART_LIAISON - ECART_MIN; // ce qu'il faut de plus que l'écart minimum, seulement devant la salle
   for (let tour = 0; tour <= liste.length; tour++) {
-    const genes = liste.filter((o) => tropProches(r, o));
+    const zone = { ...r, [debut]: avance ? r[debut] : r[debut] - enPlus, [taille]: r[taille] + enPlus };
+    const genes = liste.filter((o) => tropProches(zone, o));
     if (!genes.length) break;
     const recul = Math.max(...genes.map((o) => (avance
-      ? r[debut] + r[taille] + ECART_MIN - o[debut]
-      : o[debut] + o[taille] + ECART_MIN - r[debut])));
+      ? r[debut] + r[taille] + ECART_LIAISON - o[debut]
+      : o[debut] + o[taille] + ECART_LIAISON - r[debut])));
     const decalage = avance ? -recul : recul;
     for (const o of duCoteDeA) o[debut] += decalage;
     r[debut] += decalage;
