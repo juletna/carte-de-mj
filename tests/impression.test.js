@@ -280,6 +280,53 @@ const TESTS = [
     prepJ.salles[0].plan.portes.length = 0;
     egal(JSON.stringify(dd), avant, 'pas d’alias en version joueurs');
   }],
+  ['réduction proposée : une salle de 8 × 8 dépasse de 2 cases, 2 pages à 25 mm ; 21,2 mm (85 %) la ferait tenir sur une page', () => {
+    const r = imp.proposerReduction(8, 8);
+    egal(r, { pages: 2, depasse: 2, mmParCase: 21.2, pourcent: 85 }, '8×8');
+    egal(imp.proposerReduction(7, 7), { pages: 2, depasse: 1, mmParCase: 24, pourcent: 96 }, '7×7 : une case de trop');
+    // La proposition ne change rien : le découpage à 25 mm est celui d'avant, et la réduite tient bien sur une page.
+    egal(imp.decouper(8, 8).pages.length, 2, '8×8 à 25 mm : toujours 2 pages');
+    egal(imp.decouper(8, 8).mmParCase, 25, 'échelle réelle inchangée');
+    const une = imp.tenirSurUnePage(8, 8);
+    egal([une.pages.length, une.mmParCase, une.reduite], [1, 21.2, true], '8×8 réduite');
+  }],
+  ['réduction proposée : jamais pour une salle qui tient déjà, ni quand il faudrait trop réduire ; seuil de 80 %', () => {
+    for (const [l, h] of [[1, 1], [5, 5], [6, 6], [6, 9], [10, 5]]) egal(imp.proposerReduction(l, h), null, `${l}×${h} tient déjà sur une page`);
+    for (const [l, h] of [[9, 9], [12, 12], [30, 9], [6, 30]]) egal(imp.proposerReduction(l, h), null, `${l}×${h} : réduction trop forte`);
+    for (let l = 1; l <= 40; l++) for (let h = 1; h <= 40; h++) {
+      const r = imp.proposerReduction(l, h);
+      const pages = imp.decouper(l, h).pages.length;
+      if (pages < 2) { egal(r, null, `${l}×${h} : une page, rien à proposer`); continue; }
+      if (!r) continue;
+      egal(r.pages, pages, `${l}×${h} : pages à 25 mm`);
+      verifier(r.pourcent >= imp.SEUIL_REDUCTION * 100 - 0.5 && r.mmParCase < imp.CASE_MM, `${l}×${h} : échelle proposée ${r.mmParCase}`);
+      verifier(r.depasse >= 1, `${l}×${h} : au moins une case en trop`);
+      egal(imp.tenirSurUnePage(l, h).pages.length, 1, `${l}×${h} : la réduction tient sur une page`);
+    }
+  }],
+  ['réduction proposée : preparerImpression la signale à l’échelle réelle sans rien changer, et jamais en « page »', () => {
+    const { d } = donjonSentinelles(); // 8 × 8 et 6 × 6
+    const avant = JSON.stringify(d);
+    const exacte = imp.preparerImpression(d, { version: 'mj' });
+    egal(exacte.propositions, [{ numero: 1, pages: 2, depasse: 2, mmParCase: 21.2, pourcent: 85 }], 'propositions (salle 8 × 8 seule)');
+    egal(exacte.salles[0].decoupage.mmParCase, 25, 'le défaut reste l’échelle réelle');
+    egal(exacte.salles[0].decoupage.pages.length, 2, 'toujours 2 pages sans clic');
+    egal(imp.preparerImpression(d, { version: 'joueurs', echelle: 'page' }).propositions, [], 'rien à proposer quand on tient déjà sur une page');
+    egal(imp.preparerImpression(d, { version: 'joueurs', salles: [d.salleActive === Object.keys(d.salles)[0] ? Object.keys(d.salles)[1] : Object.keys(d.salles)[0]] }).propositions, [], 'salle de 6 × 6 : rien');
+    // Version joueurs : aucun nom, aucune note dans les propositions.
+    const j = JSON.stringify(imp.preparerImpression(d, { version: 'joueurs' }).propositions);
+    for (const interdit of [NOM_DONJON, NOM_A, NOM_B, NOTES]) verifier(!j.includes(interdit), `fuite : ${interdit}`);
+    egal(JSON.stringify(d), avant, 'donjon inchangé');
+  }],
+  ['échelle réelle inchangée : 25 mm par case et règle de 5 cm', () => {
+    egal([imp.CASE_MM, imp.REGLE_MM], [25, 50], 'constantes');
+    const attendu = { '8x8': [2, 'portrait'], '12x12': [6, 'portrait'], '30x9': [6, 'portrait'], '6x6': [1, 'portrait'], '10x5': [1, 'paysage'] };
+    for (const [cle, [pages, orientation]] of Object.entries(attendu)) {
+      const [l, h] = cle.split('x').map(Number);
+      const d = imp.decouper(l, h);
+      egal([d.pages.length, d.orientation, d.mmParCase], [pages, orientation, 25], cle);
+    }
+  }],
   ['planPublic : la vue table en est inchangée (cachés non révélés exclus, révélés montrés, état conservé)', () => {
     const { d, a } = donjonSentinelles();
     const cache = a.plan.objets.find((o) => o.cache);

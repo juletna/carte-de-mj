@@ -228,6 +228,27 @@ async function dessinerPage(canvas, salle, decoupage, p, page) {
   await img.decode().catch(() => {});
 }
 
+/**
+ * Salle(s) qui dépasse(nt) de peu une page à 25 mm : un message et un bouton pour tenir sur une page.
+ * Rien ne change sans clic (le défaut reste l'échelle réelle) ; le texte ne cite que « Plan N » et des nombres.
+ */
+function proposer(prep) {
+  const liste = prep.propositions || [];
+  $('proposition-echelle').hidden = liste.length === 0;
+  $('lien-proposition').hidden = liste.length === 0;
+  if (!liste.length) return;
+  const cases = (n) => (n > 1 ? `${n} cases` : 'une case');
+  const phrase = (p) => `${p.depasse > 1 ? `de ${cases(p.depasse)}` : 'd’une case'} : ${pluriel(p.pages, 'page', 'pages')} à 25 mm`;
+  $('texte-proposition').textContent = liste.length === 1 && prep.salles.length === 1
+    ? `Cette salle dépasse ${phrase(liste[0])}.`
+    : liste.map((p) => `Le plan ${p.numero} dépasse ${phrase(p)}`).join(' ; ') + '.';
+  const plusFort = Math.min(...liste.map((p) => p.mmParCase));
+  const pourcent = Math.min(...liste.map((p) => p.pourcent));
+  const autres = prep.salles.length > liste.length ? ' L’échelle réduite s’applique à toutes les salles cochées.' : '';
+  $('detail-proposition').textContent = `En réduisant à ${virgule(plusFort)} mm par case (${pourcent} % de 25 mm), ${liste.length > 1 ? 'elles tiennent' : 'elle tient'} sur une page. `
+    + `Les figurines risquent de ne plus tenir sur les cases.${autres} Rien ne change sans ton clic.`;
+}
+
 /** Reconstruit l'aperçu : les pages d'abord (vides), puis les images, une page à la fois. */
 async function rendre() {
   lireOptions();
@@ -248,6 +269,8 @@ async function rendre() {
   }
   afficherMessage(prep.avertissements.join(' '));
   $('avant-impression').hidden = false;
+  $('barre-impression').hidden = false;
+  proposer(prep);
   $('consigne-assemblage').hidden = !prep.salles.some((s) => s.decoupage.pages.length > 1);
   if (!prep.totalPages) {
     apercu.replaceChildren();
@@ -322,6 +345,12 @@ function demarrer() {
   $('tout-cocher').addEventListener('click', () => { etat.salles = new Set(Object.keys(donjon().salles)); remplirSalles(); rendre(); });
   $('tout-decocher').addEventListener('click', () => { etat.salles = new Set(); remplirSalles(); rendre(); });
   $('imprimer').addEventListener('click', async () => { await etat.pret; window.print(); });
+  $('reduire').addEventListener('click', () => {
+    const radio = document.querySelector('input[name="echelle"][value="page"]');
+    radio.checked = true;
+    radio.focus({ preventScroll: true }); // le bouton disparaît avec la proposition : le focus reste dans les choix d'échelle
+    rendre();
+  });
   window.addEventListener('resize', ajusterApercu);
   window.addEventListener('beforeprint', () => { $('apercu').style.zoom = ''; });
   window.addEventListener('afterprint', ajusterApercu);

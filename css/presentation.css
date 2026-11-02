@@ -116,4 +116,13 @@ body.vue-table { overflow: hidden; background: #000; }
 @media (max-width: 760px) {
   #regie { grid-template-columns: 1fr; grid-template-rows: auto minmax(70vh, auto); height: auto; }
   #principal #scene { min-height: 60vh; }
+
+  /* Régie sur téléphone : la carte (avec le bandeau) ou les actions, jamais les deux empilées (voir css/style.css, js/telephone.js).
+     Onglet Carte : la salle à la table d'abord, sur toute la hauteur moins la bande réservée à la sélection. */
+  body[data-onglet] #regie { display: block; height: auto; }
+  body[data-onglet="carte"] #regie #panneau { display: none; }
+  body[data-onglet="actions"] #regie #principal { display: none; }
+  body[data-onglet="carte"] #principal { height: calc(100vh - var(--barre-onglets) - var(--reserve-selection)); height: calc(100dvh - var(--barre-onglets) - var(--reserve-selection)); }
+  body[data-onglet] #principal #scene { min-height: 0; }
+  body[data-onglet] #principal #support { padding: 6px; }
 }

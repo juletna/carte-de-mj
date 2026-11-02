@@ -58,6 +58,12 @@
         <legend>Échelle</legend>
         <label class="case"><input type="radio" name="echelle" value="exacte" checked> <span><b>25 mm par case</b> (échelle réelle des figurines). Une grande salle est découpée sur plusieurs pages A4, par cases entières.</span></label>
         <label class="case"><input type="radio" name="echelle" value="page"> <span><b>Tenir sur une page</b> : échelle réduite, indiquée sur la feuille. Les figurines ne tiendront plus forcément sur les cases.</span></label>
+        <!-- Proposition (jamais appliquée d'office) : une salle qui n'a besoin que d'un peu moins de place pour tenir sur une page. -->
+        <div id="proposition-echelle" class="proposition" role="status" hidden>
+          <p id="texte-proposition"></p>
+          <p id="detail-proposition" class="note"></p>
+          <button id="reduire" type="button">Tenir sur une page</button>
+        </div>
       </fieldset>
     </form>
 
@@ -68,14 +74,17 @@
         <li>Chaque page porte une règle de 5 cm : mesure-la. Si elle ne fait pas 5 cm, recommence à 100 %.</li>
         <li id="consigne-assemblage">Une grande salle tient sur plusieurs pages qui se recouvrent d'une rangée de cases : découpe la marge blanche de la page de droite (ou du bas) le long du trait pointillé, puis pose sa première rangée sur la dernière rangée de la page voisine, les cases bien alignées. L'en-tête de chaque page dit « page 2/6 » et quelles pages l'entourent.</li>
       </ul>
-      <div class="actions">
-        <button id="imprimer" type="button" disabled>Imprimer</button>
-        <span id="etat-pages" class="note" aria-live="polite"></span>
-      </div>
     </section>
   </main>
 
   <div id="apercu" class="apercu" aria-label="Aperçu des pages"></div>
+
+  <!-- Barre collante en bas d'écran : le nombre de pages et le bouton restent à portée sans descendre jusqu'ici.
+       Placée après l'aperçu, dans le flux : elle ne recouvre rien en fin de page, et n'imprime rien. -->
+  <div id="barre-impression" class="barre-impression" hidden>
+    <p class="etat-pages"><span id="etat-pages" aria-live="polite"></span> <a id="lien-proposition" href="#proposition-echelle" hidden>Une page suffirait en réduisant l’échelle</a></p>
+    <button id="imprimer" type="button" disabled>Imprimer</button>
+  </div>
 
   <script type="module" src="js/main-impression.js"></script>
 </body>

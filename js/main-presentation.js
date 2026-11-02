@@ -21,6 +21,7 @@ import { nomCase, lettreColonne } from './parseur/coordonnees.js';
 import { nomAffiche } from './parseur/lexique.js';
 import { creerMicro, voixDisponible } from './voix.js';
 import { MODES_TABLE, modeTable, tailleTable } from './affichage.js';
+import { telephone, activerOnglets, marquerDefilement, tailleQuiTient } from './telephone.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -358,12 +359,10 @@ function demarrerRegie() {
   };
   const reperePorte = (q) => (q.mur === 'nord' || q.mur === 'sud' ? lettreColonne(q.position) : String(q.position + 1));
 
+  /** Côté de case de la régie : réduit pour que la salle tienne dans la zone (réglage `r.taille` jamais modifié). Sous 760 px, marge plus étroite. */
   function tailleRegie(plan) {
     if (!etat.ajuster) return r.taille;
-    const sc = $('scene');
-    const l = sc.clientWidth - 56, ha = sc.clientHeight - 56;
-    if (l <= 0 || ha <= 0) return r.taille;
-    return Math.max(16, Math.min(r.taille, Math.floor(Math.min(l / (plan.largeur + 2), ha / (plan.longueur + 2)))));
+    return tailleQuiTient($('scene'), plan.largeur, plan.longueur, r.taille, telephone() ? 10 : 28);
   }
 
   /** Repères posés sur la carte de la régie : portes reliées (pastille bleue) et élément sélectionné. */
@@ -379,6 +378,7 @@ function demarrerRegie() {
     dessiner($('carte'), pres.planRegie(plan, idsReveles(s.id)), {
       taille: tailleRegie(s.plan), grille: r.grille, reperes: r.reperes !== false, marques: marques(plan),
     });
+    marquerDefilement($('carte'), $('scene')); // écran étroit : une carte qui dépasse se fait défiler au doigt
   }
 
   function rendre() {
@@ -783,6 +783,8 @@ function demarrerRegie() {
   $('ajuster').addEventListener('change', (e) => { etat.ajuster = e.target.checked; rendre(); });
   let minuterie;
   window.addEventListener('resize', () => { clearTimeout(minuterie); minuterie = setTimeout(() => { if (etat.p) rendre(); }, 150); });
+  // Écran étroit : onglets Carte / Actions ; la carte est redessinée à la taille qui tient quand on l'affiche.
+  activerOnglets(document.querySelector('#regie .onglets'), { defaut: 'carte', onChange: (nom) => { if (nom === 'carte' && etat.p) rendre(); } });
 
   // Démarrage : la partie ouverte au dernier passage est rouverte telle quelle (rien n'est relancé ni écrasé) ;
   // « ← Liste des donjons » ramène à l'écran de départ, et l'oublie.

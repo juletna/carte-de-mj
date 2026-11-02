@@ -17,6 +17,7 @@ import { nomCase, lettreColonne } from './parseur/coordonnees.js';
 import { nomAffiche } from './parseur/lexique.js';
 import * as modele from './donjon.js';
 import { dessinerMiniCarte } from './minicarte.js';
+import { telephone, activerOnglets, marquerDefilement, tailleQuiTient } from './telephone.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -94,13 +95,28 @@ function marques(planAffiche) {
   const element = trouve && planAffiche[trouve.liste][trouve.index];
   return { portesReliees, selection: element ? { genre: trouve.genre, element } : null };
 }
-const optionsDessin = (plan) => ({ taille: r.taille, grille: r.grille, marques: marques(plan) });
+
+/**
+ * Côté de case affiché. Sous 760 px la carte est réduite pour tenir dans son onglet (par la taille de case : la grille et
+ * le déplacement gardent leur géométrie exacte). Le réglage `r.taille` n'est jamais modifié ; pendant le calibrage à la
+ * carte bancaire, ou carte masquée, c'est lui qui s'applique.
+ */
+function tailleAffichee(plan) {
+  if (!telephone() || $('calibrage').checked) return r.taille;
+  return tailleQuiTient($('scene'), plan.largeur, plan.longueur, r.taille, 12);
+}
+const optionsDessin = (plan) => ({ taille: tailleAffichee(plan), grille: r.grille, marques: marques(plan) });
+
+function dessinerCarte(plan) {
+  dessiner($('carte'), plan, optionsDessin(plan));
+  marquerDefilement($('carte'), $('scene'));
+}
 
 function rendre() {
   const s = salle();
-  dessiner($('carte'), s.plan, optionsDessin(s.plan));
+  dessinerCarte(s.plan);
   majCarteRef();
-  $('annuler').hidden = pile().length === 0;
+  $('annuler').hidden = $('annuler-carte').hidden = pile().length === 0;
   if (document.activeElement !== $('json')) $('json').value = JSON.stringify(s.plan, null, 2);
   majSelection();
   majOrphelines();
@@ -157,7 +173,6 @@ function majAide() {
 
 /** Défilement doux, sans animation si l'utilisateur la réduit. */
 const comportementDefilement = () => (matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth');
-const telephone = () => matchMedia('(max-width: 760px)').matches;
 
 /**
  * Affiche la salle active : description, notes, listes. À appeler après tout changement de salle ou de donjon.
@@ -213,7 +228,7 @@ $('notes').addEventListener('input', (e) => {
 // Un appui sans glissement sélectionne l'élément.
 activerDeplacement($('carte'), {
   plan: () => salle().plan,
-  taille: () => r.taille,
+  taille: () => tailleAffichee(salle().plan),
   apercu: (plan) => dessiner($('carte'), plan, optionsDessin(plan)),
   deposer: (nouveau) => {
     const s = salle();
@@ -228,17 +243,19 @@ activerDeplacement($('carte'), {
     etat.message = '';
     rendre();
     // Les actions de la sélection sont plus bas dans le panneau : on les amène en vue, sans toucher à ce qui est saisi.
-    // (Sous 760 px le panneau est au-dessus de la carte : on ne fait pas remonter la page.)
+    // (Sous 760 px, aucun défilement : la sélection est un bandeau fixe sous la carte, déjà en vue.)
     if (touche && !telephone()) $('selection').scrollIntoView({ block: 'nearest', behavior: comportementDefilement() });
   },
 });
 
-$('annuler').addEventListener('click', () => {
+function annulerDeplacement() {
   const entree = pile().pop();
   if (!entree) return;
   modele.restaurerAncres(donjon(), entree.ancres);
   changerTexte(entree.texte);
-});
+}
+$('annuler').addEventListener('click', annulerDeplacement);
+$('annuler-carte').addEventListener('click', annulerDeplacement); // même action, à portée dans l'onglet Carte (écran étroit)
 
 // --- Section « sélection » ---------------------------------------------------------
 const reperePorte = (p) => (p.mur === 'nord' || p.mur === 'sud' ? lettreColonne(p.position) : String(p.position + 1));
@@ -262,13 +279,16 @@ function majSelection() {
   }
   zone.hidden = false;
   const el = trouve.element;
-  const contenu = [h('h2', { textContent: 'Sélection' }), h('p', { className: 'selection-titre', textContent: libelleSelection(trouve) })];
-
   const bouton = (texte, onClick, classe = '') => {
     const b = h('button', { type: 'button', textContent: texte, className: classe });
     b.addEventListener('click', onClick);
     return b;
   };
+  // « Fermer » n'existe que sous 760 px (bandeau fixe) ; au-dessus, on désélectionne en cliquant dans le vide, comme avant.
+  const contenu = [
+    bouton('✕ Fermer', () => { etat.selection = null; etat.message = ''; rendre(); }, 'discret petit fermer-selection'),
+    h('h2', { textContent: 'Sélection' }), h('p', { className: 'selection-titre', textContent: libelleSelection(trouve) }),
+  ];
 
   contenu.push(h('div', { className: 'actions' }, bouton(el.cache === true ? 'Rendre visible' : 'Marquer comme caché', () => {
     const nouveau = modele.basculerCache(s.plan, etat.selection);
@@ -585,6 +605,17 @@ function afficherErreursJson(erreurs) {
   zone.hidden = erreurs.length === 0;
   zone.textContent = erreurs.join(' · ');
 }
+
+// --- Écran étroit : onglets Texte / Carte ---------------------------------------------
+// La carte est redessinée (à la taille qui tient) quand on l'affiche, et quand la fenêtre change de taille ou de sens.
+function redessinerCarteSiVisible() {
+  if (!telephone() || document.body.dataset.onglet !== 'carte') return;
+  dessinerCarte(salle().plan);
+  majCarteRef();
+}
+activerOnglets(document.querySelector('.onglets'), { defaut: 'texte', onChange: (nom) => { if (nom === 'carte') redessinerCarteSiVisible(); } });
+let minuterieTaille;
+window.addEventListener('resize', () => { clearTimeout(minuterieTaille); minuterieTaille = setTimeout(redessinerCarteSiVisible, 150); });
 
 // --- Démarrage ----------------------------------------------------------------
 afficherSalleActive();

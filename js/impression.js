@@ -175,6 +175,38 @@ export function tenirSurUnePage(largeur, longueur) {
   return { ...r, reduite: c < CASE_MM };
 }
 
+/** En dessous de ce rapport (échelle réduite / 25 mm), on ne propose plus de réduire : les figurines n'y tiendraient plus. */
+export const SEUIL_REDUCTION = 0.8;
+
+/**
+ * Cases qui manquent pour tenir sur UNE page à `c` mm par case, dans l'orientation la plus favorable (au moins 1).
+ * Même capacité que decouperAxe() pour une page seule : un mur de chaque côté, plus les repères.
+ */
+function casesEnTrop(largeur, longueur, c = CASE_MM) {
+  const mur = EPAISSEUR_MUR * c;
+  const exces = (o) => {
+    const ax = axe(o, 'x'), ay = axe(o, 'y');
+    return Math.max(largeur - entierBas((ax.dispo - ax.repere - 2 * mur) / c), longueur - entierBas((ay.dispo - ay.repere - 2 * mur) / c));
+  };
+  return Math.max(1, Math.min(exces('portrait'), exces('paysage')));
+}
+
+/**
+ * Une salle qui n'a besoin que d'un peu moins de place pour tenir sur une page ? À l'échelle réelle elle prend plusieurs
+ * pages ; si une échelle d'au moins 80 % de 25 mm la fait tenir sur une seule, on le propose (jamais d'office : l'échelle
+ * réelle reste le défaut). Ne change rien au découpage ni à l'échelle : lecture seule.
+ * @returns {{pages:number, depasse:number, mmParCase:number, pourcent:number}|null}
+ *   pages : pages à 25 mm ; depasse : cases en trop pour une page ; mmParCase : échelle réduite qui suffit ; pourcent : par rapport à 25 mm
+ */
+export function proposerReduction(largeur, longueur) {
+  const exacte = decouper(largeur, longueur);
+  if (exacte.pages.length < 2) return null;
+  const une = tenirSurUnePage(largeur, longueur);
+  const rapport = une.mmParCase / CASE_MM;
+  if (une.pages.length !== 1 || rapport < SEUIL_REDUCTION) return null;
+  return { pages: exacte.pages.length, depasse: casesEnTrop(largeur, longueur), mmParCase: une.mmParCase, pourcent: Math.round(rapport * 100) };
+}
+
 /** Phrase à imprimer sur chaque page quand l'échelle est réduite ; vide à l'échelle réelle. */
 export function messageEchelle(decoupage) {
   if (!decoupage.reduite) return '';
@@ -238,7 +270,9 @@ function liaisonsDeSalle(donjon, idSalle, numeros, imprimees) {
  *   pions    inclure les pions ; en version joueurs, seuls les personnages (camp pj) sont imprimés…
  *   monstres …sauf si `monstres` est vrai (alors aussi les PNJ et les monstres) ; sans effet pour la version MJ
  *   echelle  « exacte » : 25 mm par case, sur autant de pages que nécessaire ; « page » : salle entière sur une page
- * @returns {{version:string, echelle:string, nomDonjon?:string, salles:object[], totalPages:number, avertissements:string[]}}
+ * @returns {{version:string, echelle:string, nomDonjon?:string, salles:object[], totalPages:number, avertissements:string[], propositions:object[]}}
+ *   propositions : à l'échelle réelle, les salles qui tiendraient sur une page en réduisant un peu l'échelle
+ *   ({ numero, pages, depasse, mmParCase, pourcent }, voir proposerReduction) ; vide en « page ». Jamais appliquées d'office.
  *   Version joueurs : chaque salle = { numero, plan, decoupage } et rien d'autre (aucun nom, note ni liaison).
  *   Version MJ : en plus nom, notes, liaisons, secrets et marques (portes reliées, pour le dessin).
  */
@@ -269,10 +303,15 @@ export function preparerImpression(donjon, { salles, version = 'joueurs', pions 
       marques: { portesReliees: liaisons.filter((l) => l.vers && !l.orpheline).map((l) => ({ mur: l.mur, position: l.position, vers: l.vers.numero })) },
     };
   });
+  const propositions = echelle === 'page' ? [] : choisies.flatMap((s) => {
+    const r = proposerReduction(s.plan.largeur, s.plan.longueur);
+    return r ? [{ numero: numeros[s.id], ...r }] : [];
+  });
   return {
     version, echelle, ...(version === 'mj' ? { nomDonjon: donjon.nom } : {}),
     salles: resultat,
     totalPages: resultat.reduce((n, s) => n + s.decoupage.pages.length, 0),
     avertissements,
+    propositions,
   };
 }

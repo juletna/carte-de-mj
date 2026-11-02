@@ -26,7 +26,17 @@ body.impression a { color: var(--accent); }
 .consigne h2 { color: var(--accent); }
 .consigne ul { margin: 4px 0 0; padding-left: 20px; }
 .consigne li { margin: 4px 0; }
-.consigne .actions { align-items: center; gap: 12px; }
+
+/* Proposition de réduire l'échelle : posée sous le choix de l'échelle, avec le bouton qui l'applique */
+.proposition { margin-top: 10px; padding: 10px 12px; border: 1px solid var(--accent); border-radius: var(--rayon); background: rgba(217, 169, 41, 0.1); scroll-margin-top: var(--esp-4); }
+.proposition p { margin: 0 0 6px; }
+.proposition .note { margin: 0 0 var(--esp-2); }
+
+/* Barre collante : dans le flux, après l'aperçu (sticky), donc jamais par-dessus le contenu de fin de page. */
+.barre-impression { position: sticky; bottom: 0; z-index: 10; display: flex; align-items: center; gap: var(--esp-3); padding: var(--esp-2) max(var(--esp-4), env(safe-area-inset-right)) max(var(--esp-2), env(safe-area-inset-bottom)) max(var(--esp-4), env(safe-area-inset-left)); background: var(--panneau); border-top: 1px solid var(--bord); box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.4); }
+.barre-impression .etat-pages { flex: 1 1 auto; min-width: 0; margin: 0; font-size: 14px; color: var(--texte-doux); overflow-wrap: anywhere; }
+.barre-impression .etat-pages a { display: inline-flex; align-items: center; min-height: var(--cible); color: var(--accent); }
+.barre-impression button { flex: none; min-height: max(var(--cible), 40px); padding-inline: var(--esp-4); }
 
 /* --- Aperçu : pages posées sur un fond gris, avec leur marge blanche de 10 mm --- */
 .apercu { background: #3a3940; padding: 16px 0 32px; overflow-x: auto; }
@@ -85,7 +95,7 @@ body.impression a { color: var(--accent); }
 @media print {
   html, body { background: #fff !important; color: #000 !important; }
   body.impression { display: block; height: auto; min-height: 0; margin: 0; }
-  .commandes { display: none !important; }
+  .commandes, .barre-impression { display: none !important; }
   .apercu { background: none; padding: 0; overflow: visible; zoom: 1 !important; }
   .apercu > * { margin: 0 !important; box-shadow: none !important; }
   .page, .feuille-mj { break-after: page; break-inside: avoid-page; }

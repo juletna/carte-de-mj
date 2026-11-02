@@ -23,6 +23,16 @@ Chaque outil est complet seul : il a ses propres données (dans le navigateur) e
 
 Chaque page commence par le même en-tête, écrit en HTML statique (aucun script) : « Carte de MJ » (accueil), Fiche, Donjon, Présentation, Imprimer, la page courante portant `aria-current="page"`. Il vient de `css/base.css`, qui porte aussi les jetons partagés des pages sombres (couleurs, rayons, espacements, focus, `--cible` : 44 px sous 760 px, aucune exigence au-dessus). Il n'apparaît ni sur la vue table (`?vue=table`), ni à l'impression. La Fiche garde sa palette : elle ne réutilise de `base.css` que l'en-tête, recoloré avec ses variables.
 
+## Sur téléphone (sous 760 px)
+
+Au-dessus de 760 px, ni la mise en page ni la carte ne changent. En dessous, le **Donjon** et la **régie** de la Présentation affichent **une zone à la fois**, choisie par des onglets collants en haut (`js/telephone.js`, règles sous la media query de `css/style.css` et `css/presentation.css` ; sans script, tout reste empilé comme avant) :
+
+- **Donjon** : « Texte » (le panneau : donjons, description, salles, réglages, fichiers) et « Carte ». On tape dans Texte, un geste sur « Carte » montre le résultat (le « Compris » sous la description donne déjà le retour en texte). « ↩ Annuler » est aussi dans la barre quand un déplacement peut être annulé.
+- **Régie** : « Carte » (par défaut : le bandeau « À LA TABLE / CONSULTATION » et la carte de la salle) et « Actions » (table, commande rapide, cette salle, mini-carte, notes, réglages).
+- **Sélection** : un bandeau fixé en bas de l'écran, dont la hauteur est **réservée sous la carte** (`--reserve-selection`, entre 150 et 260 px selon l'écran) : toucher une porte, un pion ou un objet montre ses actions sans défilement et sans que la carte bouge, et la carte n'est jamais recouverte. Le bandeau a un bouton « ✕ Fermer » ; vide, la zone dit quoi toucher. Téléphone couché (moins de 500 px de haut) : pas de bande réservée, le bandeau se pose par-dessus (60 % de la hauteur au plus).
+- **Taille de la carte** : réduite **par la taille de case** (jamais par `transform`) pour que la salle entière tienne dans la zone, entre 16 px et le réglage. Le réglage enregistré (`reglages.taille`, `calibre`, `modeTable`) n'est jamais modifié ; dans le Donjon, tant que « Calibrer avec une carte bancaire » est coché, c'est la taille réglée qui s'applique. La géométrie du pointeur suit la même taille.
+- **Toucher** : le glisser sur la carte déplace un pion (`touch-action: none`) tant que la carte tient dans sa zone. Si elle dépasse (grande salle à 16 px la case), la classe `defile` rend le défilement au doigt à la zone ; on peut toujours toucher un élément pour le sélectionner, mais plus glisser un pion (passe en paysage, ou réduis la salle).
+
 ## Lancer en local
 
 Les modules JavaScript ne se chargent pas en ouvrant `donjon.html` d'un double-clic (protocole `file://`).
@@ -89,7 +99,7 @@ Dans chaque salle, la description reste la seule référence (texte → plan →
   porte » (6 × 6 cases, porte de retour sur le mur opposé, écrite dans sa description) ou « Relier à une salle existante »
   (une porte est ajoutée sur le mur opposé de cette salle : même position si elle est libre, sinon la première libre).
   Reliée, elle propose « Aller à la salle… » et « Délier ». Une porte reliée porte une pastille bleue sur la carte.
-  Au clic, la zone « Sélection » est amenée en vue (défilement doux, au plus court ; pas sous 760 px) et la porte est cerclée d'or avec un liseré sombre.
+  Au clic, la zone « Sélection » est amenée en vue (défilement doux, au plus court) et la porte est cerclée d'or avec un liseré sombre. Sous 760 px, pas de défilement : la sélection est un bandeau fixe sous la carte (voir « Sur téléphone »).
 - **Liaisons et textes** : une liaison désigne une porte par salle + mur + position, jamais par son identifiant (les `p1`, `p2`…
   sont recalculés à chaque lecture du texte). Déplacer la porte au glisser fait suivre la liaison. Si vous retouchez le texte
   et que la porte disparaît, la liaison n'est pas supprimée : elle est signalée comme **orpheline**, avec un bouton pour la
@@ -240,6 +250,8 @@ Le bouton **Imprimer ce donjon** du Donjon ouvre `impression.html` (<http://loca
 - **Version joueurs** (par défaut) : mêmes règles de secret que la table, par liste blanche de champs (`planPublic()` de `js/presentation.js`, aussi utilisée par `vueTable()`). Ni élément caché, ni porte secrète, ni notes, ni liaisons, ni nom de salle, ni nom de donjon, ni état blessé / mort. Les pions de **monstres et de PNJ sont exclus par défaut** (un plan imprimé d'avance ne doit pas les dévoiler) ; une case à cocher les inclut. Les pions de personnages restent. Les salles sont désignées par « Plan N » (rang dans le donjon).
 - **Version MJ** : tout, secrets compris (contour en pointillés et pastille « S »), portes reliées marquées « → N », et une **feuille du MJ** en tête (noms, liaisons porte → salle, liste des secrets, notes de préparation). Chaque page porte « VERSION MJ · SECRÈTE ».
 - **Échelle** : 25 mm par case par défaut, exacte sur papier (tailles CSS en millimètres). « Tenir sur une page » réduit l'échelle (au dixième de mm, 25 mm au plus) et l'écrit en en-tête de chaque page, avec la mention que les figurines ne tiendront plus forcément.
+- **Salle qui dépasse de peu** : à l'échelle réelle, une salle qui prendrait plusieurs pages mais tiendrait sur une seule avec au moins 80 % de l'échelle (par exemple 8 × 8 cases : 2 pages à 25 mm, 1 page à 21,2 mm) est signalée sous le choix de l'échelle : « Cette salle dépasse de 2 cases : 2 pages à 25 mm », avec le détail (échelle qui suffit, rappel pour les figurines) et un bouton « Tenir sur une page ». **Rien ne change sans ce clic** : le défaut reste l'échelle réelle, et le calcul n'est pas modifié (`proposerReduction()` de `js/impression.js`, pur, ne fait que lire ; le résultat de `preparerImpression()` porte la liste `propositions`, sans nom ni note). Le message ne cite que « Plan N » et des nombres. Au-delà de 20 % de réduction : pas de proposition, les figurines n'y tiendraient plus.
+- **Barre collante** : le nombre de pages (et la progression de la préparation) et le bouton « Imprimer » sont dans une barre fixée en bas de l'écran (`position: sticky`, placée après l'aperçu : elle ne recouvre jamais la fin de page). Quand une proposition de réduction existe, un lien de la barre y renvoie. La barre est masquée à l'impression (aucune page ajoutée).
 - **Grande salle** : découpée par **cases entières** sur des pages A4, portrait ou paysage selon ce qui donne le moins de pages (choix par salle). Deux pages voisines **partagent une rangée de cases** : une imprimante ne couvre pas le bord du papier, donc sans cela il resterait une bande blanche entre les pages. On découpe la marge de la page de droite (ou du bas) le long du trait pointillé et on pose sa première rangée sur la dernière de la page voisine. Chaque page indique « page 2/6 », sa colonne et sa ligne dans l'assemblage, ses pages voisines, et ses repères A1… pour la partie imprimée.
 - **Contrôle** : chaque page porte une règle de 5 cm et le rappel « imprimez à 100 %, sans Ajuster à la page » (rappelé aussi à l'écran avant d'imprimer).
 - **Rendu** : fond blanc, noir et blanc, sobre en encre (thème `js/rendu/themes/papier.js` : fosse hachurée, pas d'aplat sombre). Chaque page est dessinée sur un canvas d'environ 254 ppp puis exportée en image PNG de taille CSS en mm ; repères, titres et règle sont du texte et du SVG. Les noms et notes ne sont insérés qu'avec `textContent`.
@@ -262,8 +274,9 @@ js/main-mj.js       branchement de l'interface (donjons, salles, sélection)
 js/affichage.js     taille de la carte à la table : modes « remplir » / « échelle réelle », mode par défaut (pur, sans DOM)
 js/presentation.js  partie en cours, portes, révélations, improvisation, vueTable (pur, sans DOM)
 js/main-presentation.js  régie et vue table (DOM, stockage, BroadcastChannel)
-js/impression.js    découpage en pages A4, échelle, versions MJ / joueurs (pur, sans DOM)
-js/main-impression.js  page d'impression (DOM, aperçu, règle de contrôle)
+js/impression.js    découpage en pages A4, échelle, proposition de réduction, versions MJ / joueurs (pur, sans DOM)
+js/main-impression.js  page d'impression (DOM, aperçu, règle de contrôle, proposition de réduction, barre collante)
+js/telephone.js     sous 760 px : onglets Texte / Carte et Actions / Carte, taille de case qui tient dans la zone, défilement au doigt d'une grande carte
 js/donjon.js        modèle du donjon : salles, liaisons, orphelines, validation (pur, sans DOM)
 js/minicarte.js     mini-carte SVG des salles et de leurs liaisons
 js/schema.js        schéma du plan d'une salle et validation

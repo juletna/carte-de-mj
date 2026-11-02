@@ -9,6 +9,12 @@
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+  <!-- Écran étroit seulement (js/telephone.js, CSS sous 760 px) : un seul des deux à la fois, la carte à sa taille. Masqué ailleurs. -->
+  <div class="onglets" role="group" aria-label="Afficher">
+    <button type="button" data-onglet="texte" aria-pressed="true">Texte</button>
+    <button type="button" data-onglet="carte" aria-pressed="false">Carte</button>
+    <button id="annuler-carte" type="button" class="discret" hidden>↩ Annuler</button>
+  </div>
   <aside id="panneau">
     <header class="menu-site">
       <div class="menu-int">
@@ -133,6 +139,9 @@
     </div>
     <button id="quitter-plein-ecran" type="button" hidden>Quitter le plein écran</button>
   </main>
+
+  <!-- Écran étroit, onglet Carte : la zone réservée aux actions de la sélection, quand rien n'est sélectionné. -->
+  <p id="aide-carte" class="aide-carte">Touche une porte, un objet ou un pion : ses actions apparaissent ici.</p>
 
   <script type="module" src="js/main-mj.js"></script>
 </body>

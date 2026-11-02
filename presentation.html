@@ -53,6 +53,11 @@
 
   <!-- Régie : l'écran du MJ -->
   <div id="regie" hidden>
+    <!-- Écran étroit seulement (js/telephone.js, CSS sous 760 px) : la carte ou les actions, jamais les deux empilées. Masqué ailleurs. -->
+    <div class="onglets" role="group" aria-label="Afficher">
+      <button type="button" data-onglet="carte" aria-pressed="true">Carte</button>
+      <button type="button" data-onglet="actions" aria-pressed="false">Actions</button>
+    </div>
     <aside id="panneau">
       <header class="menu-site">
         <div class="menu-int">
@@ -179,6 +184,9 @@
 
     <!-- Sélection : panneau superposé en bas à droite de la fenêtre, hors du flux (n'écarte jamais la commande rapide). -->
     <section id="selection" class="selection" role="region" aria-label="Sélection" tabindex="-1" hidden></section>
+
+    <!-- Écran étroit, onglet Carte : la zone réservée à la sélection, quand rien n'est sélectionné. -->
+    <p id="aide-carte" class="aide-carte">Touche une porte, un pion ou un élément caché : ses actions apparaissent ici.</p>
   </div>
 
   <!-- Vue table : uniquement la carte. Fenêtre ?vue=table, ou « Plein écran ici » depuis la régie. -->

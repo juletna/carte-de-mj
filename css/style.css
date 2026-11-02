@@ -199,3 +199,48 @@ button.petit { padding: 4px 8px; font-size: 13px; min-height: max(var(--cible), 
 a.bouton { text-decoration: none; }
 /* Cases à cocher et boutons radio : la ligne entière est la cible (44 px sous 760 px). */
 label:has(> input[type="checkbox"]), label:has(> input[type="radio"]), details summary { min-height: var(--cible); align-content: center; }
+
+/* --- Écran étroit (sous 760 px) : onglets, carte à sa taille, sélection en bandeau --------------------------------
+   Rien de tout cela au-dessus de 760 px ni sans script : la barre d'onglets, l'aide et le bouton de fermeture restent masqués.
+   Les règles ne valent qu'une fois `data-onglet` posé sur <body> (js/telephone.js). La carte garde sa grille exacte : elle est
+   réduite par la taille de case (jamais par transform), et le glisser au doigt reste pour les pions tant qu'elle tient. */
+.onglets, .aide-carte, .fermer-selection { display: none; }
+@media (max-width: 760px) {
+  :root {
+    --barre-onglets: 61px;                                  /* 44 px de bouton + 2 × 8 px + filet */
+    --reserve-selection: clamp(150px, 32vh, 260px);         /* hauteur du bandeau de sélection, réservée sous la carte */
+  }
+  html { scroll-padding-top: var(--barre-onglets); }
+  body[data-onglet] { display: block; }
+
+  body[data-onglet] .onglets { display: flex; position: sticky; top: 0; z-index: 40; gap: var(--esp-2); padding: var(--esp-2) var(--esp-4); background: var(--panneau); border-bottom: 1px solid var(--bord); }
+  .onglets button { flex: 1 1 0; min-width: 0; }
+  .onglets button[aria-pressed="true"] { background: var(--accent); color: var(--accent-texte); border: 1px solid var(--accent); }
+  .onglets button[aria-pressed="false"] { background: transparent; color: var(--texte); border: 1px solid var(--bord); font-weight: 400; }
+
+  /* La carte glissée au doigt déplace un pion ; si elle dépasse sa zone (classe posée par marquerDefilement), le navigateur défile. */
+  #carte.defile { touch-action: pan-x pan-y; }
+
+  /* Sélection : bandeau fixé en bas, hauteur réservée sous la carte (rien ne se déplace quand on touche un élément). */
+  body[data-onglet] #selection { position: fixed; left: 0; right: 0; bottom: 0; width: auto; max-height: var(--reserve-selection); z-index: 30; margin: 0; overflow: auto; border-width: 1px 0 0; border-radius: var(--rayon) var(--rayon) 0 0; background: var(--panneau); box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.5); padding: var(--esp-3) var(--esp-4) max(var(--esp-3), env(safe-area-inset-bottom)); }
+  body[data-onglet="carte"] #selection { height: var(--reserve-selection); }
+  body:not(.presentation)[data-onglet] #selection .selection-titre { padding-right: 96px; } /* le titre passe sous « Fermer » sans le recouvrir */
+  body[data-onglet] .fermer-selection { display: inline-flex; position: absolute; top: var(--esp-2); right: var(--esp-2); }
+  body[data-onglet="carte"] .aide-carte { display: block; position: fixed; left: 0; right: 0; bottom: 0; height: var(--reserve-selection); margin: 0; padding: var(--esp-4); border-top: 1px solid var(--bord); background: var(--panneau); color: var(--texte-doux); font-size: 14px; }
+
+  /* Donjon : le texte (panneau) ou la carte, pas les deux empilées. */
+  body:not(.presentation)[data-onglet="texte"] #scene,
+  body:not(.presentation)[data-onglet="texte"] #selection { display: none; }
+  body:not(.presentation)[data-onglet="carte"] #panneau { display: contents; }
+  body:not(.presentation)[data-onglet="carte"] #panneau > :not(#selection) { display: none; }
+  body:not(.presentation)[data-onglet="carte"] #scene { display: flex; min-height: 0; height: calc(100vh - var(--barre-onglets) - var(--reserve-selection)); height: calc(100dvh - var(--barre-onglets) - var(--reserve-selection)); }
+  body:not(.presentation)[data-onglet="carte"] #support { margin: auto; padding: 12px; }
+  body:not(.presentation)[data-onglet="texte"] #annuler-carte { display: none; }
+}
+/* Téléphone couché : trop peu de hauteur pour réserver une bande, la sélection se pose par-dessus. */
+@media (max-width: 760px) and (max-height: 500px) {
+  :root { --reserve-selection: 0px; }
+  body[data-onglet] #selection { max-height: 60vh; }
+  body[data-onglet="carte"] #selection { height: auto; }
+  body[data-onglet="carte"] .aide-carte { display: none; }
+}
