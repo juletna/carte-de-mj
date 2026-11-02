@@ -9,8 +9,9 @@
  *  - parcours en largeur depuis la première salle, en suivant les liaisons dans l'ordre où elles sont écrites ;
  *  - la salle reliée se place derrière le mur de la porte, avec 2 cases entre les deux murs, décalée pour que les deux
  *    portes se fassent face (quand la porte d'arrivée est sur le mur opposé ; sinon la salle est centrée sur la porte) ;
- *  - si la place est prise : on l'éloigne dans la même direction, puis sur le côté, jusqu'à ne chevaucher personne
- *    (au moins 1 case entre deux salles) ;
+ *  - si la place est prise, la salle ne change JAMAIS de côté : une porte à l'est mène toujours à une salle à l'est.
+ *    C'est la salle de départ, avec tout ce qui se trouve de son côté, qui recule pour laisser la place. Les couloirs
+ *    des liaisons ainsi écartées s'allongent (au moins 1 case entre deux salles) ;
  *  - une porte qui mène à une salle déjà placée ne déplace rien : la liaison est simplement tracée ;
  *  - les salles sans aucune liaison vont en rangée sous le reste, sous l'étiquette « Salles non reliées » ;
  *    un groupe de salles reliées entre elles, mais pas à la première, forme un bloc posé sous le premier.
@@ -27,8 +28,6 @@ export const ETIQUETTE_ISOLEES = 'Salles non reliées';
 const ECART_BLOCS = 4;            // cases entre deux blocs de salles (et avant la rangée des non reliées)
 const ECART_RANGEE = 2;           // cases entre deux salles de la rangée des non reliées
 const LARGEUR_RANGEE_MIN = 24;    // la rangée des non reliées passe à la ligne au-delà de cette largeur (ou celle du plan)
-const POUSSEE_MAX = 10;           // cases d'éloignement essayées dans la direction avant de passer sur le côté
-const DECALAGE_MAX = 40;          // cases de décalage latéral essayées
 
 const dimensions = (s) => ({ l: Math.max(1, s?.plan?.largeur | 0 || 1), h: Math.max(1, s?.plan?.longueur | 0 || 1) });
 const longueurMur = (dim, mur) => (mur === 'nord' || mur === 'sud' ? dim.l : dim.h);
@@ -66,20 +65,32 @@ function positionIdeale(A, dimA, ici, autre, dimB) {
   return { x, y: mur === 'sud' ? A.y + dimA.h + ECART_LIAISON : A.y - ECART_LIAISON - dimB.h };
 }
 
-/** Éloigne la salle jusqu'à une place libre : dans la direction du mur, puis sur le côté. Déterministe. */
-function placeLibre(ideal, dim, mur, rects) {
-  const [vx, vy] = VECTEUR[mur];
-  const [lx, ly] = [Math.abs(vy), Math.abs(vx)]; // axe latéral
-  const essai = (poussee, lateral) => ({ x: ideal.x + vx * poussee + lx * lateral, y: ideal.y + vy * poussee + ly * lateral, l: dim.l, h: dim.h });
-  const libre = (r) => !rects.some((o) => tropProches(r, o));
-  for (let k = 0; k <= POUSSEE_MAX; k++) if (libre(essai(k, 0))) return essai(k, 0);
-  for (let s = 1; s <= DECALAGE_MAX; s++) {
-    for (const lateral of [s, -s]) for (let k = 0; k <= POUSSEE_MAX; k++) if (libre(essai(k, lateral))) return essai(k, lateral);
+/**
+ * Place la salle B derrière le mur `ici.mur` de la salle A, sans jamais la mettre d'un autre côté.
+ * Si une salle gêne, A et tout ce qui est de son côté du mur reculent, juste assez : reculer ne peut créer aucun
+ * chevauchement, puisque ces salles s'éloignent seulement de celles qui ne bougent pas. Modifie `rects`.
+ */
+function placerDerriere(rects, A, ici, autre, dimB) {
+  const mur = ici.mur;
+  const horizontal = mur === 'est' || mur === 'ouest';
+  const [debut, taille] = horizontal ? ['x', 'l'] : ['y', 'h'];
+  const avance = mur === 'est' || mur === 'sud'; // B est du côté des coordonnées croissantes
+  const coupure = avance ? A[debut] + A[taille] : A[debut];
+  const liste = Object.values(rects);
+  const duCoteDeA = liste.filter((o) => (avance ? o[debut] + o[taille] <= coupure : o[debut] >= coupure));
+  const ideal = positionIdeale(A, { l: A.l, h: A.h }, ici, autre, dimB);
+  const r = { x: ideal.x, y: ideal.y, l: dimB.l, h: dimB.h };
+  for (let tour = 0; tour <= liste.length; tour++) {
+    const genes = liste.filter((o) => tropProches(r, o));
+    if (!genes.length) break;
+    const recul = Math.max(...genes.map((o) => (avance
+      ? r[debut] + r[taille] + ECART_MIN - o[debut]
+      : o[debut] + o[taille] + ECART_MIN - r[debut])));
+    const decalage = avance ? -recul : recul;
+    for (const o of duCoteDeA) o[debut] += decalage;
+    r[debut] += decalage;
   }
-  // Dernier recours (donjon très dense) : toujours plus loin dans la direction ; finit forcément, les salles sont en nombre fini.
-  const borne = rects.reduce((n, o) => n + o.l + o.h + 2, 0) + 2 * (dim.l + dim.h) + 8;
-  for (let k = POUSSEE_MAX + 1; k <= borne; k++) if (libre(essai(k, 0))) return essai(k, 0);
-  return essai(borne, 0);
+  return r;
 }
 
 /** Dispose les salles de la composante de `racine`, relativement à (0, 0). Renvoie { ids, rects }. */
@@ -95,8 +106,7 @@ function disposerComposante(d, racine, dejaVus) {
     for (const { vers, ici, autre } of voisins(d, id)) {
       if (vers in rects) continue; // déjà placée : la liaison sera seulement tracée
       const dimB = dim(vers);
-      const ideal = positionIdeale(A, { l: A.l, h: A.h }, ici, autre, dimB);
-      rects[vers] = placeLibre(ideal, dimB, ici.mur, Object.values(rects));
+      rects[vers] = placerDerriere(rects, A, ici, autre, dimB);
       dejaVus.add(vers);
       file.push(vers);
     }

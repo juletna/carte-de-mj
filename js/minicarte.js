@@ -3,8 +3,9 @@
  *
  * Sans échelle : une salle = une case du schéma, quelle que soit sa taille réelle.
  * `disposerSalles` (pur, testable sous Node) place les salles : parcours depuis la
- * première salle en suivant la direction des portes (porte au nord → salle au-dessus),
- * décalage si la place est prise, salles non reliées à part, en dessous.
+ * première salle en suivant la direction des portes (porte au nord → salle au-dessus).
+ * Si la place est prise, la salle de départ et ce qui est de son côté reculent d'un cran :
+ * une salle ne change jamais de côté. Salles non reliées à part, en dessous.
  * `dessinerMiniCarte` en fait un SVG focusable au clavier (Tab, Entrée ; les flèches passent à la salle voisine).
  * Un schéma plus grand que son cadre se déplace en le glissant à la souris (au doigt, le cadre défile déjà tout seul).
  */
@@ -27,32 +28,23 @@ function voisins(d, id) {
   return res.filter((v) => v.vers in d.salles);
 }
 
-/** Case libre la plus proche de `ideal`, en préférant poursuivre dans la direction `dir`. */
-function celluleLibre(ideal, dir, occupe) {
-  const candidates = [];
-  for (let dx = -8; dx <= 8; dx++) for (let dy = -8; dy <= 8; dy++) candidates.push([dx, dy]);
-  candidates.sort((p, q) => (Math.abs(p[0]) + Math.abs(p[1])) - (Math.abs(q[0]) + Math.abs(q[1]))
-    || (q[0] * dir[0] + q[1] * dir[1]) - (p[0] * dir[0] + p[1] * dir[1]));
-  for (const [dx, dy] of candidates) {
-    const c = [ideal[0] + dx, ideal[1] + dy];
-    if (!occupe.has(c.join(','))) return c;
-  }
-  return [ideal[0] + 9, ideal[1]];
-}
-
 /** Dispose les salles d'une composante connexe, relativement à sa racine. */
 function disposerComposante(d, racine) {
   const pos = { [racine]: [0, 0] };
-  const occupe = new Set(['0,0']);
   const file = [racine];
   for (let i = 0; i < file.length; i++) {
     const id = file[i];
     for (const { vers, mur } of voisins(d, id)) {
       if (vers in pos) continue;
       const dir = VECTEUR[mur];
-      const cible = celluleLibre([pos[id][0] + dir[0], pos[id][1] + dir[1]], dir, occupe);
-      pos[vers] = cible;
-      occupe.add(cible.join(','));
+      const axe = dir[0] ? 0 : 1, sens = dir[axe];
+      const cible = () => [pos[id][0] + dir[0], pos[id][1] + dir[1]];
+      if (Object.values(pos).some((p) => p[0] === cible()[0] && p[1] === cible()[1])) {
+        // Place prise : tout ce qui est du côté de la salle de départ recule d'un cran.
+        const coupure = pos[id][axe];
+        for (const p of Object.values(pos)) if (p[axe] * sens <= coupure * sens) p[axe] -= sens;
+      }
+      pos[vers] = cible();
       file.push(vers);
     }
   }

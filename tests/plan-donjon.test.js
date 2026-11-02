@@ -5,7 +5,7 @@
  */
 import * as m from '../js/donjon.js';
 import { disposerPlan, cheminCouloir, salleSous, ECART_LIAISON, ECART_MIN, ETIQUETTE_ISOLEES } from '../js/plan-donjon.js';
-import { salleVoisine } from '../js/minicarte.js';
+import { salleVoisine, disposerSalles } from '../js/minicarte.js';
 
 function verifier(condition, message) { if (!condition) throw new Error(message); }
 function egal(obtenu, attendu, quoi) {
@@ -47,20 +47,21 @@ function sansChevauchement(disp, d, quoi) {
   }
 }
 
-/** Le cas signalé : la salle 5 est à l'ouest de la salle 1, et sa porte est mène à une salle 6 que la salle 1 sépare d'elle. */
+/** Le cas signalé : la salle 5 est à l'ouest de la salle 1 ; une autre de ses portes est mène à une salle 6. */
 function casBarre() {
   const d = donjonVide();
   const s1 = d.salleActive;
-  m.definirTexte(d, s1, texteSalle(8, 8, [['nord', 3], ['est', 2], ['ouest', 2]]), m.planDepuisTexte(texteSalle(8, 8, [['nord', 3], ['est', 2], ['ouest', 2]]), s1));
-  const s4 = salle(d, 'Salle 4', 6, 6, [['sud', 3]]);
+  const t1 = texteSalle(8, 8, [['nord', 3], ['est', 2], ['ouest', 5]]);
+  m.definirTexte(d, s1, t1, m.planDepuisTexte(t1, s1));
   const s2 = salle(d, 'Salle 2', 6, 6, [['ouest', 2]]);
-  const s5 = salle(d, 'Salle 5', 6, 6, [['est', 2], ['sud', 1]]);
+  const s4 = salle(d, 'Salle 4', 6, 6, [['sud', 3]]);
+  const s5 = salle(d, 'Salle 5', 6, 6, [['est', 2], ['est', 5]]);
   const s6 = salle(d, 'Salle 6', 6, 6, [['ouest', 2]]);
-  m.relier(d, porte(s1, 'nord', 3), porte(s4, 'sud', 3));
   m.relier(d, porte(s1, 'est', 2), porte(s2, 'ouest', 2));
-  m.relier(d, porte(s1, 'ouest', 2), porte(s5, 'est', 2));
-  m.relier(d, porte(s5, 'sud', 1), porte(s6, 'ouest', 2));
-  return { d, s5, s6 };
+  m.relier(d, porte(s1, 'nord', 3), porte(s4, 'sud', 3));
+  m.relier(d, porte(s1, 'ouest', 5), porte(s5, 'est', 5));
+  m.relier(d, porte(s5, 'est', 2), porte(s6, 'ouest', 2));
+  return { d, s1, s5, s6 };
 }
 
 /** Chaque couloir part de sa porte, arrive à l'autre, reste à angle droit et n'entre dans aucune salle. */
@@ -243,15 +244,19 @@ const TESTS = [
     egal(salleVoisine(pos, 'n', 'nord'), null, 'rien au nord');
     egal(salleVoisine(pos, 'absente', 'nord'), null, 'salle inconnue');
   }],
-  ['couloirs : une salle sur le chemin est contournée, le couloir s’allonge', () => {
-    const { d, s5, s6 } = casBarre();
+  ['placement : la salle reste du côté de sa porte, c’est sa voisine qui recule', () => {
+    const { d, s1, s5, s6 } = casBarre();
     const disp = disposerPlan(d);
     sansChevauchement(disp, d, 'cas signalé');
-    const c = disp.couloirs.find((x) => x.de.salle === s5 || x.vers.salle === s5 && x.de.salle === s6);
-    const trajet = cheminCouloir(disp.couloirs.find((x) => [x.de.salle, x.vers.salle].includes(s6)));
-    verifier(c && trajet.length > 2, 'le couloir fait des virages');
+    const p = disp.positions;
+    verifier(p[s6].x >= p[s5].x + p[s5].largeur + ECART_LIAISON, 'la salle 6 est à droite de la salle 5, à la distance normale');
+    verifier(p[s6].x + p[s6].largeur + ECART_MIN <= p[s1].x, 'la salle 6 est entre la salle 5 et la salle 1');
+    egal(p[s6].y, p[s5].y, 'les portes de la 5 et de la 6 se font face');
     couloirsPropres(disp, 'cas signalé');
-    egal(JSON.stringify(disposerPlan(d)), JSON.stringify(disp), 'même tracé à chaque calcul');
+    egal(JSON.stringify(disposerPlan(d)), JSON.stringify(disp), 'même plan à chaque calcul');
+    const mini = disposerSalles(d).positions;
+    verifier(mini[s6].col === mini[s5].col + 1 && mini[s6].ligne === mini[s5].ligne, 'mini-plan : la 6 juste à droite de la 5');
+    verifier(mini[s1].col > mini[s6].col, 'mini-plan : la 1 reste à droite');
   }],
   ['couloirs : aucun ne traverse une salle, tous à angle droit, sur un grand donjon', () => {
     couloirsPropres(disposerPlan(grande()), '12 salles');
