@@ -170,12 +170,28 @@ const nomDeFichier = (nom) => `${String(nom || 'donjon').normalize('NFD').replac
 
 /** Propose le téléchargement du donjon entier (salles, notes, liaisons, éléments cachés). */
 export function exporterDonjon(donjon) {
-  const blob = new Blob([JSON.stringify(donjon, null, 2)], { type: 'application/json' });
+  const blob = new Blob([texteDonjon(donjon)], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = nomDeFichier(donjon.nom);
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+/** Le donjon entier, sous forme de texte : ce que contient le fichier exporté, à copier-coller. */
+export const texteDonjon = (donjon) => JSON.stringify(donjon, null, 2);
+
+/**
+ * Lit un texte JSON collé par l'utilisateur, sans rien en faire d'autre.
+ * @throws {Error} message en français si le texte est trop long ou n'est pas du JSON
+ */
+export function lireTexteJson(texte) {
+  if (texte.length > TAILLE_MAX_FICHIER) throw new Error('texte trop long (5 Mo au plus)');
+  try {
+    return JSON.parse(texte);
+  } catch {
+    throw new Error('ce texte n’est pas un donjon : il devrait commencer par { et finir par }');
+  }
 }
 
 /**

@@ -50,7 +50,13 @@
           <button id="donjon-nouveau" type="button" class="discret">+ Nouveau donjon</button>
           <button id="exporter" type="button" class="discret" title="Enregistre le donjon entier (salles, notes, liaisons, éléments cachés)">Exporter</button>
           <label class="bouton">Importer <input id="importer" type="file" accept=".json,application/json" hidden></label>
+          <button id="donjon-copier" type="button" class="discret" title="Copie le donjon entier, à coller dans un message. Attention : les notes et les éléments cachés sont dedans.">Copier</button>
         </div>
+        <details class="plan-json">
+          <summary>Coller un donjon</summary>
+          <textarea id="donjon-colle" rows="5" spellcheck="false" aria-label="Texte du donjon à coller" placeholder="Colle ici le texte copié avec « Copier »"></textarea>
+          <div class="actions"><button id="donjon-coller" type="button">Ajouter ce donjon</button></div>
+        </details>
         <p id="message-fichier" class="note" hidden></p>
         <p id="erreurs-fichier" class="note erreur" hidden></p>
 

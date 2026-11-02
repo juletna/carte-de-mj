@@ -1052,21 +1052,52 @@ function messageFichier(texte, erreurs = []) {
   ko.textContent = erreurs.join(' · '); // textContent : le contenu du fichier n'est jamais interprété comme du HTML
 }
 
+/** Ajoute le donjon lu dans un fichier ou un texte collé. Renvoie true s'il a été ajouté. */
+function ajouterDonjonLu(brut) {
+  const resultat = modele.convertirImport(brut, { echelle: r.echelle });
+  if (!resultat.donjon) { messageFichier('', [`Import refusé : ${resultat.erreurs.join(' · ')}`]); return false; }
+  // Le donjon importé s'AJOUTE aux autres, sous un identifiant neuf : rien n'est écrasé.
+  const d = resultat.donjon;
+  while (d.id in etat.donjons) d.id = modele.idUnique('donjon', Object.keys(etat.donjons));
+  etat.donjons[d.id] = d;
+  etat.actif = d.id;
+  afficherSalleActive();
+  const n = Object.keys(d.salles).length;
+  messageFichier(`Donjon « ${d.nom} » importé (${n} salle${n > 1 ? 's' : ''}).${resultat.avertissements.length ? ` À noter : ${resultat.avertissements.join(' · ')}` : ''}`);
+  return true;
+}
+
 $('importer').addEventListener('change', async (e) => {
   const fichier = e.target.files[0];
   e.target.value = '';
   if (!fichier) return;
   try {
-    const resultat = modele.convertirImport(await stockage.lireFichierJson(fichier), { echelle: r.echelle });
-    if (!resultat.donjon) { messageFichier('', [`Import refusé : ${resultat.erreurs.join(' · ')}`]); return; }
-    // Le donjon importé s'AJOUTE aux autres, sous un identifiant neuf : rien n'est écrasé.
-    const d = resultat.donjon;
-    while (d.id in etat.donjons) d.id = modele.idUnique('donjon', Object.keys(etat.donjons));
-    etat.donjons[d.id] = d;
-    etat.actif = d.id;
-    afficherSalleActive();
-    const n = Object.keys(d.salles).length;
-    messageFichier(`Donjon « ${d.nom} » importé (${n} salle${n > 1 ? 's' : ''}).${resultat.avertissements.length ? ` À noter : ${resultat.avertissements.join(' · ')}` : ''}`);
+    ajouterDonjonLu(await stockage.lireFichierJson(fichier));
+  } catch (err) {
+    messageFichier('', [`Import refusé : ${err.message}`]);
+  }
+});
+
+$('donjon-copier').addEventListener('click', async () => {
+  const texte = stockage.texteDonjon(donjon());
+  try {
+    await navigator.clipboard.writeText(texte);
+    messageFichier('Donjon copié, notes et éléments cachés compris. Colle-le où tu veux.');
+  } catch {
+    // Presse-papiers refusé (page non sécurisée…) : on montre le texte à copier à la main.
+    const zone = $('donjon-colle');
+    zone.closest('details').open = true;
+    zone.value = texte;
+    zone.select();
+    messageFichier('Copie automatique impossible : le texte est sélectionné ci-dessous, fais Cmd+C. Notes et éléments cachés compris.');
+  }
+});
+
+$('donjon-coller').addEventListener('click', () => {
+  const zone = $('donjon-colle');
+  if (!zone.value.trim()) { messageFichier('', ['Colle d’abord le texte du donjon.']); return; }
+  try {
+    if (ajouterDonjonLu(stockage.lireTexteJson(zone.value))) zone.value = '';
   } catch (err) {
     messageFichier('', [`Import refusé : ${err.message}`]);
   }
