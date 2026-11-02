@@ -4,7 +4,7 @@
  * Sans dépendance : marche sous Node et dans tests.html (même forme que les autres tests : { phrase, ecarts }).
  */
 import * as m from '../js/donjon.js';
-import { disposerPlan, cheminCouloir, salleSous, ECART_LIAISON, ECART_MIN, ETIQUETTE_ISOLEES } from '../js/plan-donjon.js';
+import { disposerPlan, cheminCouloir, salleSous, ECART_LIAISON, ECART_MIN, ECART_PASSAGE, ETIQUETTE_ISOLEES } from '../js/plan-donjon.js';
 import { salleVoisine, disposerSalles } from '../js/minicarte.js';
 
 function verifier(condition, message) { if (!condition) throw new Error(message); }
@@ -250,8 +250,12 @@ const TESTS = [
     sansChevauchement(disp, d, 'cas signalé');
     const p = disp.positions;
     verifier(p[s6].x >= p[s5].x + p[s5].largeur + ECART_LIAISON, 'la salle 6 est à droite de la salle 5, à la distance normale');
-    egal(p[s6].x - (p[s5].x + p[s5].largeur), ECART_LIAISON, 'écart à gauche de la salle 6');
-    egal(p[s1].x - (p[s6].x + p[s6].largeur), ECART_LIAISON, 'même écart à droite de la salle 6');
+    egal(p[s6].x - (p[s5].x + p[s5].largeur), ECART_PASSAGE, 'écart à gauche de la salle 6');
+    egal(p[s1].x - (p[s6].x + p[s6].largeur), ECART_PASSAGE, 'même écart à droite de la salle 6');
+    const contour = disp.couloirs.find((c) => [c.de.salle, c.vers.salle].sort().join() === [s1, s5].sort().join());
+    const verticales = cheminCouloir(contour).map((pt) => pt.x);
+    verifier(verticales.includes(p[s6].x - 1.5), 'le couloir passe au milieu de l’espace à gauche de la salle 6');
+    verifier(verticales.includes(p[s6].x + p[s6].largeur + 1.5), 'et au milieu de l’espace à droite');
     egal(p[s6].y, p[s5].y, 'les portes de la 5 et de la 6 se font face');
     couloirsPropres(disp, 'cas signalé');
     egal(JSON.stringify(disposerPlan(d)), JSON.stringify(disp), 'même plan à chaque calcul');

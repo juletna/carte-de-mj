@@ -11,7 +11,8 @@
  *    portes se fassent face (quand la porte d'arrivée est sur le mur opposé ; sinon la salle est centrée sur la porte) ;
  *  - si la place est prise, la salle ne change JAMAIS de côté : une porte à l'est mène toujours à une salle à l'est.
  *    C'est la salle de départ, avec tout ce qui se trouve de son côté, qui recule pour laisser la place. Les couloirs
- *    des liaisons ainsi écartées s'allongent (au moins 1 case entre deux salles) ;
+ *    des liaisons ainsi écartées s'allongent. La salle insérée a alors 3 cases de chaque côté : une case de passage
+ *    pour le couloir qui la contourne, et une case libre de part et d'autre pour qu'il ne colle à aucun mur ;
  *  - une porte qui mène à une salle déjà placée ne déplace rien : la liaison est simplement tracée ;
  *  - les salles sans aucune liaison vont en rangée sous le reste, sous l'étiquette « Salles non reliées » ;
  *    un groupe de salles reliées entre elles, mais pas à la première, forme un bloc posé sous le premier.
@@ -22,6 +23,7 @@ const OPPOSE = { nord: 'sud', sud: 'nord', est: 'ouest', ouest: 'est' };
 
 export const ECART_LIAISON = 2;   // cases entre les murs de deux salles reliées
 export const ECART_MIN = 1;       // cases libres minimum entre deux salles quelconques
+export const ECART_PASSAGE = 3;   // cases de chaque côté d'une salle insérée : passage d'un couloir + une case libre de part et d'autre
 export const MARGE_PLAN = 2;      // cases autour de l'ensemble (noms au-dessus des salles du haut, murs, couloirs)
 export const ETIQUETTE_ISOLEES = 'Salles non reliées';
 
@@ -68,8 +70,8 @@ function positionIdeale(A, dimA, ici, autre, dimB) {
 /**
  * Place la salle B derrière le mur `ici.mur` de la salle A, sans jamais la mettre d'un autre côté.
  * Si une salle gêne, A et tout ce qui est de son côté du mur reculent, juste assez : reculer ne peut créer aucun
- * chevauchement, puisque ces salles s'éloignent seulement de celles qui ne bougent pas. Devant B, on garde le même
- * écart que derrière elle, pour que la salle soit bien au milieu de ses voisines. Modifie `rects`.
+ * chevauchement, puisque ces salles s'éloignent seulement de celles qui ne bougent pas. B est alors à ECART_PASSAGE de
+ * ses deux voisines, car un couloir devra passer de chaque côté d'elle pour la contourner. Modifie `rects`.
  */
 function placerDerriere(rects, A, ici, autre, dimB) {
   const mur = ici.mur;
@@ -81,14 +83,15 @@ function placerDerriere(rects, A, ici, autre, dimB) {
   const duCoteDeA = liste.filter((o) => (avance ? o[debut] + o[taille] <= coupure : o[debut] >= coupure));
   const ideal = positionIdeale(A, { l: A.l, h: A.h }, ici, autre, dimB);
   const r = { x: ideal.x, y: ideal.y, l: dimB.l, h: dimB.h };
-  const enPlus = ECART_LIAISON - ECART_MIN; // ce qu'il faut de plus que l'écart minimum, seulement devant la salle
+  const enPlus = ECART_PASSAGE - ECART_MIN; // ce qu'il faut de plus que l'écart minimum, seulement devant la salle
   for (let tour = 0; tour <= liste.length; tour++) {
     const zone = { ...r, [debut]: avance ? r[debut] : r[debut] - enPlus, [taille]: r[taille] + enPlus };
     const genes = liste.filter((o) => tropProches(zone, o));
     if (!genes.length) break;
+    if (tour === 0) r[debut] += (avance ? 1 : -1) * (ECART_PASSAGE - ECART_LIAISON); // le passage, côté salle de départ
     const recul = Math.max(...genes.map((o) => (avance
-      ? r[debut] + r[taille] + ECART_LIAISON - o[debut]
-      : o[debut] + o[taille] + ECART_LIAISON - r[debut])));
+      ? r[debut] + r[taille] + ECART_PASSAGE - o[debut]
+      : o[debut] + o[taille] + ECART_PASSAGE - r[debut])));
     const decalage = avance ? -recul : recul;
     for (const o of duCoteDeA) o[debut] += decalage;
     r[debut] += decalage;
@@ -241,8 +244,11 @@ const caseDevant = (p) => ({
   y: Math.floor(p.y) - (p.mur === 'nord' ? 1 : 0),
 });
 
-/** Cherche le chemin le moins coûteux, de case en case, à angle droit (A*). Renvoie les cases, ou null. */
-function chercherChemin(depart, arrivee, dirDepart, grille, largeur, longueur, coutCase) {
+/**
+ * Cherche le chemin le moins coûteux, de case en case, à angle droit (A*). Renvoie les cases, ou null.
+ * Arriver de côté sur la dernière case compte comme un virage : le couloir entre dans la porte bien en face.
+ */
+function chercherChemin(depart, arrivee, dirDepart, dirArrivee, grille, largeur, longueur, coutCase) {
   const cle = (x, y, dir) => (y * largeur + x) * 4 + dir;
   const distance = (x, y) => Math.abs(x - arrivee.x) + Math.abs(y - arrivee.y);
   const couts = new Map([[cle(depart.x, depart.y, dirDepart), 0]]);
@@ -289,7 +295,8 @@ function chercherChemin(depart, arrivee, dirDepart, grille, largeur, longueur, c
       if (Math.abs(nd - dir) === 2) return; // pas de demi-tour
       const nx = x + dx, ny = y + dy;
       if (nx < 0 || ny < 0 || nx >= largeur || ny >= longueur || grille[ny * largeur + nx]) return;
-      const cout = couts.get(k) + 1 + (nd === dir ? 0 : COUT_VIRAGE) + coutCase(nx, ny);
+      const deCote = nx === arrivee.x && ny === arrivee.y && nd !== dirArrivee;
+      const cout = couts.get(k) + 1 + (nd === dir ? 0 : COUT_VIRAGE) + (deCote ? COUT_VIRAGE : 0) + coutCase(nx, ny);
       const nk = cle(nx, ny, nd);
       if (cout >= (couts.get(nk) ?? Infinity)) return;
       couts.set(nk, cout);
@@ -342,7 +349,8 @@ function tracerCouloirs(couloirs, positions, largeur, longueur) {
       const i = indice(x, y);
       return (proche[i] ? COUT_LONGE_SALLE : 0) + (devantPorte[i] ? COUT_SORTIE_PORTE : 0) + (pris[i] ? COUT_CROISEMENT : 0);
     };
-    const cases = chercherChemin(depart, arrivee, INDICE_DIRECTION[c.de.mur], grille, largeur, longueur, coutCase);
+    const dirArrivee = INDICE_DIRECTION[OPPOSE[c.vers.mur]];
+    const cases = chercherChemin(depart, arrivee, INDICE_DIRECTION[c.de.mur], dirArrivee, grille, largeur, longueur, coutCase);
     if (!cases) continue;
     for (const k of cases) pris[indice(k.x, k.y)] = 1;
     c.chemin = sansPointsAlignes([
