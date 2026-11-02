@@ -561,7 +561,9 @@ function dessinerPlan() {
   if (!etat.plan) return;
   const d = donjon();
   if (d.id !== etat.clePlan) { etat.clePlan = d.id; etat.zoomPlan = null; }
-  etat.planDispo = disposerPlan(d);
+  // Le calcul essaie plusieurs dispositions : on ne le refait que si les salles, leurs portes ou les liaisons ont changé.
+  const clePlan = JSON.stringify([Object.values(d.salles).map((s) => [s.id, s.plan.largeur, s.plan.longueur, s.plan.portes]), d.liaisons]);
+  if (clePlan !== etat.cleDisposition) { etat.cleDisposition = clePlan; etat.planDispo = disposerPlan(d); }
   const t = tailleAfficheePlan();
   const res = dessinerPlanDonjon($('plan-donjon'), d, etat.planDispo, {
     taille: t, actif: d.salleActive, survol: etat.planSurvol, grille: r.grille && t >= 24,

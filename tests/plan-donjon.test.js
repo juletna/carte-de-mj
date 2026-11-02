@@ -327,6 +327,20 @@ const TESTS = [
     m.relier(d, porte(s1, 'est', 4), porte(s2, 'ouest', 4));
     egal(ecart(), ECART_LIAISON + 2, 'deux boucles pour deux salles');
   }],
+  ['couloirs : celui qui peut éviter un mur l’évite, même s’il doit tourner', () => {
+    const { d, s6 } = casBarre({ porte6: 1, avec7: true }); // la 6 commence juste sous la ligne droite vers la 7
+    const disp = disposerPlan(d);
+    const p = disp.positions[s6];
+    for (const c of disp.couloirs) {
+      if (c.de.salle === s6 || c.vers.salle === s6) continue;
+      const pts = cheminCouloir(c);
+      for (let i = 1; i < pts.length; i++) {
+        const dessus = pts[i].y === pts[i - 1].y && pts[i].y === p.y - 0.5;
+        const enFace = Math.min(pts[i].x, pts[i - 1].x) < p.x + p.largeur && Math.max(pts[i].x, pts[i - 1].x) > p.x;
+        verifier(!(dessus && enFace), 'aucun couloir ne longe le haut de la salle 6');
+      }
+    }
+  }],
   ['couloirs : ils se croisent seulement s’ils ne peuvent pas faire autrement', () => {
     const { d } = casBarre({ porte6: 2, avec7: true }); // la ligne droite vers la 7 est barrée par la 6
     const disp = disposerPlan(d);

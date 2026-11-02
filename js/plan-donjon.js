@@ -16,6 +16,8 @@
  *    Mais si son couloir peut filer tout droit le long de la salle qui gêne, la nouvelle salle se pose après celle-ci :
  *    aucun couloir n'a alors à faire le tour, ni à croiser celui d'à côté ;
  *  - une porte qui mène à une salle déjà placée ne déplace rien : la liaison est simplement tracée ;
+ *  - l'ordre de pose change tout : plusieurs ordres sont essayés (toujours les mêmes, le résultat ne varie donc pas pour
+ *    les mêmes données), et le plan gardé est celui qui a le moins de croisements et de couloirs collés aux murs ;
  *  - plus le donjon a de boucles (des liaisons en plus de celles qui suffisent à tout relier), plus ses couloirs se
  *    disputent la place : les salles s'écartent alors de 1 ou 2 cases de plus (voir `espaceDuDonjon`) ;
  *  - les salles sans aucune liaison vont en rangée sous le reste, sous l'étiquette « Salles non reliées » ;
@@ -34,6 +36,8 @@ export const ETIQUETTE_ISOLEES = 'Salles non reliées';
 const MARGE_ROUTAGE = 8;          // cases où un couloir peut sortir de l'ensemble des salles : le plan s'agrandit d'autant
 const BOUCLES_PAR_SALLE_1 = 1 / 3; // à partir de ce nombre de boucles par salle, 1 case de plus entre les salles
 const BOUCLES_PAR_SALLE_2 = 2 / 3; // à partir de celui-ci, 2 cases de plus
+const ESSAIS_MAX = 8;             // dispositions essayées au plus : au-delà, on ne gagne presque plus rien
+const SALLES_ESSAIS = 240;        // au-delà de 30 salles, moins d'essais (salles × essais), pour ne pas faire attendre
 const ECART_BLOCS = 4;            // cases entre deux blocs de salles (et avant la rangée des non reliées)
 const ECART_RANGEE = 2;           // cases entre deux salles de la rangée des non reliées
 const LARGEUR_RANGEE_MIN = 24;    // la rangée des non reliées passe à la ligne au-delà de cette largeur (ou celle du plan)
@@ -123,8 +127,25 @@ function placerDerriere(rects, A, ici, autre, dimB, espace = 0) {
   return r;
 }
 
+/** Générateur pseudo-aléatoire : la même graine donne toujours la même suite. */
+function generateur(graine) {
+  let x = (graine * 2654435761) >>> 0;
+  return () => { x = (Math.imul(x, 1664525) + 1013904223) >>> 0; return x / 4294967296; };
+}
+
+/** Copie mélangée de la liste, ou la liste telle quelle sans générateur. */
+function melanger(liste, alea) {
+  if (!alea) return liste;
+  const copie = [...liste];
+  for (let i = copie.length - 1; i > 0; i--) {
+    const j = Math.floor(alea() * (i + 1));
+    [copie[i], copie[j]] = [copie[j], copie[i]];
+  }
+  return copie;
+}
+
 /** Dispose les salles de la composante de `racine`, relativement à (0, 0). Renvoie { ids, rects }. */
-function disposerComposante(d, racine, dejaVus, espace) {
+function disposerComposante(d, racine, dejaVus, espace, alea) {
   const rects = {};
   const dim = (id) => dimensions(d.salles[id]);
   rects[racine] = { x: 0, y: 0, l: dim(racine).l, h: dim(racine).h };
@@ -133,7 +154,7 @@ function disposerComposante(d, racine, dejaVus, espace) {
   for (let i = 0; i < file.length; i++) {
     const id = file[i];
     const A = rects[id];
-    for (const { vers, ici, autre } of voisins(d, id)) {
+    for (const { vers, ici, autre } of melanger(voisins(d, id), alea)) {
       if (vers in rects) continue; // déjà placée : la liaison sera seulement tracée
       const dimB = dim(vers);
       rects[vers] = placerDerriere(rects, A, ici, autre, dimB, espace);
@@ -199,11 +220,24 @@ export function disposerPlan(d) {
   if (!ids.length) return { positions: {}, largeur: 2 * MARGE_PLAN, longueur: 2 * MARGE_PLAN, couloirs: [], isolees: [], etiquetteIsolees: null };
 
   const espace = espaceDuDonjon(d, ids);
+  const essais = Math.max(1, Math.min(ESSAIS_MAX, Math.floor(SALLES_ESSAIS / ids.length)));
+  let meilleur = calculerPlan(d, ids, espace, null);
+  // Le premier essai suit l'ordre des liaisons. On s'arrête dès qu'un plan n'a plus rien à améliorer.
+  for (let essai = 1; essai < essais && meilleur.defauts > 0; essai++) {
+    const autre = calculerPlan(d, ids, espace, generateur(essai));
+    if (autre.note < meilleur.note) meilleur = autre;
+  }
+  const { note, defauts, ...plan } = meilleur;
+  return plan;
+}
+
+/** Un plan selon un ordre de pose (`alea` : null pour l'ordre des liaisons), avec sa note : plus elle est basse, mieux c'est. */
+function calculerPlan(d, ids, espace, alea) {
   const vus = new Set();
   const composantes = [];
   for (const id of ids) {
     if (vus.has(id)) continue;
-    composantes.push(disposerComposante(d, id, vus, espace));
+    composantes.push(disposerComposante(d, id, vus, espace, alea));
   }
   // Les salles sans liaison (hors la première, qui ouvre le plan) vont dans la rangée du bas.
   const blocs = composantes.filter((c, i) => i === 0 || c.ids.length > 1);
@@ -263,7 +297,7 @@ export function disposerPlan(d) {
     });
   }
 
-  tracerCouloirs(couloirs, positions, droite + 2 * MARGE_ROUTAGE, bas + 2 * MARGE_ROUTAGE);
+  const bilan = tracerCouloirs(couloirs, positions, droite + 2 * MARGE_ROUTAGE, bas + 2 * MARGE_ROUTAGE);
 
   // Recadrage : une marge de MARGE_PLAN autour des salles ET des couloirs.
   const xs = [], ys = [];
@@ -277,14 +311,22 @@ export function disposerPlan(d) {
   if (etiquetteIsolees) glisser(etiquetteIsolees);
   for (const c of couloirs) { glisser(c.de); glisser(c.vers); (c.chemin || []).forEach(glisser); }
   const largeur = Math.max(...xs) - x0 + 2 * MARGE_PLAN, longueur = Math.max(...ys) - y0 + 2 * MARGE_PLAN;
-  return { positions, largeur, longueur, couloirs, isolees, etiquetteIsolees };
+  return {
+    positions, largeur, longueur, couloirs, isolees, etiquetteIsolees,
+    defauts: bilan.croisements + bilan.frottements,
+    note: NOTE_CROISEMENT * bilan.croisements + NOTE_FROTTEMENT * bilan.frottements + NOTE_VIRAGE * bilan.virages + NOTE_LONGUEUR * bilan.longueur,
+  };
 }
 
 // --- Tracé des couloirs : ils contournent les salles ------------------------------------------
 
 const COUT_VIRAGE = 2;           // un couloir préfère les lignes droites
-const COUT_LONGE_SALLE = 0.5;    // et garde ses distances avec les murs quand il le peut
+const COUT_LONGE_SALLE = 6;      // et garde ses distances avec les murs : le mur, dessiné à l'extérieur, le toucherait
 const COUT_LONGE_COULOIR = 1;    // ni avec les autres couloirs
+const NOTE_CROISEMENT = 20;      // poids dans la note d'un plan : une case partagée par deux couloirs,
+const NOTE_FROTTEMENT = 3;       // une case de couloir contre une salle,
+const NOTE_VIRAGE = 1;           // un virage,
+const NOTE_LONGUEUR = 0.2;       // une case de couloir
 const COUT_SORTIE_PORTE = 6;     // évite de passer devant une autre porte
 const COUT_CROISEMENT = 40;      // un croisement ne se justifie que si le détour est vraiment très long
 const PASSES_MAX = 3;            // retracés quand des couloirs se croisent encore : chacun réessaie, les autres étant posés
@@ -373,6 +415,7 @@ function sansPointsAlignes(pts) {
  * s'allonger. Les couloirs sont tracés dans l'ordre des liaisons, en évitant autant que possible ceux déjà posés ;
  * s'il reste des croisements, chacun est retracé en connaissant tous les autres, car le premier tracé ignorait les suivants.
  * Pas de chemin possible (porte murée par une salle voisine, plan immense) : le couloir garde son tracé simple.
+ * Renvoie le bilan : { croisements, frottements, virages, longueur } (les cases devant les portes ne frottent pas).
  */
 function tracerCouloirs(couloirs, positions, largeur, longueur) {
   const grille = new Uint8Array(largeur * longueur);     // 1 : une salle occupe cette case
@@ -428,6 +471,14 @@ function tracerCouloirs(couloirs, positions, largeur, longueur) {
       tracer(c);
     }
   }
+  const bilan = { croisements: 0, frottements: 0, virages: 0, longueur: 0 };
+  for (let i = 0; i < pris.length; i++) if (pris[i] > 1) bilan.croisements++;
+  for (const [c, cases] of trace) {
+    bilan.longueur += cases.length;
+    bilan.virages += c.chemin.length - 2;
+    for (const k of cases.slice(1, -1)) if (proche[indice(k.x, k.y)]) bilan.frottements++;
+  }
+  return bilan;
 }
 
 /**
