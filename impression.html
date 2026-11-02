@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Imprimer un donjon · Carte de MJ</title>
+  <meta name="description" content="Imprimez les plans d'un donjon à l'échelle des figurines (25 mm par case) pour jouer sur papier.">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/impression.css">
+</head>
+<body class="impression">
+
+  <main id="commandes" class="commandes">
+    <header>
+      <h1>Imprimer un donjon</h1>
+      <p class="sous-titre">Des plans à l'échelle des figurines, pour jouer sur papier sans l'application. Cette page lit votre donjon sans jamais le modifier.</p>
+      <p class="note"><a href="donjon.html">← Retour au Donjon</a> · <a href="index.html">Accueil</a></p>
+    </header>
+
+    <p id="message-global" class="alerte" role="alert" hidden></p>
+
+    <form id="options" class="options" onsubmit="return false" hidden>
+      <fieldset>
+        <legend>Donjon</legend>
+        <select id="donjon-choix" aria-label="Donjon à imprimer"></select>
+      </fieldset>
+
+      <fieldset>
+        <legend>Version</legend>
+        <label class="case"><input type="radio" name="version" value="joueurs" checked> <span><b>Joueurs</b> : même règle de secret que la table. Ni élément caché, ni porte secrète, ni notes, ni liaisons, ni nom de salle.</span></label>
+        <label class="case"><input type="radio" name="version" value="mj"> <span><b>MJ</b> : tout, secrets compris et signalés, avec une feuille du MJ (noms, notes, liaisons). <b>À ne pas montrer aux joueurs.</b></span></label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Salles à imprimer</legend>
+        <div class="actions"><button id="tout-cocher" type="button" class="discret petit">Tout cocher</button> <button id="tout-decocher" type="button" class="discret petit">Tout décocher</button></div>
+        <ul id="salles" class="salles-impression"></ul>
+      </fieldset>
+
+      <fieldset>
+        <legend>Pions</legend>
+        <label class="case"><input id="pions" type="checkbox" checked> <span>Inclure les pions</span></label>
+        <label class="case" id="ligne-monstres"><input id="monstres" type="checkbox"> <span>Inclure aussi les monstres et les PNJ <em class="doux">(déconseillé : un plan imprimé d'avance les dévoilerait)</em></span></label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Échelle</legend>
+        <label class="case"><input type="radio" name="echelle" value="exacte" checked> <span><b>25 mm par case</b> (échelle réelle des figurines). Une grande salle est découpée sur plusieurs pages A4, par cases entières.</span></label>
+        <label class="case"><input type="radio" name="echelle" value="page"> <span><b>Tenir sur une page</b> : échelle réduite, indiquée sur la feuille. Les figurines ne tiendront plus forcément sur les cases.</span></label>
+      </fieldset>
+    </form>
+
+    <section id="avant-impression" class="consigne" hidden>
+      <h2>Avant d'imprimer</h2>
+      <ul>
+        <li>Papier <b>A4</b>. Dans la fenêtre d'impression, choisissez l'échelle <b>100 %</b> (« Réelle »), et <b>jamais</b> « Ajuster à la page ».</li>
+        <li>Chaque page porte une règle de 5 cm : mesurez-la. Si elle ne fait pas 5 cm, recommencez à 100 %.</li>
+        <li id="consigne-assemblage">Une grande salle tient sur plusieurs pages qui se recouvrent d'une rangée de cases : découpez la marge blanche de la page de droite (ou du bas) le long du trait pointillé, puis posez sa première rangée sur la dernière rangée de la page voisine, les cases bien alignées. L'en-tête de chaque page dit « page 2/6 » et quelles pages l'entourent.</li>
+      </ul>
+      <div class="actions">
+        <button id="imprimer" type="button" disabled>Imprimer</button>
+        <span id="etat-pages" class="note" aria-live="polite"></span>
+      </div>
+    </section>
+  </main>
+
+  <div id="apercu" class="apercu" aria-label="Aperçu des pages"></div>
+
+  <script type="module" src="js/main-impression.js"></script>
+</body>
+</html>

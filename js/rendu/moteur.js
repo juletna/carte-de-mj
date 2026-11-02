@@ -15,7 +15,7 @@ export const MARGE = 1; // cases de roche autour de la pièce
 const COUCHE = { fosse: 0, debris: 1, torche: 9 };
 
 // Épaisseur des murs en cases (celle du thème vectoriel) : sert à situer une porte pour les repères.
-const EPAISSEUR_MUR = 0.32;
+export const EPAISSEUR_MUR = 0.32;
 
 /** Rectangle d'une porte dans le mur, en cases (origine : coin nord-ouest de la pièce). */
 export function rectPorte(plan, p) {
@@ -40,6 +40,7 @@ function rectDe(genre, e, plan) {
  * @param {object} plan     plan validé (voir schema.js)
  * @param {{taille?:number, grille?:boolean, theme?:object, marques?:object}} options
  *        taille = côté d'une case en pixels CSS
+ *        grille = lignes de la grille (le thème peut fournir les siennes : `theme.grille`)
  *        reperes = lettres et numéros dans la marge (par défaut : suit `grille`)
  *        marques = repères d'interface dessinés par-dessus (le thème en décide l'apparence) :
  *          portesReliees: [{mur, position}]            portes reliées à une autre salle
@@ -67,6 +68,45 @@ export function dessiner(canvas, plan, { taille = 48, grille = true, theme = vec
 
   // À partir d'ici, l'origine est le coin nord-ouest de la pièce.
   ctx.translate(MARGE * t, MARGE * t);
+  peindre(ctx, plan, t, { grille, reperes, theme, marques });
+}
+
+/**
+ * Dessine une ou plusieurs cases d'une salle pour le papier : une « fenêtre » de cases entières, à l'échelle
+ * donnée, sans marge de roche ni repères (les lettres et numéros sont posés par la page, en texte).
+ * Les murs ne sont inclus que sur les côtés où la fenêtre touche le bord de la salle (`bords`).
+ * Le canvas déborde de `debord` pixels de chaque côté : le trait de grille d'une limite de fenêtre n'est pas rogné.
+ * N'est utilisée que par l'impression : `dessiner` (Donjon, Présentation) n'est pas modifiée.
+ *
+ * @param {HTMLCanvasElement|OffscreenCanvas} canvas
+ * @param {object} plan
+ * @param {{fenetre:{x0:number,y0:number,x1:number,y1:number}, bords:{nord:boolean,sud:boolean,est:boolean,ouest:boolean},
+ *          taille:number, debord?:number, theme?:object, marques?:object, grille?:boolean}} options
+ *        fenetre = cases [x0, x1[ × [y0, y1[ ; taille = pixels par case (pas de devicePixelRatio : le canvas est
+ *        dimensionné pour l'impression, sa taille CSS en mm est fixée par l'appelant)
+ * @returns {{largeur:number, hauteur:number, debord:number}} taille du canvas en pixels
+ */
+export function dessinerFenetre(canvas, plan, { fenetre, bords, taille, debord = 2, theme = vectoriel, marques = {}, grille = true }) {
+  const t = taille;
+  const e = EPAISSEUR_MUR;
+  const gauche = fenetre.x0 - (bords.ouest ? e : 0), haut = fenetre.y0 - (bords.nord ? e : 0);
+  const droite = fenetre.x1 + (bords.est ? e : 0), bas = fenetre.y1 + (bords.sud ? e : 0);
+  const largeur = Math.round((droite - gauche) * t) + 2 * debord;
+  const hauteur = Math.round((bas - haut) * t) + 2 * debord;
+  canvas.width = largeur;
+  canvas.height = hauteur;
+
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, largeur, hauteur);
+  theme.roche(ctx, largeur, hauteur, t);
+  ctx.translate(debord - gauche * t, debord - haut * t); // origine : coin nord-ouest de la salle
+  peindre(ctx, plan, t, { grille, reperes: false, theme, marques });
+  return { largeur, hauteur, debord };
+}
+
+/** Sol, objets, grille, murs, portes, pions et repères d'interface ; l'origine du contexte est le coin nord-ouest de la salle. */
+function peindre(ctx, plan, t, { grille, reperes, theme, marques }) {
   theme.sol(ctx, plan, t);
 
   const objets = [...plan.objets].sort((a, b) => (COUCHE[a.type] ?? 5) - (COUCHE[b.type] ?? 5));
@@ -74,7 +114,7 @@ export function dessiner(canvas, plan, { taille = 48, grille = true, theme = vec
   const autres = objets.filter((o) => (COUCHE[o.type] ?? 5) >= 5);
 
   auSol.forEach((o) => dessinerObjet(ctx, o, t, theme));
-  if (grille) dessinerGrille(ctx, plan, t);
+  if (grille) (theme.grille || dessinerGrille)(ctx, plan, t);
   theme.murs(ctx, plan, t);
   if (reperes) dessinerReperes(ctx, plan, t);
   plan.portes.forEach((p) => secret(ctx, p.cache, rectPorte(plan, p), t, theme, () => theme.porte(ctx, p, plan, t)));
@@ -83,7 +123,7 @@ export function dessiner(canvas, plan, { taille = 48, grille = true, theme = vec
   (plan.creatures || []).forEach((k) => secret(ctx, k.cache, rectDe('creature', k), t, theme, () => theme.pion(ctx, k, t)));
 
   // Repères d'interface, tout au-dessus.
-  for (const p of marques.portesReliees || []) theme.marqueLiaison?.(ctx, rectPorte(plan, p), p.mur, t);
+  for (const p of marques.portesReliees || []) theme.marqueLiaison?.(ctx, rectPorte(plan, p), p.mur, t, p);
   if (marques.selection) theme.marqueSelection?.(ctx, rectDe(marques.selection.genre, marques.selection.element, plan), t);
 }
 
@@ -91,7 +131,7 @@ export function dessiner(canvas, plan, { taille = 48, grille = true, theme = vec
 function secret(ctx, cache, rect, t, theme, dessin) {
   if (!cache) { dessin(); return; }
   ctx.save();
-  ctx.globalAlpha = 0.5;
+  ctx.globalAlpha = theme.opaciteCache ?? 0.5; // un thème peut préférer un élément secret opaque (papier : repère en pointillés)
   dessin();
   ctx.restore();
   theme.repereCache?.(ctx, rect, t);

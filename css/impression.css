@@ -1,0 +1,95 @@
+/* Impression : page de réglages à l'écran, et pages A4 (aperçu fidèle à ce qui sort de l'imprimante). Complète css/style.css. */
+[hidden] { display: none !important; }
+
+/* La feuille d'impression : A4 avec 10 mm de marge, exactement comme @page. */
+@page { size: A4; margin: 10mm; }
+@page paysage { size: A4 landscape; margin: 10mm; }
+
+body.impression { display: block; height: auto; min-height: 100vh; }
+body.impression a { color: var(--accent); }
+
+/* --- Réglages (écran seulement) --- */
+.commandes { max-width: 760px; margin: 0 auto; padding: 24px max(16px, env(safe-area-inset-left)) 16px; }
+.options { display: grid; gap: 14px; margin-top: 14px; }
+.options fieldset { margin: 0; padding: 10px 14px 12px; border: 1px solid var(--bord); border-radius: var(--rayon); background: var(--panneau); min-width: 0; }
+.options legend { padding: 0 6px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--texte-doux); }
+.options .case { display: flex; gap: 8px; align-items: flex-start; margin: 6px 0; }
+.options .case input { margin-top: 3px; flex: none; }
+.options .case span { display: block; min-width: 0; }
+.salles-impression { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 4px; }
+.salles-impression li label { display: flex; gap: 8px; align-items: flex-start; overflow-wrap: anywhere; }
+.salles-impression input { margin-top: 3px; accent-color: var(--accent); flex: none; }
+.salles-impression .detail { color: var(--texte-doux); font-size: 13px; }
+.options input[type="radio"], .options input[type="checkbox"] { accent-color: var(--accent); }
+.alerte { margin: 14px 0 0; padding: 10px 14px; border: 1px solid var(--erreur); border-radius: var(--rayon); color: var(--erreur); background: rgba(224, 108, 90, 0.08); }
+.consigne { margin-top: 14px; padding: 10px 14px; border: 2px solid var(--accent); border-radius: var(--rayon); }
+.consigne h2 { color: var(--accent); }
+.consigne ul { margin: 4px 0 0; padding-left: 20px; }
+.consigne li { margin: 4px 0; }
+.consigne .actions { align-items: center; gap: 12px; }
+
+/* --- Aperçu : pages posées sur un fond gris, avec leur marge blanche de 10 mm --- */
+.apercu { background: #3a3940; padding: 16px 0 32px; overflow-x: auto; }
+.apercu > * { margin-left: auto; margin-right: auto; }
+
+.page, .feuille-mj { position: relative; background: #fff; color: #000; box-shadow: 0 0 0 10mm #fff, 0 2px 14px 10mm rgba(0, 0, 0, 0.5); margin-top: 24mm; margin-bottom: 24mm; font: 3.3mm/1.25 system-ui, -apple-system, "Segoe UI", sans-serif; }
+.apercu > :first-child { margin-top: 14mm; }
+.page.portrait { width: 190mm; height: 276.5mm; }
+.page.paysage { width: 277mm; height: 189.5mm; page: paysage; }
+.page { overflow: hidden; }
+
+/* En-tête : titre, position dans l'assemblage, échelle, pages voisines */
+.page .entete { position: absolute; left: 0; right: 0; top: 0; height: 10mm; overflow: hidden; border-bottom: 0.2mm solid #000; }
+.page .ligne-entete { display: flex; justify-content: space-between; gap: 4mm; white-space: nowrap; height: 4.6mm; line-height: 4.6mm; }
+.page .titre { font-weight: 700; font-size: 3.8mm; overflow: hidden; text-overflow: ellipsis; }
+.page .position { font-weight: 600; font-size: 3.2mm; }
+.page .detail-entete { font-size: 2.8mm; }
+.page .reduite { font-weight: 700; border: 0.3mm solid #000; padding: 0 1.2mm; white-space: normal; line-height: 1.15; font-size: 2.7mm; }
+.page .mj { font-weight: 700; font-size: 2.8mm; border: 0.3mm solid #000; padding: 0 1.2mm; margin-left: 2mm; white-space: nowrap; }
+
+/* Grille : la fenêtre de cases, et tout ce qui la touche (repères, image du plan, raccords) */
+.page .grille { position: absolute; }
+.page .grille img { position: absolute; display: block; max-width: none; image-rendering: auto; }
+.page .lettres, .page .numeros { position: absolute; display: flex; font-weight: 700; font-size: 3.2mm; }
+.page .lettres { height: 5mm; }
+.page .lettres span { flex: none; text-align: center; line-height: 5mm; }
+.page .numeros { width: 6mm; flex-direction: column; }
+.page .numeros span { flex: none; display: flex; align-items: center; justify-content: flex-end; padding-right: 1.2mm; }
+/* Raccords : trait pointillé de coupe (côtés nord et ouest, qui reçoivent la page voisine par-dessus) et étiquette (est, sud) */
+.page .coupe { position: absolute; border: 0 dashed #000; }
+.page .coupe.ouest { top: -3mm; bottom: -3mm; left: -0.6mm; border-left-width: 0.35mm; }
+.page .coupe.nord { left: -3mm; right: -3mm; top: -0.6mm; border-top-width: 0.35mm; }
+.page .raccord { position: absolute; font-size: 2.6mm; font-weight: 600; white-space: nowrap; }
+.page .raccord.est { left: 100%; top: 0; margin-left: 0.8mm; writing-mode: vertical-rl; }
+.page .raccord.sud { top: 100%; left: 0; margin-top: 0.8mm; }
+.page .raccord.ouest { left: 0.8mm; top: 100%; }
+
+/* Pied : règle de contrôle de 5 cm et consigne */
+.page .pied { position: absolute; left: 0; right: 0; bottom: 0; height: 15mm; border-top: 0.2mm solid #000; display: flex; gap: 4mm; align-items: center; }
+.page .regle { flex: none; display: block; width: 50mm; height: 8mm; }
+.page .consigne-regle { font-size: 2.9mm; line-height: 1.25; }
+.page .consigne-regle b { display: block; }
+
+/* Feuille du MJ : texte, qui peut courir sur plusieurs pages */
+.feuille-mj { width: 190mm; min-height: 100mm; padding: 0; }
+.feuille-mj h1 { font-size: 6mm; margin: 0 0 2mm; letter-spacing: 0; }
+.feuille-mj h2 { font-size: 4.6mm; margin: 5mm 0 1mm; text-transform: none; letter-spacing: 0; color: #000; border-bottom: 0.2mm solid #000; }
+.feuille-mj h3 { font-size: 3.5mm; margin: 2mm 0 0.5mm; }
+.feuille-mj .secret-bandeau { display: inline-block; border: 0.5mm solid #000; padding: 0.5mm 2mm; font-weight: 700; margin-bottom: 2mm; }
+.feuille-mj ul { margin: 0.5mm 0; padding-left: 5mm; }
+.feuille-mj .salle-mj { break-inside: avoid; }
+.feuille-mj .notes-mj { white-space: pre-wrap; overflow-wrap: anywhere; border: 0.2mm solid #000; padding: 1.5mm 2mm; }
+.feuille-mj .doux-mj { font-style: italic; }
+
+/* --- Impression : seul l'aperçu sort, sans ombre ni marge supplémentaire --- */
+@media print {
+  html, body { background: #fff !important; color: #000 !important; }
+  body.impression { display: block; height: auto; min-height: 0; margin: 0; }
+  .commandes { display: none !important; }
+  .apercu { background: none; padding: 0; overflow: visible; zoom: 1 !important; }
+  .apercu > * { margin: 0 !important; box-shadow: none !important; }
+  .page, .feuille-mj { break-after: page; break-inside: avoid-page; }
+  .feuille-mj { break-inside: auto; }
+  .apercu > :last-child { break-after: auto; }
+  .page img { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+}

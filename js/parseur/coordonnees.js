@@ -1,19 +1,19 @@
 /**
  * Coordonnées de cases façon jeu d'échecs : la colonne est une lettre
  * (A = ouest), la rangée un nombre (1 = nord). « C4 » → x = 2, y = 3.
- * Au-delà de la colonne Z : AA, AB…
+ * Au-delà de la colonne Z : AA, AB… puis BA, BB…
  */
 
 /** Numéro de colonne (à partir de 0) → lettres : 0 → « A », 26 → « AA ». */
 export function lettreColonne(x) {
-  return x < 26 ? String.fromCharCode(65 + x) : `A${String.fromCharCode(65 + x - 26)}`;
+  return `${x < 26 ? '' : String.fromCharCode(64 + Math.floor(x / 26))}${String.fromCharCode(65 + x % 26)}`;
 }
 
 /** Lettres de colonne (minuscules ou majuscules) → numéro : « c » → 2, « aa » → 26. */
 export function indexColonne(lettres) {
   const l = lettres.toLowerCase();
   const code = (c) => c.charCodeAt(0) - 97;
-  return l.length === 1 ? code(l) : 26 + code(l[1]);
+  return l.length === 1 ? code(l) : 26 * (code(l[0]) + 1) + code(l[1]);
 }
 
 /** (2, 3) → « C4 ». */

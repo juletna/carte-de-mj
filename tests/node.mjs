@@ -3,8 +3,9 @@ import { executer, executerAllerRetour } from './parseur.test.js';
 import { executer as executerDonjon } from './donjon.test.js';
 import { executer as executerPresentation } from './presentation.test.js';
 import { executer as executerCommandes } from './commandes.test.js';
+import { executer as executerImpression } from './impression.test.js';
 
-const resultats = [...executer(), ...executerAllerRetour(), ...executerDonjon(), ...executerPresentation(), ...executerCommandes()];
+const resultats = [...executer(), ...executerAllerRetour(), ...executerDonjon(), ...executerPresentation(), ...executerCommandes(), ...executerImpression()];
 let echecs = 0;
 for (const r of resultats) {
   const ok = r.ecarts.length === 0;

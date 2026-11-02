@@ -409,7 +409,31 @@ export function creerSalleEtPasser(p, idSalle, idPorte, description, { nom, eche
 // --- Vue table : ce qui part vers l'écran des joueurs -------------------------------------------------
 
 /**
- * Plan de la salle courante tel que les joueurs peuvent le voir. Construit par LISTE BLANCHE :
+ * Plan « public » d'une salle : ce qu'il est permis de montrer aux joueurs. Construit par LISTE BLANCHE de champs
+ * (ni nom, ni description, ni notes, ni `cache`, ni champ inconnu) ; partagé par la vue table et par l'impression.
+ *  - visible(e)  : un porte, un objet ou un pion est-il montré ? (par défaut : tout ce qui n'est pas caché) ;
+ *  - garder(k)   : filtre supplémentaire sur les pions (par défaut : tous) ;
+ *  - avecEtat    : l'état blessé / mort d'un pion est une information de jeu (vrai pour la table, pas pour un plan imprimé).
+ * @returns {object} un plan neuf, sans aucune référence vers le plan d'origine
+ */
+export function planPublic(plan, { visible = (e) => !estCache(e), garder = () => true, avecEtat = true } = {}) {
+  const creature = (k) => ({
+    id: k.id, type: k.type, camp: k.camp, x: k.x, y: k.y, taille: k.taille, numero: k.numero,
+    ...(k.couleur ? { couleur: k.couleur } : {}),
+    ...(avecEtat && ETATS.includes(k.etat) ? { etat: k.etat } : {}), // liste blanche : blessé ou mort, rien d'autre
+  });
+  return {
+    version: 1, id: 'table', nom: '', forme: 'rectangle',
+    largeur: plan.largeur, longueur: plan.longueur, sol: plan.sol, entree: 'sud',
+    portes: (plan.portes || []).filter(visible).map((q) => ({ id: q.id, mur: q.mur, position: q.position, type: q.type })),
+    objets: (plan.objets || []).filter(visible).map((o) => ({ id: o.id, type: o.type, x: o.x, y: o.y, l: o.l, h: o.h, rotation: o.rotation })),
+    creatures: (plan.creatures || []).filter((k) => visible(k) && garder(k)).map(creature),
+    connexions: [],
+  };
+}
+
+/**
+ * Plan de la salle courante tel que les joueurs peuvent le voir. Construit par LISTE BLANCHE (planPublic) :
  *  - rien d'autre que la salle courante (ni autres salles, ni liaisons, ni nom, ni description, ni notes) ;
  *  - aucun élément caché non révélé, portes comprises ;
  *  - aucun champ `cache` ni aucun champ inconnu (le seul ajout propre au jeu : l'état blessé / mort d'un pion).
@@ -420,20 +444,7 @@ export function vueTable(p) {
   const plan = salle?.plan;
   if (!plan) return null;
   const rev = new Set(Array.isArray(p.reveles?.[p.salleCourante]) ? p.reveles[p.salleCourante] : []);
-  const visible = (e) => !estCache(e) || rev.has(e.id);
-  const creature = (k) => ({
-    id: k.id, type: k.type, camp: k.camp, x: k.x, y: k.y, taille: k.taille, numero: k.numero,
-    ...(k.couleur ? { couleur: k.couleur } : {}),
-    ...(ETATS.includes(k.etat) ? { etat: k.etat } : {}), // liste blanche : blessé ou mort, rien d'autre
-  });
-  return {
-    version: 1, id: 'table', nom: '', forme: 'rectangle',
-    largeur: plan.largeur, longueur: plan.longueur, sol: plan.sol, entree: 'sud',
-    portes: (plan.portes || []).filter(visible).map((q) => ({ id: q.id, mur: q.mur, position: q.position, type: q.type })),
-    objets: (plan.objets || []).filter(visible).map((o) => ({ id: o.id, type: o.type, x: o.x, y: o.y, l: o.l, h: o.h, rotation: o.rotation })),
-    creatures: (plan.creatures || []).filter(visible).map(creature),
-    connexions: [],
-  };
+  return planPublic(plan, { visible: (e) => !estCache(e) || rev.has(e.id) });
 }
 
 /**

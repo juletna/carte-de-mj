@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Tests du parseur, du donjon et de la présentation</title>
+  <title>Tests du parseur, du donjon, de la présentation et de l'impression</title>
   <style>
     :root { color-scheme: dark; }
     body { margin: 0; padding: 24px 16px; background: #16151a; color: #e8e4dc; font: 15px/1.45 system-ui, sans-serif; }
@@ -21,7 +21,7 @@
 </head>
 <body>
   <main>
-    <h1>Tests du parseur, du donjon et de la présentation</h1>
+    <h1>Tests du parseur, du donjon, de la présentation et de l'impression</h1>
     <p id="bilan">Exécution…</p>
     <div id="resultats"></div>
   </main>
@@ -30,8 +30,9 @@
     import { executer as executerDonjon } from './tests/donjon.test.js';
     import { executer as executerPresentation } from './tests/presentation.test.js';
     import { executer as executerCommandes } from './tests/commandes.test.js';
+    import { executer as executerImpression } from './tests/impression.test.js';
 
-    const resultats = [...executer(), ...executerAllerRetour(), ...executerDonjon(), ...executerPresentation(), ...executerCommandes()];
+    const resultats = [...executer(), ...executerAllerRetour(), ...executerDonjon(), ...executerPresentation(), ...executerCommandes(), ...executerImpression()];
     const echecs = resultats.filter((r) => r.ecarts.length).length;
     document.getElementById('bilan').textContent =
       `${resultats.length - echecs} / ${resultats.length} réussis` + (echecs ? ` — ${echecs} échec(s)` : '');

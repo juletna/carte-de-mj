@@ -191,18 +191,35 @@ Rangé dans `carte-de-mj:presentations-v1` sous la forme `{ "presentations": { "
 (`"blesse"` ou `"mort"`, absent = normal). Une partie enregistrée avant l'étape 4 se charge donc telle quelle ; à l'import, `notesPartie` est
 nettoyé (salles inconnues, valeurs qui ne sont pas du texte, longueur bornée) et un `etat` inconnu est écarté, sans refuser la partie.
 
+## Imprimer un donjon
+
+Le bouton **Imprimer ce donjon** du Donjon ouvre `impression.html` (<http://localhost:8765/impression.html>) sur le donjon actif ; un sélecteur permet d'en prendre un autre. Pour jouer sur papier avec de vraies figurines, sans l'application. Ce n'est pas un quatrième outil : la page lit les donjons du navigateur (`carte-de-mj:donjons-v1`) **sans jamais rien écrire**, ni dans cette clé ni ailleurs.
+
+- **Réglages** : salles à imprimer (toutes cochées par défaut), version MJ ou joueurs, pions inclus ou non, échelle. L'aperçu à l'écran reproduit les pages A4 (marge de 10 mm, `@page { size: A4; margin: 10mm }`) ; « Imprimer » appelle `window.print()`.
+- **Version joueurs** (par défaut) : mêmes règles de secret que la table, par liste blanche de champs (`planPublic()` de `js/presentation.js`, aussi utilisée par `vueTable()`). Ni élément caché, ni porte secrète, ni notes, ni liaisons, ni nom de salle, ni nom de donjon, ni état blessé / mort. Les pions de **monstres et de PNJ sont exclus par défaut** (un plan imprimé d'avance ne doit pas les dévoiler) ; une case à cocher les inclut. Les pions de personnages restent. Les salles sont désignées par « Plan N » (rang dans le donjon).
+- **Version MJ** : tout, secrets compris (contour en pointillés et pastille « S »), portes reliées marquées « → N », et une **feuille du MJ** en tête (noms, liaisons porte → salle, liste des secrets, notes de préparation). Chaque page porte « VERSION MJ · SECRÈTE ».
+- **Échelle** : 25 mm par case par défaut, exacte sur papier (tailles CSS en millimètres). « Tenir sur une page » réduit l'échelle (au dixième de mm, 25 mm au plus) et l'écrit en en-tête de chaque page, avec la mention que les figurines ne tiendront plus forcément.
+- **Grande salle** : découpée par **cases entières** sur des pages A4, portrait ou paysage selon ce qui donne le moins de pages (choix par salle). Deux pages voisines **partagent une rangée de cases** : une imprimante ne couvre pas le bord du papier, donc sans cela il resterait une bande blanche entre les pages. On découpe la marge de la page de droite (ou du bas) le long du trait pointillé et on pose sa première rangée sur la dernière de la page voisine. Chaque page indique « page 2/6 », sa colonne et sa ligne dans l'assemblage, ses pages voisines, et ses repères A1… pour la partie imprimée.
+- **Contrôle** : chaque page porte une règle de 5 cm et le rappel « imprimez à 100 %, sans Ajuster à la page » (rappelé aussi à l'écran avant d'imprimer).
+- **Rendu** : fond blanc, noir et blanc, sobre en encre (thème `js/rendu/themes/papier.js` : fosse hachurée, pas d'aplat sombre). Chaque page est dessinée sur un canvas d'environ 254 ppp puis exportée en image PNG de taille CSS en mm ; repères, titres et règle sont du texte et du SVG. Les noms et notes ne sont insérés qu'avec `textContent`.
+- **Limites** : un objet ou un pion qui chevauche une limite de page est coupé avec ses cases (la case, elle, ne l'est jamais) ; l'orientation par page (`@page paysage`) demande un navigateur récent (Chrome, Edge ; non vérifié dans Firefox ni Safari).
+
 ## Arborescence
 
 ```
 index.html          accueil (présente les trois outils)
 donjon.html         outil Donjon (vue MJ)
+impression.html     impression des plans d'un donjon (A4, version MJ ou joueurs)
 presentation.html   outil Présentation (régie, ou vue table avec ?vue=table)
 fiche.html          outil Fiche, fichier autonome
-tests.html          tests du parseur et du donjon dans le navigateur
+tests.html          tests du parseur, du donjon, de la présentation et de l'impression dans le navigateur
 css/style.css
+css/impression.css  pages A4 et réglages de l'impression
 js/main-mj.js       branchement de l'interface (donjons, salles, sélection)
 js/presentation.js  partie en cours, portes, révélations, improvisation, vueTable (pur, sans DOM)
 js/main-presentation.js  régie et vue table (DOM, stockage, BroadcastChannel)
+js/impression.js    découpage en pages A4, échelle, versions MJ / joueurs (pur, sans DOM)
+js/main-impression.js  page d'impression (DOM, aperçu, règle de contrôle)
 js/donjon.js        modèle du donjon : salles, liaisons, orphelines, validation (pur, sans DOM)
 js/minicarte.js     mini-carte SVG des salles et de leurs liaisons
 js/schema.js        schéma du plan d'une salle et validation
@@ -211,8 +228,8 @@ js/voix.js          dictée (Web Speech API)
 js/deplacement.js   glisser-déposer et clic sur la carte
 js/parseur/         normalisation, nombres, lexique, dimensions, positions, placement, decrire (plan → texte),
                     commandes (« ajoute trois gobelins » en cours de partie : pur, sans DOM)
-js/rendu/           moteur Canvas et thème vectoriel
-tests/              phrases de test, tests du donjon, des commandes et de la présentation, mini-outil d'assertions
+js/rendu/           moteur Canvas, thème vectoriel et thème papier (impression)
+tests/              phrases de test, tests du donjon, des commandes, de la présentation et de l'impression, mini-outil d'assertions
 outils/serveur.py   serveur local sans cache
 ```
 
