@@ -275,11 +275,9 @@ const TESTS = [
     verifier(p[s6].x >= p[s5].x + p[s5].largeur + ECART_LIAISON, 'la salle 6 est à droite de la salle 5, à la distance normale');
     egal(p[s6].x - (p[s5].x + p[s5].largeur), ECART_PASSAGE, 'écart à gauche de la salle 6');
     egal(p[s1].x - (p[s6].x + p[s6].largeur), ECART_PASSAGE, 'même écart à droite de la salle 6');
-    const contour = disp.couloirs.find((c) => [c.de.salle, c.vers.salle].sort().join() === [s1, s5].sort().join());
-    const verticales = cheminCouloir(contour).map((pt) => pt.x);
-    verifier(verticales.includes(p[s6].x - 1.5), 'le couloir passe au milieu de l’espace à gauche de la salle 6');
-    verifier(verticales.includes(p[s6].x + p[s6].largeur + 1.5), 'et au milieu de l’espace à droite');
-    egal(p[s6].y, p[s5].y, 'les portes de la 5 et de la 6 se font face');
+    const droit = disp.couloirs.find((c) => [c.de.salle, c.vers.salle].sort().join() === [s1, s5].sort().join());
+    egal(cheminCouloir(droit).length, 2, 'la 6 a glissé : le couloir 5 → 1 file tout droit sous elle');
+    egal(p[s6].y, p[s5].y - 2, 'la 6 monte juste assez pour laisser une case libre au-dessus du couloir');
     couloirsPropres(disp, 'cas signalé');
     egal(JSON.stringify(disposerPlan(d)), JSON.stringify(disp), 'même plan à chaque calcul');
     const mini = disposerSalles(d).positions;
@@ -326,6 +324,22 @@ const TESTS = [
     egal(ecart(), ECART_LIAISON + 1, 'une boucle pour deux salles');
     m.relier(d, porte(s1, 'est', 4), porte(s2, 'ouest', 4));
     egal(ecart(), ECART_LIAISON + 2, 'deux boucles pour deux salles');
+  }],
+  ['glissement : la salle ne bouge que si ça libère vraiment un couloir droit', () => {
+    const d = donjonVide();
+    const s1 = d.salleActive;
+    const t1 = texteSalle(8, 8, [['ouest', 1], ['ouest', 5]]);
+    m.definirTexte(d, s1, t1, m.planDepuisTexte(t1, s1));
+    const loin = salle(d, 'Loin', 6, 6, [['est', 1]]);
+    const pres = salle(d, 'Près', 6, 6, [['est', 3]]);
+    m.relier(d, porte(s1, 'ouest', 1), porte(loin, 'est', 1));
+    m.relier(d, porte(s1, 'ouest', 5), porte(pres, 'est', 3));
+    const disp = disposerPlan(d);
+    const p = disp.positions;
+    verifier(p[pres].y >= p[s1].y + 3, 'la salle proche descend, une case libre sous le couloir');
+    const droit = disp.couloirs.find((c) => [c.de.salle, c.vers.salle].includes(loin));
+    egal(cheminCouloir(droit).length, 2, 'le couloir vers la salle lointaine est droit');
+    verifier(p[loin].x < p[pres].x, 'la salle lointaine est bien derrière');
   }],
   ['couloirs : celui qui peut éviter un mur l’évite, même s’il doit tourner', () => {
     const { d, s6 } = casBarre({ porte6: 1, avec7: true }); // la 6 commence juste sous la ligne droite vers la 7

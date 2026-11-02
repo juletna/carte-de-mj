@@ -9,6 +9,8 @@
  *  - parcours en largeur depuis la première salle, en suivant les liaisons dans l'ordre où elles sont écrites ;
  *  - la salle reliée se place derrière le mur de la porte, avec 2 cases entre les deux murs, décalée pour que les deux
  *    portes se fassent face (quand la porte d'arrivée est sur le mur opposé ; sinon la salle est centrée sur la porte) ;
+ *  - si la salle barrerait le couloir droit d'une autre porte du même mur, elle glisse de 3 cases au plus pour le laisser
+ *    passer : ses propres portes ne se font alors plus face, et son couloir fait un petit crochet ;
  *  - si la place est prise, la salle ne change JAMAIS de côté : une porte à l'est mène toujours à une salle à l'est.
  *    C'est la salle de départ, avec tout ce qui se trouve de son côté, qui recule pour laisser la place. Les couloirs
  *    des liaisons ainsi écartées s'allongent. La salle insérée a alors 3 cases de chaque côté : une case de passage
@@ -36,6 +38,7 @@ export const ETIQUETTE_ISOLEES = 'Salles non reliées';
 const MARGE_ROUTAGE = 8;          // cases où un couloir peut sortir de l'ensemble des salles : le plan s'agrandit d'autant
 const BOUCLES_PAR_SALLE_1 = 1 / 3; // à partir de ce nombre de boucles par salle, 1 case de plus entre les salles
 const BOUCLES_PAR_SALLE_2 = 2 / 3; // à partir de celui-ci, 2 cases de plus
+const GLISSEMENTS = [0, 1, -1, 2, -2, 3, -3]; // décalages essayés pour libérer le couloir droit d'une porte voisine
 const ESSAIS_MAX = 8;             // dispositions essayées au plus : au-delà, on ne gagne presque plus rien
 const SALLES_ESSAIS = 240;        // au-delà de 30 salles, moins d'essais (salles × essais), pour ne pas faire attendre
 const ECART_BLOCS = 4;            // cases entre deux blocs de salles (et avant la rangée des non reliées)
@@ -86,7 +89,7 @@ function positionIdeale(A, dimA, ici, autre, dimB, espace = 0) {
  * chevauchement, puisque ces salles s'éloignent seulement de celles qui ne bougent pas), et B est à ECART_PASSAGE de
  * ses deux voisines, car un couloir devra passer de chaque côté d'elle pour la contourner. Modifie `rects`.
  */
-function placerDerriere(rects, A, ici, autre, dimB, espace = 0) {
+function placerDerriere(rects, A, ici, autre, dimB, espace = 0, autres = []) {
   const passage = ECART_PASSAGE + espace;
   const mur = ici.mur;
   const horizontal = mur === 'est' || mur === 'ouest';
@@ -100,9 +103,21 @@ function placerDerriere(rects, A, ici, autre, dimB, espace = 0) {
   const ideal = positionIdeale(A, { l: A.l, h: A.h }, ici, autre, dimB, espace);
   const r = { x: ideal.x, y: ideal.y, l: dimB.l, h: dimB.h };
   // La ligne droite n'existe que si les portes se font face. Elle passe si une case libre la sépare du mur de la salle.
-  const ligne = autre.mur === OPPOSE[mur] ? A[cote] + borner(ici.position | 0, 0, longueurMur(A, mur) - 1) : null;
-  const barreLigne = (o) => ligne === null || (ligne > o[cote] - 2 && ligne <= o[cote] + o[tailleCote]);
+  let ligne = autre.mur === OPPOSE[mur] ? A[cote] + borner(ici.position | 0, 0, longueurMur(A, mur) - 1) : null;
+  const barreRang = (o, rang) => rang > o[cote] - 2 && rang <= o[cote] + o[tailleCote];
+  const barreLigne = (o) => ligne === null || barreRang(o, ligne);
   const devantA = liste.filter((o) => o !== A && sortie(o) > sortie(A));
+  // Les couloirs droits voisins qui passeraient là où B se pose : leur salle est déjà posée plus loin, et rien ne les barre.
+  // (Une salle pas encore posée ne compte pas : sinon les deux salles glisseraient, et aucune porte ne ferait plus face.)
+  const rangs = autres.flatMap(({ vers, ici: porte }) => {
+    const cible = rects[vers];
+    if (!cible || sortie(cible) <= entree(r)) return [];
+    const rang = A[cote] + borner(porte.position | 0, 0, longueurMur(A, mur) - 1);
+    const barre = devantA.some((o) => o !== cible && barreRang(o, rang) && entree(o) < entree(cible));
+    return barre ? [] : [rang];
+  });
+  const decalage0 = GLISSEMENTS.find((g) => !rangs.some((rang) => barreRang({ ...r, [cote]: r[cote] + g }, rang)));
+  if (decalage0) { r[cote] += decalage0; ligne = null; }
   const enPlus = passage - ECART_MIN; // ce qu'il faut de plus que l'écart minimum, seulement devant la salle
   let ecartee = false;
   for (let tour = 0; tour <= 2 * liste.length; tour++) {
@@ -154,10 +169,12 @@ function disposerComposante(d, racine, dejaVus, espace, alea) {
   for (let i = 0; i < file.length; i++) {
     const id = file[i];
     const A = rects[id];
-    for (const { vers, ici, autre } of melanger(voisins(d, id), alea)) {
+    const liaisons = melanger(voisins(d, id), alea);
+    for (const { vers, ici, autre } of liaisons) {
       if (vers in rects) continue; // déjà placée : la liaison sera seulement tracée
       const dimB = dim(vers);
-      rects[vers] = placerDerriere(rects, A, ici, autre, dimB, espace);
+      const autres = liaisons.filter((v) => v.vers !== vers && v.ici.mur === ici.mur && v.autre.mur === OPPOSE[ici.mur]);
+      rects[vers] = placerDerriere(rects, A, ici, autre, dimB, espace, autres);
       dejaVus.add(vers);
       file.push(vers);
     }
