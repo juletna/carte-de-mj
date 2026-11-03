@@ -19,7 +19,6 @@
         <a class="menu-lien" href="fiche.html">Fiche</a>
         <a class="menu-lien" href="donjon.html" aria-current="page">Donjon</a>
         <a class="menu-lien" href="presentation.html">Présentation</a>
-        <a class="menu-lien" href="impression.html" title="Ouvre la page d'impression du donjon actif : plans à l'échelle des figurines, version MJ ou joueurs">Imprimer</a>
       </nav>
     </div>
 
@@ -39,7 +38,6 @@
           <a class="bouton" href="index.html">Accueil</a>
           <a class="bouton" href="fiche.html">Fiche</a>
           <a class="bouton" href="presentation.html">Présentation</a>
-          <a class="bouton" href="impression.html">Imprimer</a>
         </p>
 
         <label for="donjon-choix">Changer de donjon</label>
@@ -50,6 +48,7 @@
           <button id="donjon-nouveau" type="button" class="discret" aria-expanded="false" aria-controls="nouveau">+ Nouveau donjon</button>
           <button id="exporter" type="button" class="discret" title="Enregistre le donjon entier (salles, notes, liaisons, éléments cachés)">Exporter</button>
           <label class="bouton">Importer <input id="importer" type="file" accept=".json,application/json" hidden></label>
+          <a id="donjon-imprimer" class="bouton" href="impression.html" title="Plans de ce donjon à l'échelle des figurines, version MJ ou joueurs">Imprimer ce donjon</a>
           <button id="donjon-copier" type="button" class="discret" title="Copie le donjon entier, à coller dans un message. Attention : les notes et les éléments cachés sont dedans.">Copier</button>
         </div>
         <section id="nouveau" class="nouveau" aria-label="Nouveau donjon" hidden>
