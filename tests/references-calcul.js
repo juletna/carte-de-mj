@@ -14,7 +14,8 @@ import { MODELES, donjonDepuisModele } from '../js/modeles.js';
 import { analyser } from '../js/parseur/index.js';
 import { OBJETS, CREATURES } from '../js/catalogue.js';
 import { disposerPlan } from '../js/plan-donjon.js';
-import { dessiner, dessinerFenetre, dessinerPlanDonjon } from '../js/rendu/moteur.js';
+import { dessiner, dessinerFenetre } from '../js/rendu/moteur.js';
+import { dessinerPlanDonjon } from '../js/rendu/plan.js';
 import * as vectoriel from '../js/rendu/themes/vectoriel.js';
 import * as papier from '../js/rendu/themes/papier.js';
 

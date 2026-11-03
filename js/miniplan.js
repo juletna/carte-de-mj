@@ -5,7 +5,7 @@
  * le survol, le clic, et une liste de boutons cachés à l'œil pour le clavier (Tab et Entrée ; le focus surligne la salle
  * sur le plan). `creerPlanInteractif` est ce comportement commun ; `creerMiniPlan` y ajoute la taille qui tient dans le cadre.
  */
-import { dessinerPlanDonjon } from './rendu/moteur.js';
+import { dessinerPlanDonjon } from './rendu/plan.js';
 import { tailleQuiTientPlan } from './affichage.js';
 import { salleSous } from './plan-donjon.js';
 

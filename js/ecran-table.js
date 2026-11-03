@@ -6,7 +6,8 @@
  * Ce qu'on lui donne est déjà filtré : le résultat de `lireEtat` (message reçu) ou, en plein écran ici, celui de vueTable()
  * et de miniPlanTable() relu par recevoirMiniPlan (voir vue-publique.js). Il ne lit ni le stockage ni les parties.
  */
-import { dessiner, dessinerPlanDonjon } from './rendu/moteur.js';
+import { dessiner } from './rendu/moteur.js';
+import { dessinerPlanDonjon } from './rendu/plan.js';
 import { activerDeplacement } from './deplacement.js';
 import { AFFICHAGE_PAR_DEFAUT, tailleTable, tailleQuiTientPlan } from './affichage.js';
 import { $ } from './dom.js';

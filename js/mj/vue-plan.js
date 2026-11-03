@@ -1,11 +1,11 @@
 /**
- * La vue Plan : tout le donjon d'un coup, les salles à leur vraie taille (js/plan-donjon.js, moteur.dessinerPlanDonjon). Elle
+ * La vue Plan : tout le donjon d'un coup, les salles à leur vraie taille (js/plan-donjon.js, rendu/plan.js, dessinerPlanDonjon). Elle
  * remplace la carte de la salle dans la scène ; son zoom est à part (`zoomPlan`). Survol à la souris ou au focus clavier d'une
  * liste de boutons cachés à l'œil ; cliquer une salle quitte le plan et l'ouvre. Fabrique `creerVuePlan(ctx)` ; `ctx` est celui de
  * main-mj.js (`etat`, `donjon`, `salle`, `deselectionner`, `activerSalle`, `dispositionDuDonjon`, `bulle`, `carte`, `onglets`), lu
  * au moment de l'appel. Renvoie `ouvrir(ouvert)`, `dessiner()` et `cibleZoom` (voir zoom.js).
  */
-import { dessinerPlanDonjon } from '../rendu/moteur.js';
+import { dessinerPlanDonjon } from '../rendu/plan.js';
 import { creerPlanInteractif } from '../miniplan.js';
 import { PLAN_ZOOM_MIN, PLAN_ZOOM_MAX, zoomBorne, tailleAfficheePlan as tailleDuPlan } from '../mise-en-page.js';
 import * as modele from '../donjon.js';
@@ -25,7 +25,7 @@ export function creerVuePlan(ctx) {
     onChoisir: (id) => ctx.activerSalle(id),
   });
 
-  // --- Vue Plan : tout le donjon d'un coup, les salles à leur vraie taille (js/plan-donjon.js, moteur.dessinerPlanDonjon) ---
+  // --- Vue Plan : tout le donjon d'un coup, les salles à leur vraie taille (js/plan-donjon.js, rendu/plan.js, dessinerPlanDonjon) ---
   // Elle remplace la carte de la salle dans la scène (#support, donc les bandes de dimensions et la bulle, est masqué). Son zoom
   // est à part (`zoomPlan`) : la carte de la salle garde le sien. Cliquer une salle quitte le plan et l'ouvre.
 

@@ -129,7 +129,7 @@ Dans chaque salle, la description reste la seule référence (texte → plan →
   en deux clics). Supprimer un donjon se fait aussi en deux clics : un message donne son nom et son nombre de salles, le bouton
   garde sa largeur, et « Présenter » est sur une autre ligne. Sa partie en cours reste dans la Présentation
   (« Autres parties en cours »). Supprimer une salle retire ses liaisons ; supprimer la dernière en recrée une vide.
-- **Miniature du plan** : le plan complet, le même dessin, réduit pour tenir dans le panneau (`js/miniplan.js`). Il n'y a qu'une façon de dessiner un plan (`dessinerPlanDonjon`) : plan complet, miniature, encart de la table. Un clic, ou Tab puis Entrée, affiche la salle ; son nom s'affiche au survol.
+- **Miniature du plan** : le plan complet, le même dessin, réduit pour tenir dans le panneau (`js/miniplan.js`). Il n'y a qu'une façon de dessiner un plan (`dessinerPlanDonjon`, `js/rendu/plan.js`) : plan complet, miniature, encart de la table. Un clic, ou Tab puis Entrée, affiche la salle ; son nom s'affiche au survol.
 - **Première utilisation** : tant qu'aucun donjon n'a plus d'une salle, les exemples sont dépliés au démarrage et le sous-titre
   dit « Décris une porte, puis clique dessus pour créer la salle suivante » ; il reprend son texte dès qu'une deuxième salle existe.
   Une salle sans porte l'indique dans la note de « Salles ».
@@ -386,7 +386,7 @@ js/coordonnees.js   coordonnées de cases façon échecs (A1…), repère d'une 
 js/parseur/         index (chaîne d'analyse), normalisation, nombres, lexique (vocabulaire et index des mots), dimensions, positions, placement,
                     decrire (plan → texte), commandes (« ajoute trois gobelins » en cours de partie : pur, sans DOM)
 js/parseur/placement/  le détail de placement.js (qui orchestre) : grille (cases occupées, répartition), portes (mur d'entrée, portes), placeurs (une disposition par zone), journal (phrases du journal)
-js/rendu/           moteur Canvas, géométrie (marge, épaisseur des murs, rectangle d'un élément, ancrage d'une porte : pur), trace.js (tracé Canvas du sol et des murs découpés), portraits de monstres, thème vectoriel et thème papier (impression) avec leurs primitives communes (themes/commun.js)
+js/rendu/           moteur Canvas (une salle ; `peindre`), plan.js (le plan complet du donjon : couloirs, ponts, cadres, noms ; s'appuie sur le moteur), géométrie (marge, épaisseur des murs, rectangle d'un élément, ancrage d'une porte : pur), trace.js (tracé Canvas du sol et des murs découpés), portraits de monstres, thème vectoriel et thème papier (impression) avec leurs primitives communes (themes/commun.js)
 tests/              un fichier de test par module (*.test.js), tous.js (la liste unique des suites, lue par node.mjs et tests.html),
                     mini-test.js (assertions et harnais communs), phrases.js (phrases du parseur), references.js (empreintes de rendu
                     et de disposition, générées par regenerer-references.mjs)

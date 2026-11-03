@@ -1,22 +1,27 @@
 /**
- * Moteur de rendu : dessine un plan de salle sur un <canvas>.
+ * Moteur de rendu : dessine un plan de salle sur un <canvas> (`dessiner`) ou une fenêtre de cases pour le papier (`dessinerFenetre`).
  *
  * Le moteur s'occupe de la mise en page (taille du canvas, grille, murs,
  * portes, ordre de dessin ; les mesures partagées sont dans geometrie.js) ; l'apparence de chaque élément est déléguée
  * à un « thème » (voir themes/vectoriel.js), ce qui permettra d'ajouter
  * un thème pixel art ou des sprites sans toucher à ce fichier.
+ * Le plan complet du donjon (`dessinerPlanDonjon`) est dans plan.js, qui s'appuie sur `peindre`, exporté d'ici.
  */
 import * as vectoriel from './themes/vectoriel.js';
 import { lettreColonne } from '../coordonnees.js';
-import { cheminCouloir, PONT_DEMI_LONGUEUR, ETIQUETTE_ISOLEES } from '../plan-donjon.js';
-import { retraitPorte, contourSol } from '../formes.js';
 import { tracerSol } from './trace.js';
-import { estHorizontal } from '../murs.js';
 import { MARGE, EPAISSEUR_MUR, rectPorte, rectDe } from './geometrie.js';
-import { TAILLE_PAR_DEFAUT, tailleCanvasBornee } from '../affichage.js';
+import { TAILLE_PAR_DEFAUT } from '../affichage.js';
 import { coucheDe, COUCHE_PAR_DEFAUT } from '../catalogue.js';
 
 // Ordre de dessin : ce qui est au sol d'abord, ce qui est accroché aux murs en dernier (la couche de chaque type est dans catalogue.js).
+
+// Couleurs du moteur (valeurs littérales, nommées sans être modifiées).
+const CASE_VISEE_REMPLISSAGE = 'rgba(255, 212, 59, 0.55)'; // la case montrée par le MJ : fond translucide
+const CASE_VISEE_TRAIT = '#ffd43b'; // et son cadre épais
+const CASE_VISEE_CONTOUR = 'rgba(20, 19, 17, 0.8)'; // et le fin liséré sombre qui la détache du sol
+const REPERES_TEXTE = 'rgba(255, 255, 255, 0.6)'; // lettres et numéros dans la marge
+const GRILLE_TRAIT = 'rgba(0, 0, 0, 0.45)'; // lignes de la grille
 
 /**
  * @param {HTMLCanvasElement} canvas
@@ -89,175 +94,8 @@ export function dessinerFenetre(canvas, plan, { fenetre, bords, taille, debord =
   return { largeur, hauteur, debord };
 }
 
-/** Une porte pas encore ouverte : un trait rouge cerné de blanc, posé sur le mur, assez épais pour se voir en tout petit. */
-function dessinerPorteFermee(ctx, p, plan, { mur, position }, t) {
-  const horizontal = estHorizontal(mur);
-  const d = retraitPorte(plan, mur, position);
-  const long = Math.max(10, t * 1.1), epais = Math.max(6, t * 0.4);
-  const le = (position + 0.5) * t;
-  const cx = p.x * t + (horizontal ? le : mur === 'ouest' ? d * t - EPAISSEUR_MUR * t / 2 : (p.largeur - d + EPAISSEUR_MUR / 2) * t);
-  const cy = p.y * t + (!horizontal ? le : mur === 'nord' ? d * t - EPAISSEUR_MUR * t / 2 : (p.longueur - d + EPAISSEUR_MUR / 2) * t);
-  const l = horizontal ? long : epais, h = horizontal ? epais : long;
-  ctx.save();
-  const contour = Math.max(1, t * 0.06); // à l'extérieur du rouge : le contour ne le ronge pas
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(cx - l / 2 - contour, cy - h / 2 - contour, l + 2 * contour, h + 2 * contour);
-  ctx.fillStyle = '#e5242a';
-  ctx.fillRect(cx - l / 2, cy - h / 2, l, h);
-  ctx.restore();
-}
-
-/** Un pont de planches là où deux couloirs se croisent : le couloir du dessus continue, celui du dessous passe sous lui. */
-function dessinerPont(ctx, { x, y, horizontal }, t) {
-  const demi = PONT_DEMI_LONGUEUR * t, large = t * 0.46, garde = t * 0.15;
-  ctx.save();
-  ctx.translate(x * t, y * t);
-  if (!horizontal) ctx.rotate(Math.PI / 2);
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.45)'; // l'ombre portée sur le couloir du dessous
-  ctx.fillRect(-demi, -large - garde * 1.6, demi * 2, (large + garde * 1.6) * 2);
-  ctx.fillStyle = '#8f6c44';
-  ctx.fillRect(-demi, -large, demi * 2, large * 2);
-  if (t >= 7) { // en dessous, les planches ne se voient plus
-    ctx.strokeStyle = '#5f4630';
-    ctx.lineWidth = Math.max(1, t * 0.03);
-    const n = 6;
-    for (let i = 1; i < n; i++) {
-      const px = -demi + (2 * demi * i) / n;
-      ctx.beginPath(); ctx.moveTo(px, -large); ctx.lineTo(px, large); ctx.stroke();
-    }
-  }
-  ctx.fillStyle = '#2a2724'; // les garde-corps
-  ctx.fillRect(-demi, -large - garde, demi * 2, garde);
-  ctx.fillRect(-demi, large, demi * 2, garde);
-  ctx.restore();
-}
-
-/**
- * Plan complet du donjon : toutes les salles à leur vraie taille, sur le fond de roche, reliées par des couloirs.
- * Chaque salle est peinte par `peindre` (comme dans la vue MJ : sol, objets, murs, portes, pions, secrets en translucide),
- * sans repères A1. Les couloirs passent dessous (ils débouchent sur les portes), les noms au-dessus des salles.
- * C'est LA façon de dessiner un plan : vue Plan du Donjon, miniature de la sidebar et de la régie (miniplan.js), encart de la table.
- *
- * @param {HTMLCanvasElement} canvas
- * @param {object} d            donjon
- * @param {object} disposition  résultat de `disposerPlan(d)` (js/plan-donjon.js), en cases
- * @param {{taille?:number, actif?:string, survol?:string|null, grille?:boolean, theme?:object, noms?:boolean, pions?:boolean,
- *          surbrillance?:boolean, courante?:string, inconnues?:string[], portesFermees?:object[]}} options
- *        taille = côté d'une case en pixels CSS (réduit si le canvas dépasserait les limites du navigateur)
- *        actif = salle affichée (cadre et nom en couleur d'accent) ; survol = salle sous le curseur (surlignée)
- *        noms, pions = false pour une miniature ; surbrillance = la salle active est aussi teintée, pour se voir en tout petit
- *        courante = salle à la table (cadre vert) ; inconnues = salles pas encore découvertes (assombries) : régie
- *        portesFermees = portes pas encore ouvertes [{salle, mur, position}] : un trait rouge cerné de blanc sur le mur
- * @returns {{taille:number, largeur:number, hauteur:number}} côté de case réellement utilisé et taille CSS du canvas
- */
-export function dessinerPlanDonjon(canvas, d, disposition, { taille = 16, actif = null, survol = null, grille = false, theme = vectoriel, noms = true, pions = true, surbrillance = false, courante = null, inconnues = [], portesFermees = [] } = {}) {
-  const casesL = disposition.largeur, casesH = disposition.longueur;
-  const { t, dpr } = tailleCanvasBornee(casesL, casesH, taille, window.devicePixelRatio || 1);
-  const largeurPx = Math.round(casesL * t), hauteurPx = Math.round(casesH * t);
-
-  canvas.width = Math.round(largeurPx * dpr);
-  canvas.height = Math.round(hauteurPx * dpr);
-  canvas.style.width = `${largeurPx}px`;
-  canvas.style.height = `${hauteurPx}px`;
-
-  const ctx = canvas.getContext('2d');
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  ctx.clearRect(0, 0, largeurPx, hauteurPx);
-  theme.roche(ctx, largeurPx, hauteurPx, t);
-
-  // Couloirs : contour sombre puis sol, à angle droit. Une liaison orpheline (porte disparue) est un trait en pointillés.
-  ctx.save();
-  ctx.lineJoin = 'miter';
-  ctx.lineCap = 'butt';
-  for (const c of disposition.couloirs) {
-    const chemin = cheminCouloir(c);
-    const trace = () => { ctx.beginPath(); chemin.forEach((p, i) => (i ? ctx.lineTo(p.x * t, p.y * t) : ctx.moveTo(p.x * t, p.y * t))); ctx.stroke(); };
-    if (c.orpheline) {
-      ctx.strokeStyle = '#e06c5a';
-      ctx.lineWidth = Math.max(2, t * 0.14);
-      ctx.setLineDash([t * 0.35, t * 0.3]);
-      trace();
-      ctx.setLineDash([]);
-    } else {
-      ctx.strokeStyle = '#2a2724';
-      ctx.lineWidth = t * 1.22;
-      trace();
-      ctx.strokeStyle = '#8a8680'; // le sol de pierre des salles
-      ctx.lineWidth = t * 0.92;
-      trace();
-    }
-  }
-  ctx.restore();
-  for (const pont of disposition.ponts || []) dessinerPont(ctx, pont, t);
-
-  // Salles, chacune dans son repère (origine : coin nord-ouest de la salle).
-  for (const [id, s] of Object.entries(d.salles)) {
-    const p = disposition.positions[id];
-    if (!p) continue;
-    ctx.save();
-    ctx.translate(p.x * t, p.y * t);
-    peindre(ctx, pions ? s.plan : { ...s.plan, creatures: [] }, t, { grille, reperes: false, theme, marques: {} });
-    ctx.restore();
-  }
-
-  // Surlignage (survol) et cadre de la salle active, par-dessus les murs.
-  const cadre = (id, couleur, epais, voile) => {
-    const p = disposition.positions[id];
-    if (!p) return;
-    const plan = d.salles[id].plan;
-    ctx.save();
-    ctx.translate(p.x * t, p.y * t);
-    if (voile) { ctx.fillStyle = voile; tracerSol(ctx, plan, t); ctx.fill(); }
-    ctx.strokeStyle = couleur;
-    ctx.lineWidth = epais;
-    ctx.lineCap = 'square'; // le bout carré ferme les coins entre deux segments
-    ctx.beginPath();
-    for (const { x1, y1, x2, y2 } of contourSol(plan, t, EPAISSEUR_MUR * t + epais / 2)) { ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); }
-    ctx.stroke();
-    ctx.restore();
-  };
-  for (const id of inconnues) cadre(id, '#55525a', 1, 'rgba(10, 10, 14, 0.62)');
-  if (courante && courante !== actif) cadre(courante, '#7cc47c', Math.max(2, t * 0.18), null);
-  if (survol && survol !== actif) cadre(survol, '#f4efe4', Math.max(2, t * 0.12), 'rgba(255, 255, 255, 0.14)');
-  for (const q of portesFermees) {
-    const p = disposition.positions[q.salle], s = d.salles[q.salle];
-    if (p && s) dessinerPorteFermee(ctx, p, s.plan, q, t);
-  }
-  if (actif) cadre(actif, '#d9a929', Math.max(surbrillance ? 2 : 3, t * 0.18), surbrillance ? 'rgba(240, 198, 74, 0.55)' : survol === actif ? 'rgba(255, 255, 255, 0.1)' : null);
-
-  if (!noms) return { taille: t, largeur: largeurPx, hauteur: hauteurPx };
-
-  // Noms : au-dessus de chaque salle, sur une pastille sombre pour rester lisibles sur la roche comme sur un couloir.
-  const police = Math.max(12, Math.min(t * 0.7, 22));
-  ctx.save();
-  ctx.font = `600 ${police}px system-ui, sans-serif`;
-  ctx.textBaseline = 'alphabetic';
-  ctx.textAlign = 'left';
-  const ecrire = (texte, x, yBas, couleur, largeurMax) => {
-    let ligne = texte;
-    while (ligne.length > 1 && ctx.measureText(ligne).width > largeurMax) ligne = `${ligne.slice(0, -2).trimEnd()}…`;
-    const w = ctx.measureText(ligne).width;
-    ctx.fillStyle = 'rgba(20, 19, 17, 0.85)';
-    ctx.fillRect(x - 3, yBas - police - 1, w + 6, police + 6);
-    ctx.fillStyle = couleur;
-    ctx.fillText(ligne, x, yBas);
-  };
-  for (const [id, s] of Object.entries(d.salles)) {
-    const p = disposition.positions[id];
-    if (!p) continue;
-    ecrire(s.nom, p.x * t, p.y * t - EPAISSEUR_MUR * t - 4, id === actif ? '#f0c64a' : '#f4efe4', Math.max(p.largeur * t, 120));
-  }
-  if (disposition.etiquetteIsolees) {
-    const e = disposition.etiquetteIsolees;
-    ecrire(ETIQUETTE_ISOLEES, e.x * t, e.y * t + police, '#b8b3a8', 400);
-  }
-  ctx.restore();
-
-  return { taille: t, largeur: largeurPx, hauteur: hauteurPx };
-}
-
 /** Sol, objets, grille, murs, portes, pions et repères d'interface ; l'origine du contexte est le coin nord-ouest de la salle. */
-function peindre(ctx, plan, t, { grille, reperes, theme, marques }) {
+export function peindre(ctx, plan, t, { grille, reperes, theme, marques }) {
   theme.sol(ctx, plan, t);
 
   const objets = [...plan.objets].sort((a, b) => coucheDe(a.type) - coucheDe(b.type));
@@ -283,12 +121,12 @@ function peindre(ctx, plan, t, { grille, reperes, theme, marques }) {
 function dessinerCaseVisee(ctx, { x, y }, t) {
   const epais = Math.max(3, t * 0.09);
   ctx.save();
-  ctx.fillStyle = 'rgba(255, 212, 59, 0.55)';
+  ctx.fillStyle = CASE_VISEE_REMPLISSAGE;
   ctx.fillRect(x * t, y * t, t, t);
-  ctx.strokeStyle = '#ffd43b';
+  ctx.strokeStyle = CASE_VISEE_TRAIT;
   ctx.lineWidth = epais;
   ctx.strokeRect(x * t + epais / 2, y * t + epais / 2, t - epais, t - epais);
-  ctx.strokeStyle = 'rgba(20, 19, 17, 0.8)';
+  ctx.strokeStyle = CASE_VISEE_CONTOUR;
   ctx.lineWidth = 1;
   ctx.strokeRect(x * t, y * t, t, t);
   ctx.restore();
@@ -307,7 +145,7 @@ function secret(ctx, cache, rect, t, theme, dessin) {
 /** Repères de cases dans la marge : lettres en haut, numéros à gauche (« C4 »). */
 function dessinerReperes(ctx, plan, t) {
   ctx.save();
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+  ctx.fillStyle = REPERES_TEXTE;
   ctx.font = `600 ${Math.max(9, t * 0.28)}px system-ui, sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
@@ -321,7 +159,7 @@ function dessinerGrille(ctx, plan, t) {
   ctx.save();
   tracerSol(ctx, plan, t);
   ctx.clip();
-  ctx.strokeStyle = 'rgba(0, 0, 0, 0.45)';
+  ctx.strokeStyle = GRILLE_TRAIT;
   ctx.lineWidth = Math.max(1, t / 40);
   ctx.beginPath();
   for (let x = 0; x <= plan.largeur; x++) { ctx.moveTo(x * t, 0); ctx.lineTo(x * t, plan.longueur * t); }
