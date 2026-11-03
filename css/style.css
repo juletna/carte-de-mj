@@ -17,7 +17,7 @@ body {
   grid-template-columns: 360px 1fr;
   background: var(--fond);
   color: var(--texte);
-  font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+  font: 15px/1.45 var(--police);
 }
 
 /* --- Panneau de commande --- */

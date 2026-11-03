@@ -21,7 +21,7 @@ Chaque outil est complet seul : il a ses propres données (dans le navigateur) e
 
 ## Navigation et feuille commune
 
-Chaque page commence par le même en-tête, écrit en HTML statique (aucun script) : « Carte de MJ » (accueil), Fiche, Donjon, Présentation, la page courante portant `aria-current="page"`. Il vient de `css/base.css`, qui porte aussi les jetons partagés des pages sombres (couleurs, rayons, espacements, focus, `--cible` : 44 px sous 760 px, aucune exigence au-dessus). Il n'apparaît ni sur la vue table (`?vue=table`), ni à l'impression. La Fiche garde sa palette : elle ne réutilise de `base.css` que l'en-tête, recoloré avec ses variables.
+Chaque page commence par le même en-tête, écrit en HTML statique (aucun script) : « Carte de MJ » (accueil), Fiche, Donjon, Présentation, la page courante portant `aria-current="page"`. Il vient de `css/base.css`, qui porte aussi les jetons partagés des pages sombres (couleurs, couleurs de rôle, police, rayons, espacements, focus, `--cible` : 44 px sous 760 px, aucune exigence au-dessus). Il n'apparaît ni sur la vue table (`?vue=table`), ni à l'impression. La Fiche utilise les mêmes jetons (thème sombre unique, police du système, mêmes rayons) ; seul le fond de son en-tête est le sien.
 
 ## Sur téléphone (sous 760 px)
 
@@ -321,8 +321,8 @@ presentation.html   outil Présentation (régie, ou vue table avec ?vue=table)
 fiche.html          outil Fiche (page HTML ; sa feuille est css/fiche.css, son script js/fiche/main.js)
 tests.html          tous les tests dans le navigateur (la même liste que node tests/node.mjs)
 .github/workflows/tests.yml  lance node tests/node.mjs à chaque push et chaque pull request
-css/base.css        socle commun : jetons (couleurs du thème sombre, rayons, espacements, focus, taille de cible tactile) et en-tête de navigation
-css/fiche.css       feuille de la Fiche : palette et polices propres (seul l'en-tête vient de css/base.css)
+css/base.css        socle commun : jetons (couleurs du thème sombre et de rôle — erreur, accent, succès, arcane —, police du système, rayons, espacements, focus, taille de cible tactile) et en-tête de navigation
+css/fiche.css       feuille de la Fiche : mise en page seulement, couleurs, rayons et police viennent des jetons de css/base.css (thème sombre commun, comme le Donjon)
 css/style.css       styles communs au Donjon, à la Présentation et à l'Impression : panneau, champs, boutons, scène, onglets du téléphone, fiches de personnage
 css/donjon.css      mise en page du Donjon : barre, rail d'outils, panneau, bande des salles, bulle d'actions, zoom
 css/presentation.css  écran de départ, régie et vue table
@@ -379,7 +379,6 @@ js/rendu/           moteur Canvas, géométrie (marge, épaisseur des murs, rect
 tests/              un fichier de test par module (*.test.js), tous.js (la liste unique des suites, lue par node.mjs et tests.html),
                     mini-test.js (assertions et harnais communs), phrases.js (phrases du parseur), references.js (empreintes de rendu
                     et de disposition, générées par regenerer-references.mjs)
-assets/polices/     polices embarquées de la Fiche (licences OFL)
 outils/serveur.py   serveur local sans cache
 ```
 
@@ -406,7 +405,5 @@ outils/serveur.py   serveur local sans cache
 ## Licence
 
 MIT. Voir `LICENSE`.
-
-Les polices de la Fiche (Atkinson Hyperlegible, Grenze Gotisch) sont embarquées dans `assets/polices/`, sous licence SIL Open Font License : voir les fichiers `OFL-*.txt` du même dossier.
 
 Outil non officiel, sans lien avec un éditeur de jeu.

@@ -1,6 +1,6 @@
-/* Carte de MJ — socle commun : jetons partagés (thème sombre) et en-tête de navigation.
+/* Carte de MJ — socle commun : jetons partagés (thème sombre : couleurs, rayon, focus, police) et en-tête de navigation.
    Chargé avant les autres feuilles. Ne contient aucune règle globale (ni body, ni reset) :
-   la Fiche, qui garde sa palette et ses polices, peut donc le charger sans en subir d'effet. */
+   chaque page pose elle-même son fond, sa police et sa mise en page avec ces jetons, la Fiche comme le Donjon. */
 
 :root {
   /* Couleurs du thème sombre */
@@ -14,6 +14,16 @@
   --erreur: #e06c5a;
   --champ: #121116;   /* fond des champs de saisie */
   --scene: #0c0b0e;   /* fond de la zone de carte */
+
+  /* Couleurs de rôle. Le rouge est --erreur et l'or --accent ; ici le vert (réussite, soins, « sur la table ») et le violet (magie). */
+  --succes: #4f9a5c;        /* fond plein et filet */
+  --succes-bord: #2f6b3a;
+  --succes-fond: #14281a;   /* bandeau, message : texte clair dessus */
+  --succes-texte: #7cc47c;  /* texte vert sur fond sombre */
+  --arcane: #9ea3f0;
+
+  /* Police du texte courant, la même partout : celle du système, sans chargement */
+  --police: system-ui, -apple-system, "Segoe UI", sans-serif;
 
   /* Rayons et espacements */
   --rayon: 6px;
@@ -37,7 +47,7 @@
 /* --- En-tête commun (classe menu-site : « entete » est déjà pris par les pages A4 de l'impression) ---
    Statique, dans le flux (il défile avec la page, il ne prend pas de hauteur à la carte).
    Ses couleurs viennent de cinq variables --m-* : par défaut celles du thème sombre ;
-   la Fiche les remplace par les siennes. */
+   une page peut en remplacer une (la Fiche pose seulement --m-fond). */
 .menu-site {
   --m-fond: transparent;
   --m-texte: var(--texte);
