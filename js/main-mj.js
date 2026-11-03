@@ -31,7 +31,7 @@ import { creerMiniPlan } from './miniplan.js';
 import { telephone, activerOnglets, marquerDefilement, LARGEUR_TELEPHONE } from './telephone.js';
 import { $, h, bouton, deuxTemps, fichierChoisi } from './dom.js';
 import { OPPOSE } from './murs.js';
-import { pluriel } from './format.js';
+import { pluriel, LIBELLE_FERMER, libelleMicro } from './format.js';
 
 const EXEMPLES = [
   'Grande pièce de 4 m par 12, quatre piliers, deux coffres au fond de la salle, une statue immobile devant une porte',
@@ -331,7 +331,7 @@ function majSelection() {
   zone.hidden = false;
   const el = trouve.element;
   const contenu = [
-    bouton('✕ Fermer', () => { etat.selection = null; etat.message = ''; rendre(); }, 'discret petit fermer-selection'),
+    bouton(LIBELLE_FERMER, () => { etat.selection = null; etat.message = ''; rendre(); }, 'discret petit fermer-selection'),
     h('p', { className: 'selection-titre', textContent: libelleSelection(trouve) }),
   ];
 
@@ -1213,7 +1213,7 @@ $('copier-rapport').addEventListener('click', async () => {
 const messageMicro = $('message-micro');
 const micro = creerMicro({
   onTexte: (texte) => { salle().texte = texte; $('description').value = texte; genererBientot(); },
-  onEtat: (actif) => { $('micro').classList.toggle('actif', actif); $('micro').textContent = actif ? '⏹ Arrêter' : '🎙️ Dicter'; },
+  onEtat: (actif) => { $('micro').classList.toggle('actif', actif); $('micro').textContent = libelleMicro(actif); },
   onErreur: (msg) => { messageMicro.hidden = false; messageMicro.textContent = msg; },
 });
 if (!voixDisponible) {

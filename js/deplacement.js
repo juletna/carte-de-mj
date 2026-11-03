@@ -6,7 +6,7 @@
  * Il revient à sa place s'il finit hors de la pièce ou sur un élément qui
  * le gêne. Une porte glisse le long des murs et peut changer de mur.
  *
- * Un appui sans glissement réel (le pointeur bouge de moins de SEUIL_GLISSEMENT px)
+ * Un appui sans glissement réel (le pointeur bouge de moins de SEUIL_GLISSEMENT_CARTE px)
  * n'est pas un déplacement : c'est un clic, signalé à `cliquer` (élément touché, ou
  * null si on a appuyé dans le vide).
  *
@@ -27,7 +27,7 @@ import { retraitPorte } from './formes.js';
 import { estHorizontal } from './murs.js';
 import { LISTES } from './schema.js';
 
-const SEUIL_GLISSEMENT = 4; // px : en dessous, c'est un clic
+const SEUIL_GLISSEMENT_CARTE = 4; // px : en dessous, c'est un clic (le seuil de la palette, SEUIL_GLISSEMENT_PALETTE, est un autre réglage)
 export const BANDE_PORTE = 0.5; // cases : profondeur ajoutée à la zone de clic d'une porte (option `portesLarges`)
 const EPAISSEUR_CLIC = 0.2;     // cases : profondeur de la zone de clic d'une porte sans l'option
 const SOUS_LES_AUTRES = new Set(['fosse', 'debris']);
@@ -132,7 +132,7 @@ export function activerDeplacement(canvas, { plan, taille, apercu, deposer, cliq
     }
     if (prise.fixe) return; // cet élément ne bouge pas : seul le clic compte
     if (!prise.glisse) {
-      if (Math.hypot(e.clientX - prise.depart[0], e.clientY - prise.depart[1]) < SEUIL_GLISSEMENT) return;
+      if (Math.hypot(e.clientX - prise.depart[0], e.clientY - prise.depart[1]) < SEUIL_GLISSEMENT_CARTE) return;
       prise.glisse = true;
       commencer?.(prise.genre);
     }

@@ -2,7 +2,7 @@
  * Tests des outils communs : format.js (pur) et dom.js (avec des éléments simulés, donc sans navigateur).
  * Sans dépendance : marche sous Node et dans tests.html.
  */
-import { pluriel, virgule, sansAccents, estObjet } from '../js/format.js';
+import { pluriel, virgule, sansAccents, estObjet, libelleMicro, LIBELLE_FERMER } from '../js/format.js';
 import { h, bouton, deuxTemps, fichierChoisi } from '../js/dom.js';
 import { verifier, egal, executerSuite } from './mini-test.js';
 
@@ -35,7 +35,7 @@ function avecFaux(corps) {
   }
 }
 
-const TESTS = [
+const TESTS = (pages) => [
   ['pluriel : le nombre suivi du mot, au pluriel dès 2', () => {
     egal([0, 1, 2, 5].map((n) => pluriel(n, 'salle', 'salles')), ['0 salle', '1 salle', '2 salles', '5 salles'], 'salles');
     egal(pluriel(3, 'pion a suivi', 'pions ont suivi'), '3 pions ont suivi', 'un verbe accordé');
@@ -103,6 +103,13 @@ const TESTS = [
   ['estObjet : un objet JSON au sens strict, ni null ni tableau', () => {
     egal([{}, { a: 1 }, null, undefined, [], [1], 'x', 3, true].map(estObjet), [true, true, false, false, false, false, false, false, false], 'valeurs');
   }],
+  ['libellés communs : le micro et le bouton fermer ; les boutons micro des pages HTML portent le libellé de repos', () => {
+    egal([libelleMicro(false), libelleMicro(true), LIBELLE_FERMER], ['🎙️ Dicter', '⏹ Arrêter', '✕ Fermer'], 'libellés');
+    for (const [page, id] of [['donjon.html', 'micro'], ['presentation.html', 'micro-commande']]) {
+      const texte = pages[page].match(new RegExp(`<button id="${id}"[^>]*>([^<]*)</button>`))?.[1];
+      egal(texte, libelleMicro(false), `${page} : bouton #${id}`);
+    }
+  }],
   ['fichierChoisi : rend le premier fichier et vide le champ (même fichier rechoisi = nouvel événement)', () => {
     const champ = { files: ['a.json'], value: 'a.json' };
     egal(fichierChoisi({ target: champ }), 'a.json', 'fichier');
@@ -111,4 +118,8 @@ const TESTS = [
   }],
 ];
 
-export const executer = () => executerSuite('outils communs : ', TESTS);
+export async function executer({ lire }) {
+  const pages = {};
+  for (const page of ['donjon.html', 'presentation.html']) pages[page] = await lire(page);
+  return executerSuite('outils communs : ', TESTS(pages));
+}

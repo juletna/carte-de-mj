@@ -13,7 +13,7 @@ import { retraitPorte, contourSol } from '../formes.js';
 import { tracerSol } from './trace.js';
 import { estHorizontal } from '../murs.js';
 import { MARGE, EPAISSEUR_MUR, rectPorte, rectDe } from './geometrie.js';
-import { TAILLE_PAR_DEFAUT } from '../affichage.js';
+import { TAILLE_PAR_DEFAUT, tailleCanvasBornee } from '../affichage.js';
 
 // Ordre de dessin : ce qui est au sol d'abord, ce qui est accroché aux murs en dernier.
 const COUCHE = { fosse: 0, debris: 1, torche: 9 };
@@ -89,15 +89,6 @@ export function dessinerFenetre(canvas, plan, { fenetre, bords, taille, debord =
   return { largeur, hauteur, debord };
 }
 
-// Limites d'un canvas (navigateurs et iOS) : côté et surface en pixels PHYSIQUES. Au-delà, le dessin disparaîtrait.
-const CANVAS_COTE_MAX = 8192;
-const CANVAS_SURFACE_MAX = 16_000_000;
-
-/** Côté de case pour qu'un plan tienne dans un cadre, sans jamais grossir au-delà de `plafond` px (miniatures). */
-export function tailleQuiTientPlan(disposition, largeurMax, hauteurMax, plafond = 16) {
-  return Math.max(1, Math.min(largeurMax / disposition.largeur, hauteurMax / disposition.longueur, plafond));
-}
-
 /** Une porte pas encore ouverte : un trait rouge cerné de blanc, posé sur le mur, assez épais pour se voir en tout petit. */
 function dessinerPorteFermee(ctx, p, plan, { mur, position }, t) {
   const horizontal = estHorizontal(mur);
@@ -161,15 +152,7 @@ function dessinerPont(ctx, { x, y, horizontal }, t) {
  */
 export function dessinerPlanDonjon(canvas, d, disposition, { taille = 16, actif = null, survol = null, grille = false, theme = vectoriel, noms = true, pions = true, surbrillance = false, courante = null, inconnues = [], portesFermees = [] } = {}) {
   const casesL = disposition.largeur, casesH = disposition.longueur;
-  let dpr = window.devicePixelRatio || 1;
-  let t = Math.max(1, taille);
-  const trop = () => casesL * t * dpr > CANVAS_COTE_MAX || casesH * t * dpr > CANVAS_COTE_MAX || casesL * t * casesH * t * dpr * dpr > CANVAS_SURFACE_MAX;
-  // D'abord moins de pixels physiques (netteté), puis, si ça ne suffit pas, une case plus petite.
-  while (trop() && dpr > 1) dpr = Math.max(1, dpr - 0.5);
-  if (trop()) {
-    t = Math.min(CANVAS_COTE_MAX / (Math.max(casesL, casesH) * dpr), Math.sqrt(CANVAS_SURFACE_MAX / (casesL * casesH)) / dpr);
-    t = Math.max(1, Math.floor(t * 100) / 100);
-  }
+  const { t, dpr } = tailleCanvasBornee(casesL, casesH, taille, window.devicePixelRatio || 1);
   const largeurPx = Math.round(casesL * t), hauteurPx = Math.round(casesH * t);
 
   canvas.width = Math.round(largeurPx * dpr);

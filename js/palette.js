@@ -15,8 +15,9 @@
 import { filtrerElements } from './pose.js';
 import { creerVignette, copierVignette } from './vignettes.js';
 import { h as el } from './dom.js';
+import { LIBELLE_FERMER } from './format.js';
 
-const SEUIL_GLISSEMENT = 5; // px : en dessous, c'est un clic
+const SEUIL_GLISSEMENT_PALETTE = 5; // px : en dessous, c'est un clic
 
 /**
  * @param {HTMLElement} racine  conteneur du catalogue (vide)
@@ -41,7 +42,7 @@ export function creerPalette(racine, { elements, groupes, sousGroupes = {}, past
   const dessines = new Set(); // groupes dont les vignettes sont déjà dessinées (au premier affichage, une seule fois)
 
   // --- Structure ---
-  const fermer = el('button', { type: 'button', className: 'discret palette-fermer', textContent: '✕ Fermer', title: 'Fermer la palette' });
+  const fermer = el('button', { type: 'button', className: 'discret palette-fermer', textContent: LIBELLE_FERMER, title: 'Fermer la palette' });
   fermer.addEventListener('click', () => onFermer?.());
   const tete = el('div', { className: 'palette-tete' }, el('strong', { textContent: 'Ajouter à la carte' }), fermer);
   const onglets = el('div', { className: 'palette-groupes', role: 'group', 'aria-label': 'Catégorie' });
@@ -140,7 +141,7 @@ export function creerPalette(racine, { elements, groupes, sousGroupes = {}, past
     const bouger = (e) => {
       if (!depart || e.pointerId !== depart.id) return;
       if (!glisse) {
-        if (Math.hypot(e.clientX - depart.x, e.clientY - depart.y) < SEUIL_GLISSEMENT) return;
+        if (Math.hypot(e.clientX - depart.x, e.clientY - depart.y) < SEUIL_GLISSEMENT_PALETTE) return;
         const fantome = el('div', { className: 'palette-fantome' });
         const canvas = b.querySelector('canvas');
         if (canvas) fantome.append(copierVignette(canvas));

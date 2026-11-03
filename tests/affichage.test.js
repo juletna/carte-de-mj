@@ -4,7 +4,7 @@
  */
 import {
   TAILLE_PAR_DEFAUT, TAILLE_MIN, TAILLE_MAX, TAILLE_MAX_REMPLIR, ECHELLE_PAR_DEFAUT, MODES_TABLE, AFFICHAGE_PAR_DEFAUT,
-  tailleReglable, affichageDeReglages, validerAffichage,
+  tailleReglable, affichageDeReglages, validerAffichage, tailleQuiTientPlan, tailleCanvasBornee, CANVAS_COTE_MAX, CANVAS_SURFACE_MAX,
 } from '../js/affichage.js';
 import { chargerReglages, CLE_REGLAGES } from '../js/stockage.js';
 import { dessiner } from '../js/rendu/moteur.js';
@@ -66,6 +66,26 @@ const TESTS = (pages) => [
     egal([plan.largeur, plan.longueur], [9 / ECHELLE_PAR_DEFAUT, 6 / ECHELLE_PAR_DEFAUT], 'mètres → cases');
     const double = analyser('Salle de 9 par 6 mètres', { echelle: 3 }).plan;
     egal([double.largeur, double.longueur], [3, 2], 'une échelle donnée l’emporte');
+  }],
+  ['tailleQuiTientPlan : la case qui tient le plan dans le cadre, plafonnée, jamais sous 1 px', () => {
+    const plan = { largeur: 40, longueur: 20 };
+    egal(tailleQuiTientPlan(plan, 400, 400), 10, 'limité par la largeur');
+    egal(tailleQuiTientPlan(plan, 4000, 100), 5, 'limité par la hauteur');
+    egal(tailleQuiTientPlan(plan, 4000, 4000), 16, 'plafond par défaut : les miniatures ne grossissent pas');
+    egal(tailleQuiTientPlan(plan, 4000, 4000, 30), 30, 'plafond donné');
+    egal(tailleQuiTientPlan(plan, 10, 10), 1, 'jamais sous 1 px');
+  }],
+  ['tailleCanvasBornee : rien ne change sous les limites ; sinon moins de pixels physiques d’abord, puis une case plus petite', () => {
+    egal(tailleCanvasBornee(20, 20, 48, 2), { t: 48, dpr: 2 }, 'petit canvas');
+    egal(tailleCanvasBornee(20, 20, 0.2, 1), { t: 1, dpr: 1 }, 'case minimale 1');
+    // 30 × 30 cases de 48 px : à densité 3, 4320 px physiques de côté mais 18,7 millions de pixels > 16 millions : la densité baisse, jusqu'à 2,5 (12,96 millions).
+    egal(tailleCanvasBornee(30, 30, 48, 3), { t: 48, dpr: 2.5 }, 'la densité baisse d’abord, par demi-pas');
+    // 200 × 200 cases de 48 px : même à densité 1 la surface dépasse : la case rétrécit, à la surface permise (4000 px de côté).
+    const r = tailleCanvasBornee(200, 200, 48, 2);
+    egal(r, { t: 20, dpr: 1 }, 'densité au plus bas, case réduite (la surface borne avant le côté)');
+    verifier(200 * r.t * r.dpr <= CANVAS_COTE_MAX && (200 * r.t * r.dpr) ** 2 <= CANVAS_SURFACE_MAX, 'dans les limites du navigateur');
+    egal(tailleCanvasBornee(500, 20, 48, 1).t, 16.38, 'un canvas très long : le côté borne, arrondi au centième inférieur');
+    egal(tailleCanvasBornee(100000, 20, 48, 1).t, 1, 'jamais sous 1 px');
   }],
   ['pages HTML : les curseurs de taille et le champ d’échelle portent les mêmes bornes et défauts', () => {
     for (const page of ['donjon.html', 'presentation.html']) {

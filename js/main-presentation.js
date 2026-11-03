@@ -17,7 +17,7 @@ import * as stockage from './stockage.js';
 import * as modele from './donjon.js';
 import * as pres from './presentation.js';
 import * as table from './commande-table.js';
-import { dessiner, dessinerPlanDonjon, tailleQuiTientPlan } from './rendu/moteur.js';
+import { dessiner, dessinerPlanDonjon } from './rendu/moteur.js';
 import { disposerPlan, cleDisposition } from './plan-donjon.js';
 import { activerDeplacement } from './deplacement.js';
 import { creerMiniPlan } from './miniplan.js';
@@ -27,10 +27,10 @@ import { LISTES } from './schema.js';
 import { nomCase, libelleSelection, libelleDePorte } from './parseur/coordonnees.js';
 import { nomAffiche } from './parseur/lexique.js';
 import { creerMicro } from './voix.js';
-import { AFFICHAGE_PAR_DEFAUT, modeTable, tailleTable, affichageDeReglages, validerAffichage } from './affichage.js';
+import { AFFICHAGE_PAR_DEFAUT, modeTable, tailleTable, affichageDeReglages, validerAffichage, tailleQuiTientPlan } from './affichage.js';
 import { telephone, activerOnglets, marquerDefilement, tailleQuiTient } from './telephone.js';
 import { $, h, bouton, deuxTemps, fichierChoisi } from './dom.js';
-import { pluriel } from './format.js';
+import { pluriel, LIBELLE_FERMER, libelleMicro } from './format.js';
 
 const ouvrirCanal = () => { try { return new BroadcastChannel(pres.CANAL); } catch { return null; } };
 
@@ -793,7 +793,7 @@ function demarrerRegie() {
     if (!trouve) { etat.selection = null; zone.hidden = true; zone.replaceChildren(); return; }
     zone.hidden = false;
     const el = trouve.element;
-    const fermer = bouton('✕ Fermer', deselectionner, 'discret petit');
+    const fermer = bouton(LIBELLE_FERMER, deselectionner, 'discret petit');
     fermer.setAttribute('aria-label', 'Fermer la sélection (Échap)');
     const contenu = [h('div', { className: 'selection-entete' }, h('h2', { textContent: 'Sélection' }), fermer),
       h('p', { className: 'selection-titre', textContent: libelleElement(trouve) })];
@@ -903,7 +903,7 @@ function demarrerRegie() {
   });
   const microCommande = creerMicro({
     onTexte: (texte) => { $('commande').value = texte; },
-    onEtat: (actif) => { $('micro-commande').textContent = actif ? '⏹ Arrêter' : '🎙️ Dicter'; },
+    onEtat: (actif) => { $('micro-commande').textContent = libelleMicro(actif); },
     onErreur: (texte) => { etat.messageCommande = { texte, ok: false }; majCommande(); },
   });
   if (!microCommande) {

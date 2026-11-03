@@ -9,7 +9,7 @@
  *
  * Source unique des réglages d'affichage : tailles par défaut et bornes, échelle par défaut, modes, passage des
  * réglages enregistrés à l'affichage de la table (`affichageDeReglages`) et validation de ce que la table reçoit
- * (`validerAffichage`). Le stockage, le moteur, la régie, la fenêtre table et le téléphone s'y réfèrent.
+ * (`validerAffichage`) ; et des tailles de dessin : case qui tient un plan dans un cadre, limites de canvas. Le stockage, le moteur, la régie, la fenêtre table et le téléphone s'y réfèrent.
  */
 import { MARGE } from './rendu/geometrie.js';
 
@@ -70,3 +70,31 @@ export const validerAffichage = (a, defaut) => ({
   grille: typeof a?.grille === 'boolean' ? a.grille : defaut.grille,
   reperes: typeof a?.reperes === 'boolean' ? a.reperes : defaut.reperes,
 });
+
+/** Côté de case pour qu'un plan tienne dans un cadre, sans jamais grossir au-delà de `plafond` px (miniatures). */
+export function tailleQuiTientPlan(disposition, largeurMax, hauteurMax, plafond = 16) {
+  return Math.max(1, Math.min(largeurMax / disposition.largeur, hauteurMax / disposition.longueur, plafond));
+}
+
+// Limites d'un canvas (navigateurs et iOS) : côté et surface en pixels PHYSIQUES. Au-delà, le dessin disparaîtrait.
+export const CANVAS_COTE_MAX = 8192;
+export const CANVAS_SURFACE_MAX = 16_000_000;
+
+/**
+ * Case et densité de pixels d'un canvas de `casesL` × `casesH` cases pour qu'il reste dans les limites du navigateur.
+ * D'abord moins de pixels physiques (la netteté), puis, si ça ne suffit pas, une case plus petite (jamais sous 1 px).
+ * @param {number} taille  côté de case voulu, en pixels CSS
+ * @param {number} ratio   densité de pixels de l'écran (window.devicePixelRatio)
+ * @returns {{t:number, dpr:number}}
+ */
+export function tailleCanvasBornee(casesL, casesH, taille, ratio) {
+  let dpr = ratio;
+  let t = Math.max(1, taille);
+  const trop = () => casesL * t * dpr > CANVAS_COTE_MAX || casesH * t * dpr > CANVAS_COTE_MAX || casesL * t * casesH * t * dpr * dpr > CANVAS_SURFACE_MAX;
+  while (trop() && dpr > 1) dpr = Math.max(1, dpr - 0.5);
+  if (trop()) {
+    t = Math.min(CANVAS_COTE_MAX / (Math.max(casesL, casesH) * dpr), Math.sqrt(CANVAS_SURFACE_MAX / (casesL * casesH)) / dpr);
+    t = Math.max(1, Math.floor(t * 100) / 100);
+  }
+  return { t, dpr };
+}

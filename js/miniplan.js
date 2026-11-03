@@ -5,7 +5,8 @@
  * la taille qui tient dans le cadre, le survol, le clic, et une liste de boutons cachés à l'œil pour le clavier
  * (Tab et Entrée ; le focus surligne la salle sur le plan).
  */
-import { dessinerPlanDonjon, tailleQuiTientPlan } from './rendu/moteur.js';
+import { dessinerPlanDonjon } from './rendu/moteur.js';
+import { tailleQuiTientPlan } from './affichage.js';
 import { salleSous } from './plan-donjon.js';
 
 const LARGEUR_DEFAUT = 240;  // px : tant que le cadre est masqué (il se redessine dès qu'il a une largeur)

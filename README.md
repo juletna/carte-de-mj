@@ -323,7 +323,7 @@ css/donjon.css      mise en page du Donjon : barre, rail d'outils, panneau, band
 css/presentation.css  écran de départ, régie et vue table
 css/impression.css  pages A4 et réglages de l'impression
 js/dom.js           outils DOM communs aux pages : `$`, `h`, bouton, confirmation en deux temps, choix d'un fichier à importer
-js/format.js        pluriel, virgule française, sans accents, objet JSON (pur, sans DOM)
+js/format.js        pluriel, virgule française, sans accents, objet JSON, libellés communs « Fermer » et micro (pur, sans DOM)
 js/main-mj.js       branchement de l'interface du Donjon (donjons, salles, sélection)
 js/palette.js       palette du Donjon : vignettes de portes, de mobilier et de créatures, pose au clic ou au glisser
 js/vignettes.js     une vignette (petit canvas) par élément de la palette, dessinée avec le thème vectoriel
@@ -331,7 +331,7 @@ js/rail.js          rail d'outils du Donjon et panneau contextuel
 js/pose.js          règle unique de « où poser un élément » (et élément qui gêne), chevauchement : ajouter, retirer, redimensionner, changer de forme (pur, sans DOM)
 js/plan-donjon.js   plan du donjon : salles posées à leur vraie taille, reliées par des couloirs (pur, sans DOM)
 js/rapport.js       rapport texte à copier pour signaler une erreur de lecture
-js/affichage.js     réglages d'affichage : taille par défaut et bornes, échelle par défaut, taille de la carte à la table (modes « remplir » / « échelle réelle »), validation de ce que reçoit la table (pur, sans DOM)
+js/affichage.js     réglages d'affichage : taille par défaut et bornes, échelle par défaut, taille de la carte à la table (modes « remplir » / « échelle réelle »), validation de ce que reçoit la table, case qui tient un plan, limites de canvas (pur, sans DOM)
 js/presentation.js  partie en cours, portes, révélations, ce que voit la table (`visibleATable`), états des pions, improvisation, vueTable (pur, sans DOM)
 js/main-presentation.js  régie et vue table (DOM, stockage, BroadcastChannel)
 js/commande-table.js  quelle régie commande la table quand plusieurs sont ouvertes (pur, sans DOM)
