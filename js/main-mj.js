@@ -6,28 +6,24 @@
  * texte → analyser() → plan → carte et JSON. Aucune dépendance à un autre outil ni au réseau.
  */
 import { analyser } from './parseur/index.js';
-import { dessiner, dessinerPlanDonjon } from './rendu/moteur.js';
-import { MARGE } from './rendu/geometrie.js';
+import { dessinerPlanDonjon } from './rendu/moteur.js';
 import { disposerPlan, salleSous, cleDisposition } from './plan-donjon.js';
-import { tailleRemplir } from './affichage.js';
 import {
-  ZOOM_MIN, ZOOM_MAX, PLAN_ZOOM_MIN, PLAN_ZOOM_MAX, zoomBorne, pasDeZoom, facteurMolette, tailleAfficheePlan as tailleDuPlan,
+  PLAN_ZOOM_MIN, PLAN_ZOOM_MAX, zoomBorne, tailleAfficheePlan as tailleDuPlan,
 } from './mise-en-page.js';
-import { ajouterElement, elementsPalette, GROUPES_PALETTE, SOUS_GROUPES } from './pose.js';
-import { creerPalette } from './palette.js';
 import { creerHistorique } from './historique.js';
 import { creerRail, OUTILS_CATALOGUE } from './rail.js';
 import { creerMicro, voixDisponible } from './voix.js';
 import * as stockage from './stockage.js';
-import { activerDeplacement } from './deplacement.js';
 import { decrire } from './parseur/decrire.js';
 import * as modele from './donjon.js';
-import { telephone, activerOnglets, marquerDefilement, LARGEUR_TELEPHONE } from './telephone.js';
+import { telephone, activerOnglets, LARGEUR_TELEPHONE } from './telephone.js';
 import { creerPersonnages } from './mj/personnages-ui.js';
 import { creerSalles } from './mj/salles-liste.js';
 import { creerMenu } from './mj/menu-donjon.js';
 import { creerSalleForme } from './mj/salle-forme.js';
 import { creerBulle } from './mj/bulle.js';
+import { creerVueCarte } from './mj/vue-carte.js';
 import { $, h } from './dom.js';
 import { libelleMicro } from './format.js';
 
@@ -82,69 +78,15 @@ function memoriser(idSalle = donjon().salleActive, liaisons = []) {
 // Contexte des modules mj/ (fabriques `creerX(ctx)`) : ils le lisent au moment de l'appel et ne s'importent pas entre eux.
 // Les fonctions (rendre, modifierPlan, activerSalle…) sont déclarées plus bas dans ce fichier ; les modules s'y ajoutent à mesure.
 const ctx = { etat, donjon, salle, rendre, modifierPlan, annoncerCarte, deselectionner, sauvegarder, historique, activerSalle, afficherSalleActive, dispositionDuDonjon };
-ctx.plan = { ouvrir: ouvrirPlan }; // le module de la vue Plan le remplacera
-ctx.carte = { taille: tailleAffichee, apercu: apercuCarte, redessiner: dessinerCarte }; // idem pour la vue de la carte
+ctx.plan = { ouvrir: ouvrirPlan, dessiner: dessinerPlan, taille: tailleAfficheePlan, majZoom: majZoomPlan, zoomer: zoomerPlan }; // le module de la vue Plan le remplacera
 
 // --- Rendu --------------------------------------------------------------------
-/** Repères dessinés sur la carte : portes reliées et élément sélectionné. */
-function marques(planAffiche) {
-  const d = donjon(), s = salle();
-  const reel = s.plan;
-  // Pendant un glissement, la porte déplacée garde son repère : on la retrouve par son id dans le plan réel.
-  const portesReliees = planAffiche.portes
-    .filter((p) => modele.liaisonDePorte(d, s.id, reel.portes.find((q) => q.id === p.id) || p))
-    .map((p) => ({ mur: p.mur, position: p.position }));
-  const trouve = modele.retrouverElement(reel, etat.selection);
-  const element = trouve && planAffiche[trouve.liste][trouve.index];
-  return { portesReliees, selection: element ? { genre: trouve.genre, element } : null };
-}
-
-// --- Taille de la carte : ajustement automatique et zoom -------------------------------------
-
-/**
- * Côté de case affiché :
- *  - pendant le calibrage à la carte bancaire : `r.taille` exact, sans aucune adaptation ;
- *  - après un zoom manuel (temporaire) : le zoom ;
- *  - sinon la salle remplit la scène (tailleRemplir, comme la Présentation en mode « remplir »). Scène masquée (onglet
- *    Texte du téléphone) : `r.taille`, un redessin suit à l'affichage.
- * `r.taille` est la taille calibrée, lue par la Présentation : rien ici ne l'écrit.
- */
-function tailleAffichee(plan) {
-  if ($('calibrage').checked) return r.taille;
-  if (etat.zoom) return etat.zoom;
-  const scene = $('scene');
-  const retrait = 2 * (parseFloat(getComputedStyle($('support')).paddingLeft) || 0); // la place des bandes de dimensions
-  return tailleRemplir(plan, scene.clientWidth - retrait, scene.clientHeight - retrait) ?? r.taille;
-}
-const optionsDessin = (plan) => ({ taille: tailleAffichee(plan), grille: r.grille, marques: marques(plan) });
-
-/** Dessine `plan` sur la carte sans rien enregistrer (aperçu d'un glissement), à la taille donnée ou à celle de l'affichage. */
-function apercuCarte(plan, taille) {
-  dessiner($('carte'), plan, taille ? { ...optionsDessin(plan), taille } : optionsDessin(plan));
-}
-
-function dessinerCarte(plan) {
-  dessiner($('carte'), plan, optionsDessin(plan));
-  marquerDefilement($('carte'), $('scene'));
-  majZoom(plan);
-  ctx.bulle.placer();
-}
-
-/** Le zoom manuel ne survit ni à un changement de donjon ou de salle, ni de dimensions ; il survit à tout le reste. */
-function oublierZoomSiAutreCarte() {
-  const s = salle();
-  const cle = `${donjon().id}/${s.id}/${s.plan.largeur}x${s.plan.longueur}`;
-  if (cle === etat.cleAjuste) return;
-  etat.cleAjuste = cle;
-  etat.zoom = null;
-}
-
 function rendre() {
   const s = salle();
-  oublierZoomSiAutreCarte();
+  ctx.carte.oublierZoomSiAutreCarte();
   if (etat.plan) dessinerPlan(); // le plan est affiché : toute modification du donjon le redessine
-  else dessinerCarte(s.plan);
-  majCarteRef();
+  else ctx.carte.redessiner(s.plan);
+  ctx.carte.majCarteRef();
   $('annuler').hidden = $('annuler-carte').hidden = pile().length === 0;
   if (document.activeElement !== $('json')) $('json').value = JSON.stringify(s.plan, null, 2);
   ctx.bulle.maj();
@@ -274,40 +216,8 @@ $('notes').addEventListener('input', (e) => {
   minuterieNotes = setTimeout(sauvegarder, 300);
 });
 
-// --- Carte : poser (palette), déplacer, cliquer ----------------------------------
-// Élément de la palette armé : un appui sur la carte POSE. Cet écouteur est posé AVANT celui du déplacement (et en phase de
-// capture) pour que le déplacement ne voie jamais cet appui : ni sélection, ni glissement tant qu'un élément est armé.
-$('carte').addEventListener('pointerdown', (e) => {
-  const item = palette.arme();
-  if (!item || e.button !== 0) return;
-  e.stopImmediatePropagation();
-  e.preventDefault();
-  poserSurCarte(item, e.clientX, e.clientY);
-}, true);
-
-// Un élément déplacé réécrit la description, qui régénère la carte et le JSON.
-// Un appui sans glissement sélectionne l'élément : ses actions s'ouvrent dans une bulle à côté de lui.
-activerDeplacement($('carte'), {
-  plan: () => salle().plan,
-  taille: () => tailleAffichee(salle().plan),
-  apercu: (plan) => apercuCarte(plan),
-  portesLarges: true, // zone de clic des portes élargie vers l'intérieur ; un glissement sur un pion déplace toujours le pion
-  commencer: () => { // un glissement commence : la bulle se ferme
-    if (!etat.selection) return;
-    deselectionner();
-    ctx.bulle.maj();
-  },
-  deposer: (nouveau) => {
-    const deplace = modele.elementDeplace(salle().plan, nouveau);
-    if (deplace && modele.memeDescripteur(etat.selection, deplace.avant)) etat.selection = deplace.apres;
-    modifierPlan(nouveau, { suivrePortes: true, garderSelection: true }); // la liaison d'une porte déplacée la suit
-  },
-  cliquer: (touche) => {
-    etat.selection = touche ? modele.descripteur(touche.genre, touche.element) : null;
-    etat.message = '';
-    rendre();
-  },
-});
+// --- La carte de la salle : dessin, déplacement, pose, zoom, palette (js/mj/vue-carte.js) ---
+ctx.carte = creerVueCarte(ctx);
 
 function annulerDeplacement() {
   const entree = pile().pop();
@@ -320,76 +230,7 @@ $('annuler').addEventListener('click', annulerDeplacement);
 $('annuler-carte').addEventListener('click', annulerDeplacement); // même action, à portée dans l'onglet Carte (écran étroit)
 
 // --- Bulle d'actions de l'élément sélectionné (js/mj/bulle.js) ---
-// Un appui dans le vide de la scène ferme le tiroir de la palette. Posé avant l'écouteur de la bulle (même cible, même ordre qu'avant).
-$('scene').addEventListener('pointerdown', (e) => {
-  if (tiroirOuvert() && (e.target === $('scene') || e.target === $('support'))) ouvrirTiroir(false);
-});
 ctx.bulle = creerBulle(ctx);
-
-// --- Zoom ------------------------------------------------------------------------------------
-/** Affiche le zoom courant (pourcentage de la taille réelle : 100 % = une case à la taille calibrée). */
-function majZoom(plan) {
-  if (etat.plan) { majZoomPlan(); return; }
-  const calibre = $('calibrage').checked;
-  const t = tailleAffichee(plan || salle().plan);
-  $('zoom-pct').textContent = `${Math.round((t / r.taille) * 100)} %`;
-  for (const id of ['zoom-moins', 'zoom-plus', 'zoom-ajuster', 'zoom-reel']) $(id).disabled = calibre;
-  $('zoom').title = calibre ? 'Calibrage en cours : la taille d’une case est celle du réglage. Décoche le calibrage pour zoomer.' : '';
-  $('zoom-ajuster').setAttribute('aria-pressed', String(!calibre && !etat.zoom));
-}
-
-/**
- * Applique un zoom manuel (côté de case en px). Si `ancre` ({x, y} en px écran) est donné, la case qui s'y trouve y reste :
- * le zoom à la molette se fait sous le curseur.
- */
-function zoomer(t, ancre) {
-  if (etat.plan) { zoomerPlan(t, ancre); return; }
-  if ($('calibrage').checked) return;
-  const plan = salle().plan;
-  const avant = tailleAffichee(plan);
-  etat.zoom = zoomBorne(t, ZOOM_MIN, ZOOM_MAX);
-  let sous = null;
-  if (ancre) {
-    const cv = $('carte').getBoundingClientRect();
-    sous = [(ancre.x - cv.left) / avant - MARGE, (ancre.y - cv.top) / avant - MARGE];
-  }
-  dessinerCarte(plan);
-  majCarteRef();
-  if (sous) {
-    const apres = tailleAffichee(plan), cv = $('carte').getBoundingClientRect();
-    $('scene').scrollLeft += cv.left + (sous[0] + MARGE) * apres - ancre.x;
-    $('scene').scrollTop += cv.top + (sous[1] + MARGE) * apres - ancre.y;
-    ctx.bulle.placer();
-  }
-}
-/** Un cran de zoom : ×1,25 ou ÷1,25, d'au moins 1 px. */
-function pasZoom(sens) {
-  const t = etat.plan ? etat.planTaille || tailleAfficheePlan() : tailleAffichee(salle().plan);
-  zoomer(pasDeZoom(t, sens));
-}
-$('zoom-plus').addEventListener('click', () => pasZoom(1));
-$('zoom-moins').addEventListener('click', () => pasZoom(-1));
-$('zoom-ajuster').addEventListener('click', () => zoomer(null));
-$('zoom-reel').addEventListener('click', () => zoomer(r.taille));
-// Ctrl ou Cmd + molette (et le pincement du pavé tactile) : zoom sous le curseur ; la molette seule fait défiler.
-$('scene').addEventListener('wheel', (e) => {
-  if (!e.ctrlKey && !e.metaKey) return;
-  e.preventDefault();
-  zoomer((etat.plan ? etat.planTaille || tailleAfficheePlan() : tailleAffichee(salle().plan)) * facteurMolette(e.deltaY), { x: e.clientX, y: e.clientY });
-}, { passive: false });
-
-// La carte se réajuste quand la scène change de taille (fenêtre, plein écran, passage à l'onglet Carte du téléphone).
-let derniereScene = '';
-new ResizeObserver(() => {
-  const scene = $('scene');
-  const cle = `${scene.clientWidth}x${scene.clientHeight}`;
-  if (cle === derniereScene) return;
-  derniereScene = cle;
-  if (!scene.clientWidth) return; // masquée : le redessin suivra à l'affichage
-  if (etat.plan) { dessinerPlan(); return; }
-  dessinerCarte(salle().plan);
-  majCarteRef();
-}).observe($('scene'));
 
 // --- Vue Plan : tout le donjon d'un coup, les salles à leur vraie taille (js/plan-donjon.js, moteur.dessinerPlanDonjon) ---
 // Elle remplace la carte de la salle dans la scène (#support, donc les bandes de dimensions et la bulle, est masqué). Son zoom
@@ -485,16 +326,16 @@ function ouvrirPlan(ouvert) {
   etat.planSurvol = null;
   etat.signatureListePlan = '';
   if (ouvert) {
-    palette.desarmer(); // un élément armé ne doit pas rester pendant qu'on regarde le plan
-    ouvrirTiroir(false);
+    ctx.carte.palette.desarmer(); // un élément armé ne doit pas rester pendant qu'on regarde le plan
+    ctx.carte.ouvrirTiroir(false);
     if (etat.selection) { deselectionner(); ctx.bulle.maj(); }
     $('message-carte').hidden = true;
     etat.zoomPlan = null;
     onglets?.afficher('carte'); // téléphone : le plan est dans l'onglet Carte (sans effet sur ordinateur)
     dessinerPlan();
   } else {
-    dessinerCarte(salle().plan);
-    majCarteRef();
+    ctx.carte.redessiner(salle().plan);
+    ctx.carte.majCarteRef();
   }
 }
 $('plan-bouton').addEventListener('click', () => ouvrirPlan(!etat.plan));
@@ -530,52 +371,6 @@ function annoncerCarte(texte, erreur = false, duree = erreur ? 4500 : 2500) {
   minuterieMessage = setTimeout(() => { zone.hidden = true; }, duree);
 }
 
-/** Pose l'élément de la palette au point écran donné, si ce point est sur la carte visible. Renvoie vrai si posé. */
-function poserSurCarte(item, clientX, clientY) {
-  const scene = $('scene').getBoundingClientRect(), cv = $('carte').getBoundingClientRect();
-  const dansScene = clientX >= scene.left && clientX <= scene.right && clientY >= scene.top && clientY <= scene.bottom;
-  const dansCarte = clientX >= cv.left && clientX <= cv.right && clientY >= cv.top && clientY <= cv.bottom;
-  if (!dansScene || !dansCarte) { annoncerCarte('Lâche l’élément sur la carte pour le poser.', true); return false; }
-  const t = tailleAffichee(salle().plan);
-  const res = ajouterElement(salle().plan, item, (clientX - cv.left) / t - MARGE, (clientY - cv.top) / t - MARGE);
-  if (res.erreur) { annoncerCarte(res.erreur, true); return false; }
-  modifierPlan(res.plan);
-  annoncerCarte(res.message);
-  return true;
-}
-
-// --- Palette : catalogue de vignettes (panneau sur ordinateur, tiroir sur téléphone) ------------------------
-/** Tiroir du bas (téléphone) : ouvert par « + Ajouter », refermé tout seul quand un élément est armé. */
-function ouvrirTiroir(ouvert) {
-  $('palette').classList.toggle('tiroir-ouvert', ouvert);
-  $('ajouter').setAttribute('aria-expanded', String(ouvert));
-  if (ouvert) $('palette').querySelector('.palette-groupes [aria-pressed="true"]')?.focus({ preventScroll: true });
-}
-const tiroirOuvert = () => $('palette').classList.contains('tiroir-ouvert');
-$('ajouter').addEventListener('click', () => ouvrirTiroir(!tiroirOuvert()));
-
-const palette = creerPalette($('palette'), {
-  elements: elementsPalette(),
-  groupes: GROUPES_PALETTE,
-  sousGroupes: SOUS_GROUPES,
-  pastille: $('pose-pastille'),
-  onFermer: () => { ouvrirTiroir(false); $('ajouter').focus(); },
-  onArmer: (item) => {
-    $('carte').classList.toggle('arme', !!item);
-    if (item) {
-      etat.selection = null; // la bulle se ferme : le prochain clic sur la carte pose
-      ctx.bulle.maj();
-      if (telephone()) ouvrirTiroir(false); // au doigt, le tiroir libère la carte une fois l'élément choisi
-      annoncerCarte(`${item.libelle} : clique une case de la carte pour le poser. Échap pour arrêter.`);
-    } else $('message-carte').hidden = true;
-  },
-  onDeposer: (item, x, y) => { poserSurCarte(item, x, y); },
-  survol: (x, y) => {
-    const cv = $('carte').getBoundingClientRect(), sc = $('scene').getBoundingClientRect();
-    return x >= Math.max(cv.left, sc.left) && x <= Math.min(cv.right, sc.right) && y >= Math.max(cv.top, sc.top) && y <= Math.min(cv.bottom, sc.bottom);
-  },
-});
-
 // --- Rail d'outils et panneau contextuel ---------------------------------------------------------------
 // Portes, Mobilier et Créatures montrent le catalogue (le groupe suit l'outil) ; les autres outils, leur bloc du panneau.
 // Cliquer l'outil actif replie le panneau : la scène grandit et l'observateur de taille réajuste la carte.
@@ -584,10 +379,10 @@ const rail = creerRail($('rail'), {
   cle: 'carte-de-mj:outil',
   telephone,
   titres: TITRES_OUTILS,
-  onChange: ({ outil }) => { if (OUTILS_CATALOGUE.includes(outil) && palette.groupe() !== outil) palette.afficherGroupe(outil); },
+  onChange: ({ outil }) => { if (OUTILS_CATALOGUE.includes(outil) && ctx.carte.palette.groupe() !== outil) ctx.carte.palette.afficherGroupe(outil); },
 });
 // Passage de l'ordinateur au téléphone (rotation, fenêtre redimensionnée) : le rail et le tiroir se remettent d'aplomb.
-matchMedia(`(max-width: ${LARGEUR_TELEPHONE}px)`).addEventListener('change', () => { ouvrirTiroir(false); rail.appliquer(); });
+matchMedia(`(max-width: ${LARGEUR_TELEPHONE}px)`).addEventListener('change', () => { ctx.carte.ouvrirTiroir(false); rail.appliquer(); });
 
 // --- Menu du donjon (barre du haut) : donjons, fichiers, rapport (js/mj/menu-donjon.js) ---
 ctx.menu = creerMenu(ctx);
@@ -595,10 +390,10 @@ ctx.menu = creerMenu(ctx);
 // Échap, du plus proche au plus lointain : glisser en cours, menu ouvert, tiroir ouvert, élément armé, bulle ouverte.
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape' || e.defaultPrevented) return;
-  if (palette.annulerGlisser()) return;
+  if (ctx.carte.palette.annulerGlisser()) return;
   if (ctx.menu.ouvert()) { ctx.menu.fermer(); $('menu-donjon-bouton').focus(); return; }
-  if (tiroirOuvert()) { ouvrirTiroir(false); $('ajouter').focus(); return; }
-  if (palette.arme()) { palette.desarmer(); return; }
+  if (ctx.carte.tiroirOuvert()) { ctx.carte.ouvrirTiroir(false); $('ajouter').focus(); return; }
+  if (ctx.carte.palette.arme()) { ctx.carte.palette.desarmer(); return; }
   if (etat.selection) { deselectionner(); rendre(); return; }
   if (etat.plan) { ouvrirPlan(false); $('plan-bouton').focus(); }
 });
@@ -639,13 +434,6 @@ $('taille').addEventListener('input', (e) => {
 });
 $('grille').addEventListener('change', (e) => { r.grille = e.target.checked; rendre(); });
 
-// Calibrage : une carte bancaire mesure 85,6 × 53,98 mm ; une case visée = 25 mm.
-function majCarteRef() {
-  const ref = $('carte-ref');
-  ref.hidden = !$('calibrage').checked;
-  ref.style.width = `${(r.taille * 85.6) / 25}px`;
-  ref.style.height = `${(r.taille * 53.98) / 25}px`;
-}
 $('calibrage').addEventListener('change', (e) => { $('aide-calibrage').hidden = !e.target.checked; rendre(); });
 
 // --- Plein écran (vue table) --------------------------------------------------
@@ -658,7 +446,7 @@ document.addEventListener('fullscreenchange', () => { $('quitter-plein-ecran').h
 // c'est l'observateur de la scène (plus haut) qui s'en charge.
 const onglets = activerOnglets(document.querySelector('.onglets'), {
   defaut: 'texte',
-  onChange: (nom) => { if (nom === 'carte' && $('scene').clientWidth) { dessinerCarte(salle().plan); majCarteRef(); } },
+  onChange: (nom) => { if (nom === 'carte' && $('scene').clientWidth) { ctx.carte.redessiner(salle().plan); ctx.carte.majCarteRef(); } },
 });
 
 // --- Démarrage ----------------------------------------------------------------
