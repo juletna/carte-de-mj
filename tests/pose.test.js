@@ -5,7 +5,8 @@
  * Sans dépendance : marche sous Node et dans tests.html.
  */
 import * as m from '../js/donjon.js';
-import { ajouterElement, elementsPalette, evaluerPose, filtrerElements, GROUPES_PALETTE, SOUS_GROUPES, redimensionner, sansAccents } from '../js/pose.js';
+import { ajouterElement, elementsPalette, evaluerPose, filtrerElements, GROUPES_PALETTE, SOUS_GROUPES, redimensionner } from '../js/pose.js';
+import { sansAccents } from '../js/format.js';
 import { etatDepuis, outilAffiche } from '../js/rail.js';
 import { analyser } from '../js/parseur/index.js';
 import { decrire } from '../js/parseur/decrire.js';

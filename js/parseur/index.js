@@ -59,8 +59,8 @@ export function decouper(texte) {
     .filter(Boolean);
 }
 
-/** Petit hachage pour une graine stable (même phrase → mêmes débris). */
-function hacher(s) {
+/** Petit hachage (FNV-1a) pour une graine stable (même phrase → mêmes débris). */
+export function hacher(s) {
   let h = 2166136261;
   for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619);
   return h >>> 0;
@@ -120,6 +120,9 @@ export function analyserProposition(prop, intentions, ignores) {
   });
 }
 
+/** Le texte du MJ prêt à analyser : normalisé, nombres en chiffres, expressions soudées. Commun à `analyser` et aux commandes. */
+export const preparer = (texte) => souderExpressions(convertirNombres(normaliser(texte)));
+
 /**
  * @param {string} texte description du MJ
  * @param {{echelle?: number, entree?: string}} options echelle = mètres par case (1,5 par défaut : ECHELLE_PAR_DEFAUT) ; entree = mur d'entrée imposé
@@ -127,7 +130,7 @@ export function analyserProposition(prop, intentions, ignores) {
  */
 export function analyser(texte, options = {}) {
   const echelle = options.echelle || ECHELLE_PAR_DEFAUT;
-  const t = souderExpressions(convertirNombres(normaliser(texte)));
+  const t = preparer(texte);
   const nom = extraireNom(t);
 
   const forme = extraireForme(nom.reste);

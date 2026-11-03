@@ -14,6 +14,8 @@
  *
  * SÉCURITÉ : rien de tout cela ne part à la table : `vueTable` et `miniPlanTable` ne lisent ni `personnages` ni `joueurs`.
  */
+import { estObjet } from './format.js';
+
 export const STATS = ['FOR', 'DEX', 'CON', 'INT', 'SAG', 'CHA'];
 const MAX_PERSONNAGES = 30;
 /** Nombre de joueurs qu'on peut indiquer en lançant une partie. */
@@ -21,7 +23,6 @@ export const MAX_JOUEURS = 12;
 const MAX_LISTE = 60;     // attaques, objets, états : une fiche abîmée ne remplit pas le stockage
 const MAX_TEXTE = 80;
 
-const estObjet = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 const texte = (v, max = MAX_TEXTE) => (typeof v === 'string' || typeof v === 'number' ? String(v).slice(0, max) : '');
 const nombre = (v, defaut = 0) => (Number.isFinite(Number(v)) && v !== null && v !== '' ? Number(v) : defaut);
 const liste = (v) => (Array.isArray(v) ? v.filter(estObjet).slice(0, MAX_LISTE) : []);

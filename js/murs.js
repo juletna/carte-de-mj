@@ -20,5 +20,11 @@ export const VECTEUR = { nord: [0, -1], sud: [0, 1], est: [1, 0], ouest: [-1, 0]
 /** Les murs nord et sud courent le long de la largeur (leurs positions sont des colonnes) ; est et ouest, le long de la longueur. */
 export const estHorizontal = (mur) => mur === 'nord' || mur === 'sud';
 
+/** Les portes d'un plan, celles du mur d'entrée d'abord (à égalité, l'ordre du plan) : la première définit l'entrée pour le parseur. */
+export const portesEntreeDabord = (plan) => [...plan.portes].sort((a, b) => (b.mur === plan.entree) - (a.mur === plan.entree));
+
+/** Mur d'entrée tel que `decrire` le comprend : celui de la première porte (celle du mur d'entrée d'abord), sinon le sud. */
+export const murEntree = (plan) => portesEntreeDabord(plan)[0]?.mur || 'sud';
+
 /** Nombre de cases le long d'un mur, pour une salle de `largeur` × `longueur`. */
 export const longueurMur = (mur, largeur, longueur) => (estHorizontal(mur) ? largeur : longueur);

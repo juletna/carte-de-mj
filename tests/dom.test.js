@@ -2,7 +2,7 @@
  * Tests des outils communs : format.js (pur) et dom.js (avec des éléments simulés, donc sans navigateur).
  * Sans dépendance : marche sous Node et dans tests.html.
  */
-import { pluriel, virgule } from '../js/format.js';
+import { pluriel, virgule, sansAccents, estObjet } from '../js/format.js';
 import { h, bouton, deuxTemps, fichierChoisi } from '../js/dom.js';
 import { verifier, egal, executerSuite } from './mini-test.js';
 
@@ -95,6 +95,13 @@ const TESTS = [
       b.emettre('click');
       egal([actions, b.style.minWidth, zone.hidden, zone.textContent], [1, '', true, ''], 'après le second');
     });
+  }],
+  ['sansAccents : minuscules, sans accents ni espaces de bord ; rien ou null donne le texte vide', () => {
+    egal(['  Élémentaire ', 'ÀÉÎÔÛ ç œ', 'déjà', '', null, undefined].map(sansAccents), ['elementaire', 'aeiou c œ', 'deja', '', '', ''], 'textes');
+    egal(sansAccents(0), '0', 'un nombre est un texte');
+  }],
+  ['estObjet : un objet JSON au sens strict, ni null ni tableau', () => {
+    egal([{}, { a: 1 }, null, undefined, [], [1], 'x', 3, true].map(estObjet), [true, true, false, false, false, false, false, false, false], 'valeurs');
   }],
   ['fichierChoisi : rend le premier fichier et vide le champ (même fichier rechoisi = nouvel événement)', () => {
     const champ = { files: ['a.json'], value: 'a.json' };

@@ -28,6 +28,7 @@ import { analyser } from './parseur/index.js';
 import { decrire } from './parseur/decrire.js';
 import { retirerElement } from './pose.js';
 import { ECHELLE_PAR_DEFAUT } from './affichage.js';
+import { estObjet } from './format.js';
 
 export const FORMAT = 'carte-de-mj-donjon';
 export const FORMAT_ANCIEN = 'jdr-carte';
@@ -43,7 +44,6 @@ const RE_ID = /^[A-Za-z0-9_-]{1,64}$/;
 /** Objet sans prototype : une clé comme « __proto__ » venue d'un fichier n'a aucun effet. */
 const dictionnaire = () => Object.create(null);
 const coupe = (v, max) => String(v ?? '').slice(0, max);
-const estObjet = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 
 /** Identifiant unique (stable ensuite) : préfixe + 6 caractères au hasard, absent de `existants`. */
 export function idUnique(prefixe, existants = []) {

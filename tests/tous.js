@@ -28,6 +28,7 @@ import { executer as executerSchema } from './schema.test.js';
 import { executer as executerGeometrie } from './geometrie.test.js';
 import { executer as executerAffichage } from './affichage.test.js';
 import { executer as executerVisibilite } from './visibilite.test.js';
+import { executer as executerParseurCommun } from './parseur-commun.test.js';
 
 /** Les suites, dans l'ordre d'exécution : chacune reçoit `{ lire }` et rend (ou promet) une liste de résultats. */
 export const SUITES = [
@@ -35,7 +36,7 @@ export const SUITES = [
   executerPose, executerPlan, executerFormes, executerGenerateur, executerModeles, executerPersonnages,
   executerFicheHasard, executerCommandeTable, executerNavigation,
   executerThemes, executerReferences, executerOutils, executerMurs, executerCoordonnees, executerSchema,
-  executerGeometrie, executerAffichage, executerVisibilite,
+  executerGeometrie, executerAffichage, executerVisibilite, executerParseurCommun,
 ];
 
 /** Joue toutes les suites ; renvoie les résultats { phrase, ecarts, resultat? } à la suite les uns des autres. */

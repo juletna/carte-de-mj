@@ -22,13 +22,12 @@
  */
 import { estSol } from '../formes.js';
 import { evaluerPose } from '../pose.js';
-import { normaliser } from './normaliser.js';
-import { convertirNombres } from './nombres.js';
-import { trouverObjet, definition, nomAffiche, souderExpressions, MOTS_VIDES, ADJ_CACHE } from './lexique.js';
+import { trouverObjet, definition, nomAffiche, MOTS_VIDES, ADJ_CACHE } from './lexique.js';
 import { analyserPosition } from './positions.js';
 import { construirePlan } from './placement.js';
-import { analyserProposition, decouper } from './index.js';
+import { analyserProposition, decouper, hacher, preparer } from './index.js';
 import { lireCase, nomCase } from './coordonnees.js';
+import { portesEntreeDabord } from '../murs.js';
 
 const VERBES = {
   ajouter: ['ajoute', 'ajouter', 'rajoute', 'rajouter', 'place', 'placer', 'pose', 'poser', 'mets', 'met', 'mettre', 'cree', 'creer'],
@@ -47,12 +46,6 @@ const casePrincipale = (e) => nomCase(e.x, e.y);
 
 /** « gobelin 2 », « coffre » (+ « caché »). */
 const libelle = (genre, e) => `${nomAffiche(e.type)}${genre === 'creature' ? ` ${e.numero}` : ''}${e.cache ? ' caché' : ''}`;
-
-function graineDe(texte) {
-  let h = 2166136261;
-  for (let i = 0; i < texte.length; i++) h = Math.imul(h ^ texte.charCodeAt(i), 16777619);
-  return h >>> 0;
-}
 
 /** Tous les éléments qui occupent la salle (hors portes), avec leur genre. */
 const occupants = (plan) => [
@@ -95,8 +88,7 @@ function intentionExistante(genre, e) {
  * (sauf `sauf`, l'élément qu'on déplace). Renvoie les éléments créés par le placement, bruts.
  */
 function rejouer(plan, sauf, nouvelles, graine) {
-  const portes = [...plan.portes]
-    .sort((a, b) => (b.mur === plan.entree) - (a.mur === plan.entree))
+  const portes = portesEntreeDabord(plan)
     .map((q) => ({ genre: 'porte', type: q.type, n: 1, position: { zone: 'mur', mur: q.mur, positionMur: q.position }, ...(q.cache ? { cache: true } : {}) }));
   const objets = plan.objets.filter((o) => o !== sauf).map((o) => intentionExistante('objet', o));
   const creatures = plan.creatures.filter((k) => k !== sauf).map((k) => intentionExistante('creature', k));
@@ -340,7 +332,7 @@ function deplacer(mots, plan) {
   const intention = d.genre === 'creature'
     ? { genre: 'creature', type: element.type, n: 1, taille, camp: element.camp, couleur: element.couleur ?? null, position }
     : { genre: 'objet', type: element.type, n: 1, taille, position };
-  const poses = rejouer(plan, element, [intention], graineDe(destination));
+  const poses = rejouer(plan, element, [intention], hacher(destination));
   const { gardes, refuses } = controlerPose(plan, element, [...poses.objets, ...poses.creatures]);
   if (!gardes.length) return refus(`${refuses[0]?.raison || `Il n’y a pas de place pour ${nom} à cet endroit.`} Précise une autre destination. Rien n’a été modifié.`);
 
@@ -369,12 +361,12 @@ function deplacer(mots, plan) {
 export function interpreterCommande(texte, plan) {
   const brut = String(texte ?? '').trim();
   if (!brut) return refus(`Écris une commande. ${AIDE}`);
-  const t = souderExpressions(convertirNombres(normaliser(brut)));
+  const t = preparer(brut);
   const mots = t.replace(/[,;:!?]/g, ' ').replace(/\.(?!\d)/g, ' ').split(' ').filter(Boolean);
   const action = ACTION[mots[0]];
   if (!action) return refus(`Je n’ai pas compris « ${brut.split(/\s+/)[0]} ». Une commande commence par ajoute, supprime ou déplace. ${AIDE}`);
   const reste = mots.slice(1);
   if (!reste.length) return refus(`Que faut-il ${action === 'ajouter' ? 'ajouter' : action === 'supprimer' ? 'supprimer' : 'déplacer'} ? ${AIDE}`);
-  if (action === 'ajouter') return ajouter(reste.join(' '), plan, graineDe(t));
+  if (action === 'ajouter') return ajouter(reste.join(' '), plan, hacher(t));
   return action === 'supprimer' ? supprimer(reste, plan) : deplacer(reste, plan);
 }

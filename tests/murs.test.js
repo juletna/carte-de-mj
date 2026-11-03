@@ -2,7 +2,7 @@
  * Tests de la source unique des murs (js/murs.js) et de la limite de taille d'une salle (CASES_MAX),
  * que le schéma, le parseur et la pose partagent. Sans dépendance : marche sous Node et dans tests.html.
  */
-import { MURS, OPPOSE, REGARD, REGARD_VERS, VECTEUR, estHorizontal, longueurMur } from '../js/murs.js';
+import { MURS, OPPOSE, REGARD, REGARD_VERS, VECTEUR, estHorizontal, longueurMur, portesEntreeDabord, murEntree } from '../js/murs.js';
 import { validerPlan, CASES_MAX } from '../js/schema.js';
 import { analyser } from '../js/parseur/index.js';
 import { redimensionner } from '../js/pose.js';
@@ -34,6 +34,16 @@ const TESTS = [
   ['vecteurs : opposés pour des murs opposés, ordre des murs fixé (il décide des tirages du générateur)', () => {
     for (const m of MURS) egal([VECTEUR[m][0] + VECTEUR[OPPOSE[m]][0], VECTEUR[m][1] + VECTEUR[OPPOSE[m]][1]], [0, 0], `${m} et son opposé`);
     egal(Object.keys(VECTEUR), ['nord', 'sud', 'est', 'ouest'], 'ordre des clés');
+  }],
+  ['portesEntreeDabord, murEntree : la porte du mur d’entrée passe devant, les autres gardent leur ordre ; sans porte, le sud', () => {
+    const portes = [{ id: 'a', mur: 'est' }, { id: 'b', mur: 'nord' }, { id: 'c', mur: 'est' }, { id: 'd', mur: 'sud' }];
+    const ids = (p) => portesEntreeDabord(p).map((q) => q.id).join('');
+    egal(ids({ portes, entree: 'nord' }), 'bacd', 'entrée au nord');
+    egal(ids({ portes, entree: 'est' }), 'acbd', 'entrée à l’est : ordre du plan à égalité');
+    egal(ids({ portes, entree: 'ouest' }), 'abcd', 'aucune porte à l’entrée : ordre du plan');
+    egal(portes.map((q) => q.id).join(''), 'abcd', 'le plan n’est pas modifié');
+    egal([murEntree({ portes, entree: 'nord' }), murEntree({ portes, entree: 'sud' }), murEntree({ portes: [], entree: 'est' })], ['nord', 'sud', 'sud'], 'mur d’entrée');
+    egal(murEntree({ portes, entree: 'ouest' }), 'est', 'sans porte à l’entrée : la première porte');
   }],
   ['CASES_MAX : le schéma, le parseur et la pose refusent ou bornent à la même limite', () => {
     egal(CASES_MAX, 60, 'la limite');

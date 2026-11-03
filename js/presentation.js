@@ -54,6 +54,7 @@ import { normaliserForme, surLeSol, estSol } from './formes.js';
 import { ancragePorte } from './rendu/geometrie.js';
 import { evaluerPose, seChevauchent } from './pose.js';
 import { validerJoueurs } from './personnages.js';
+import { estObjet } from './format.js';
 
 export { ETATS };
 
@@ -63,7 +64,6 @@ export const VERSION_PRESENTATION = 1;
 export const CANAL = 'carte-de-mj-presentation';
 
 const dictionnaire = () => Object.create(null);
-const estObjet = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 /** Longueur maximale d'une note de partie (comme les notes de préparation). */
 const MAX_NOTE = 20000;
 /** Ce que le MJ peut retirer de la table. Les pions des joueurs restent : « monstres » veut dire tout pion qui n'est pas pj (PNJ compris). */

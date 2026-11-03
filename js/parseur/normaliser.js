@@ -1,3 +1,5 @@
+import { sansAccents } from '../format.js';
+
 /**
  * Normalisation du texte avant analyse.
  * On travaille ensuite sur une chaîne en minuscules, sans accents,
@@ -5,9 +7,7 @@
  * sépare les propositions (, ; . : ! ?) est conservée.
  */
 export function normaliser(texte) {
-  return String(texte || '')
-    .toLowerCase()
-    .normalize('NFD').replace(/[̀-ͯ]/g, '') // é → e, ô → o…
+  return sansAccents(texte || '') // minuscules, é → e, ô → o…
     .replace(/œ/g, 'oe')
     .replace(/(\d),(\d)/g, '$1.$2')                   // 4,5 → 4.5
     .replace(/(\d)\s*[x×]\s*(\d)/g, '$1 par $2')      // 12x8 → 12 par 8

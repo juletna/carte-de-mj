@@ -7,7 +7,7 @@
  */
 import { definition, nomAffiche } from './lexique.js';
 import { nomCase, reperePorte } from './coordonnees.js';
-import { REGARD_VERS } from '../murs.js';
+import { REGARD_VERS, portesEntreeDabord, murEntree } from '../murs.js';
 
 const FEMININS = new Set([
   'colonne', 'statue', 'table', 'chaise', 'caisse', 'fosse', 'bibliotheque', 'torche', 'fontaine',
@@ -131,11 +131,9 @@ export function decrire(plan) {
   if (plan.sol && plan.sol !== 'pierre') propositions.push(`sol en ${plan.sol}`);
 
   // La porte du mur d'entrée d'abord : c'est la première porte qui définit l'entrée.
-  const portes = [...plan.portes].sort((a, b) => (b.mur === plan.entree) - (a.mur === plan.entree));
-  propositions.push(...portes.map(decrirePorte));
+  propositions.push(...portesEntreeDabord(plan).map(decrirePorte));
 
-  const entree = portes[0]?.mur || 'sud';
-  propositions.push(...decrireObjets(plan.objets, REGARD_VERS[entree]));
+  propositions.push(...decrireObjets(plan.objets, REGARD_VERS[murEntree(plan)]));
   propositions.push(...decrireCreatures(plan.creatures || []));
   return `${propositions.join(', ')}.`;
 }

@@ -17,6 +17,7 @@ import { validerDonjon, donjonDepuisAncien, creerDonjon } from './donjon.js';
 import { validerPresentation } from './presentation.js';
 import { fichesDuNavigateur } from './personnages.js';
 import { TAILLE_PAR_DEFAUT, ECHELLE_PAR_DEFAUT, MODES_TABLE, tailleReglable } from './affichage.js';
+import { sansAccents } from './format.js';
 
 export const CLE_DONJONS = 'carte-de-mj:donjons-v1';
 export const CLE_REGLAGES = 'carte-de-mj:reglages-v1';
@@ -181,7 +182,7 @@ export function chargerTout({ texteInitial, stock = stockParDefaut() } = {}) {
 
 // --- Donjon entier (nouveau format) -----------------------------------------------
 
-const nomDeFichier = (nom) => `${String(nom || 'donjon').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'donjon'}.json`;
+const nomDeFichier = (nom) => `${sansAccents(nom || 'donjon').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'donjon'}.json`;
 
 /** Propose le téléchargement du donjon entier (salles, notes, liaisons, éléments cachés). */
 export function exporterDonjon(donjon) {

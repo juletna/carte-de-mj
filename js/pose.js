@@ -13,8 +13,9 @@
 import { OBJETS, CREATURES, PORTES, definition, nomAffiche } from './parseur/lexique.js';
 import { nomCase } from './parseur/coordonnees.js';
 import { normaliserForme, surLeSol } from './formes.js';
-import { REGARD, REGARD_VERS, estHorizontal, longueurMur } from './murs.js';
+import { REGARD, REGARD_VERS, estHorizontal, longueurMur, murEntree } from './murs.js';
 import { CASES_MAX, LISTES } from './schema.js';
+import { sansAccents } from './format.js';
 
 /** Marge tolérée autour de la salle pour viser un mur avec une porte, en cases. */
 const MARGE_PORTE = 1;
@@ -97,9 +98,6 @@ export const SOUS_GROUPES = {
   ],
 };
 
-/** Minuscules, sans accents ni espaces de bord : « Élémentaire » et « elementaire » se valent. */
-export const sansAccents = (texte) => String(texte ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
-
 /**
  * Éléments de la palette qui répondent à une recherche : chaque mot saisi doit se retrouver dans le libellé, le type
  * ou l'un des mots du lexique (sans accents ni casse : « orc » trouve l'orque). Recherche vide : tout.
@@ -121,12 +119,6 @@ function idLibre(liste, prefixe) {
   let n = liste.length + 1;
   while (pris.has(`${prefixe}${n}`)) n++;
   return `${prefixe}${n}`;
-}
-
-/** Mur d'entrée tel que decrire() le comprend : celui de la première porte (celle du mur d'entrée d'abord), sinon le sud. */
-function murEntree(plan) {
-  const portes = [...plan.portes].sort((a, b) => (b.mur === plan.entree) - (a.mur === plan.entree));
-  return portes[0]?.mur || 'sud';
 }
 
 const MESSAGES = {
