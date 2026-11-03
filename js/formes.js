@@ -13,17 +13,47 @@
 
 import { MURS, estHorizontal } from './murs.js';
 
-export const FORMES = ['rectangle', 'croix', 'octogone', 'L', 'T', 'U', '8', 'E', 'F', 'H', 'O', 'S'];
-export const LIBELLES_FORMES = { rectangle: 'Rectangle', croix: 'Croix', octogone: 'Octogone', L: 'L', T: 'T', U: 'U', 8: '8', E: 'E', F: 'F', H: 'H', O: 'O', S: 'S' };
-/** Formes à trois barres : leurs bras sont plus fins par défaut, pour laisser voir les vides entre les barres. */
-const TROIS_BARRES = ['8', 'E', 'F', 'S'];
+/**
+ * La table des formes, dans l'ordre des boutons. Une forme est un identifiant (celui du JSON) et :
+ *   libelle    le texte de son bouton
+ *   mot        comment la description la nomme après « en » (« en croix »). Une forme d'une lettre ou d'un chiffre (L, T, 8…)
+ *              s'écrit « en L », « en 8 » : elle n'a pas besoin de `mot`
+ *   adjectifs  motifs d'adjectifs qui la nomment seuls (« une salle cruciforme », « octogonale »)
+ *   diviseur   l'épaisseur des bras par défaut est le petit côté de la salle divisé par ce nombre (3 si absent) ; plus il est grand,
+ *              plus les bras sont fins (les formes à trois barres, 8, E, F et S, laissent ainsi voir les vides entre leurs barres)
+ *   bras       comment nommer ce que règle `bras` quand ce ne sont pas des « bras » : { nom, libelle } (octogone : les pans coupés)
+ *   position   ce que règle `position` : { choix, libelle } ; le premier choix est la valeur par défaut
+ * Le tracé de chaque forme est plus bas (brasMax et dansLaForme). Le parseur compose son motif de reconnaissance depuis cette table (parseur/dimensions.js).
+ */
+export const DEFINITIONS_FORMES = [
+  { forme: 'rectangle', libelle: 'Rectangle' },
+  { forme: 'croix', libelle: 'Croix', mot: 'croix', adjectifs: ['cruciforme'], position: { choix: ['milieu', 'haut', 'bas'], libelle: 'Hauteur des bras' } },
+  { forme: 'octogone', libelle: 'Octogone', mot: 'octogone', adjectifs: ['octogonale?'], diviseur: 4, bras: { nom: 'pans', libelle: 'Taille des pans coupés' } },
+  { forme: 'L', libelle: 'L', position: { choix: ['sud-ouest', 'sud-est', 'nord-ouest', 'nord-est'], libelle: 'Coin de l’angle' } },
+  { forme: 'T', libelle: 'T', position: { choix: MURS, libelle: 'Mur de la barre' } },
+  { forme: 'U', libelle: 'U', position: { choix: MURS, libelle: 'Mur ouvert' } },
+  { forme: '8', libelle: '8', diviseur: 5 },
+  { forme: 'E', libelle: 'E', diviseur: 5 },
+  { forme: 'F', libelle: 'F', diviseur: 5 },
+  { forme: 'H', libelle: 'H' },
+  { forme: 'O', libelle: 'O' },
+  { forme: 'S', libelle: 'S', diviseur: 5 },
+];
+
+export const FORMES = DEFINITIONS_FORMES.map((d) => d.forme);
+export const LIBELLES_FORMES = Object.fromEntries(DEFINITIONS_FORMES.map((d) => [d.forme, d.libelle]));
+const parForme = new Map(DEFINITIONS_FORMES.map((d) => [d.forme, d]));
 /** Choix de `position` par forme ; le premier est la valeur par défaut. */
-export const POSITIONS_FORMES = {
-  croix: ['milieu', 'haut', 'bas'],
-  T: MURS,
-  U: MURS,
-  L: ['sud-ouest', 'sud-est', 'nord-ouest', 'nord-est'],
+export const POSITIONS_FORMES = Object.fromEntries(DEFINITIONS_FORMES.filter((d) => d.position).map((d) => [d.forme, d.position.choix]));
+/** Ce que règle `position`, par forme (« Mur de la barre »), et le nom de chacun de ses choix. */
+export const LIBELLES_POSITIONS = Object.fromEntries(DEFINITIONS_FORMES.filter((d) => d.position).map((d) => [d.forme, d.position.libelle]));
+export const NOMS_POSITIONS = {
+  milieu: 'Au milieu', haut: 'En haut', bas: 'En bas', nord: 'Nord', sud: 'Sud', est: 'Est', ouest: 'Ouest',
+  'sud-ouest': 'Sud-ouest', 'sud-est': 'Sud-est', 'nord-ouest': 'Nord-ouest', 'nord-est': 'Nord-est',
 };
+/** Ce que règle `bras`, en un mot (« bras », « pans ») et en légende du curseur (« Épaisseur des bras »). */
+export const nomDesBras = (forme) => parForme.get(forme)?.bras?.nom ?? 'bras';
+export const libelleDesBras = (forme) => parForme.get(forme)?.bras?.libelle ?? 'Épaisseur des bras';
 
 /** Champs de forme d'un plan, validés : rien d'autre que `{forme:'rectangle'}` pour un rectangle. */
 export function normaliserForme(brut) {
@@ -59,7 +89,7 @@ export function brasMax(plan) {
 export function brasDe(plan) {
   const max = brasMax(plan);
   if (!max) return 0;
-  const diviseur = TROIS_BARRES.includes(plan.forme) ? 5 : plan.forme === 'octogone' ? 4 : 3;
+  const diviseur = parForme.get(plan.forme)?.diviseur ?? 3;
   const defaut = Math.max(1, Math.round(Math.min(plan.largeur, plan.longueur) / diviseur));
   return Math.min(max, plan.bras || defaut);
 }

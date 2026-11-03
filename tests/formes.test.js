@@ -3,8 +3,9 @@
  * Sans dépendance : marche sous Node et dans tests.html.
  */
 import * as m from '../js/donjon.js';
-import { FORMES, POSITIONS_FORMES, casesRetirees, estSol, nombreCases, retraitPorte, brasDe, brasMax, surLeSol, contourSol } from '../js/formes.js';
+import { FORMES, LIBELLES_FORMES, POSITIONS_FORMES, LIBELLES_POSITIONS, NOMS_POSITIONS, nomDesBras, libelleDesBras, casesRetirees, estSol, nombreCases, retraitPorte, brasDe, brasMax, surLeSol, contourSol } from '../js/formes.js';
 import { analyser } from '../js/parseur/index.js';
+import { RE_FORME } from '../js/parseur/dimensions.js';
 import { decrire } from '../js/parseur/decrire.js';
 import { validerPlan, SOLS } from '../js/schema.js';
 import { changerForme, evaluerPose, redimensionner } from '../js/pose.js';
@@ -256,6 +257,28 @@ const TESTS = [
         egal(ouverts, [], `${forme} ${position || ''} : le contour est fermé`);
       }
     }
+  }],
+  ['la table des formes : ordre, libellés, choix de position, pans de l’octogone et épaisseur par défaut sont ceux d’avant', () => {
+    egal(FORMES, ['rectangle', 'croix', 'octogone', 'L', 'T', 'U', '8', 'E', 'F', 'H', 'O', 'S'], 'ordre des formes');
+    egal(LIBELLES_FORMES, { rectangle: 'Rectangle', croix: 'Croix', octogone: 'Octogone', L: 'L', T: 'T', U: 'U', 8: '8', E: 'E', F: 'F', H: 'H', O: 'O', S: 'S' }, 'libellés');
+    const parCle = (o) => Object.fromEntries(Object.entries(o).sort(([a], [b]) => a.localeCompare(b)));
+    egal(parCle(POSITIONS_FORMES), parCle({ croix: ['milieu', 'haut', 'bas'], T: ['nord', 'sud', 'est', 'ouest'], U: ['nord', 'sud', 'est', 'ouest'], L: ['sud-ouest', 'sud-est', 'nord-ouest', 'nord-est'] }), 'choix de position');
+    egal(parCle(LIBELLES_POSITIONS), parCle({ croix: 'Hauteur des bras', T: 'Mur de la barre', U: 'Mur ouvert', L: 'Coin de l’angle' }), 'ce que règle la position');
+    for (const [forme, choix] of Object.entries(POSITIONS_FORMES)) for (const c of choix) verifier(NOMS_POSITIONS[c], `${forme} : « ${c} » n’a pas de nom`);
+    egal(FORMES.map((f) => [nomDesBras(f), libelleDesBras(f)]).filter(([n]) => n !== 'bras'), [['pans', 'Taille des pans coupés']], 'seul l’octogone a des pans');
+    egal(libelleDesBras('croix'), 'Épaisseur des bras', 'les autres : des bras');
+    // petit côté / diviseur : 12 / 5 → 2 pour les formes à trois barres, 12 / 4 → 3 pour l’octogone, 12 / 3 → 4 pour les autres
+    egal(FORMES.filter((f) => f !== 'rectangle').map((f) => brasDe({ forme: f, largeur: 12, longueur: 12 })), [4, 3, 4, 4, 4, 2, 2, 2, 4, 4, 2], 'épaisseur par défaut');
+  }],
+  ['le motif de reconnaissance d’une forme, composé depuis la table, est exactement l’ancien', () => {
+    egal(RE_FORME.source, String.raw`(?<!mur (?:nord|sud|est|ouest) )\b(?:en forme de |en )(croix|octogone|(?:[ltuefhos](?= *(?:$|[,.;]| de \d| par )))|(?:8(?= *(?:$|[,.;]| de \d))))|\b(cruciforme|octogonale?)\b`, 'motif');
+    egal(RE_FORME.flags, '', 'sans option');
+    const dit = (texte) => analyser(texte).plan.forme;
+    for (const f of FORMES.filter((x) => x !== 'rectangle')) {
+      egal([dit(`Salle en ${f} de 10 par 10 cases`), dit(`salle en forme de ${f.toLowerCase()}, 9 par 9`)], [f, f], `en ${f}`);
+    }
+    egal([dit('salle cruciforme de 9 par 9'), dit('une salle octogonale de 9 par 9'), dit('salle octogonal de 9 par 9')], ['croix', 'octogone', 'octogone'], 'adjectifs');
+    egal([dit('salle en 8 par 6'), dit('salle suspendue en l air'), dit('une porte au mur nord en L, salle de 8 par 8')], ['rectangle', 'rectangle', 'rectangle'], 'ce qui n’est pas une forme');
   }],
 ];
 

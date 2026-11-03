@@ -6,7 +6,7 @@
  * texte → analyser() → plan → carte et JSON. Aucune dépendance à un autre outil ni au réseau.
  */
 import { analyser } from './parseur/index.js';
-import { validerPlan, SOLS } from './schema.js';
+import { validerPlan, SOLS, NOMS_SOLS } from './schema.js';
 import { dessiner, dessinerPlanDonjon } from './rendu/moteur.js';
 import { MARGE, rectDe } from './rendu/geometrie.js';
 import { disposerPlan, salleSous, cleDisposition } from './plan-donjon.js';
@@ -20,7 +20,7 @@ import { ajouterPersonnage, retirerPersonnage, actualiserPersonnages, ficheDepui
 import { genererFiches, decrireTirage, BORNES as BORNES_FICHE, CLASSES, RACES } from './fiche-hasard.js';
 import { carteFiche } from './carte-personnage.js';
 import { MODELES, donjonDepuisModele, copieDonjon } from './modeles.js';
-import { FORMES, LIBELLES_FORMES, POSITIONS_FORMES, casesRetirees, brasDe, brasMax, nombreCases } from './formes.js';
+import { FORMES, LIBELLES_FORMES, POSITIONS_FORMES, LIBELLES_POSITIONS, NOMS_POSITIONS, libelleDesBras, casesRetirees, brasDe, brasMax, nombreCases } from './formes.js';
 import { creerPalette } from './palette.js';
 import { creerHistorique } from './historique.js';
 import { creerRail, OUTILS_CATALOGUE } from './rail.js';
@@ -716,8 +716,6 @@ $('fiche-hasard-garder').addEventListener('click', () => {
 });
 
 // --- Forme de la salle : boutons, épaisseur et position (js/formes.js) ---
-const LIBELLES_POSITIONS = { croix: 'Hauteur des bras', T: 'Mur de la barre', U: 'Mur ouvert', L: 'Coin de l’angle' };
-const NOMS_POSITIONS = { milieu: 'Au milieu', haut: 'En haut', bas: 'En bas', nord: 'Nord', sud: 'Sud', est: 'Est', ouest: 'Ouest', 'sud-ouest': 'Sud-ouest', 'sud-est': 'Sud-est', 'nord-ouest': 'Nord-ouest', 'nord-est': 'Nord-est' };
 
 /** Petit dessin de la forme, tiré du même calcul que la vraie salle. */
 function iconeForme(forme) {
@@ -759,7 +757,7 @@ function majForme() {
   $('forme-reglages').hidden = !decoupable;
   $('forme-ligne-bras').hidden = !max;
   if (max) {
-    $('forme-nom-bras').textContent = forme === 'octogone' ? 'Taille des pans coupés' : 'Épaisseur des bras';
+    $('forme-nom-bras').textContent = libelleDesBras(forme);
     $('forme-bras').max = String(max);
     if (document.activeElement !== $('forme-bras') || !enGlissementForme) $('forme-bras').value = String(brasDe(plan));
     $('forme-bras-val').textContent = `${brasDe(plan)} case${brasDe(plan) > 1 ? 's' : ''}`;
@@ -781,7 +779,6 @@ function majForme() {
 }
 
 // Le sol : la description suit, comme si « sol en bois » y avait été écrit.
-const NOMS_SOLS = { pierre: 'Pierre', bois: 'Bois', terre: 'Terre', sable: 'Sable', herbe: 'Herbe', marbre: 'Marbre', glace: 'Glace' };
 $('salle-sol').replaceChildren(...SOLS.map((sol) => h('option', { value: sol, textContent: NOMS_SOLS[sol] })));
 $('salle-sol').addEventListener('change', (e) => {
   memoriser();

@@ -355,7 +355,7 @@ js/alea.js          tirages reproductibles, communs aux deux générateurs (pur,
 js/personnages.js   fiches associées au donjon : résumé, ajout, validation (pur, sans DOM)
 js/fiche/           ce que la Fiche et le Donjon ont en commun, sans dépendance : `format.js` (clé du navigateur, format du fichier exporté, `estFiche`), `regles.js` (les six caractéristiques) ; `fiche.html` en garde une copie, comparée par un test
 js/carte-personnage.js  une fiche à l'écran, la même dans le Donjon et la régie
-js/formes.js        formes de salle : cases retirées, portes en retrait, murs découpés (calcul pur)
+js/formes.js        formes de salle : table des formes (libellés, mots, positions, pans de l'octogone), cases retirées, portes en retrait, murs découpés (calcul pur)
 js/stockage.js      localStorage (donjons, réglages, migration de l'ancien format, mise de côté de ce qui ne se relit pas), export/import JSON
 js/voix.js          dictée (Web Speech API)
 js/deplacement.js   glisser-déposer et clic sur la carte

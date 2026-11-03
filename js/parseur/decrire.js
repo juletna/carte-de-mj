@@ -9,6 +9,7 @@ import { definition, nomAffiche } from './lexique.js';
 import { estFeminin, estSymetrique } from '../catalogue.js';
 import { nomCase, reperePorte } from './coordonnees.js';
 import { REGARD_VERS, portesEntreeDabord, murEntree } from '../murs.js';
+import { nomDesBras } from '../formes.js';
 
 const NOMBRES = ['', 'un', 'deux', 'trois', 'quatre', 'cinq', 'six', 'sept', 'huit', 'neuf', 'dix', 'onze', 'douze'];
 const DIRECTIONS = { 0: 'le nord', 90: 'l’est', 180: 'le sud', 270: 'l’ouest' };
@@ -113,7 +114,7 @@ const decrireForme = (plan) => (plan.forme && plan.forme !== 'rectangle' ? ` en 
 export function debutDescription(plan) {
   const debut = plan.nom && plan.nom !== 'Salle' ? plan.nom : 'Salle';
   const propositions = [`${debut}${decrireForme(plan)} de ${plan.largeur} par ${plan.longueur} cases`];
-  if (plan.bras && plan.forme && plan.forme !== 'rectangle') propositions.push(`${plan.forme === 'octogone' ? 'pans' : 'bras'} de ${plan.bras} case${plan.bras > 1 ? 's' : ''}`);
+  if (plan.bras && plan.forme && plan.forme !== 'rectangle') propositions.push(`${nomDesBras(plan.forme)} de ${plan.bras} case${plan.bras > 1 ? 's' : ''}`);
   if (plan.position && QUALIF_POSITION[plan.forme]) propositions.push(QUALIF_POSITION[plan.forme](plan.position));
   return propositions;
 }

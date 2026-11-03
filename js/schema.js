@@ -31,6 +31,8 @@ import { normaliserForme, surLeSol } from './formes.js';
 import { MURS, longueurMur } from './murs.js';
 
 export const SOLS = ['pierre', 'bois', 'terre', 'sable', 'herbe', 'marbre', 'glace'];
+/** Le nom de chaque sol, pour le sélecteur de l'écran. */
+export const NOMS_SOLS = { pierre: 'Pierre', bois: 'Bois', terre: 'Terre', sable: 'Sable', herbe: 'Herbe', marbre: 'Marbre', glace: 'Glace' };
 const TYPES_OBJETS = new Set(OBJETS.map((o) => o.type));
 const TYPES_PORTES = new Set(Object.values(PORTES));
 const TYPES_CREATURES = new Set(CREATURES.map((c) => c.type));

@@ -6,6 +6,7 @@
 
 import { trouverObjet, PORTES } from './lexique.js';
 import { CASES_MAX } from '../schema.js';
+import { DEFINITIONS_FORMES, FORMES, nomDesBras } from '../formes.js';
 
 const NB = '(\\d+(?:\\.\\d+)?)';
 const UNITE = '(?:\\s+(m|metres?|cases?|carreaux?))?';
@@ -91,8 +92,23 @@ export function extraireDimensions(texte, echelle) {
 // « en L » n'est une forme que suivi de la fin de la phrase ou des dimensions : « suspendu en l air » n'en est pas une.
 // Et seulement dans la première phrase, hors d'un mur : « une porte au mur nord en L » parle de la colonne L.
 // Le chiffre 8 ne se lit pas devant « par » : « salle en 8 par 6 » donne des dimensions.
-const RE_FORME = /(?<!mur (?:nord|sud|est|ouest) )\b(?:en forme de |en )(croix|octogone|(?:[ltuefhos](?= *(?:$|[,.;]| de \d| par )))|(?:8(?= *(?:$|[,.;]| de \d))))|\b(cruciforme|octogonale?)\b/;
-const NOMS_FORMES = { croix: 'croix', octogone: 'octogone', l: 'L', t: 'T', u: 'U', e: 'E', f: 'F', h: 'H', o: 'O', s: 'S', 8: '8', cruciforme: 'croix', octogonal: 'octogone', octogonale: 'octogone' };
+// Le motif se compose depuis la table des formes (formes.js) : leurs mots, leurs lettres, leur chiffre et leurs adjectifs.
+const alternance = (mots) => mots.join('|');
+const classe = (caracteres) => (caracteres.length === 1 ? caracteres : `[${caracteres}]`);
+const lettres = FORMES.filter((f) => /^[A-Z]$/.test(f)).map((f) => f.toLowerCase()).join('');
+const chiffres = FORMES.filter((f) => /^\d$/.test(f)).join('');
+export const RE_FORME = new RegExp(
+  '(?<!mur (?:nord|sud|est|ouest) )\\b(?:en forme de |en )(' + alternance([
+    ...DEFINITIONS_FORMES.filter((d) => d.mot).map((d) => d.mot),
+    `(?:${classe(lettres)}(?= *(?:$|[,.;]| de \\d| par )))`,
+    `(?:${classe(chiffres)}(?= *(?:$|[,.;]| de \\d)))`,
+  ]) + ')|\\b(' + alternance(DEFINITIONS_FORMES.flatMap((d) => d.adjectifs || [])) + ')\\b',
+);
+/** Ce que le motif a reconnu (« croix », « l », « 8 », « octogonale ») → la forme. */
+function formeDuMot(mot) {
+  if (mot.length === 1) return FORMES.find((f) => f.toLowerCase() === mot);
+  return DEFINITIONS_FORMES.find((d) => d.mot === mot || d.adjectifs?.some((a) => new RegExp(`^(?:${a})$`).test(mot)))?.forme;
+}
 const RE_BRAS = /\b(?:bras|pans?) de (\d+)(?: cases?)?/;
 const RE_POSITION = {
   croix: [/\bbras (?:en |au |vers le )?(haut|milieu|bas)\b/, (m) => m[1]],
@@ -115,12 +131,12 @@ export function extraireForme(texte) {
     const elementAvant = avant.length > 1 && (trouverObjet(dernier) || dernier in PORTES);
     if ((finPhrase >= 0 && m.index > finPhrase) || elementAvant) return { champs: {}, reste: texte, compris: [] };
   }
-  const forme = NOMS_FORMES[m[1] || m[2]];
+  const forme = formeDuMot(m[1] || m[2]);
   let t = texte.replace(m[0], ' ');
   const champs = { forme };
   const compris = [`forme : ${forme}`];
   const bras = t.match(RE_BRAS);
-  if (bras) { champs.bras = Math.max(1, Number(bras[1])); t = t.replace(bras[0], ' '); compris.push(`${forme === 'octogone' ? 'pans' : 'bras'} de ${champs.bras} case${champs.bras > 1 ? 's' : ''}`); }
+  if (bras) { champs.bras = Math.max(1, Number(bras[1])); t = t.replace(bras[0], ' '); compris.push(`${nomDesBras(forme)} de ${champs.bras} case${champs.bras > 1 ? 's' : ''}`); }
   if (RE_POSITION[forme]) {
     const [re, valeur] = RE_POSITION[forme];
     const pos = t.match(re);
