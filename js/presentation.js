@@ -41,7 +41,8 @@ import { analyser } from './parseur/index.js';
 import { decrire } from './parseur/decrire.js';
 import { interpreterCommande } from './parseur/commandes.js';
 import { disposerPlan, cheminCouloir, pontsDe } from './plan-donjon.js';
-import { normaliserForme, surLeSol, retraitPorte } from './formes.js';
+import { normaliserForme, surLeSol, retraitPorte, estSol } from './formes.js';
+import { evaluerPose } from './pose.js';
 
 export { ETATS };
 
@@ -456,6 +457,27 @@ export function vueTable(p) {
   if (!plan) return null;
   const rev = new Set(Array.isArray(p.reveles?.[p.salleCourante]) ? p.reveles[p.salleCourante] : []);
   return planPublic(plan, { visible: (e) => !estCache(e) || rev.has(e.id) });
+}
+
+/**
+ * Déplace un pion avec les règles de pose de l'outil (js/pose.js). Sert aux demandes venues de l'écran de table,
+ * qui ne connaît que ce qui est visible : c'est toujours la régie, avec le plan complet, qui décide.
+ * @returns {boolean} vrai si le pion a bougé
+ */
+export function deplacerPion(p, idSalle, idPion, x, y) {
+  const plan = p?.donjon?.salles?.[idSalle]?.plan;
+  const pion = plan?.creatures.find((k) => k.id === idPion);
+  if (!pion || !Number.isInteger(x) || !Number.isInteger(y) || (pion.x === x && pion.y === y)) return false;
+  if (!evaluerPose(plan, 'creature', pion, x, y, pion).ok) return false;
+  pion.x = x;
+  pion.y = y;
+  return true;
+}
+
+/** Relit une case montrée par le MJ : une case de sol de ce plan, sinon rien. @returns {{x:number,y:number}|null} */
+export function recevoirCaseVisee(brut, plan) {
+  if (!plan || !Number.isInteger(brut?.x) || !Number.isInteger(brut?.y) || !estSol(plan, brut.x, brut.y)) return null;
+  return { x: brut.x, y: brut.y };
 }
 
 /** Où est le pion d'un personnage du donjon dans cette partie. @returns {{salle:string, pion:object}|null} */

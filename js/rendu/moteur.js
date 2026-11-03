@@ -47,6 +47,7 @@ function rectDe(genre, e, plan) {
  *        marques = repères d'interface dessinés par-dessus (le thème en décide l'apparence) :
  *          portesReliees: [{mur, position}]            portes reliées à une autre salle
  *          selection: {genre, element}                 élément sélectionné (porte, objet ou créature)
+ *          caseVisee: {x, y}                           case montrée par le MJ à la table (« c'est là que tu veux te mettre ? »)
  *        Les éléments `cache: true` (secrets) restent visibles dans la vue MJ : dessinés en
  *        translucide avec un repère en pointillés.
  */
@@ -301,12 +302,28 @@ function peindre(ctx, plan, t, { grille, reperes, theme, marques }) {
   if (reperes) dessinerReperes(ctx, plan, t);
   plan.portes.forEach((p) => secret(ctx, p.cache, rectPorte(plan, p), t, theme, () => theme.porte(ctx, p, plan, t)));
   autres.forEach((o) => dessinerObjet(ctx, o, t, theme));
+  if (marques.caseVisee) dessinerCaseVisee(ctx, marques.caseVisee, t);
   // Les pions passent par-dessus tout le décor.
   (plan.creatures || []).forEach((k) => secret(ctx, k.cache, rectDe('creature', k), t, theme, () => theme.pion(ctx, k, t)));
 
   // Repères d'interface, tout au-dessus.
   for (const p of marques.portesReliees || []) theme.marqueLiaison?.(ctx, rectPorte(plan, p), p.mur, t, p);
   if (marques.selection) theme.marqueSelection?.(ctx, rectDe(marques.selection.genre, marques.selection.element, plan), t);
+}
+
+/** La case que le MJ montre : très voyante, sous les pions, pour se lire de loin à la table. */
+function dessinerCaseVisee(ctx, { x, y }, t) {
+  const epais = Math.max(3, t * 0.09);
+  ctx.save();
+  ctx.fillStyle = 'rgba(255, 212, 59, 0.55)';
+  ctx.fillRect(x * t, y * t, t, t);
+  ctx.strokeStyle = '#ffd43b';
+  ctx.lineWidth = epais;
+  ctx.strokeRect(x * t + epais / 2, y * t + epais / 2, t - epais, t - epais);
+  ctx.strokeStyle = 'rgba(20, 19, 17, 0.8)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x * t, y * t, t, t);
+  ctx.restore();
 }
 
 /** Dessine un élément ; s'il est secret, en translucide avec le repère en pointillés du thème. */

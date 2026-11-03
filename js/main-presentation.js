@@ -60,12 +60,36 @@ const pluriel = (n, un, plusieurs) => `${n} ${n > 1 ? plusieurs : un}`;
 // =============================================================================
 // Écran de table (partagé : fenêtre ?vue=table et « Plein écran ici »)
 // =============================================================================
-const ecran = { plan: null, mini: null, affichage: { taille: 48, grille: true, reperes: true, mode: 'remplir' } };
+const ecran = { plan: null, mini: null, caseVisee: null, affichage: { taille: 48, grille: true, reperes: true, mode: 'remplir' } };
 
 /** Côté de case à la table : « échelle réelle » = la taille calibrée, exacte ; « remplir » = calculé sur la fenêtre. */
 function tailleEcranTable() {
   const v = $('vue-table');
   return tailleTable({ mode: ecran.affichage.mode, plan: ecran.plan, vue: { largeur: v.clientWidth, hauteur: v.clientHeight }, taille: ecran.affichage.taille });
+}
+
+function optionsEcran(taille) {
+  const { grille, reperes } = ecran.affichage;
+  return { taille, grille, reperes, marques: ecran.caseVisee ? { caseVisee: ecran.caseVisee } : {} };
+}
+
+/**
+ * À la souris, le MJ agit aussi depuis l'écran de table : glisser un pion, montrer une case. Un doigt de joueur sur la carte
+ * ne déclenche rien. L'écran de table ne décide de rien : il demande à la régie, qui seule a le plan complet.
+ */
+function activerActionsTable({ deplacer, viser }) {
+  activerDeplacement($('carte-table'), {
+    plan: () => ecran.plan,
+    taille: () => tailleEcranTable(),
+    apercu: (plan) => dessiner($('carte-table'), plan, optionsEcran(tailleEcranTable())),
+    deposer: (nouveau) => {
+      const pion = nouveau.creatures.find((k, i) => k.x !== ecran.plan.creatures[i].x || k.y !== ecran.plan.creatures[i].y);
+      if (pion) deplacer(pion.id, pion.x, pion.y);
+    },
+    cliquer: (touche, caseVide) => { if (!touche && caseVide) viser(caseVide[0], caseVide[1]); },
+    deplacables: ['creature'],
+    filtre: (e) => e.pointerType === 'mouse',
+  });
 }
 
 function rendreEcranTable() {
@@ -82,8 +106,7 @@ function rendreEcranTable() {
   }
   const taille = tailleEcranTable();
   carte.dataset.taille = String(taille); // mesurable (tests, vérification) ; aucun secret
-  const { grille, reperes } = ecran.affichage;
-  dessiner(carte, ecran.plan, { taille, grille, reperes, marques: {} }); // aucun repère de liaison ni de sélection
+  dessiner(carte, ecran.plan, optionsEcran(taille)); // aucun repère de liaison ni de sélection
 }
 // Recalculé quand la fenêtre change de taille (le mode « remplir » suit ; « échelle réelle » ne bouge pas).
 let minuteTaille;
@@ -154,11 +177,16 @@ function demarrerTable() {
       ecran.affichage = affichageValide(m.affichage, ecran.affichage);
       const plan = m.plan ? pres.recevoirVueTable(m.plan) : null;
       ecran.mini = m.mini ? pres.recevoirMiniPlan(m.mini) : null;
+      ecran.caseVisee = pres.recevoirCaseVisee(m.caseVisee, plan);
       if (plan) { ecran.plan = plan; rendreEcranTable(); } else attendre('La présentation n’a pas commencé. Lance-la depuis la régie.');
     } else if (m.type === 'defiler') {
       defilerEcranTable({ dx: entierSigne(m.dx), dy: entierSigne(m.dy), recentrer: m.recentrer === true });
     }
   };
+  activerActionsTable({
+    deplacer: (id, x, y) => canal.postMessage({ type: 'table-deplacer', id, x, y }),
+    viser: (x, y) => canal.postMessage({ type: 'table-viser', x, y }),
+  });
   attendre('En attente de la régie…');
   const demander = () => canal.postMessage({ type: 'demande-etat' });
   demander();
@@ -186,6 +214,7 @@ function demarrerRegie() {
     ajuster: true,       // adapter la carte de la régie à la fenêtre (n'agit pas sur la table)
     fichier: null,       // { donjon, avertissements } : donjon ouvert depuis un fichier
     focusSelection: false, // le focus doit passer au panneau de sélection au prochain rendu
+    caseVisee: null,     // { salle, x, y } : la case que le MJ montre aux joueurs. Jamais sauvegardée
     pleinIci: false,
     enregistre: true,
   };
@@ -226,9 +255,31 @@ function demarrerRegie() {
   }
   /** Envoie à la table le plan de vueTable(), la mini-carte de miniPlanTable(), et rien d'autre. */
   function diffuser() {
-    canal?.postMessage({ type: 'etat', plan: etat.p ? pres.vueTable(etat.p) : null, mini: miniTable(), affichage: affichageTable() });
+    canal?.postMessage({ type: 'etat', plan: etat.p ? pres.vueTable(etat.p) : null, mini: miniTable(), caseVisee: caseATable(), affichage: affichageTable() });
   }
-  if (canal) canal.onmessage = (ev) => { if (ev.data?.type === 'demande-etat') diffuser(); };
+  /** La case montrée, si elle est dans la salle que voient les joueurs. */
+  const caseATable = () => (etat.p && etat.caseVisee?.salle === etat.p.salleCourante ? { x: etat.caseVisee.x, y: etat.caseVisee.y } : null);
+
+  /** Un clic sur une case vide la montre ; un clic sur la même case l'enlève. */
+  function viserCase(idSalle, x, y) {
+    const c = etat.caseVisee;
+    const deja = c?.salle === idSalle && c.x === x && c.y === y;
+    etat.caseVisee = !deja && pres.recevoirCaseVisee({ x, y }, etat.p.donjon.salles[idSalle]?.plan) ? { salle: idSalle, x, y } : null;
+    rendre();
+  }
+  function deplacerDepuisTable(id, x, y) {
+    if (!etat.p) return;
+    if (pres.deplacerPion(etat.p, etat.p.salleCourante, id, x, y)) modifie();
+    else { diffuser(); majEcranLocal(); } // refusé : la table reprend la position d'avant
+  }
+  if (canal) {
+    canal.onmessage = (ev) => {
+      const m = ev.data;
+      if (m?.type === 'demande-etat') diffuser();
+      else if (m?.type === 'table-deplacer') deplacerDepuisTable(m.id, m.x, m.y);
+      else if (m?.type === 'table-viser' && etat.p) viserCase(etat.p.salleCourante, m.x, m.y);
+    };
+  }
 
   function sauvegarder() {
     if (!etat.p) return;
@@ -393,7 +444,7 @@ function demarrerRegie() {
     const s = salleConsultee();
     const portesReliees = planAffiche.portes.filter((q) => modele.liaisonDePorte(etat.p.donjon, s.id, q)).map((q) => ({ mur: q.mur, position: q.position }));
     const trouve = trouver(planAffiche, etat.selection);
-    return { portesReliees, selection: trouve };
+    return { portesReliees, selection: trouve, ...(etat.caseVisee?.salle === s.id ? { caseVisee: etat.caseVisee } : {}) };
   }
 
   function dessinerRegie(plan) {
@@ -404,8 +455,18 @@ function demarrerRegie() {
     marquerDefilement($('carte'), $('scene')); // écran étroit : une carte qui dépasse se fait défiler au doigt
   }
 
+  /** La case montrée s'efface dès qu'un pion s'y pose, ou que ni la régie ni la table ne regardent plus sa salle. */
+  function oublierCaseSiResolue() {
+    const c = etat.caseVisee;
+    if (!c) return;
+    const pions = etat.p.donjon.salles[c.salle]?.plan.creatures || [];
+    const occupee = pions.some((k) => c.x >= k.x && c.x < k.x + k.taille && c.y >= k.y && c.y < k.y + k.taille);
+    if (occupee || (c.salle !== etat.consultee && c.salle !== etat.p.salleCourante)) etat.caseVisee = null;
+  }
+
   function rendre() {
     if (!etat.p) return;
+    oublierCaseSiResolue();
     const s = salleConsultee();
     dessinerRegie(s.plan);
     $('support').className = etat.consultee === etat.p.salleCourante ? 'sur-table' : 'consultation';
@@ -751,10 +812,11 @@ function demarrerRegie() {
     taille: () => tailleRegie(salleConsultee().plan),
     apercu: (plan) => dessinerRegie(plan),
     deposer: (nouveau) => { pres.appliquerDeplacement(etat.p, etat.consultee, nouveau); etat.message = ''; modifie(); },
-    cliquer: (touche) => {
+    cliquer: (touche, caseVide) => {
       etat.selection = touche ? { genre: touche.genre, id: touche.element.id } : null;
       etat.message = '';
-      rendre();
+      if (caseVide) viserCase(etat.consultee, caseVide[0], caseVide[1]);
+      else rendre();
     },
     deplacables: ['creature'],
     portesLarges: true, // zone de clic des portes élargie vers l'intérieur ; un glissement sur un pion déplace toujours le pion
@@ -774,6 +836,7 @@ function demarrerRegie() {
     ecran.plan = pres.vueTable(etat.p);
     const mini = miniTable();
     ecran.mini = mini && pres.recevoirMiniPlan(mini);
+    ecran.caseVisee = caseATable();
     ecran.affichage = affichageTable();
     rendreEcranTable();
   }
@@ -796,6 +859,17 @@ function demarrerRegie() {
     $('plein-ici').focus?.();
   }
   $('plein-ici').addEventListener('click', entrerPleinIci);
+  activerActionsTable({
+    deplacer: deplacerDepuisTable,
+    viser: (x, y) => { if (etat.p) viserCase(etat.p.salleCourante, x, y); },
+  });
+  // Échap enlève la case montrée (si une sélection est ouverte, Échap la ferme d'abord).
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape' || e.defaultPrevented || !etat.p || !etat.caseVisee || etat.selection || etat.pleinIci || document.fullscreenElement) return;
+    if (e.target instanceof HTMLElement && e.target.matches('input, textarea, select, [contenteditable]')) return;
+    etat.caseVisee = null;
+    rendre();
+  });
   reinitialiserRetour = deuxTemps($('retour-regie'), '← Retour à la régie', 'Appuie encore pour revenir', quitterPleinIci);
   document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && etat.pleinIci) quitterPleinIci(); });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && etat.pleinIci) quitterPleinIci(); });

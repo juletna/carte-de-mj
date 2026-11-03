@@ -49,13 +49,15 @@ export function porteSous(cx, cy, plan, profondeur = EPAISSEUR_CLIC) {
  *   taille: () => number,               côté d'une case en px CSS
  *   apercu: (plan: object) => void,     redessine sans rien enregistrer
  *   deposer: (plan: object) => void     déplacement validé : le nouveau plan
- *   cliquer?: (touche: {genre: string, element: object} | null) => void
- *                                       appui sans glissement ; sans ce rappel, tout appui est un déplacement
+ *   cliquer?: (touche: {genre: string, element: object} | null, caseVide?: [number, number]) => void
+ *                                       appui sans glissement ; sans ce rappel, tout appui est un déplacement.
+ *                                       Rien sous le pointeur : `touche` est null et `caseVide` donne la case visée
+ *   filtre?: (e: PointerEvent) => boolean  seuls ces pointeurs agissent (à la table : la souris du MJ, pas le doigt d'un joueur)
  *   commencer?: (genre: string) => void un vrai glissement démarre (le pointeur a dépassé le seuil)
  *   deplacables?: string[]              genres qui peuvent bouger (par défaut : tous)
  * }} options
  */
-export function activerDeplacement(canvas, { plan, taille, apercu, deposer, cliquer, commencer, deplacables, portesLarges = false }) {
+export function activerDeplacement(canvas, { plan, taille, apercu, deposer, cliquer, commencer, deplacables, portesLarges = false, filtre = () => true }) {
   const peutBouger = (genre) => !deplacables || deplacables.includes(genre);
   let prise = null; // { genre, element, depart, glisse, decalX, decalY, x, y } ou, pour une porte, { mur, position }
   let image = 0;
@@ -96,7 +98,7 @@ export function activerDeplacement(canvas, { plan, taille, apercu, deposer, cliq
   }
 
   canvas.addEventListener('pointerdown', (e) => {
-    if (e.button !== 0) return;
+    if (e.button !== 0 || !filtre(e)) return;
     const [cx, cy] = enCases(e);
     let trouve = elementSous(cx, cy);
     // Bande de la porte : un clic y est pour la porte ; un pion attrapé là reste déplaçable (voir l'en-tête).
@@ -106,7 +108,7 @@ export function activerDeplacement(canvas, { plan, taille, apercu, deposer, cliq
       if (trouve?.genre === 'creature' && peutBouger('creature')) auClic = { genre: 'porte', element: large };
       else trouve = { genre: 'porte', element: large };
     }
-    if (!trouve) { cliquer?.(null); return; }
+    if (!trouve) { cliquer?.(null, [Math.floor(cx), Math.floor(cy)]); return; }
     const { genre, element } = trouve;
     if (!peutBouger(genre) && !cliquer) return; // ni déplaçable ni cliquable : on ignore
     e.preventDefault();
@@ -119,6 +121,7 @@ export function activerDeplacement(canvas, { plan, taille, apercu, deposer, cliq
   });
 
   canvas.addEventListener('pointermove', (e) => {
+    if (!prise && !filtre(e)) return;
     const [cx, cy] = enCases(e);
     if (!prise) {
       const sous = elementSous(cx, cy);

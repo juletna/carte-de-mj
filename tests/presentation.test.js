@@ -22,6 +22,7 @@ function fauxStock(initial = {}) {
   return { donnees, getItem: (k) => (k in donnees ? donnees[k] : null), setItem: (k, v) => { donnees[k] = String(v); }, removeItem: (k) => { delete donnees[k]; } };
 }
 
+const analyserPlanCroix = () => validerPlan({ largeur: 9, longueur: 9, forme: 'croix', bras: 3 }).plan;
 const TEXTE_A = 'Salle de 8 par 8 cases, une porte au mur est en 3, une porte secrète au mur nord en B, un coffre caché en D4, deux personnages en B7 C7, un gobelin en F2, un pilier en E5.';
 const TEXTE_B = 'Salle de 6 par 6 cases, une porte au mur ouest en 3, une porte au mur sud en C, un coffre en A1.';
 const TEXTE_C = 'Salle de 4 par 4 cases, une porte au mur nord en B, un coffre en D4.';
@@ -307,6 +308,48 @@ const TESTS = [
     const sortieB = JSON.stringify(p.vueTable(pres));
     for (const s of SENTINELLES.filter((x) => x !== 'SENT-ID-COFFRE')) verifier(!sortieB.includes(s), `« ${s} » est sorti depuis la deuxième salle`);
     verifier(!sortieB.includes('"pilier"'), 'rien de la première salle');
+  }],
+
+  ['case montrée : seulement une case de sol de la salle', () => {
+    const plan = analyserPlanCroix();
+    egal(p.recevoirCaseVisee({ x: 4, y: 4 }, plan), { x: 4, y: 4 }, 'au centre');
+    egal(p.recevoirCaseVisee({ x: 4, y: 4, nom: 'SECRET' }, plan), { x: 4, y: 4 }, 'champ inconnu écarté');
+    egal(p.recevoirCaseVisee({ x: 0, y: 0 }, plan), null, 'case retirée');
+    egal(p.recevoirCaseVisee({ x: 99, y: 0 }, plan), null, 'hors de la salle');
+    for (const brut of [null, undefined, 'x', {}, { x: 1.5, y: 1 }, { x: '1', y: 1 }]) egal(p.recevoirCaseVisee(brut, plan), null, `refusé : ${JSON.stringify(brut)}`);
+    egal(p.recevoirCaseVisee({ x: 4, y: 4 }, null), null, 'pas de plan');
+  }],
+
+  ['déplacer un pion depuis la table : la régie applique les règles', () => {
+    const { d, a } = donjonDeTest();
+    const pres = p.creerPresentation(d, { salleDepart: a.id });
+    const plan = pres.donjon.salles[a.id].plan;
+    const [pj, autre] = plan.creatures.filter((k) => k.camp === 'pj');
+    verifier(p.deplacerPion(pres, a.id, pj.id, 5, 5), 'un pion de joueur se déplace');
+    egal([pj.x, pj.y], [5, 5], 'à la case demandée');
+    egal(p.deplacerPion(pres, a.id, pj.id, 5, 5), false, 'même case : rien');
+    egal(p.deplacerPion(pres, a.id, pj.id, autre.x, autre.y), false, 'sur un autre pion : refusé');
+    egal(p.deplacerPion(pres, a.id, pj.id, 99, 0), false, 'hors de la salle : refusé');
+    egal(p.deplacerPion(pres, a.id, pj.id, 1.5, 0), false, 'pas une case : refusé');
+    egal(p.deplacerPion(pres, a.id, 'inconnu', 1, 1), false, 'pion inconnu');
+    egal(p.deplacerPion(pres, 'inconnue', pj.id, 1, 1), false, 'salle inconnue');
+    egal([pj.x, pj.y], [5, 5], 'les refus ne bougent rien');
+  }],
+
+  ['glisser à la souris : un filtre écarte le doigt, une case vide est signalée', () => {
+    const ecouteurs = {};
+    const canvas = { addEventListener: (t, f) => { ecouteurs[t] = f; }, getBoundingClientRect: () => ({ left: 0, top: 0 }), setPointerCapture() {}, style: {} };
+    const plan = { largeur: 6, longueur: 6, portes: [], objets: [], creatures: [{ id: 'c1', type: 'pj', camp: 'pj', x: 1, y: 1, taille: 1 }] };
+    const clics = [];
+    activerDeplacement(canvas, {
+      plan: () => plan, taille: () => 10, apercu() {}, deposer() {}, cliquer: (t, c) => clics.push([t?.element?.id ?? null, c ?? null]),
+      deplacables: ['creature'], filtre: (e) => e.pointerType === 'mouse',
+    });
+    const appui = (x, y, pointerType) => ecouteurs.pointerdown({ button: 0, clientX: (x + 1) * 10 + 5, clientY: (y + 1) * 10 + 5, pointerType, pointerId: 1, preventDefault() {} });
+    appui(3, 3, 'touch');
+    egal(clics, [], 'un doigt ne déclenche rien');
+    appui(3, 4, 'mouse');
+    egal(clics, [[null, [3, 4]]], 'la souris sur une case vide : la case');
   }],
 
   ['Présenter : ouvre le donjon demandé, pas la dernière partie', () => {
