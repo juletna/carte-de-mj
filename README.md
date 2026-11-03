@@ -333,6 +333,7 @@ js/main-mj.js       racine de composition du Donjon : état, historique, rendu, 
 js/mj/personnages-ui.js  Donjon : outil Personnages (fiches associées, tirage au hasard)
 js/mj/salles-liste.js  Donjon : onglets et liste des salles, liaisons orphelines, miniature du plan
 js/mj/menu-donjon.js  Donjon : menu du donjon (choix, nouveau, modèles, au hasard, suppression), rapport, fichiers (export, import, copier, coller, plan JSON)
+js/mj/salle-forme.js  Donjon : forme, sol et dimensions de la salle (boutons, curseurs, bandes autour de la carte)
 js/historique.js     historique d'annulation du Donjon : une pile par salle (pur, sans DOM)
 js/mise-en-page.js  calculs de mise en page du Donjon : position de la bulle, pas de zoom, taille du plan complet (pur, sans DOM)
 js/palette.js       palette du Donjon : vignettes de portes, de mobilier et de créatures, pose au clic ou au glisser
