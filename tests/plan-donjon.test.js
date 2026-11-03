@@ -135,7 +135,7 @@ const TESTS = [
     sansChevauchement(disp, d, '1 salle');
   }],
 
-  ['2 salles : la salle reliée est derrière la porte, à 2 cases du mur, portes face à face', () => {
+  ['2 salles : la salle reliée est derrière la porte, à ECART_LIAISON cases du mur, portes face à face', () => {
     const d = donjonVide();
     const a = d.salleActive;
     m.definirTexte(d, a, texteSalle(8, 8, [['est', 5]]), m.planDepuisTexte(texteSalle(8, 8, [['est', 5]]), a));

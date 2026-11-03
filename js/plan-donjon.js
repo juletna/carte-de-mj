@@ -13,8 +13,8 @@
  *    passer : ses propres portes ne se font alors plus face, et son couloir fait un petit crochet ;
  *  - si la place est prise, la salle ne change JAMAIS de côté : une porte à l'est mène toujours à une salle à l'est.
  *    C'est la salle de départ, avec tout ce qui se trouve de son côté, qui recule pour laisser la place. Les couloirs
- *    des liaisons ainsi écartées s'allongent. La salle insérée a alors 3 cases de chaque côté : une case de passage
- *    pour le couloir qui la contourne, et une case libre de part et d'autre pour qu'il ne colle à aucun mur.
+ *    des liaisons ainsi écartées s'allongent. La salle insérée a alors 5 cases de chaque côté : une case de passage
+ *    pour le couloir qui la contourne, et deux cases libres de part et d'autre pour qu'il reste bien au large des murs.
  *    Mais si son couloir peut filer tout droit le long de la salle qui gêne, la nouvelle salle se pose après celle-ci :
  *    aucun couloir n'a alors à faire le tour, ni à croiser celui d'à côté ;
  *  - une porte qui mène à une salle déjà placée ne déplace rien : la liaison est simplement tracée ;
@@ -29,9 +29,9 @@
 const VECTEUR = { nord: [0, -1], sud: [0, 1], est: [1, 0], ouest: [-1, 0] };
 const OPPOSE = { nord: 'sud', sud: 'nord', est: 'ouest', ouest: 'est' };
 
-export const ECART_LIAISON = 2;   // cases entre les murs de deux salles reliées
-export const ECART_MIN = 1;       // cases libres minimum entre deux salles quelconques
-export const ECART_PASSAGE = 3;   // cases de chaque côté d'une salle insérée : passage d'un couloir + une case libre de part et d'autre
+export const ECART_LIAISON = 3;   // cases entre les murs de deux salles reliées
+export const ECART_MIN = 2;       // cases libres minimum entre deux salles quelconques (le nom de la salle du dessous y tient)
+export const ECART_PASSAGE = 5;   // cases de chaque côté d'une salle insérée : passage d'un couloir + deux cases libres de part et d'autre
 export const MARGE_PLAN = 2;      // cases autour de l'ensemble (noms au-dessus des salles du haut, murs, couloirs)
 export const ETIQUETTE_ISOLEES = 'Salles non reliées';
 
