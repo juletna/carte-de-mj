@@ -37,6 +37,7 @@ import { executer as executerStockage } from './stockage.test.js';
 import { executer as executerContratFiche } from './fiche-contrat.test.js';
 import { executer as executerCatalogue } from './catalogue.test.js';
 import { executer as executerVuePublique } from './vue-publique.test.js';
+import { executer as executerProtocoleTable } from './protocole-table.test.js';
 
 /** Les suites, dans l'ordre d'exécution : chacune reçoit `{ lire }` et rend (ou promet) une liste de résultats. */
 export const SUITES = [
@@ -46,7 +47,7 @@ export const SUITES = [
   executerThemes, executerReferences, executerOutils, executerMurs, executerCoordonnees, executerSchema,
   executerGeometrie, executerAffichage, executerVisibilite, executerParseurCommun, executerMesuresImpression,
   executerHistorique, executerMiseEnPage, executerRegie, executerStockage, executerContratFiche, executerCatalogue,
-  executerVuePublique,
+  executerVuePublique, executerProtocoleTable,
 ];
 
 /** Joue toutes les suites ; renvoie les résultats { phrase, ecarts, resultat? } à la suite les uns des autres. */

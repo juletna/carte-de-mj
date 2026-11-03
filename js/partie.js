@@ -45,8 +45,6 @@ import { estCache, estRevele, estMasque, recevoirCaseVisee } from './vue-publiqu
 
 export const FORMAT_PRESENTATION = 'carte-de-mj-presentation';
 export const VERSION_PRESENTATION = 1;
-/** Canal BroadcastChannel entre la régie et la fenêtre table. */
-export const CANAL = 'carte-de-mj-presentation';
 
 const dictionnaire = () => Object.create(null);
 /** Longueur maximale d'une note de partie (comme les notes de préparation). */

@@ -1,6 +1,6 @@
 /**
  * Qui commande la table quand plusieurs régies sont ouvertes dans ce navigateur.
- * Module PUR : aucun accès au DOM, au stockage ni au canal, il se teste sous Node. Le canal est branché dans main-presentation.js.
+ * Module PUR : aucun accès au DOM, au stockage ni au canal, il se teste sous Node. Le canal est branché dans regie.js.
  *
  * Règle : la main revient à la dernière régie qui a ouvert une partie. Une régie est donc :
  *  - libre    : elle vient de démarrer et n'a encore rien ouvert ;
@@ -12,6 +12,8 @@
  *
  * SÉCURITÉ : ces messages ne portent qu'un identifiant de régie et une date, rien de la partie.
  */
+import { MESSAGES } from './protocole-table.js';
+
 export const PRISE_MAIN = 'regie-prise-main';
 export const DEPART = 'regie-depart';
 /** Réponse d'une régie sans la main à la table : « je suis là, mais je n'ai rien à te montrer ». Sans aucune donnée. */
@@ -50,10 +52,10 @@ export function surMessage(c, m) {
       if (!c.retrait || m.regie !== c.titulaire) return null;
       c.titulaireParti = true;
       return 'retrait';
-    case 'demande-etat':
+    case MESSAGES.DEMANDE_ETAT:
       return c.main ? 'diffuser' : 'presence';
-    case 'table-deplacer':
-    case 'table-viser':
+    case MESSAGES.TABLE_DEPLACER:
+    case MESSAGES.TABLE_VISER:
       return c.main ? 'appliquer' : null;
     default:
       return null;

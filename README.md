@@ -342,7 +342,14 @@ js/presentation.js  façade : réexporte partie.js, passage.js et vue-publique.j
 js/partie.js        partie en cours : création, validation, révélations, masquage, case montrée, résumé d'une partie, états des pions, notes, PV, improvisation (pur, sans DOM)
 js/passage.js       passage d'une porte (le groupe suit), salle créée derrière une porte, pose des pions (pur, sans DOM)
 js/vue-publique.js  ce que voit la table : règle de visibilité (`visibleATable`), `vueTable()`, `planPublic()`, encart du plan et leur relecture côté table (pur, sans parseur)
-js/main-presentation.js  régie et vue table (DOM, stockage, BroadcastChannel)
+js/main-presentation.js  point d'entrée de presentation.html : la régie, ou la vue table avec ?vue=table
+js/regie.js         régie : état, canal, sauvegarde, rendu, panneaux, plein écran ici, Échap ; racine de composition (DOM, stockage, BroadcastChannel)
+js/regie-depart.js  régie : liste des donjons et des parties, import d'un fichier, « Qui joue ? »
+js/regie-selection.js  régie : panneau Sélection (révéler, état d'un pion, passer une porte, créer la salle d'à côté)
+js/regie-reglages.js  régie : réglages (taille de case, grille, repères, mini-carte, mode de la table)
+js/vue-table.js     fenêtre de table (?vue=table) : reçoit la régie par le canal, ne lit jamais les parties
+js/ecran-table.js   écran de table partagé par la fenêtre de table et « Plein écran ici » : un seul `appliquer`, boutons de coin, défilement
+js/protocole-table.js  canal et messages régie ↔ table : fabrication côté régie, relecture et validation côté table (sans DOM)
 js/commande-table.js  quelle régie commande la table quand plusieurs sont ouvertes (pur, sans DOM)
 js/impression.js    découpage en pages A4, mesures de la feuille (aussi données au CSS), échelle, proposition de réduction et phrases de la page (pages voisines, proposition, feuille du MJ), versions MJ / joueurs (pur, sans DOM)
 js/main-impression.js  page d'impression (DOM, aperçu, règle de contrôle, proposition de réduction, barre collante)
