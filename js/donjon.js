@@ -200,6 +200,9 @@ export function supprimerSalle(d, id, { echelle } = {}) {
 
 export const listerSalles = (d) => Object.values(d.salles);
 
+/** Un MJ qui débute : aucun de ses donjons n'a de liaison ni plus d'une salle. Le Donjon lui souffle alors comment créer la salle suivante. */
+export const estDebutant = (donjons) => Object.values(donjons).every((d) => d.liaisons.length === 0 && Object.keys(d.salles).length < 2);
+
 // --- Liaisons ---------------------------------------------------------------------
 
 const memeExtremite = (e, salle, mur, position) => e.salle === salle && e.mur === mur && e.position === position;

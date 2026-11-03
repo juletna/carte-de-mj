@@ -237,13 +237,11 @@ function demarrerRegie() {
     canal?.postMessage({ type: 'etat', plan: etat.p ? pres.vueTable(etat.p) : null, mini: miniTable(), caseVisee: caseATable(), affichage: affichageTable() });
   }
   /** La case montrée, si elle est dans la salle que voient les joueurs. */
-  const caseATable = () => (etat.p && etat.caseVisee?.salle === etat.p.salleCourante ? { x: etat.caseVisee.x, y: etat.caseVisee.y } : null);
+  const caseATable = () => pres.caseATable(etat.p, etat.caseVisee);
 
   /** Un clic sur une case vide la montre ; un clic sur la même case l'enlève. */
   function viserCase(idSalle, x, y) {
-    const c = etat.caseVisee;
-    const deja = c?.salle === idSalle && c.x === x && c.y === y;
-    etat.caseVisee = !deja && pres.recevoirCaseVisee({ x, y }, etat.p.donjon.salles[idSalle]?.plan) ? { salle: idSalle, x, y } : null;
+    etat.caseVisee = pres.viserCase(etat.caseVisee, etat.p, idSalle, x, y);
     rendre();
   }
   function deplacerDepuisTable(id, x, y) {
@@ -335,18 +333,13 @@ function demarrerRegie() {
   window.addEventListener('pagehide', viderSauvegarde);
 
   // --- Écran de départ -------------------------------------------------------------------------
-  function resumePartie(p) {
-    const nom = p.donjon.salles[p.salleCourante].nom;
-    return `Partie en cours : salle « ${nom} », ${p.decouvertes.length} salle${p.decouvertes.length > 1 ? 's' : ''} découverte${p.decouvertes.length > 1 ? 's' : ''} sur ${Object.keys(p.donjon.salles).length}.`;
-  }
-
   let compteurDepart = 0;
   function ligneDonjon(d) {
     const enCours = etat.presentations[d.id];
     const n = Object.keys(d.salles).length;
     const infos = h('div', { className: 'infos' }, h('b', { textContent: d.nom }),
       h('span', { textContent: pluriel(n, 'salle', 'salles') }));
-    if (enCours) infos.append(h('br'), h('span', { className: 'en-cours', textContent: resumePartie(enCours) }));
+    if (enCours) infos.append(h('br'), h('span', { className: 'en-cours', textContent: pres.resumePartie(enCours) }));
     const boutons = h('div', { className: 'boutons' });
     // « Commencer par » : la première salle du donjon est présélectionnée (pas la dernière modifiée dans le Donjon).
     const salles = Object.values(d.salles);
@@ -380,7 +373,7 @@ function demarrerRegie() {
       stockage.supprimerPartie(p.donjon.id);
       afficherDepart();
     });
-    return h('li', {}, h('div', { className: 'infos' }, h('b', { textContent: p.donjon.nom }), h('span', { className: 'en-cours', textContent: resumePartie(p) })),
+    return h('li', {}, h('div', { className: 'infos' }, h('b', { textContent: p.donjon.nom }), h('span', { className: 'en-cours', textContent: pres.resumePartie(p) })),
       h('div', { className: 'boutons' }, reprendre, abandonner));
   }
 
@@ -580,11 +573,7 @@ function demarrerRegie() {
 
   /** La case montrée s'efface dès qu'un pion s'y pose, ou que ni la régie ni la table ne regardent plus sa salle. */
   function oublierCaseSiResolue() {
-    const c = etat.caseVisee;
-    if (!c) return;
-    const pions = etat.p.donjon.salles[c.salle]?.plan.creatures || [];
-    const occupee = pions.some((k) => c.x >= k.x && c.x < k.x + k.taille && c.y >= k.y && c.y < k.y + k.taille);
-    if (occupee || (c.salle !== etat.consultee && c.salle !== etat.p.salleCourante)) etat.caseVisee = null;
+    etat.caseVisee = pres.oublierCaseSiResolue(etat.caseVisee, etat.p, etat.consultee);
   }
 
   function rendre() {

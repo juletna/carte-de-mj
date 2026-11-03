@@ -12,7 +12,7 @@ import { dessinerFenetre } from './rendu/moteur.js';
 import { EPAISSEUR_MUR } from './rendu/geometrie.js';
 import * as papier from './rendu/themes/papier.js';
 import {
-  preparerImpression, messageEchelle, resolutionCanvas, variablesCss, FEUILLE, REPERE_COLONNES_MM, REPERE_LIGNES_MM, REGLE_MM, MESSAGE_REGLE,
+  preparerImpression, messageEchelle, resolutionCanvas, variablesCss, voisinesTexte, phrasesProposition, phrasesFeuilleMJ as phrases, FEUILLE, REPERE_COLONNES_MM, REPERE_LIGNES_MM, REGLE_MM, MESSAGE_REGLE,
 } from './impression.js';
 import { $, h } from './dom.js';
 import { pluriel, virgule } from './format.js';
@@ -121,12 +121,6 @@ function regle() {
   return s;
 }
 
-/** Texte des pages voisines d'une page de l'assemblage : « haut : page 1 · gauche : page 3 ». */
-function voisinesTexte(p) {
-  const v = [['haut', p.voisins.nord], ['gauche', p.voisins.ouest], ['droite', p.voisins.est], ['bas', p.voisins.sud]].filter(([, n]) => n);
-  return v.map(([cote, n]) => `${cote} : page ${n}/${p.total}`).join(' · ');
-}
-
 /** Une page A4 (sans l'image du plan, qui arrive ensuite) : repères, en-tête, raccords et pied. */
 function creerPage(salle, decoupage, p, version) {
   const portrait = decoupage.orientation === 'portrait';
@@ -173,14 +167,11 @@ function feuilleMJ(prep) {
   const f = h('section', { className: 'feuille-mj', 'aria-label': 'Feuille du MJ' },
     h('div', { className: 'secret-bandeau', textContent: 'SECRET : à ne pas montrer aux joueurs' }),
     h('h1', { textContent: `Feuille du MJ · ${prep.nomDonjon}` }),
-    h('p', { textContent: `${pluriel(prep.salles.length, 'salle imprimée', 'salles imprimées')}, ${pluriel(prep.totalPages, 'page de plan', 'pages de plan')}. Les plans portent le même numéro (« Plan 2 »). Les éléments secrets sont cernés de pointillés avec un « S » ; une porte reliée porte « → N » (numéro de la salle derrière).` }));
+    h('p', { textContent: phrases.introduction(prep) }));
   for (const s of prep.salles) {
-    const d = s.decoupage;
-    const taille = `${s.plan.largeur} × ${s.plan.longueur} cases, ${pluriel(d.pages.length, 'page', 'pages')} A4 ${d.orientation === 'portrait' ? 'portrait' : 'paysage'}${d.reduite ? `, échelle réduite (1 case = ${virgule(d.mmParCase)} mm)` : ''}`;
+    const taille = phrases.taille(s);
     const liaisons = s.liaisons.length
-      ? h('ul', {}, ...s.liaisons.map((l) => h('li', { textContent: !l.vers
-        ? `Porte au ${l.porte} → salle introuvable`
-        : `Porte au ${l.porte} → Plan ${l.vers.numero} « ${l.vers.nom} » (porte au ${l.vers.porte})${l.vers.imprimee ? '' : ' · salle non imprimée'}${l.orpheline ? ' · cette porte n’existe plus dans le plan' : ''}` })))
+      ? h('ul', {}, ...s.liaisons.map((l) => h('li', { textContent: phrases.liaison(l) })))
       : h('p', { className: 'doux-mj', textContent: 'Aucune liaison.' });
     const secrets = s.secrets.length ? h('ul', {}, ...s.secrets.map((t) => h('li', { textContent: t }))) : h('p', { className: 'doux-mj', textContent: 'Aucun élément secret.' });
     f.append(h('article', { className: 'salle-mj' },
@@ -227,17 +218,10 @@ function proposer(prep) {
   const liste = prep.propositions || [];
   $('proposition-echelle').hidden = liste.length === 0;
   $('lien-proposition').hidden = liste.length === 0;
-  if (!liste.length) return;
-  const cases = (n) => (n > 1 ? `${n} cases` : 'une case');
-  const phrase = (p) => `${p.depasse > 1 ? `de ${cases(p.depasse)}` : 'd’une case'} : ${pluriel(p.pages, 'page', 'pages')} à 25 mm`;
-  $('texte-proposition').textContent = liste.length === 1 && prep.salles.length === 1
-    ? `Cette salle dépasse ${phrase(liste[0])}.`
-    : liste.map((p) => `Le plan ${p.numero} dépasse ${phrase(p)}`).join(' ; ') + '.';
-  const plusFort = Math.min(...liste.map((p) => p.mmParCase));
-  const pourcent = Math.min(...liste.map((p) => p.pourcent));
-  const autres = prep.salles.length > liste.length ? ' L’échelle réduite s’applique à toutes les salles cochées.' : '';
-  $('detail-proposition').textContent = `En réduisant à ${virgule(plusFort)} mm par case (${pourcent} % de 25 mm), ${liste.length > 1 ? 'elles tiennent' : 'elle tient'} sur une page. `
-    + `Les figurines risquent de ne plus tenir sur les cases.${autres} Rien ne change sans ton clic.`;
+  const phrases = phrasesProposition(prep);
+  if (!phrases) return;
+  $('texte-proposition').textContent = phrases.texte;
+  $('detail-proposition').textContent = phrases.detail;
 }
 
 /** Reconstruit l'aperçu : les pages d'abord (vides), puis les images, une page à la fois. */

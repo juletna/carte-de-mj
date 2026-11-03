@@ -322,6 +322,37 @@ const TESTS = [
     for (const interdit of [NOM_DONJON, NOM_A, NOM_B, NOTES]) verifier(!j.includes(interdit), `fuite : ${interdit}`);
     egal(JSON.stringify(d), avant, 'donjon inchangé');
   }],
+  ['phrases de la proposition : une salle, plusieurs salles, une partie seulement des salles cochées ; rien à proposer = null', () => {
+    const une = { numero: 1, pages: 2, depasse: 2, mmParCase: 21.2, pourcent: 85 };
+    const deux = { numero: 3, pages: 4, depasse: 1, mmParCase: 22.5, pourcent: 90 };
+    egal(imp.phrasesProposition({ propositions: [], salles: [{}] }), null, 'rien à proposer');
+    egal(imp.phrasesProposition({ salles: [{}] }), null, 'pas de liste');
+    egal(imp.phrasesProposition({ propositions: [une], salles: [{}] }), {
+      texte: 'Cette salle dépasse de 2 cases : 2 pages à 25 mm.',
+      detail: 'En réduisant à 21,2 mm par case (85 % de 25 mm), elle tient sur une page. Les figurines risquent de ne plus tenir sur les cases. Rien ne change sans ton clic.',
+    }, 'une salle');
+    egal(imp.phrasesProposition({ propositions: [deux], salles: [{}, {}] }), {
+      texte: 'Le plan 3 dépasse d’une case : 4 pages à 25 mm.',
+      detail: 'En réduisant à 22,5 mm par case (90 % de 25 mm), elle tient sur une page. Les figurines risquent de ne plus tenir sur les cases. L’échelle réduite s’applique à toutes les salles cochées. Rien ne change sans ton clic.',
+    }, 'deux salles dont une qui dépasse');
+    egal(imp.phrasesProposition({ propositions: [une, deux], salles: [{}, {}] }), {
+      texte: 'Le plan 1 dépasse de 2 cases : 2 pages à 25 mm ; Le plan 3 dépasse d’une case : 4 pages à 25 mm.',
+      detail: 'En réduisant à 21,2 mm par case (85 % de 25 mm), elles tiennent sur une page. Les figurines risquent de ne plus tenir sur les cases. Rien ne change sans ton clic.',
+    }, 'deux salles qui dépassent : la plus forte réduction');
+  }],
+  ['voisinesTexte et phrases de la feuille du MJ : texte exact', () => {
+    egal(imp.voisinesTexte({ total: 4, voisins: { nord: 1, ouest: 3, est: null, sud: null } }), 'haut : page 1/4 · gauche : page 3/4', 'deux voisines');
+    egal(imp.voisinesTexte({ total: 6, voisins: { nord: null, ouest: null, est: 2, sud: 4 } }), 'droite : page 2/6 · bas : page 4/6', 'est et sud');
+    egal(imp.voisinesTexte({ total: 1, voisins: {} }), '', 'aucune voisine');
+    const f = imp.phrasesFeuilleMJ;
+    egal(f.introduction({ salles: [{}], totalPages: 1 }), '1 salle imprimée, 1 page de plan. Les plans portent le même numéro (« Plan 2 »). Les éléments secrets sont cernés de pointillés avec un « S » ; une porte reliée porte « → N » (numéro de la salle derrière).', 'introduction au singulier');
+    verifier(f.introduction({ salles: [{}, {}, {}], totalPages: 5 }).startsWith('3 salles imprimées, 5 pages de plan. Les plans'), 'introduction au pluriel');
+    egal(f.taille({ plan: { largeur: 7, longueur: 8 }, decoupage: { pages: [1], orientation: 'portrait', reduite: false } }), '7 × 8 cases, 1 page A4 portrait', 'une page');
+    egal(f.taille({ plan: { largeur: 30, longueur: 9 }, decoupage: { pages: [1, 2], orientation: 'paysage', reduite: true, mmParCase: 19.2 } }), '30 × 9 cases, 2 pages A4 paysage, échelle réduite (1 case = 19,2 mm)', 'deux pages, réduite');
+    egal(f.liaison({ porte: 'mur nord en C' }), 'Porte au mur nord en C → salle introuvable', 'liaison sans salle');
+    egal(f.liaison({ porte: 'mur est en 6', vers: { numero: 4, nom: 'Cuisine', porte: 'mur ouest en 3', imprimee: true } }), 'Porte au mur est en 6 → Plan 4 « Cuisine » (porte au mur ouest en 3)', 'liaison normale');
+    egal(f.liaison({ porte: 'mur est en 6', orpheline: true, vers: { numero: 4, nom: 'Cuisine', porte: 'mur ouest en 3', imprimee: false } }), 'Porte au mur est en 6 → Plan 4 « Cuisine » (porte au mur ouest en 3) · salle non imprimée · cette porte n’existe plus dans le plan', 'liaison orpheline, salle non imprimée');
+  }],
   ['échelle réelle inchangée : 25 mm par case et règle de 5 cm', () => {
     egal([imp.CASE_MM, imp.REGLE_MM], [25, 50], 'constantes');
     const attendu = { '8x8': [2, 'portrait'], '12x12': [6, 'portrait'], '30x9': [6, 'portrait'], '6x6': [1, 'portrait'], '10x5': [1, 'paysage'] };

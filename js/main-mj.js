@@ -10,7 +10,10 @@ import { validerPlan, SOLS } from './schema.js';
 import { dessiner, dessinerPlanDonjon } from './rendu/moteur.js';
 import { MARGE, rectDe } from './rendu/geometrie.js';
 import { disposerPlan, salleSous, cleDisposition } from './plan-donjon.js';
-import { tailleRemplir, TAILLE_MAX_REMPLIR } from './affichage.js';
+import { tailleRemplir } from './affichage.js';
+import {
+  ZOOM_MIN, ZOOM_MAX, PLAN_ZOOM_MIN, PLAN_ZOOM_MAX, zoomBorne, pasDeZoom, facteurMolette, tailleAfficheePlan as tailleDuPlan, hauteurMaxBulle, positionBulle,
+} from './mise-en-page.js';
 import { ajouterElement, elementsPalette, GROUPES_PALETTE, SOUS_GROUPES, redimensionner, changerForme } from './pose.js';
 import { genererDonjon, BORNES, FAMILLES } from './generateur.js';
 import { ajouterPersonnage, retirerPersonnage, actualiserPersonnages, ficheDepuisFichier, resumerFiche } from './personnages.js';
@@ -19,6 +22,7 @@ import { carteFiche } from './carte-personnage.js';
 import { MODELES, donjonDepuisModele, copieDonjon } from './modeles.js';
 import { FORMES, LIBELLES_FORMES, POSITIONS_FORMES, casesRetirees, brasDe, brasMax, nombreCases } from './formes.js';
 import { creerPalette } from './palette.js';
+import { creerHistorique } from './historique.js';
 import { creerRail, OUTILS_CATALOGUE } from './rail.js';
 import { creerMicro, voixDisponible } from './voix.js';
 import * as stockage from './stockage.js';
@@ -71,25 +75,13 @@ const r = etat.reglages;
 const donjon = () => etat.donjons[etat.actif];
 const salle = () => donjon().salles[donjon().salleActive];
 
-// --- Historique : propre à chaque salle ----------------------------------------
-// Chaque salle a sa pile d'anciennes descriptions (en mémoire, le temps de la session).
-// Une entrée garde aussi la position des portes reliées de la salle, pour qu'annuler le
-// déplacement d'une porte reliée ramène sa liaison avec elle. La pile d'une salle est vidée
-// quand le MJ reprend la main sur son texte (frappe, exemple, effacer), ou quand la salle
-// est supprimée ; changer de salle ne la perd pas, et ne peut jamais effacer un texte :
-// annuler ne fait que remettre une description que cette salle avait vraiment.
-const historiques = new Map();
-const clePile = (idSalle) => `${donjon().id}/${idSalle}`;
-function pile(idSalle = donjon().salleActive) {
-  const cle = clePile(idSalle);
-  if (!historiques.has(cle)) historiques.set(cle, []);
-  return historiques.get(cle);
-}
+// --- Historique : propre à chaque salle (voir historique.js) --------------------
+// La pile d'une salle est vidée quand le MJ reprend la main sur son texte (frappe, exemple, effacer).
+const historique = creerHistorique();
+const pile = (idSalle = donjon().salleActive) => historique.pile(donjon().id, idSalle);
 // `liaisons` : liaisons retirées par la modification (suppression d'une porte reliée), rétablies si on annule.
 function memoriser(idSalle = donjon().salleActive, liaisons = []) {
-  const p = pile(idSalle);
-  p.push({ texte: donjon().salles[idSalle].texte, ancres: modele.ancresDeSalle(donjon(), idSalle), liaisons });
-  if (p.length > 100) p.shift();
+  historique.memoriser(donjon().id, idSalle, { texte: donjon().salles[idSalle].texte, ancres: modele.ancresDeSalle(donjon(), idSalle), liaisons });
 }
 
 // --- Rendu --------------------------------------------------------------------
@@ -107,7 +99,6 @@ function marques(planAffiche) {
 }
 
 // --- Taille de la carte : ajustement automatique et zoom -------------------------------------
-const ZOOM_MIN = 8, ZOOM_MAX = TAILLE_MAX_REMPLIR; // le zoom ne dépasse pas la plus grande case que « remplir » atteint
 
 /**
  * Côté de case affiché :
@@ -194,7 +185,7 @@ function genererBientot() {
 // --- Aide de première utilisation ---------------------------------------------------
 // Une seule phrase, sous la description, tant que le donjon n'a ni liaison ni deuxième salle ; elle s'efface ensuite.
 // Débutant = aucun donjon n'a encore plus d'une salle ni de liaison ; dès qu'on relie, l'aide s'efface.
-const estDebutant = () => Object.values(etat.donjons).every((d) => d.liaisons.length === 0 && Object.keys(d.salles).length < 2);
+const estDebutant = () => modele.estDebutant(etat.donjons);
 
 function majAide() {
   const zone = $('aide-debut');
@@ -424,19 +415,8 @@ function placerBulle() {
   const vue = { g: sc.left + scene.clientLeft + 8, h: sc.top + scene.clientTop + 8 };
   vue.d = sc.left + scene.clientLeft + scene.clientWidth - 8;
   vue.b = Math.min(sc.top + scene.clientTop + scene.clientHeight - 8, $('zoom').getBoundingClientRect().top - 8); // au-dessus du zoom, qui reste visible
-  bulle.style.maxHeight = `${Math.max(120, vue.b - vue.h)}px`;
-  const w = bulle.offsetWidth, ha = bulle.offsetHeight;
-  const ECART = 10;
-  // À côté (la bulle glisse alors verticalement pour rester visible), sinon dessous ou dessus (elle glisse horizontalement).
-  const essais = [
-    { x: ancre.d + ECART, y: ancre.h - 6, ok: ancre.d + ECART + w <= vue.d },    // à droite
-    { x: ancre.g - ECART - w, y: ancre.h - 6, ok: ancre.g - ECART - w >= vue.g }, // à gauche
-    { x: ancre.g, y: ancre.b + ECART, ok: ancre.b + ECART + ha <= vue.b },       // dessous
-    { x: ancre.g, y: ancre.h - ECART - ha, ok: ancre.h - ECART - ha >= vue.h },  // dessus
-  ];
-  let { x, y } = essais.find((e) => e.ok) || essais[0];
-  x = Math.max(vue.g, Math.min(x, vue.d - w));
-  y = Math.max(vue.h, Math.min(y, vue.b - ha));
+  bulle.style.maxHeight = `${hauteurMaxBulle(vue)}px`;
+  const { x, y } = positionBulle(ancre, vue, bulle.offsetWidth, bulle.offsetHeight);
   const sp = $('support').getBoundingClientRect();
   bulle.style.left = `${Math.round(x - sp.left)}px`;
   bulle.style.top = `${Math.round(y - sp.top)}px`;
@@ -473,7 +453,7 @@ function zoomer(t, ancre) {
   if ($('calibrage').checked) return;
   const plan = salle().plan;
   const avant = tailleAffichee(plan);
-  etat.zoom = t === null ? null : Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, Math.round(t)));
+  etat.zoom = zoomBorne(t, ZOOM_MIN, ZOOM_MAX);
   let sous = null;
   if (ancre) {
     const cv = $('carte').getBoundingClientRect();
@@ -491,8 +471,7 @@ function zoomer(t, ancre) {
 /** Un cran de zoom : ×1,25 ou ÷1,25, d'au moins 1 px. */
 function pasZoom(sens) {
   const t = etat.plan ? etat.planTaille || tailleAfficheePlan() : tailleAffichee(salle().plan);
-  const suivant = sens > 0 ? Math.max(t + 1, t * 1.25) : Math.min(t - 1, t / 1.25);
-  zoomer(suivant);
+  zoomer(pasDeZoom(t, sens));
 }
 $('zoom-plus').addEventListener('click', () => pasZoom(1));
 $('zoom-moins').addEventListener('click', () => pasZoom(-1));
@@ -502,7 +481,7 @@ $('zoom-reel').addEventListener('click', () => zoomer(r.taille));
 $('scene').addEventListener('wheel', (e) => {
   if (!e.ctrlKey && !e.metaKey) return;
   e.preventDefault();
-  zoomer((etat.plan ? etat.planTaille || tailleAfficheePlan() : tailleAffichee(salle().plan)) * Math.exp(-Math.max(-50, Math.min(50, e.deltaY)) * 0.01), { x: e.clientX, y: e.clientY });
+  zoomer((etat.plan ? etat.planTaille || tailleAfficheePlan() : tailleAffichee(salle().plan)) * facteurMolette(e.deltaY), { x: e.clientX, y: e.clientY });
 }, { passive: false });
 
 // La carte se réajuste quand la scène change de taille (fenêtre, plein écran, passage à l'onglet Carte du téléphone).
@@ -521,16 +500,11 @@ new ResizeObserver(() => {
 // --- Vue Plan : tout le donjon d'un coup, les salles à leur vraie taille (js/plan-donjon.js, moteur.dessinerPlanDonjon) ---
 // Elle remplace la carte de la salle dans la scène (#support, donc les bandes de dimensions et la bulle, est masqué). Son zoom
 // est à part (`zoomPlan`) : la carte de la salle garde le sien. Cliquer une salle quitte le plan et l'ouvre.
-const PLAN_ZOOM_MIN = 3, PLAN_ZOOM_MAX = 80, PLAN_AJUSTE_MIN = 4, PLAN_AJUSTE_DEFAUT = 16;
 
 /** Côté de case du plan : le zoom choisi, sinon le plan remplit la scène (jamais sous 4 px : au-delà, la scène défile). */
 function tailleAfficheePlan() {
-  if (etat.zoomPlan) return etat.zoomPlan;
   const scene = $('scene');
-  const disp = etat.planDispo;
-  if (!disp || !scene.clientWidth || !scene.clientHeight) return PLAN_AJUSTE_DEFAUT; // scène masquée : un redessin suivra
-  const t = Math.floor(Math.min(scene.clientWidth / disp.largeur, scene.clientHeight / disp.longueur));
-  return Math.max(PLAN_AJUSTE_MIN, Math.min(PLAN_ZOOM_MAX, t));
+  return tailleDuPlan({ zoom: etat.zoomPlan, dispo: etat.planDispo, largeur: scene.clientWidth, hauteur: scene.clientHeight });
 }
 
 /** Le calcul essaie plusieurs dispositions : on ne le refait que si les salles, leurs portes ou les liaisons ont changé. */
@@ -590,7 +564,7 @@ function majZoomPlan() {
 /** Zoom du plan (côté de case en px) ; `ancre` ({x, y} en px écran) : la case qui s'y trouve y reste (molette). */
 function zoomerPlan(t, ancre) {
   const avant = etat.planTaille || tailleAfficheePlan();
-  etat.zoomPlan = t === null ? null : Math.max(PLAN_ZOOM_MIN, Math.min(PLAN_ZOOM_MAX, Math.round(t)));
+  etat.zoomPlan = zoomBorne(t, PLAN_ZOOM_MIN, PLAN_ZOOM_MAX);
   let sous = null;
   if (ancre) {
     const cv = $('plan-donjon').getBoundingClientRect();
@@ -1036,7 +1010,7 @@ function majListe() {
     deuxTemps(suppr, 'Supprimer', 'Confirmer ?', () => {
       const etaitActive = actif;
       modele.supprimerSalle(d, s.id, { echelle: r.echelle });
-      historiques.delete(clePile(s.id));
+      historique.oublierSalle(donjon().id, s.id);
       if (etaitActive) afficherSalleActive();
       else { majListe(); rendre(); }
     });
@@ -1160,7 +1134,7 @@ $('hasard-generer').addEventListener('click', () => {
   const remplace = dernierTirage && etat.donjons[dernierTirage.id] && JSON.stringify(etat.donjons[dernierTirage.id]) === dernierTirage.signature;
   if (remplace) {
     delete etat.donjons[dernierTirage.id];
-    for (const cle of [...historiques.keys()]) if (cle.startsWith(`${dernierTirage.id}/`)) historiques.delete(cle);
+    historique.oublierDonjon(dernierTirage.id);
   }
   dernierTirage = { id: d.id, signature: JSON.stringify(d) };
   accueillirDonjon(d);
@@ -1179,7 +1153,7 @@ function annonceSuppressionDonjon() {
     + (partie ? ' La partie en cours reste disponible dans la Présentation.' : '');
 }
 deuxTemps($('donjon-supprimer'), 'Supprimer ce donjon', 'Confirmer', () => {
-  for (const cle of [...historiques.keys()]) if (cle.startsWith(`${etat.actif}/`)) historiques.delete(cle);
+  historique.oublierDonjon(etat.actif);
   delete etat.donjons[etat.actif];
   if (!Object.keys(etat.donjons).length) {
     const d = modele.creerDonjon({ echelle: r.echelle });

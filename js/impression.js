@@ -26,7 +26,7 @@ import { planPublic } from './presentation.js';
 import { lettreColonne, nomCase, reperePorte } from './parseur/coordonnees.js';
 import { nomAffiche } from './parseur/lexique.js';
 import { EPAISSEUR_MUR } from './rendu/geometrie.js';
-import { virgule } from './format.js';
+import { virgule, pluriel } from './format.js';
 
 export const CASE_MM = 25;           // échelle par défaut : 25 mm par case (figurines de 25 mm)
 export const MARGE_PAGE_MM = 10;     // marge de @page
@@ -231,6 +231,45 @@ export function messageEchelle(decoupage) {
   const pct = Math.round((decoupage.mmParCase / CASE_MM) * 100);
   return `Échelle réduite : 1 case = ${virgule(decoupage.mmParCase)} mm au lieu de ${CASE_MM} mm (${pct} %). Les figurines ne tiendront plus forcément sur les cases.`;
 }
+
+/** Texte des pages voisines d'une page de l'assemblage : « haut : page 1/4 · gauche : page 3/4 ». */
+export function voisinesTexte(p) {
+  const v = [['haut', p.voisins.nord], ['gauche', p.voisins.ouest], ['droite', p.voisins.est], ['bas', p.voisins.sud]].filter(([, n]) => n);
+  return v.map(([cote, n]) => `${cote} : page ${n}/${p.total}`).join(' · ');
+}
+
+/**
+ * Phrases de la proposition de réduire l'échelle (voir `proposerReduction`), à partir du résultat de `preparerImpression` :
+ * `texte` dit de combien chaque salle dépasse ; `detail` dit ce que la réduction donne. Le texte ne cite que « Plan N » et des nombres.
+ * @returns {{texte:string, detail:string}|null} null quand il n'y a rien à proposer
+ */
+export function phrasesProposition(prep) {
+  const liste = prep.propositions || [];
+  if (!liste.length) return null;
+  const cases = (n) => (n > 1 ? `${n} cases` : 'une case');
+  const phrase = (p) => `${p.depasse > 1 ? `de ${cases(p.depasse)}` : 'd’une case'} : ${pluriel(p.pages, 'page', 'pages')} à ${CASE_MM} mm`;
+  const texte = liste.length === 1 && prep.salles.length === 1
+    ? `Cette salle dépasse ${phrase(liste[0])}.`
+    : liste.map((p) => `Le plan ${p.numero} dépasse ${phrase(p)}`).join(' ; ') + '.';
+  const plusFort = Math.min(...liste.map((p) => p.mmParCase));
+  const pourcent = Math.min(...liste.map((p) => p.pourcent));
+  const autres = prep.salles.length > liste.length ? ' L’échelle réduite s’applique à toutes les salles cochées.' : '';
+  const detail = `En réduisant à ${virgule(plusFort)} mm par case (${pourcent} % de ${CASE_MM} mm), ${liste.length > 1 ? 'elles tiennent' : 'elle tient'} sur une page. `
+    + `Les figurines risquent de ne plus tenir sur les cases.${autres} Rien ne change sans ton clic.`;
+  return { texte, detail };
+}
+
+/** Phrases de la feuille du MJ : l'introduction, la taille d'une salle et chacune de ses liaisons. */
+export const phrasesFeuilleMJ = {
+  introduction: (prep) => `${pluriel(prep.salles.length, 'salle imprimée', 'salles imprimées')}, ${pluriel(prep.totalPages, 'page de plan', 'pages de plan')}. Les plans portent le même numéro (« Plan 2 »). Les éléments secrets sont cernés de pointillés avec un « S » ; une porte reliée porte « → N » (numéro de la salle derrière).`,
+  taille: (s) => {
+    const d = s.decoupage;
+    return `${s.plan.largeur} × ${s.plan.longueur} cases, ${pluriel(d.pages.length, 'page', 'pages')} A4 ${d.orientation === 'portrait' ? 'portrait' : 'paysage'}${d.reduite ? `, échelle réduite (1 case = ${virgule(d.mmParCase)} mm)` : ''}`;
+  },
+  liaison: (l) => (!l.vers
+    ? `Porte au ${l.porte} → salle introuvable`
+    : `Porte au ${l.porte} → Plan ${l.vers.numero} « ${l.vers.nom} » (porte au ${l.vers.porte})${l.vers.imprimee ? '' : ' · salle non imprimée'}${l.orpheline ? ' · cette porte n’existe plus dans le plan' : ''}`),
+};
 
 /**
  * Taille des canvas d'une page, en pixels, pour une image de `largeurMm` × `hauteurMm` : environ 254 ppp,

@@ -550,6 +550,37 @@ export function recevoirCaseVisee(brut, plan) {
   return { x: brut.x, y: brut.y };
 }
 
+/** La case montrée, si elle est dans la salle que voient les joueurs. @returns {{x:number,y:number}|null} */
+export const caseATable = (p, caseVisee) => (p && caseVisee?.salle === p.salleCourante ? { x: caseVisee.x, y: caseVisee.y } : null);
+
+/**
+ * Un clic sur une case vide la montre ; un clic sur la même case l'enlève. Une case qui n'est pas du sol de la salle ne se montre pas.
+ * @param {{salle:string,x:number,y:number}|null} caseVisee la case montrée avant le clic
+ * @returns {{salle:string,x:number,y:number}|null} la case montrée après le clic
+ */
+export function viserCase(caseVisee, p, idSalle, x, y) {
+  const deja = caseVisee?.salle === idSalle && caseVisee.x === x && caseVisee.y === y;
+  return !deja && recevoirCaseVisee({ x, y }, p.donjon.salles[idSalle]?.plan) ? { salle: idSalle, x, y } : null;
+}
+
+/**
+ * La case montrée s'efface dès qu'un pion s'y pose, ou que ni la régie (`consultee`) ni la table ne regardent plus sa salle.
+ * @returns {{salle:string,x:number,y:number}|null} la case à garder
+ */
+export function oublierCaseSiResolue(caseVisee, p, consultee) {
+  const c = caseVisee;
+  if (!c) return c;
+  const pions = p.donjon.salles[c.salle]?.plan.creatures || [];
+  const occupee = pions.some((k) => c.x >= k.x && c.x < k.x + k.taille && c.y >= k.y && c.y < k.y + k.taille);
+  return occupee || (c.salle !== consultee && c.salle !== p.salleCourante) ? null : c;
+}
+
+/** La ligne qui résume une partie en cours, dans l'écran de départ. */
+export function resumePartie(p) {
+  const nom = p.donjon.salles[p.salleCourante].nom;
+  return `Partie en cours : salle « ${nom} », ${p.decouvertes.length} salle${p.decouvertes.length > 1 ? 's' : ''} découverte${p.decouvertes.length > 1 ? 's' : ''} sur ${Object.keys(p.donjon.salles).length}.`;
+}
+
 /** Où est le pion d'un personnage du donjon dans cette partie. @returns {{salle:string, pion:object}|null} */
 export function pionDuPersonnage(p, idPersonnage) {
   for (const [salle, s] of Object.entries(p.donjon.salles)) {

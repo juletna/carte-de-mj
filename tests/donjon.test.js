@@ -289,6 +289,17 @@ const TESTS = [
       verifier(!x.ok && x.donjon === null && (!morceau || x.erreurs.join(' ').includes(morceau)), `refus attendu (${morceau || 'objet JSON'}) : ${JSON.stringify(x.erreurs)}`);
     }
   }],
+  ['estDebutant : vrai tant qu’aucun donjon n’a de liaison ni plus d’une salle', () => {
+    const un = m.creerDonjon({ texte: 'Salle de 6 par 6' });
+    egal(m.estDebutant({ [un.id]: un }), true, 'un donjon d’une salle');
+    egal(m.estDebutant({}), true, 'aucun donjon');
+    const deux = m.creerDonjon({ texte: 'Salle de 6 par 6' });
+    m.ajouterSalle(deux);
+    egal(m.estDebutant({ [un.id]: un, [deux.id]: deux }), false, 'un donjon de deux salles suffit');
+    const relie = m.creerDonjon({ texte: 'Salle de 6 par 6, une porte au nord' });
+    relie.liaisons = [{ id: 'l1', a: { salle: 'x', mur: 'nord', position: 1 }, b: { salle: 'y', mur: 'sud', position: 1 } }];
+    egal(m.estDebutant({ [relie.id]: relie }), false, 'une liaison suffit');
+  }],
 ];
 
 /** Plan relu depuis un texte, avec l'identifiant de salle (comme le fait l'application). */

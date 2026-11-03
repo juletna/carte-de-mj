@@ -325,6 +325,8 @@ css/impression.css  pages A4 et réglages de l'impression (mesures reprises de j
 js/dom.js           outils DOM communs aux pages : `$`, `h`, bouton, confirmation en deux temps, choix d'un fichier à importer
 js/format.js        pluriel, virgule française, sans accents, objet JSON, libellés communs « Fermer » et micro (pur, sans DOM)
 js/main-mj.js       branchement de l'interface du Donjon (donjons, salles, sélection)
+js/historique.js     historique d'annulation du Donjon : une pile par salle (pur, sans DOM)
+js/mise-en-page.js  calculs de mise en page du Donjon : position de la bulle, pas de zoom, taille du plan complet (pur, sans DOM)
 js/palette.js       palette du Donjon : vignettes de portes, de mobilier et de créatures, pose au clic ou au glisser
 js/vignettes.js     une vignette (petit canvas) par élément de la palette, dessinée avec le thème vectoriel
 js/rail.js          rail d'outils du Donjon et panneau contextuel
@@ -332,13 +334,13 @@ js/pose.js          règle unique de « où poser un élément » (et élément 
 js/plan-donjon.js   plan du donjon : salles posées à leur vraie taille, reliées par des couloirs (pur, sans DOM)
 js/rapport.js       rapport texte à copier pour signaler une erreur de lecture
 js/affichage.js     réglages d'affichage : taille par défaut et bornes, échelle par défaut, taille de la carte à la table (modes « remplir » / « échelle réelle »), validation de ce que reçoit la table, case qui tient un plan, limites de canvas (pur, sans DOM)
-js/presentation.js  partie en cours, portes, révélations, ce que voit la table (`visibleATable`), états des pions, improvisation, vueTable (pur, sans DOM)
+js/presentation.js  partie en cours, portes, révélations, ce que voit la table (`visibleATable`), case montrée, résumé d'une partie, états des pions, improvisation, vueTable (pur, sans DOM)
 js/main-presentation.js  régie et vue table (DOM, stockage, BroadcastChannel)
 js/commande-table.js  quelle régie commande la table quand plusieurs sont ouvertes (pur, sans DOM)
-js/impression.js    découpage en pages A4, mesures de la feuille (aussi données au CSS), échelle, proposition de réduction, versions MJ / joueurs (pur, sans DOM)
+js/impression.js    découpage en pages A4, mesures de la feuille (aussi données au CSS), échelle, proposition de réduction et phrases de la page (pages voisines, proposition, feuille du MJ), versions MJ / joueurs (pur, sans DOM)
 js/main-impression.js  page d'impression (DOM, aperçu, règle de contrôle, proposition de réduction, barre collante)
 js/telephone.js     sous 760 px : onglets Texte / Carte et Actions / Carte, taille de case qui tient dans la zone, défilement au doigt d'une grande carte
-js/donjon.js        modèle du donjon : salles, liaisons, orphelines, validation (pur, sans DOM)
+js/donjon.js        modèle du donjon : salles, liaisons, orphelines, validation, MJ débutant (pur, sans DOM)
 js/miniplan.js      miniature cliquable du plan (sidebar, régie) : même dessin que le plan complet
 js/murs.js          les quatre murs : opposés, regards, vecteurs, longueur d'un mur, portes du mur d'entrée d'abord (pur, sans dépendance)
 js/schema.js        schéma du plan d'une salle et validation, taille maximale d'une salle
