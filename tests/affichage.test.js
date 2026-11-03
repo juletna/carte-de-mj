@@ -1,10 +1,11 @@
 /**
  * Tests de la source unique des réglages d'affichage (js/affichage.js) et de ses consommateurs : le stockage, le moteur,
- * le téléphone, le parseur et les curseurs des pages HTML. Sans dépendance : marche sous Node et dans tests.html.
+ * le téléphone, le parseur et les curseurs des pages HTML. Puis, à la suite, la taille de la carte à la table (`tailleRemplir`, `tailleTable`,
+ * `modeTable`). Sans dépendance : marche sous Node et dans tests.html.
  */
 import {
   TAILLE_PAR_DEFAUT, TAILLE_MIN, TAILLE_MAX, TAILLE_MAX_REMPLIR, ECHELLE_PAR_DEFAUT, MODES_TABLE, AFFICHAGE_PAR_DEFAUT,
-  tailleReglable, affichageDeReglages, validerAffichage, tailleQuiTientPlan, tailleCanvasBornee, CANVAS_COTE_MAX, CANVAS_SURFACE_MAX,
+  tailleReglable, tailleRemplir, tailleTable, modeTableDefaut, modeTable, affichageDeReglages, validerAffichage, tailleQuiTientPlan, tailleCanvasBornee, CANVAS_COTE_MAX, CANVAS_SURFACE_MAX,
 } from '../js/affichage.js';
 import { chargerReglages, CLE_REGLAGES } from '../js/stockage.js';
 import { dessiner } from '../js/rendu/moteur.js';
@@ -97,8 +98,37 @@ const TESTS = (pages) => [
   }],
 ];
 
+const TESTS_TABLE = [
+  ['table : « remplir » calcule la case sur la fenêtre (entière, bornée), « échelle réelle » garde exactement la taille calibrée', () => {
+    const plan = { largeur: 6, longueur: 6 };
+    egal(tailleRemplir(plan, 1920, 1080), 135, 'salle 6×6 sur 1920×1080 : 1080 / 8 = 135');
+    egal(tailleRemplir(plan, 800, 1080), 100, 'limitée par la largeur : 800 / 8');
+    egal(tailleRemplir({ largeur: 60, longueur: 60 }, 800, 600), TAILLE_MIN, 'salle trop grande : jamais sous la case minimale (elle défile)');
+    egal(tailleRemplir({ largeur: 1, longueur: 1 }, 4000, 4000), TAILLE_MAX_REMPLIR, 'petite salle : plafonnée');
+    egal(tailleRemplir(plan, 0, 0), null, 'fenêtre sans dimensions : pas de calcul');
+    egal(Number.isInteger(tailleRemplir({ largeur: 7, longueur: 5 }, 1000, 777)), true, 'toujours un entier');
+    // Le calcul tient dans la fenêtre : (6 + 2) cases ne dépassent ni la largeur ni la hauteur.
+    verifier(8 * tailleRemplir(plan, 1366, 650) <= 650, 'la carte tient en hauteur');
+    // Échelle réelle : la valeur calibrée, à l'identique, quelle que soit la fenêtre ou la salle.
+    for (const [l, h] of [[1920, 1080], [300, 300], [0, 0]]) {
+      egal(tailleTable({ mode: 'reel', plan, vue: { largeur: l, hauteur: h }, taille: 61 }), 61, `échelle réelle exacte (${l}×${h})`);
+    }
+    egal(tailleTable({ mode: 'remplir', plan, vue: { largeur: 1920, hauteur: 1080 }, taille: 61 }), 135, 'remplir : calculé');
+    egal(tailleTable({ mode: 'remplir', plan, vue: { largeur: 0, hauteur: 0 }, taille: 61 }), 61, 'remplir sans fenêtre : repli sur la taille réglée');
+  }],
+
+  ['table : mode par défaut = échelle réelle si calibré (taille ≠ 48 ou indicateur), sinon remplir ; un choix explicite l’emporte', () => {
+    egal(modeTableDefaut({ taille: 48 }), 'remplir', 'taille par défaut');
+    egal(modeTableDefaut({ taille: 61 }), 'reel', 'taille changée');
+    egal(modeTableDefaut({ taille: 48, calibre: true }), 'reel', 'indicateur de calibrage, même si la taille retombe sur 48');
+    egal(modeTable({ taille: 61, modeTable: 'remplir' }), 'remplir', 'choix explicite remplir');
+    egal(modeTable({ taille: 48, modeTable: 'reel' }), 'reel', 'choix explicite reel');
+    egal(modeTable({ taille: 61, modeTable: 'nimporte' }), 'reel', 'valeur invalide : défaut');
+  }],
+];
+
 export async function executer({ lire }) {
   const pages = {};
   for (const page of ['donjon.html', 'presentation.html']) pages[page] = await lire(page);
-  return executerSuite('affichage : ', TESTS(pages));
+  return [...executerSuite('affichage : ', TESTS(pages)), ...executerSuite('présentation : ', TESTS_TABLE)];
 }

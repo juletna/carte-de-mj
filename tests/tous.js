@@ -7,7 +7,9 @@
  */
 import { executer as executerPhrases, executerAllerRetour } from './parseur.test.js';
 import { executer as executerDonjon } from './donjon.test.js';
-import { executer as executerPresentation } from './presentation.test.js';
+import { executer as executerPartie } from './partie.test.js';
+import { executer as executerPassage } from './passage.test.js';
+import { executer as executerDeplacement } from './deplacement.test.js';
 import { executer as executerCommandes } from './commandes.test.js';
 import { executer as executerImpression } from './impression.test.js';
 import { executer as executerPose } from './pose.test.js';
@@ -45,7 +47,7 @@ import { executer as executerRail } from './rail.test.js';
 
 /** Les suites, dans l'ordre d'exécution : chacune reçoit `{ lire }` et rend (ou promet) une liste de résultats. */
 export const SUITES = [
-  executerPhrases, executerAllerRetour, executerDonjon, executerPresentation, executerCommandes, executerImpression,
+  executerPhrases, executerAllerRetour, executerDonjon, executerPartie, executerPassage, executerDeplacement, executerCommandes, executerImpression,
   executerPose, executerPlan, executerFormes, executerGenerateur, executerModeles, executerPersonnages,
   executerFicheHasard, executerCommandeTable, executerNavigation,
   executerThemes, executerReferences, executerOutils, executerMurs, executerCoordonnees, executerSchema,

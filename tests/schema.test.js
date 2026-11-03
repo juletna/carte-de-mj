@@ -1,5 +1,5 @@
 /**
- * Tests des tables du schéma (js/schema.js) : genre → liste du plan (LISTES), que le modèle, la pose, la présentation et le glisser-déposer lisent ; sols.
+ * Tests des tables du schéma (js/schema.js) : genre → liste du plan (LISTES), que le modèle, la pose, la présentation et le glisser-déposer lisent ; sols ; l'état facultatif d'une créature (`etat`).
  * Sans dépendance : marche sous Node et dans tests.html.
  */
 import { validerPlan, LISTES, SOLS, NOMS_SOLS } from '../js/schema.js';
@@ -22,4 +22,13 @@ const TESTS = [
   }],
 ];
 
-export const executer = () => executerSuite('schéma : ', TESTS);
+const TESTS_PRESENTATION = [
+  ['schéma : etat est facultatif sur une créature, borné à blessé / mort ; un plan sans état ne change pas', () => {
+    const base = { largeur: 4, longueur: 4, creatures: [{ type: 'gobelin', x: 0, y: 0 }, { type: 'gobelin', x: 1, y: 0, etat: 'blesse' }, { type: 'gobelin', x: 2, y: 0, etat: 'x' }] };
+    const r = validerPlan(base).plan.creatures;
+    egal(r.map((k) => k.etat), [undefined, 'blesse', undefined], 'états');
+    verifier(!JSON.stringify(validerPlan({ ...base, creatures: [base.creatures[0]] }).plan).includes('etat'), 'aucun champ « etat » inventé');
+  }],
+];
+
+export const executer = () => [...executerSuite('schéma : ', TESTS), ...executerSuite('présentation : ', TESTS_PRESENTATION)];

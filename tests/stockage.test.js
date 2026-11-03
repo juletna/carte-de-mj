@@ -2,10 +2,13 @@
  * Tests du stockage (js/stockage.js) : rien de ce qui est enregistré ne se perd au chargement.
  * Un donjon ou un modèle qui ne se relit pas (version plus récente, texte abîmé…) est mis de côté AVANT que la clé soit réécrite ;
  * la mise de côté ne se répète pas, et si elle échoue (stockage plein) la clé d'origine n'est pas réécrite.
+ * Puis, à la suite, le stockage d'une partie en cours : présentations, réglages relus (mini-carte, mode de taille à la table) et partie à reprendre.
  * Sans dépendance : marche sous Node et dans tests.html.
  */
 import * as m from '../js/donjon.js';
-import { chargerTout, chargerDonjons, sauverDonjons, chargerModeles, sauverModeles, enregistrerPartie, chargerPresentations, migrer, misDeCote, phraseMiseDeCote, CLE_DONJONS, CLE_MODELES, CLE_PRESENTATIONS, CLE_MIS_DE_COTE, CLE_REGLAGES } from '../js/stockage.js';
+import * as p from '../js/presentation.js';
+import { chargerTout, chargerDonjons, sauverDonjons, chargerModeles, sauverModeles, enregistrerPartie, chargerPresentations, sauverPresentations, chargerReglages, CLE_PARTIE_OUVERTE, memoriserPartieOuverte, oublierPartieOuverte, partieAReprendre, migrer, misDeCote, phraseMiseDeCote, CLE_DONJONS, CLE_MODELES, CLE_PRESENTATIONS, CLE_MIS_DE_COTE, CLE_REGLAGES } from '../js/stockage.js';
+import { donjonDeTest } from './aides-partie.js';
 import { verifier, egal, fauxStock, executerSuite } from './mini-test.js';
 
 const TEXTE = 'Salle de 5 par 4 cases, une porte au mur est en 2.';
@@ -215,4 +218,56 @@ const TESTS = [
   }],
 ];
 
-export const executer = () => executerSuite('stockage : ', TESTS);
+const TESTS_PRESENTATION = [
+  ['stockage : présentations et réglages, sans toucher aux autres clés', () => {
+    const { d } = donjonDeTest();
+    const pres = p.creerPresentation(d);
+    const stock = fauxStock({ 'carte-de-mj:donjons-v1': 'inchangé' });
+    egal(chargerPresentations(stock), {}, 'rien au départ');
+    verifier(sauverPresentations({ [d.id]: pres }, stock), 'sauvegarde');
+    const lu = chargerPresentations(stock);
+    egal(Object.keys(lu), [d.id], 'une présentation, rangée par identifiant de donjon');
+    egal(lu[d.id].salleCourante, pres.salleCourante, 'relue à l’identique');
+    stock.donnees[CLE_PRESENTATIONS] = JSON.stringify({ presentations: { bon: pres, mauvais: { format: 'x' } } });
+    egal(Object.keys(chargerPresentations(stock)), [d.id], 'une entrée invalide est écartée sans casser les autres');
+    stock.donnees[CLE_PRESENTATIONS] = '{pas du json';
+    egal(chargerPresentations(stock), {}, 'JSON cassé : liste vide');
+    verifier(stock.donnees['carte-de-mj:donjons-v1'] === 'inchangé', 'les donjons ne sont pas touchés');
+    egal(chargerReglages(fauxStock({ [CLE_REGLAGES]: JSON.stringify({ taille: 60 }) })), { echelle: 1.5, taille: 60, grille: true }, 'repères absents des réglages : clé non ajoutée');
+    verifier(chargerReglages(fauxStock({ [CLE_REGLAGES]: JSON.stringify({ reperes: false }) })).reperes === false, 'repères relus quand ils sont réglés');
+  }],
+
+  ['réglage de la mini-carte : relu seulement si le MJ l’a éteinte', () => {
+    verifier(chargerReglages(fauxStock({ [CLE_REGLAGES]: JSON.stringify({ miniTable: false }) })).miniTable === false, 'éteinte : relu');
+    verifier(!('miniTable' in chargerReglages(fauxStock({ [CLE_REGLAGES]: JSON.stringify({ miniTable: 'non' }) }))), 'valeur inconnue : ignorée');
+  }],
+
+  ['réglages : modeTable et calibre sont relus s’ils sont valides, absents sinon (le Donjon ne les voit pas)', () => {
+    egal(chargerReglages(fauxStock({ [CLE_REGLAGES]: JSON.stringify({ taille: 60 }) })), { echelle: 1.5, taille: 60, grille: true }, 'rien de réglé : aucune clé ajoutée');
+    const r = chargerReglages(fauxStock({ [CLE_REGLAGES]: JSON.stringify({ taille: 60, modeTable: 'reel', calibre: true }) }));
+    egal([r.modeTable, r.calibre], ['reel', true], 'relus');
+    const bad = chargerReglages(fauxStock({ [CLE_REGLAGES]: JSON.stringify({ modeTable: '<img>', calibre: 'oui' }) }));
+    egal(['modeTable' in bad, 'calibre' in bad], [false, false], 'valeurs invalides écartées');
+  }],
+
+  ['reprise : l’identifiant de la partie ouverte est mémorisé ; rien à reprendre si absent, oublié ou disparu', () => {
+    const { d } = donjonDeTest();
+    const pres = p.creerPresentation(d);
+    const parties = { [d.id]: pres };
+    const stock = fauxStock();
+    egal(partieAReprendre(parties, stock), null, 'rien de mémorisé : liste des donjons');
+    memoriserPartieOuverte(d.id, stock);
+    egal(partieAReprendre(parties, stock) === pres, true, 'la partie ouverte est rouverte');
+    egal(JSON.parse(stock.donnees[CLE_PARTIE_OUVERTE]), { id: d.id }, 'on ne garde que l’identifiant (la partie est ailleurs)');
+    egal(partieAReprendre({}, stock), null, 'partie disparue : liste des donjons');
+    memoriserPartieOuverte('__proto__', stock);
+    egal(partieAReprendre({}, stock), null, 'identifiant piégé : rien');
+    memoriserPartieOuverte(d.id, stock);
+    oublierPartieOuverte(stock);
+    egal(partieAReprendre(parties, stock), null, '« Liste des donjons » oublie la partie ouverte');
+    stock.donnees[CLE_PARTIE_OUVERTE] = '{pas du json';
+    egal(partieAReprendre(parties, stock), null, 'donnée corrompue : liste des donjons');
+  }],
+];
+
+export const executer = () => [...executerSuite('stockage : ', TESTS), ...executerSuite('présentation : ', TESTS_PRESENTATION)];

@@ -388,7 +388,7 @@ js/parseur/         index (chaîne d'analyse), normalisation, nombres, lexique (
 js/parseur/placement/  le détail de placement.js (qui orchestre) : grille (cases occupées, répartition), portes (mur d'entrée, portes), placeurs (une disposition par zone), journal (phrases du journal)
 js/rendu/           moteur Canvas (une salle ; `peindre`), plan.js (le plan complet du donjon : couloirs, ponts, cadres, noms ; s'appuie sur le moteur), géométrie (marge, épaisseur des murs, rectangle d'un élément, ancrage d'une porte : pur), trace.js (tracé Canvas du sol et des murs découpés), portraits de monstres, thème vectoriel et thème papier (impression) avec leurs primitives communes (themes/commun.js)
 tests/              un fichier de test par module (*.test.js), tous.js (la liste unique des suites, lue par node.mjs et tests.html),
-                    mini-test.js (assertions et harnais communs), phrases.js (phrases du parseur), references.js (empreintes de rendu
+                    mini-test.js (assertions et harnais communs), aides-partie.js (donjon et partie d'essai des tests de partie), phrases.js (phrases du parseur), references.js (empreintes de rendu
                     et de disposition, générées par regenerer-references.mjs)
 outils/serveur.py   serveur local sans cache
 ```
