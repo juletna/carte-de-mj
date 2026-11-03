@@ -5,7 +5,7 @@ body.presentation { display: block; height: auto; min-height: 100vh; }
 body.presentation a { color: var(--accent); }
 
 /* --- Écran de départ --- */
-#depart { max-width: 680px; margin: 0 auto; padding: 28px max(16px, env(safe-area-inset-left)) 40px; }
+#depart, #choix-joueurs { max-width: 680px; margin: 0 auto; padding: 28px max(16px, env(safe-area-inset-left)) 40px; }
 #depart h2 { margin-top: 28px; }
 .liste-depart { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .liste-depart li { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 10px 12px; background: var(--panneau); border: 1px solid var(--bord); border-radius: var(--rayon); }
@@ -14,6 +14,26 @@ body.presentation a { color: var(--accent); }
 .liste-depart .infos span { color: var(--texte-doux); font-size: 13px; }
 .liste-depart .en-cours { color: #7cc47c; }
 .liste-depart .boutons { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* --- Qui joue ? --- */
+#titre-choix:focus { outline: none; }
+.mode-joueurs { border: 0; padding: 0; margin: 16px 0 0; min-width: 0; }
+.mode-joueurs legend { padding: 0; font-weight: 600; margin-bottom: 4px; }
+.mode-joueurs .ligne { justify-content: flex-start; margin: 2px 0; }
+.mode-joueurs input[type="radio"], .liste-fiches input[type="checkbox"] { accent-color: var(--accent); min-width: 18px; min-height: 18px; }
+.mode-joueurs input:disabled { opacity: 0.5; }
+#form-joueurs section { margin-top: 12px; }
+#form-joueurs > .actions { margin-top: 16px; }
+.liste-fiches { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.liste-fiches label { display: flex; align-items: center; gap: 8px; padding: 8px 10px; min-height: var(--cible); background: var(--panneau); border: 1px solid var(--bord); border-radius: var(--rayon); overflow-wrap: anywhere; }
+.liste-fiches .doux { font-size: 13px; }
+.nb-joueurs { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+.nb-joueurs input { width: 80px; min-height: var(--cible); background: var(--champ); color: var(--texte); border: 1px solid var(--bord); border-radius: var(--rayon); padding: 6px 8px; font: inherit; }
+.lignes-joueurs { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.ligne-joueur { border: 1px solid var(--bord); border-radius: var(--rayon); padding: 8px 10px 10px; margin: 0; min-width: 0; background: var(--panneau); display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+.ligne-joueur legend { padding: 0 4px; font-size: 13px; color: var(--texte-doux); }
+.ligne-joueur label { display: flex; flex-direction: column; gap: 2px; font-size: 13px; min-width: 0; }
+.ligne-joueur input { width: 100%; min-height: var(--cible); background: var(--champ); color: var(--texte); border: 1px solid var(--bord); border-radius: var(--rayon); padding: 6px 8px; font: inherit; }
 
 /* --- Régie --- */
 #regie { display: grid; grid-template-columns: 360px minmax(0, 1fr); height: 100vh; }

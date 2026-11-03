@@ -4,7 +4,7 @@
  */
 import * as m from '../js/donjon.js';
 import * as p from '../js/presentation.js';
-import { resumerFiche, ficheDepuisFichier, fichesDuNavigateur, validerPersonnages, ajouterPersonnage, retirerPersonnage, actualiserPersonnages } from '../js/personnages.js';
+import { resumerFiche, ficheDepuisFichier, fichesDuNavigateur, validerPersonnages, validerJoueurs, ajouterPersonnage, retirerPersonnage, actualiserPersonnages } from '../js/personnages.js';
 import { chargerFichesLocales, CLE_FICHES } from '../js/stockage.js';
 import { validerPlan } from '../js/schema.js';
 
@@ -127,6 +127,74 @@ const TESTS = [
     p.synchroniserPersonnages(pres, d);
     verifier(!('personnages' in pres.donjon), 'plus aucune');
     verifier(p.validerPresentation(JSON.parse(JSON.stringify(pres))).presentation, 'partie toujours valide');
+  }],
+  ['joueurs sans fiche : relus par liste blanche, avec un nom par défaut et des identifiants uniques', () => {
+    egal(validerJoueurs('x'), [], 'mauvaise forme');
+    const j = validerJoueurs([{ nom: '  Mira ', race: ' Elfe', classe: 'Barde ', secret: 'x' }, {}, 3, { nom: 42 }]);
+    egal(j.map((x) => [x.nom, x.race, x.classe]), [['Mira', 'Elfe', 'Barde'], ['Joueur 2', '', ''], ['42', '', '']], 'les champs');
+    egal(new Set(j.map((x) => x.id)).size, 3, 'identifiants uniques');
+    verifier(!JSON.stringify(j).includes('secret'), 'champ inconnu écarté');
+    const ids = validerJoueurs([{ id: 'joueur-1', nom: 'A' }, { id: 'joueur-1', nom: 'B' }, { id: '<b>', nom: 'C' }]).map((x) => x.id);
+    egal(ids[0], 'joueur-1', 'identifiant valide gardé');
+    verifier(new Set(ids).size === 3 && ids.every((id) => /^[A-Za-z0-9_-]+$/.test(id)), `doublon et identifiant piégé refaits : ${ids}`);
+    egal(validerJoueurs(Array.from({ length: 50 }, () => ({}))).length, 30, 'nombre borné');
+    egal(validerJoueurs([{ nom: 'x'.repeat(200) }])[0].nom.length, 80, 'texte borné');
+  }],
+  ['joueurs sans fiche : chacun a son pion, sans fiche créée, et rien ne part à la table', () => {
+    const d = donjon();
+    const avant = JSON.stringify(d);
+    const pres = p.creerPresentation(d);
+    egal(pres.joueurs, [], 'aucun au départ');
+    const ids = p.ajouterJoueurs(pres, [{ nom: 'SECRET-NOM', race: 'SECRET-RACE', classe: 'SECRET-CLASSE' }, { nom: 'Bran' }, {}, {}]);
+    egal(ids.length, 4, 'quatre joueurs');
+    egal(p.poserAuDepart(pres, ids), { poses: 4, restes: [] }, 'quatre pions');
+    const plan = pres.donjon.salles[pres.salleCourante].plan;
+    const pions = plan.creatures.filter((k) => k.camp === 'pj');
+    egal(pions.map((k) => [k.type, k.numero, k.fiche]), ids.map((id, i) => ['pj', i + 1, id]), 'P1 à P4, dans l’ordre de saisie');
+    egal(p.nomPersonnage(pres, ids[1]), 'Bran', 'le nom vient du joueur');
+    egal(p.nomPersonnage(pres, ids[3]), 'Joueur 4', 'nom par défaut');
+    egal(p.nomPersonnage(pres, 'inconnu'), null, 'inconnu');
+    verifier(!('personnages' in pres.donjon), 'aucune fiche créée');
+    egal(JSON.stringify(d), avant, 'le donjon préparé n’est pas touché');
+    verifier(validerPlan(plan).ok, 'plan valide');
+    const vue = JSON.stringify([p.vueTable(pres), p.miniPlanTable(pres)]);
+    verifier(!vue.includes('SECRET') && !vue.includes(ids[0]) && !vue.includes('"fiche"'), 'ni nom, ni race, ni classe, ni lien');
+    egal(p.vueTable(pres).creatures.filter((k) => k.camp === 'pj').length, 4, 'mais les pions, oui');
+  }],
+  ['joueurs sans fiche : ils suivent le groupe, restent après relecture et après la mise à jour des fiches', () => {
+    const d = m.creerDonjon({ texte: 'Salle de 6 par 6 cases, une porte au mur est en 3.' });
+    const a = d.salles[d.salleActive];
+    const b = m.ajouterSalle(d, { texte: 'Salle de 6 par 6 cases, une porte au mur ouest en 3.' });
+    m.relier(d, { salle: a.id, mur: 'est', position: 2 }, { salle: b.id, mur: 'ouest', position: 2 });
+    const pres = p.creerPresentation(d);
+    const [id] = p.ajouterJoueurs(pres, [{ nom: 'Mira', race: 'Elfe', classe: 'Barde' }]);
+    p.poserAuDepart(pres, [id]);
+    p.passerPorte(pres, a.id, pres.donjon.salles[a.id].plan.portes[0].id, { groupe: true });
+    egal(p.pionDuPersonnage(pres, id)?.salle, b.id, 'il a suivi');
+    verifier(p.poserPersonnage(pres, a.id, id).ok, 'on peut le ramener');
+    egal(p.pionDuPersonnage(pres, id)?.salle, a.id, 'revenu');
+    p.synchroniserPersonnages(pres, d);
+    egal(pres.joueurs.length, 1, 'la mise à jour des fiches ne les efface pas');
+    const relu = p.validerPresentation(JSON.parse(JSON.stringify(pres))).presentation;
+    egal(relu.joueurs, pres.joueurs, 'relus');
+    egal(p.pionDuPersonnage(relu, id)?.salle, a.id, 'le lien survit à la relecture');
+    const ancienne = JSON.parse(JSON.stringify(pres));
+    delete ancienne.joueurs;
+    egal(p.validerPresentation(ancienne).presentation.joueurs, [], 'partie sans joueurs : liste vide');
+    const [autre] = p.ajouterJoueurs(ancienne, [{ nom: 'Tard' }]);
+    verifier(autre && p.nomPersonnage(ancienne, autre) === 'Tard', 'ajout sur une ancienne partie');
+  }],
+  ['poser au départ : les fiches choisies seulement ; sans place, le nom de ceux qui restent', () => {
+    const d = donjon();
+    ajouterPersonnage(d, resumerFiche(FICHE), 'loc1');
+    ajouterPersonnage(d, resumerFiche({ ...FICHE, name: 'Absent' }), 'loc2');
+    const pres = p.creerPresentation(d);
+    const [choisi, absent] = pres.donjon.personnages.map((x) => x.id);
+    egal(p.poserAuDepart(pres, [choisi]), { poses: 1, restes: [] }, 'un seul');
+    verifier(p.pionDuPersonnage(pres, choisi), 'choisi : posé');
+    egal(p.pionDuPersonnage(pres, absent), null, 'pas choisi : pas de pion');
+    const pleine = p.creerPresentation(m.creerDonjon({ texte: 'Salle de 1 par 1 cases, un gobelin en A1.' }));
+    egal(p.poserAuDepart(pleine, p.ajouterJoueurs(pleine, [{ nom: 'Mira' }])), { poses: 0, restes: ['Mira'] }, 'plus de place');
   }],
 ];
 

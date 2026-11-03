@@ -10,6 +10,7 @@ function h(tag, props = {}, ...enfants) {
   e.append(...enfants);
   return e;
 }
+const noteSi = (texte) => (texte ? [h('p', { className: 'note', textContent: texte })] : []);
 const signe = (n) => (n >= 0 ? `+${n}` : String(n));
 const modificateur = (v) => signe(Math.floor((v - 10) / 2));
 
@@ -32,6 +33,15 @@ export function carteFiche(fiche, actions = [], mention = '') {
     h('p', { className: 'fiche-chiffres', textContent: `${pv} · CA ${fiche.ca} · Vitesse ${fiche.vitesse} m · Init. ${signe(fiche.initiative)}` }),
     ...(fiche.etats.length ? [h('p', { className: 'note', textContent: `États : ${fiche.etats.join(', ')}` })] : []),
     details,
-    ...(mention ? [h('p', { className: 'note', textContent: mention })] : []),
+    ...noteSi(mention),
+    ...(actions.length ? [h('div', { className: 'actions' }, ...actions)] : []));
+}
+
+/** Un joueur sans fiche : son nom, sa race, sa classe. Mêmes `actions` et `mention` que carteFiche. */
+export function carteJoueur(joueur, actions = [], mention = '') {
+  return h('li', { className: 'fiche-carte' },
+    h('b', { className: 'fiche-nom', textContent: joueur.nom }),
+    ...noteSi([joueur.race, joueur.classe].filter(Boolean).join(' · ')),
+    ...noteSi(mention),
     ...(actions.length ? [h('div', { className: 'actions' }, ...actions)] : []));
 }

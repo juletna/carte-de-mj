@@ -50,6 +50,47 @@
     </section>
   </main>
 
+  <!-- Au lancement d'une partie : qui joue ? Des fiches du donjon, ou un simple nombre de joueurs. -->
+  <main id="choix-joueurs" hidden>
+    <header class="menu-site">
+      <div class="menu-int">
+        <a class="menu-nom" href="index.html">Carte de MJ</a>
+        <nav aria-label="Navigation principale">
+          <a class="menu-lien" href="fiche.html">Fiche</a>
+          <a class="menu-lien" href="donjon.html">Donjon</a>
+          <a class="menu-lien" href="presentation.html" aria-current="page">Présentation</a>
+        </nav>
+      </div>
+    </header>
+    <header>
+      <h1 id="titre-choix" tabindex="-1">Qui joue ?</h1>
+      <p id="choix-donjon" class="sous-titre"></p>
+    </header>
+    <form id="form-joueurs" autocomplete="off">
+      <fieldset class="mode-joueurs">
+        <legend>Pions de joueurs à poser dans la première salle</legend>
+        <label class="ligne case"><input type="radio" name="mode-joueurs" id="mode-fiches" value="fiches"> Choisir parmi les fiches du donjon</label>
+        <label class="ligne case"><input type="radio" name="mode-joueurs" id="mode-nombre" value="nombre"> Indiquer un nombre de joueurs, sans fiche</label>
+        <label class="ligne case"><input type="radio" name="mode-joueurs" id="mode-aucun" value="aucun"> Aucun pion pour l’instant</label>
+      </fieldset>
+      <p id="note-choix" class="note" hidden></p>
+
+      <section id="zone-fiches" aria-label="Fiches du donjon" hidden>
+        <ul id="liste-fiches" class="liste-fiches"></ul>
+      </section>
+
+      <section id="zone-nombre" aria-label="Joueurs" hidden>
+        <label class="nb-joueurs" for="nb-joueurs">Nombre de joueurs <input id="nb-joueurs" type="number" min="1" step="1" inputmode="numeric"></label>
+        <div id="lignes-joueurs" class="lignes-joueurs"></div>
+      </section>
+
+      <div class="actions">
+        <button id="lancer-joueurs" type="submit"></button>
+        <button id="annuler-joueurs" type="button" class="discret">← Liste des donjons</button>
+      </div>
+    </form>
+  </main>
+
   <!-- Régie : l'écran du MJ -->
   <div id="regie" hidden>
     <!-- Écran étroit seulement (js/telephone.js, CSS sous 760 px) : la carte ou les actions, jamais les deux empilées. Masqué ailleurs. -->
@@ -150,7 +191,7 @@
       <details class="bloc" open>
         <summary><h2>Personnages</h2></summary>
         <ul id="personnages-liste" class="fiches"></ul>
-        <p id="personnages-vide" class="note" hidden>Aucune fiche : ajoute-les dans le Donjon, outil « Personnages ». Elles apparaîtront ici.</p>
+        <p id="personnages-vide" class="note" hidden>Aucun personnage : ajoute des fiches dans le Donjon, outil « Personnages », et elles apparaîtront ici. Les joueurs sans fiche s’indiquent en lançant la partie.</p>
       </details>
 
       <details class="bloc">

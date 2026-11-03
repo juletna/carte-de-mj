@@ -9,7 +9,8 @@
  *   decouvertes:   [idSalle],                  // salles déjà montrées aux joueurs
  *   reveles:       { idSalle: [idElement] },   // éléments `cache: true` que le MJ a révélés
  *   notesPartie:   { idSalle: texte },         // notes prises en jouant (facultatif : absent des anciennes parties)
- *   masques:       { idSalle: ['monstres'|'objets'] } // ce que le MJ a retiré de la table dans cette salle (facultatif, idem)
+ *   masques:       { idSalle: ['monstres'|'objets'] }, // ce que le MJ a retiré de la table dans cette salle (facultatif, idem)
+ *   joueurs:       [{ id, nom, race, classe }]  // joueurs sans fiche, indiqués au lancement (facultatif, idem ; voir personnages.js)
  * }
  *
  * Démarrer une présentation copie le donjon : le donjon préparé n'est JAMAIS modifié, et aucun
@@ -47,6 +48,7 @@ import { interpreterCommande } from './parseur/commandes.js';
 import { disposerPlan, cheminCouloir, pontsDe } from './plan-donjon.js';
 import { normaliserForme, surLeSol, retraitPorte, estSol } from './formes.js';
 import { evaluerPose } from './pose.js';
+import { validerJoueurs } from './personnages.js';
 
 export { ETATS };
 
@@ -95,7 +97,7 @@ export function creerPresentation(donjon, { salleDepart } = {}) {
   const depart = typeof salleDepart === 'string' && salleDepart in copie.salles ? salleDepart : Object.keys(copie.salles)[0];
   return {
     format: FORMAT_PRESENTATION, version: VERSION_PRESENTATION,
-    donjon: copie, salleCourante: depart, decouvertes: [depart], reveles: dictionnaire(), notesPartie: dictionnaire(), masques: dictionnaire(),
+    donjon: copie, salleCourante: depart, decouvertes: [depart], reveles: dictionnaire(), notesPartie: dictionnaire(), masques: dictionnaire(), joueurs: [],
   };
 }
 
@@ -146,7 +148,7 @@ export function validerPresentation(brut) {
       if (gardes.length) masques[idSalle] = gardes;
     }
   }
-  return { ok: true, erreurs: [], presentation: { format: FORMAT_PRESENTATION, version: VERSION_PRESENTATION, donjon, salleCourante, decouvertes, reveles, notesPartie, masques } };
+  return { ok: true, erreurs: [], presentation: { format: FORMAT_PRESENTATION, version: VERSION_PRESENTATION, donjon, salleCourante, decouvertes, reveles, notesPartie, masques, joueurs: validerJoueurs(brut.joueurs) } };
 }
 
 // --- Découvertes, salle courante -------------------------------------------------------
@@ -535,19 +537,46 @@ export function pionDuPersonnage(p, idPersonnage) {
   return null;
 }
 
+/** Le nom d'un personnage de la partie : fiche du donjon ou joueur sans fiche. @returns {string|null} */
+export function nomPersonnage(p, id) {
+  const fiche = (p.donjon.personnages || []).find((x) => x.id === id)?.fiche;
+  return fiche?.nom ?? (p.joueurs || []).find((j) => j.id === id)?.nom ?? null;
+}
+
+/** Ajoute à la partie des joueurs sans fiche. @returns {string[]} les identifiants des nouveaux joueurs */
+export function ajouterJoueurs(p, liste) {
+  const avant = (p.joueurs || []).length;
+  p.joueurs = validerJoueurs([...(p.joueurs || []), ...liste]);
+  return p.joueurs.slice(avant).map((j) => j.id);
+}
+
+/**
+ * Pose les pions de ces personnages dans la salle à la table, au lancement de la partie.
+ * @returns {{poses:number, restes:string[]}} restes : le nom de ceux qui n'ont pas trouvé de place
+ */
+export function poserAuDepart(p, ids) {
+  const restes = [];
+  let poses = 0;
+  for (const id of ids) {
+    if (poserPersonnage(p, p.salleCourante, id).ok) poses++;
+    else restes.push(nomPersonnage(p, id));
+  }
+  return { poses, restes };
+}
+
 /**
  * Pose le pion d'un personnage dans une salle, au plus près de sa première porte. Déjà posé ailleurs : il y vient.
  * @returns {{ok:true, pion:object}|{ok:false, message:string}}
  */
 export function poserPersonnage(p, idSalle, idPersonnage) {
-  const perso = (p.donjon.personnages || []).find((x) => x.id === idPersonnage);
+  const nom = nomPersonnage(p, idPersonnage);
   const plan = p.donjon.salles[idSalle]?.plan;
-  if (!perso || !plan) return { ok: false, message: 'Ce personnage ou cette salle n’existe plus.' };
+  if (!nom || !plan) return { ok: false, message: 'Ce personnage ou cette salle n’existe plus.' };
   const deja = pionDuPersonnage(p, idPersonnage);
   if (deja?.salle === idSalle) return { ok: true, pion: deja.pion };
   const modele = { type: 'pj', camp: 'pj', taille: 1, fiche: idPersonnage };
   const { places } = placerPions(plan, [modele], plan.portes[0] || {});
-  if (!places.length) return { ok: false, message: `Plus de place dans cette salle pour ${perso.fiche.nom}.` };
+  if (!places.length) return { ok: false, message: `Plus de place dans cette salle pour ${nom}.` };
   if (deja) {
     const depart = p.donjon.salles[deja.salle].plan;
     depart.creatures = depart.creatures.filter((k) => k !== deja.pion);

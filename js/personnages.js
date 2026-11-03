@@ -7,10 +7,17 @@
  *
  *   donjon.personnages : [{ id, source?, fiche }]   source : identifiant de la fiche dans ce navigateur, pour l'actualiser
  *
- * SÉCURITÉ : rien de tout cela ne part à la table : `vueTable` et `miniPlanTable` ne lisent pas `personnages`.
+ * Mode simple : un groupe garde ses fiches sur papier. La partie ne connaît alors que le nom, la race et la classe de chaque joueur,
+ * de quoi lui donner un pion. Ces joueurs sont propres à la partie, pas au donjon préparé :
+ *
+ *   partie.joueurs : [{ id, nom, race, classe }]
+ *
+ * SÉCURITÉ : rien de tout cela ne part à la table : `vueTable` et `miniPlanTable` ne lisent ni `personnages` ni `joueurs`.
  */
 export const STATS = ['FOR', 'DEX', 'CON', 'INT', 'SAG', 'CHA'];
 const MAX_PERSONNAGES = 30;
+/** Nombre de joueurs qu'on peut indiquer en lançant une partie. */
+export const MAX_JOUEURS = 12;
 const MAX_LISTE = 60;     // attaques, objets, états : une fiche abîmée ne remplit pas le stockage
 const MAX_TEXTE = 80;
 
@@ -66,6 +73,27 @@ export function validerPersonnages(brut) {
     res.push({ id, ...(typeof p.source === 'string' && p.source ? { source: p.source.slice(0, 64) } : {}), fiche });
   }
   return res;
+}
+
+/** Relit les joueurs du mode simple : champs par liste blanche, nom par défaut, identifiants gardés s'ils sont valides, sinon faits ici. */
+export function validerJoueurs(brut) {
+  if (!Array.isArray(brut)) return [];
+  const pris = new Set();
+  const propres = brut.filter(estObjet).slice(0, MAX_PERSONNAGES);
+  const gardes = propres.map((j) => {
+    const ok = typeof j.id === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(j.id) && !pris.has(j.id);
+    if (ok) pris.add(j.id);
+    return ok ? j.id : null;
+  });
+  let n = 0;
+  return propres.map((j, i) => {
+    let id = gardes[i];
+    while (!id) {
+      const essai = `joueur-${++n}`;
+      if (!pris.has(essai)) { pris.add(essai); id = essai; }
+    }
+    return { id, nom: texte(j.nom).trim() || `Joueur ${i + 1}`, race: texte(j.race).trim(), classe: texte(j.classe).trim() };
+  });
 }
 
 /**

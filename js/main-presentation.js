@@ -18,7 +18,8 @@ import { dessiner, dessinerPlanDonjon, tailleQuiTientPlan } from './rendu/moteur
 import { disposerPlan, cleDisposition } from './plan-donjon.js';
 import { activerDeplacement } from './deplacement.js';
 import { creerMiniPlan } from './miniplan.js';
-import { carteFiche } from './carte-personnage.js';
+import { carteFiche, carteJoueur } from './carte-personnage.js';
+import { MAX_JOUEURS } from './personnages.js';
 import { nomCase, lettreColonne } from './parseur/coordonnees.js';
 import { nomAffiche } from './parseur/lexique.js';
 import { creerMicro, voixDisponible } from './voix.js';
@@ -331,11 +332,12 @@ function demarrerRegie() {
       const reprendre = h('button', { type: 'button', textContent: 'Reprendre' });
       reprendre.addEventListener('click', () => entrer(enCours, { reprise: true }));
       const recommencer = h('button', { type: 'button', className: 'discret' });
-      deuxTemps(recommencer, 'Recommencer', 'Effacer la partie ?', () => entrer(commencer()));
+      // La partie en cours n'est remplacée qu'une fois le choix validé : « ← Liste des donjons » la laisse intacte.
+      deuxTemps(recommencer, 'Recommencer', 'Effacer la partie ?', () => demanderJoueurs(commencer(), enCours.joueurs));
       boutons.append(reprendre, recommencer);
     } else {
       const demarrer = h('button', { type: 'button', textContent: 'Présenter' });
-      demarrer.addEventListener('click', () => entrer(commencer()));
+      demarrer.addEventListener('click', () => demanderJoueurs(commencer()));
       boutons.append(demarrer);
     }
     return h('li', {}, infos, ...(choix ? [choix] : []), boutons);
@@ -360,6 +362,7 @@ function demarrerRegie() {
     etat.consultee = null;
     quitterPleinIci();
     $('regie').hidden = true;
+    $('choix-joueurs').hidden = true;
     $('depart').hidden = false;
     document.title = 'Présentation · Carte de MJ';
     const charge = stockage.chargerDonjons();
@@ -401,6 +404,90 @@ function demarrerRegie() {
     }
   });
 
+  // --- Qui joue ? Une partie neuve : fiches du donjon, ou nombre de joueurs avec nom, race et classe ---------------
+  const choix = { partie: null, lignes: [] }; // lignes : ce qui est saisi, gardé si le nombre baisse puis remonte
+  const modeChoisi = () => document.querySelector('input[name="mode-joueurs"]:checked')?.value;
+  const nombreJoueurs = () => {
+    const n = Number($('nb-joueurs').value);
+    return Number.isInteger(n) ? Math.min(MAX_JOUEURS, Math.max(1, n)) : 1;
+  };
+  const fichesCochees = () => [...$('liste-fiches').querySelectorAll('input:checked')].map((c) => c.value);
+
+  function dessinerLignesJoueurs() {
+    const champ = (ligne, cle, libelle) => {
+      const input = h('input', { type: 'text', value: ligne[cle] || '', maxLength: 80 });
+      input.addEventListener('input', () => { ligne[cle] = input.value; });
+      return h('label', {}, libelle, input);
+    };
+    $('lignes-joueurs').replaceChildren(...Array.from({ length: nombreJoueurs() }, (_, i) => {
+      const ligne = choix.lignes[i] || (choix.lignes[i] = {});
+      return h('fieldset', { className: 'ligne-joueur' }, h('legend', { textContent: `Joueur ${i + 1}` }),
+        champ(ligne, 'nom', 'Nom'), champ(ligne, 'race', 'Race'), champ(ligne, 'classe', 'Classe'));
+    }));
+  }
+
+  /** Le texte du bouton dit ce qui va se passer. */
+  function majChoix() {
+    const mode = modeChoisi();
+    $('zone-fiches').hidden = mode !== 'fiches';
+    $('zone-nombre').hidden = mode !== 'nombre';
+    const n = mode === 'fiches' ? fichesCochees().length : mode === 'nombre' ? nombreJoueurs() : 0;
+    const qui = mode === 'fiches' ? pluriel(n, 'personnage', 'personnages') : pluriel(n, 'joueur', 'joueurs');
+    $('lancer-joueurs').textContent = n ? `Présenter avec ${qui}` : 'Présenter sans pion';
+  }
+
+  /** `precedents` : les joueurs de la partie qu'on recommence, pour ne pas tout ressaisir. */
+  function demanderJoueurs(partie, precedents = []) {
+    choix.partie = partie;
+    choix.lignes = precedents.map(({ nom, race, classe }) => ({ nom, race, classe }));
+    const fiches = partie.donjon.personnages || [];
+    const prepares = Object.values(partie.donjon.salles).flatMap((s) => s.plan.creatures).filter((k) => k.camp === 'pj').length;
+    $('choix-donjon').textContent = partie.donjon.nom;
+    $('mode-fiches').disabled = !fiches.length;
+    $('liste-fiches').replaceChildren(...fiches.map(({ id, fiche }) => {
+      const coche = h('input', { type: 'checkbox', value: id, checked: true });
+      const identite = [fiche.race, fiche.classe].filter(Boolean).join(' · ');
+      return h('li', {}, h('label', {}, coche, h('span', {}, h('b', { textContent: fiche.nom }), identite ? h('span', { className: 'doux', textContent: ` ${identite}` }) : '')));
+    }));
+    const note = [
+      ...(fiches.length ? [] : ['Ce donjon n’a aucune fiche : elles s’ajoutent dans le Donjon, outil « Personnages ».']),
+      ...(prepares ? [`Le donjon a déjà ${pluriel(prepares, 'pion de joueur', 'pions de joueurs')} dans ses salles : ${prepares > 1 ? 'ils restent' : 'il reste'} en plus.`] : []),
+    ].join(' ');
+    $('note-choix').hidden = !note;
+    $('note-choix').textContent = note;
+    $('nb-joueurs').max = String(MAX_JOUEURS);
+    $('nb-joueurs').value = String(precedents.length || 4);
+    $(precedents.length ? 'mode-nombre' : fiches.length ? 'mode-fiches' : prepares ? 'mode-aucun' : 'mode-nombre').checked = true;
+    dessinerLignesJoueurs();
+    majChoix();
+    $('depart').hidden = true;
+    $('regie').hidden = true;
+    $('choix-joueurs').hidden = false;
+    document.title = `Qui joue ? · ${partie.donjon.nom} · Carte de MJ`;
+    window.scrollTo(0, 0);
+    $('titre-choix').focus({ preventScroll: true });
+  }
+
+  for (const radio of document.querySelectorAll('input[name="mode-joueurs"]')) radio.addEventListener('change', majChoix);
+  $('liste-fiches').addEventListener('change', majChoix);
+  $('nb-joueurs').addEventListener('input', () => { dessinerLignesJoueurs(); majChoix(); });
+  $('nb-joueurs').addEventListener('change', () => { $('nb-joueurs').value = String(nombreJoueurs()); });
+  $('annuler-joueurs').addEventListener('click', afficherDepart);
+  $('form-joueurs').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const p = choix.partie, mode = modeChoisi();
+    if (!p) return;
+    const ids = mode === 'fiches' ? fichesCochees() : mode === 'nombre' ? pres.ajouterJoueurs(p, choix.lignes.slice(0, nombreJoueurs())) : [];
+    const { poses, restes } = pres.poserAuDepart(p, ids);
+    entrer(p);
+    if (!ids.length) return;
+    const nomSalle = salleCourante().nom;
+    annoncer([
+      ...(poses ? [`${pluriel(poses, 'pion de joueur posé', 'pions de joueurs posés')} dans « ${nomSalle} ».`] : []),
+      ...(restes.length ? [`Plus de place pour : ${restes.join(', ')}. Leur fiche, dans « Personnages », permet de les poser ailleurs.`] : []),
+    ].join(' '));
+  });
+
   /** `reprise` : on rouvre une partie déjà enregistrée, sans rien réécrire (aucune sauvegarde tant que rien ne change). */
   function entrer(p, { reprise = false } = {}) {
     etat.p = p;
@@ -415,6 +502,7 @@ function demarrerRegie() {
     etat.enregistre = true;
     $('alerte-stockage').hidden = true;
     $('depart').hidden = true;
+    $('choix-joueurs').hidden = true;
     $('regie').hidden = false;
     $('nom-donjon').textContent = p.donjon.nom;
     document.title = `${p.donjon.nom} · Présentation · Carte de MJ`;
@@ -545,10 +633,16 @@ function demarrerRegie() {
     });
   }
 
+  /** Un pion, à la régie : le nom de son personnage s'il en a un (la table n'a que « P1 »). */
+  const nomPion = (k) => {
+    const nom = k.fiche && pres.nomPersonnage(etat.p, k.fiche);
+    return nom ? `${nom} (P${k.numero})` : `${nomAffiche(k.type)} ${k.numero}`;
+  };
+
   function libelleElement(trouve) {
     const e = trouve.element;
     if (trouve.genre === 'porte') return `${e.type} · mur ${e.mur}, repère ${reperePorte(e)}`;
-    if (trouve.genre === 'creature') return `${nomAffiche(e.type)} ${e.numero} · ${nomCase(e.x, e.y)}`;
+    if (trouve.genre === 'creature') return `${nomPion(e)} · ${nomCase(e.x, e.y)}`;
     return `${nomAffiche(e.type)} · ${nomCase(e.x, e.y)}`;
   }
 
@@ -600,7 +694,7 @@ function demarrerRegie() {
   function changerEtat(pion, valeur) {
     const s = salleConsultee();
     pres.definirEtat(etat.p, s.id, pion.id, valeur);
-    const qui = `${nomAffiche(pion.type)} ${pion.numero}`;
+    const qui = nomPion(pion);
     const visible = !pion.cache || pres.estRevele(etat.p, s.id, pion.id);
     const masquee = pres.categorieMasquee(etat.p, s.id, 'creature', pion);
     const ou = !visible ? ' (pion caché : la table ne le voit pas)' : masquee ? ` (${masquee} masqués : la table ne le voit pas)` : s.id === etat.p.salleCourante ? ' : visible sur la table' : ' (cette salle n’est pas à la table)';
@@ -739,7 +833,7 @@ function demarrerRegie() {
     // Éléments de la salle : pions puis objets, cachés repérés (comme sur la carte du MJ). Liste repliable.
     const marque = (e) => (!e.cache ? '' : pres.estRevele(p, s.id, e.id) ? ' · caché, révélé' : ' · caché');
     const elements = [
-      ...s.plan.creatures.map((k) => boutonListe('creature', k, `${nomAffiche(k.type)} ${k.numero} · ${nomCase(k.x, k.y)}${k.etat ? ` · ${LIBELLES_ETAT[k.etat]}` : ''}${marque(k)}`, k.cache && !pres.estRevele(p, s.id, k.id))),
+      ...s.plan.creatures.map((k) => boutonListe('creature', k, `${nomPion(k)} · ${nomCase(k.x, k.y)}${k.etat ? ` · ${LIBELLES_ETAT[k.etat]}` : ''}${marque(k)}`, k.cache && !pres.estRevele(p, s.id, k.id))),
       ...s.plan.objets.map((o) => boutonListe('objet', o, `${nomAffiche(o.type)} · ${nomCase(o.x, o.y)}${marque(o)}`, o.cache && !pres.estRevele(p, s.id, o.id))),
     ];
     $('nb-elements').textContent = `(${elements.length})`;
@@ -803,22 +897,25 @@ function demarrerRegie() {
       return `Consulter la salle ${s.nom}${statut}`;
     },
   });
-  /** Les fiches du donjon, et de quoi poser le pion de chacun dans la salle regardée. */
+  /** Les fiches du donjon et les joueurs sans fiche, et de quoi poser le pion de chacun dans la salle regardée. */
   function majPersonnages() {
     const p = etat.p;
-    const persos = p.donjon.personnages || [];
-    $('personnages-vide').hidden = persos.length > 0;
-    $('personnages-liste').replaceChildren(...persos.map((perso) => {
-      const pose = pres.pionDuPersonnage(p, perso.id);
+    const carte = (id, dessiner) => {
+      const pose = pres.pionDuPersonnage(p, id);
       const ici = pose?.salle === etat.consultee;
       const mention = pose ? `Pion P${pose.pion.numero}, en ${nomCase(pose.pion.x, pose.pion.y)}${ici ? '' : ` dans « ${p.donjon.salles[pose.salle].nom} »`}.` : '';
       const poser = bouton(pose ? 'L’amener dans cette salle' : 'Poser dans cette salle', () => {
-        const res = pres.poserPersonnage(p, etat.consultee, perso.id);
-        etat.message = res.ok ? `${perso.fiche.nom} est dans « ${salleConsultee().nom} ». Glisse son pion sur la carte pour le déplacer.` : res.message;
+        const res = pres.poserPersonnage(p, etat.consultee, id);
+        etat.message = res.ok ? `${pres.nomPersonnage(p, id)} est dans « ${salleConsultee().nom} ». Glisse son pion sur la carte pour le déplacer.` : res.message;
         modifie();
       }, 'discret');
-      return carteFiche(perso.fiche, ici ? [] : [poser], mention);
-    }));
+      return dessiner(ici ? [] : [poser], mention);
+    };
+    const persos = p.donjon.personnages || [], joueurs = p.joueurs || [];
+    $('personnages-vide').hidden = persos.length + joueurs.length > 0;
+    $('personnages-liste').replaceChildren(
+      ...persos.map((perso) => carte(perso.id, (actions, mention) => carteFiche(perso.fiche, actions, mention))),
+      ...joueurs.map((joueur) => carte(joueur.id, (actions, mention) => carteJoueur(joueur, actions, mention))));
   }
 
   function majMiniCarte() {
@@ -946,7 +1043,8 @@ function demarrerRegie() {
   // L'adresse perd sa demande : recharger la page ou revenir à la liste ne doit pas rouvrir ce donjon de force.
   if (parametres.has('donjon')) history.replaceState(null, '', 'presentation.html');
   const aReprendre = stockage.partieAReprendre(etat.presentations);
-  if (demande) entrer(demande.partie, { reprise: demande.reprise });
+  if (demande?.reprise) entrer(demande.partie, { reprise: true });
+  else if (demande) demanderJoueurs(demande.partie);
   else if (aReprendre) entrer(aReprendre, { reprise: true });
   else afficherDepart();
 }
