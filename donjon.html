@@ -140,6 +140,9 @@
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7.5" r="3.5"/><path d="M6.5 20.5c0-4.2 2.4-7 5.5-7s5.5 2.8 5.5 7z"/></svg><span>Créatures</span>
     </button>
     <span class="rail-sep" role="separator" aria-hidden="true"></span>
+    <button type="button" class="rail-outil" data-outil="personnages" aria-pressed="false" title="Personnages : les fiches associées à ce donjon">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M3 20c.5-4 3-6 6-6s5.5 2 6 6"/><path d="M16 5a3 3 0 0 1 0 6M18 14c1.700.6 2.800 2.600 3 6"/></svg><span>Personnages</span>
+    </button>
     <button type="button" class="rail-outil" data-outil="notes" aria-pressed="false" title="Notes du MJ pour cette salle">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5h9l4 4v13H6z"/><path d="M15 3.5v4h4"/><path d="M9.5 12h6M9.5 15.5h6"/></svg><span>Notes</span>
     </button>
@@ -199,6 +202,23 @@
         <summary>Exemples</summary>
         <ul id="exemples"></ul>
       </details>
+    </div>
+
+    <div class="outil personnages" data-pour="personnages" hidden>
+      <p class="note">Les fiches de ce donjon : une copie, qui part avec lui quand tu l'exportes. Les joueurs ne les voient jamais à la table.</p>
+      <ul id="personnages-liste" class="fiches"></ul>
+      <p id="personnages-vide" class="note" hidden>Aucune fiche pour l'instant.</p>
+      <div class="ligne-ajout">
+        <label for="personnages-locales">Fiches de ce navigateur</label>
+        <select id="personnages-locales"></select>
+        <div class="actions">
+          <button id="personnages-ajouter" type="button">Ajouter</button>
+          <button id="personnages-actualiser" type="button" class="discret" title="Recopie les fiches encore présentes dans ce navigateur">Actualiser</button>
+          <label class="bouton">Depuis un fichier <input id="personnages-fichier" type="file" accept=".json,application/json" hidden></label>
+        </div>
+      </div>
+      <p id="personnages-message" class="note" role="status" hidden></p>
+      <p class="note">Les fiches se créent dans <a href="fiche.html">l'outil Fiche</a>. Celle d'un joueur sur son téléphone : il l'exporte, tu ajoutes le fichier.</p>
     </div>
 
     <div class="outil" data-pour="notes" hidden>

@@ -228,3 +228,14 @@ label:has(> input[type="checkbox"]), label:has(> input[type="radio"]), details s
   body[data-onglet="carte"] #selection { height: auto; }
   body[data-onglet="carte"] .aide-carte { display: none; }
 }
+
+/* --- Fiches de personnage (Donjon et régie : js/carte-personnage.js) --- */
+.fiches { list-style: none; margin: 8px 0; padding: 0; display: grid; gap: 8px; }
+.fiche-carte { padding: 8px; border: 1px solid var(--bord); border-radius: var(--rayon); background: var(--champ); overflow-wrap: anywhere; }
+.fiche-carte p { margin: 2px 0; }
+.fiche-carte ul { margin: 4px 0; padding-left: 16px; font-size: 13px; }
+.fiche-carte .actions { margin-top: 6px; }
+.fiche-chiffres { font-weight: 600; font-size: 13px; }
+.fiche-carte ul.fiche-stats { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(2, 1fr); gap: 2px 8px; }
+.fiche-titre { font-weight: 600; font-size: 13px; }
+.personnages .ligne-ajout { display: grid; gap: 4px; margin-top: 8px; }

@@ -7,18 +7,21 @@
  *   carte-de-mj:reglages-v1   { echelle, taille, grille, reperes? }  (affichage, hors donjons)
  *   carte-de-mj:presentations-v1  { presentations: { <idDonjon>: présentation } }  (parties en cours : voir presentation.js)
  *   carte-de-mj:modeles-v1    { modeles: [donjon] }  (donjons gardés comme modèles : voir modeles.js)
+ *   dd-fiche-personnages-v1   { actif, persos }  (outil Fiche : lue ici seulement, jamais écrite)
  *   jdr-carte:v1              ANCIENNE clé (une salle) : lue une fois pour la migration, jamais supprimée
  *
  * Les fonctions de lecture/écriture acceptent un `stock` (par défaut localStorage) pour être testées sous Node.
  */
 import { validerDonjon, donjonDepuisAncien, creerDonjon } from './donjon.js';
 import { validerPresentation } from './presentation.js';
+import { fichesDuNavigateur } from './personnages.js';
 
 export const CLE_DONJONS = 'carte-de-mj:donjons-v1';
 export const CLE_REGLAGES = 'carte-de-mj:reglages-v1';
 export const CLE_PRESENTATIONS = 'carte-de-mj:presentations-v1';
 export const CLE_PARTIE_OUVERTE = 'carte-de-mj:partie-ouverte-v1';
 export const CLE_MODELES = 'carte-de-mj:modeles-v1';
+export const CLE_FICHES = 'dd-fiche-personnages-v1';
 const CLE = 'jdr-carte:v1';
 const TAILLE_MAX_FICHIER = 5 * 1024 * 1024;
 const REGLAGES_DEFAUT = { echelle: 1.5, taille: 48, grille: true };
@@ -90,6 +93,9 @@ export function chargerPresentations(stock = stockParDefaut()) {
   return res;
 }
 export const sauverPresentations = (presentations, stock = stockParDefaut()) => ecrireJson(stock, CLE_PRESENTATIONS, { presentations });
+
+/** Les fiches de l'outil Fiche dans ce navigateur : [{ source, fiche }]. Rien n'y est jamais écrit depuis le Donjon. */
+export const chargerFichesLocales = (stock = stockParDefaut()) => fichesDuNavigateur(lireJson(stock, CLE_FICHES));
 
 /** Modèles gardés par le MJ, validés un à un comme des donjons : un modèle abîmé est simplement écarté. */
 export function chargerModeles(stock = stockParDefaut()) {

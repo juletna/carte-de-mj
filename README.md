@@ -78,6 +78,12 @@ ou en ligne de commande avec `node tests/node.mjs`.
 Les mots non reconnus sont listés sous « Mots non compris » au lieu d'être devinés.
 Pour les cas que le parseur ne sait pas traiter, le plan JSON se modifie à la main dans le panneau.
 
+## Fiches de personnage du donjon
+
+Dans le Donjon, l'outil « Personnages » associe des fiches au donjon : celles de l'outil Fiche de ce navigateur, ou le fichier exporté par un joueur (`js/personnages.js`). Le donjon en garde une copie résumée (identité, PV, CA, caractéristiques, attaques, sac ; ni journal ni jets), qui part avec lui à l'export. « Actualiser » recopie les fiches encore présentes dans ce navigateur. Il n'y a pas de synchronisation avec le téléphone d'un joueur : il réexporte, tu ajoutes le fichier.
+
+En régie, le bloc « Personnages » montre les mêmes fiches, et « Poser dans cette salle » crée le pion du personnage. Les fiches ne partent jamais à la table.
+
 ## Formes de salle
 
 Une salle reste un rectangle (largeur × longueur) auquel on retire des cases : croix, octogone, L, T, U, 8, E, F, H, O ou S (`js/formes.js`). Dans l'onglet Salle : un bouton par forme, l'épaisseur des bras, leur position, et le nombre de cases de sol. Le sol se choisit juste en dessous (pierre, bois, terre, sable, herbe, marbre, glace), et s'écrit « sol en bois ». Les mêmes réglages s'écrivent en texte : « Salle en croix de 12 par 13 cases, bras de 2 cases, bras en haut », « en U ouverte au sud », « en L angle au nord-ouest », « en T barre au nord », « octogonale, pans de 2 cases », « en O de 9 par 9 cases » (le O et le 8 ont une cour fermée, vide).
@@ -303,6 +309,8 @@ js/miniplan.js      miniature cliquable du plan (sidebar, régie) : même dessin
 js/schema.js        schéma du plan d'une salle et validation
 js/modeles.js       modèles de donjon de l'outil, copie d'un donjon (pur, sans DOM)
 js/generateur.js    donjon au hasard : paramètres et numéro de tirage → un donjon complet (pur, sans DOM)
+js/personnages.js   fiches associées au donjon : résumé, ajout, validation (pur, sans DOM)
+js/carte-personnage.js  une fiche à l'écran, la même dans le Donjon et la régie
 js/formes.js        formes de salle : cases retirées, portes en retrait, murs découpés (calcul pur)
 js/stockage.js      localStorage (donjons, réglages, migration), export/import JSON
 js/voix.js          dictée (Web Speech API)

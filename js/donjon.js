@@ -21,6 +21,7 @@
  * identifiants stables et uniques, éléments secrets marqués `cache: true` dans les
  * plans, format versionné.
  */
+import { validerPersonnages } from './personnages.js';
 import { validerPlan, MURS } from './schema.js';
 import { analyser } from './parseur/index.js';
 import { decrire } from './parseur/decrire.js';
@@ -462,6 +463,8 @@ export function validerDonjon(brut, { echelle } = {}) {
     salleActive: typeof brut.salleActive === 'string' && brut.salleActive in salles ? brut.salleActive : Object.keys(salles)[0],
     salles, liaisons,
   };
+  const personnages = validerPersonnages(brut.personnages);
+  if (personnages.length) donjon.personnages = personnages;
   return { ok: true, erreurs: [], avertissements, donjon };
 }
 

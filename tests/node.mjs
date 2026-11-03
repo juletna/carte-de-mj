@@ -9,8 +9,9 @@ import { executer as executerPlan } from './plan-donjon.test.js';
 import { executer as executerFormes } from './formes.test.js';
 import { executer as executerGenerateur } from './generateur.test.js';
 import { executer as executerModeles } from './modeles.test.js';
+import { executer as executerPersonnages } from './personnages.test.js';
 
-const resultats = [...executer(), ...executerAllerRetour(), ...executerDonjon(), ...executerPresentation(), ...executerCommandes(), ...executerImpression(), ...executerPose(), ...executerPlan(), ...executerFormes(), ...executerGenerateur(), ...executerModeles()];
+const resultats = [...executer(), ...executerAllerRetour(), ...executerDonjon(), ...executerPresentation(), ...executerCommandes(), ...executerImpression(), ...executerPose(), ...executerPlan(), ...executerFormes(), ...executerGenerateur(), ...executerModeles(), ...executerPersonnages()];
 let echecs = 0;
 for (const r of resultats) {
   const ok = r.ecarts.length === 0;

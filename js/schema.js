@@ -20,6 +20,7 @@
  * camp d'une créature : pj, pnj ou monstre ; taille = côté du pion en cases ;
  * couleur (facultative) : rouge, bleu, vert… (voir COULEURS dans lexique.js).
  * etat (facultatif, posé en partie par la Présentation) : « blesse » ou « mort » ; absent = normal.
+ * fiche (facultatif, posé en partie) : identifiant du personnage du donjon dont ce pion est le pion (voir personnages.js).
  * rotation : direction du regard de l'objet (0 nord, 90 est, 180 sud, 270 ouest).
  * position d'une porte : index de case le long du mur (de l'ouest vers l'est
  * pour nord/sud, du nord vers le sud pour est/ouest).
@@ -99,6 +100,7 @@ export function validerPlan(brut) {
     };
     if (COULEURS[k.couleur]) c.couleur = k.couleur;
     if (ETATS.includes(k.etat)) c.etat = k.etat;
+    if (typeof k.fiche === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(k.fiche)) c.fiche = k.fiche;
     Object.assign(c, marqueCache(k));
     plan.creatures.push(c);
   });

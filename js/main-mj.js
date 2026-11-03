@@ -13,6 +13,8 @@ import { tailleRemplir } from './affichage.js';
 import { elementsPalette, GROUPES_PALETTE, SOUS_GROUPES, redimensionner, changerForme } from './pose.js';
 import { SOLS } from './schema.js';
 import { genererDonjon, BORNES, FAMILLES } from './generateur.js';
+import { ajouterPersonnage, retirerPersonnage, actualiserPersonnages, ficheDepuisFichier } from './personnages.js';
+import { carteFiche } from './carte-personnage.js';
 import { MODELES, donjonDepuisModele, copieDonjon } from './modeles.js';
 import { FORMES, LIBELLES_FORMES, POSITIONS_FORMES, casesRetirees, brasDe, brasMax, nombreCases } from './formes.js';
 import { creerPalette } from './palette.js';
@@ -163,6 +165,7 @@ function rendre() {
   majMiniCarte();
   majAide();
   majForme();
+  majPersonnages();
   sauvegarder();
 }
 
@@ -673,6 +676,58 @@ $('plan-donjon').addEventListener('click', (e) => {
   if (id) activerSalle(id);
 });
 
+// --- Personnages : les fiches associées au donjon (js/personnages.js) ---
+function messagePersonnages(texte) {
+  const m = $('personnages-message');
+  m.hidden = !texte;
+  m.textContent = texte;
+}
+function majPersonnages() {
+  const d = donjon();
+  const persos = d.personnages || [];
+  $('personnages-vide').hidden = persos.length > 0;
+  $('personnages-liste').replaceChildren(...persos.map((p) => {
+    const retirer = h('button', { type: 'button', className: 'discret petit' });
+    deuxTemps(retirer, 'Retirer', 'Confirmer', () => { retirerPersonnage(d, p.id); messagePersonnages(`${p.fiche.nom} retiré de ce donjon.`); rendre(); });
+    return carteFiche(p.fiche, [retirer]);
+  }));
+  const locales = stockage.chargerFichesLocales();
+  const valeur = $('personnages-locales').value;
+  $('personnages-locales').replaceChildren(...locales.map((l) => {
+    const deja = persos.some((p) => p.source === l.source);
+    return h('option', { value: l.source, textContent: `${l.fiche.nom}${deja ? ' (déjà ajoutée)' : ''}` });
+  }));
+  if (locales.some((l) => l.source === valeur)) $('personnages-locales').value = valeur;
+  $('personnages-locales').disabled = $('personnages-ajouter').disabled = locales.length === 0;
+  $('personnages-actualiser').disabled = !persos.some((p) => p.source && locales.some((l) => l.source === p.source));
+}
+$('personnages-ajouter').addEventListener('click', () => {
+  const locale = stockage.chargerFichesLocales().find((l) => l.source === $('personnages-locales').value);
+  if (!locale) return;
+  const p = ajouterPersonnage(donjon(), locale.fiche, locale.source);
+  messagePersonnages(p ? `${p.fiche.nom} est associé à ce donjon.` : 'Ce donjon a déjà le maximum de fiches.');
+  rendre();
+});
+$('personnages-actualiser').addEventListener('click', () => {
+  const n = actualiserPersonnages(donjon(), stockage.chargerFichesLocales());
+  messagePersonnages(`${n} fiche${n > 1 ? 's actualisées' : ' actualisée'} depuis ce navigateur.`);
+  rendre();
+});
+$('personnages-fichier').addEventListener('change', async (e) => {
+  const fichier = e.target.files[0];
+  e.target.value = '';
+  if (!fichier) return;
+  try {
+    const fiche = ficheDepuisFichier(await stockage.lireFichierJson(fichier));
+    if (!fiche) throw new Error('fiche illisible');
+    const p = ajouterPersonnage(donjon(), fiche);
+    messagePersonnages(p ? `${p.fiche.nom} est associé à ce donjon.` : 'Ce donjon a déjà le maximum de fiches.');
+    rendre();
+  } catch {
+    messagePersonnages('Ce fichier n’est pas une fiche de personnage : rien n’a été ajouté.');
+  }
+});
+
 // --- Forme de la salle : boutons, épaisseur et position (js/formes.js) ---
 const LIBELLES_POSITIONS = { croix: 'Hauteur des bras', T: 'Mur de la barre', U: 'Mur ouvert', L: 'Coin de l’angle' };
 const NOMS_POSITIONS = { milieu: 'Au milieu', haut: 'En haut', bas: 'En bas', nord: 'Nord', sud: 'Sud', est: 'Est', ouest: 'Ouest', 'sud-ouest': 'Sud-ouest', 'sud-est': 'Sud-est', 'nord-ouest': 'Nord-ouest', 'nord-est': 'Nord-est' };
@@ -886,7 +941,7 @@ const palette = creerPalette($('palette'), {
 // --- Rail d'outils et panneau contextuel ---------------------------------------------------------------
 // Portes, Mobilier et Créatures montrent le catalogue (le groupe suit l'outil) ; les autres outils, leur bloc du panneau.
 // Cliquer l'outil actif replie le panneau : la scène grandit et l'observateur de taille réajuste la carte.
-const TITRES_OUTILS = { salle: 'Salle', portes: 'Portes', mobilier: 'Mobilier', creatures: 'Créatures', notes: 'Notes', plan: 'Plan du donjon', reglages: 'Réglages' };
+const TITRES_OUTILS = { salle: 'Salle', portes: 'Portes', mobilier: 'Mobilier', creatures: 'Créatures', personnages: 'Personnages', notes: 'Notes', plan: 'Plan du donjon', reglages: 'Réglages' };
 const rail = creerRail($('rail'), {
   cle: 'carte-de-mj:outil',
   telephone,

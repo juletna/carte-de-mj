@@ -18,6 +18,7 @@ import { dessiner, dessinerPlanDonjon, tailleQuiTientPlan } from './rendu/moteur
 import { disposerPlan, cleDisposition } from './plan-donjon.js';
 import { activerDeplacement } from './deplacement.js';
 import { creerMiniPlan } from './miniplan.js';
+import { carteFiche } from './carte-personnage.js';
 import { nomCase, lettreColonne } from './parseur/coordonnees.js';
 import { nomAffiche } from './parseur/lexique.js';
 import { creerMicro, voixDisponible } from './voix.js';
@@ -352,6 +353,8 @@ function demarrerRegie() {
   /** `reprise` : on rouvre une partie déjà enregistrée, sans rien réécrire (aucune sauvegarde tant que rien ne change). */
   function entrer(p, { reprise = false } = {}) {
     etat.p = p;
+    const prepare = stockage.chargerDonjons()?.donjons?.[p.donjon.id];
+    if (prepare) pres.synchroniserPersonnages(p, prepare); // les fiches ont pu changer dans le Donjon
     etat.consultee = p.salleCourante;
     etat.selection = null;
     etat.message = '';
@@ -412,6 +415,7 @@ function demarrerRegie() {
     majSalle();
     majCommande();
     majMiniCarte();
+    majPersonnages();
     majEcranLocal();
     diffuser();
   }
@@ -713,6 +717,24 @@ function demarrerRegie() {
       return `Consulter la salle ${s.nom}${statut}`;
     },
   });
+  /** Les fiches du donjon, et de quoi poser le pion de chacun dans la salle regardée. */
+  function majPersonnages() {
+    const p = etat.p;
+    const persos = p.donjon.personnages || [];
+    $('personnages-vide').hidden = persos.length > 0;
+    $('personnages-liste').replaceChildren(...persos.map((perso) => {
+      const pose = pres.pionDuPersonnage(p, perso.id);
+      const ici = pose?.salle === etat.consultee;
+      const mention = pose ? `Pion P${pose.pion.numero}, en ${nomCase(pose.pion.x, pose.pion.y)}${ici ? '' : ` dans « ${p.donjon.salles[pose.salle].nom} »`}.` : '';
+      const poser = bouton(pose ? 'L’amener dans cette salle' : 'Poser dans cette salle', () => {
+        const res = pres.poserPersonnage(p, etat.consultee, perso.id);
+        etat.message = res.ok ? `${perso.fiche.nom} est dans « ${salleConsultee().nom} ». Glisse son pion sur la carte pour le déplacer.` : res.message;
+        modifie();
+      }, 'discret');
+      return carteFiche(perso.fiche, ici ? [] : [poser], mention);
+    }));
+  }
+
   function majMiniCarte() {
     const p = etat.p;
     majMiniPlan({

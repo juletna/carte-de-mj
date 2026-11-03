@@ -458,6 +458,44 @@ export function vueTable(p) {
   return planPublic(plan, { visible: (e) => !estCache(e) || rev.has(e.id) });
 }
 
+/** Où est le pion d'un personnage du donjon dans cette partie. @returns {{salle:string, pion:object}|null} */
+export function pionDuPersonnage(p, idPersonnage) {
+  for (const [salle, s] of Object.entries(p.donjon.salles)) {
+    const pion = s.plan.creatures.find((k) => k.fiche === idPersonnage);
+    if (pion) return { salle, pion };
+  }
+  return null;
+}
+
+/**
+ * Pose le pion d'un personnage dans une salle, au plus près de sa première porte. Déjà posé ailleurs : il y vient.
+ * @returns {{ok:true, pion:object}|{ok:false, message:string}}
+ */
+export function poserPersonnage(p, idSalle, idPersonnage) {
+  const perso = (p.donjon.personnages || []).find((x) => x.id === idPersonnage);
+  const plan = p.donjon.salles[idSalle]?.plan;
+  if (!perso || !plan) return { ok: false, message: 'Ce personnage ou cette salle n’existe plus.' };
+  const deja = pionDuPersonnage(p, idPersonnage);
+  if (deja?.salle === idSalle) return { ok: true, pion: deja.pion };
+  const modele = { type: 'pj', camp: 'pj', taille: 1, fiche: idPersonnage };
+  const { places } = placerPions(plan, [modele], plan.portes[0] || {});
+  if (!places.length) return { ok: false, message: `Plus de place dans cette salle pour ${perso.fiche.nom}.` };
+  if (deja) {
+    const depart = p.donjon.salles[deja.salle].plan;
+    depart.creatures = depart.creatures.filter((k) => k !== deja.pion);
+  }
+  const numeros = plan.creatures.filter((k) => k.type === 'pj').map((k) => k.numero);
+  const pion = { id: idLibre(plan, 'c'), ...modele, x: places[0].x, y: places[0].y, numero: Math.max(0, ...numeros) + 1 };
+  plan.creatures.push(pion);
+  return { ok: true, pion };
+}
+
+/** La partie reprend les fiches du donjon de la bibliothèque : ce ne sont pas des données de jeu, et elles ont pu changer. */
+export function synchroniserPersonnages(p, donjon) {
+  if (donjon?.personnages?.length) p.donjon.personnages = JSON.parse(JSON.stringify(donjon.personnages));
+  else delete p.donjon.personnages;
+}
+
 /**
  * La partie à ouvrir quand on arrive du bouton « Présenter » d'un donjon : celle de ce donjon, sinon une nouvelle.
  * @returns {{partie:object, reprise:boolean}|null}  null : ce donjon n'est pas (ou plus) dans ce navigateur
