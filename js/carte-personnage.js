@@ -2,7 +2,7 @@
  * Une fiche de personnage à l'écran : la même carte dans le Donjon et dans la régie de la Présentation.
  * Tout texte passe par textContent : une fiche vient d'un fichier, jamais de HTML.
  */
-import { STATS } from './personnages.js';
+import { STATS } from './fiche/regles.js';
 import { h } from './dom.js';
 
 const noteSi = (texte) => (texte ? [h('p', { className: 'note', textContent: texte })] : []);
