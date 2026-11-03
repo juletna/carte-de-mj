@@ -264,8 +264,8 @@ const TESTS = [
     const d = donjonDeTest();
     m.creerSalleDerriere(d, { depuis: { salle: premiere(d).id, mur: 'sud', position: 1 } });
     const exporte = JSON.parse(JSON.stringify(d));
-    const r = m.convertirImport(exporte);
-    verifier(r.ok && r.donjon.id !== d.id, 'un nouvel identifiant de donjon est donné : jamais d’écrasement');
+    const r = m.convertirImport(exporte, { idsPris: [d.id] });
+    verifier(r.ok && r.donjon.id !== d.id, 'un nouvel identifiant de donjon est donné quand le sien est pris : jamais d’écrasement');
     verifier(Object.keys(r.donjon.salles).length === 2 && r.donjon.liaisons.length === 1, 'salles et liaisons conservées');
     egal(Object.keys(r.donjon.salles), Object.keys(d.salles), 'identifiants de salle conservés');
 
@@ -287,6 +287,36 @@ const TESTS = [
     ]) {
       const x = m.convertirImport(entree);
       verifier(!x.ok && x.donjon === null && (!morceau || x.erreurs.join(' ').includes(morceau)), `refus attendu (${morceau || 'objet JSON'}) : ${JSON.stringify(x.erreurs)}`);
+    }
+  }],
+  ['import : un fichier garde son identifiant, sauf s’il est pris ; deux imports du même fichier n’écrasent jamais rien', () => {
+    const d = donjonDeTest();
+    d.nom = 'Original';
+    const fichier = JSON.parse(JSON.stringify(d));
+    // Aucun donjon en commun : l'identifiant du fichier est gardé (la Présentation y retrouve sa partie).
+    const seul = m.convertirImport(fichier);
+    verifier(seul.ok && seul.donjon.id === d.id, 'identifiant du fichier gardé');
+    verifier(m.convertirImport(fichier, { idsPris: ['autre-id'] }).donjon.id === d.id, 'gardé tant qu’il n’est pas pris');
+    // Ce que fait l'appelant (main-mj) : le donjon importé s'ajoute à la bibliothèque, sous l'identifiant rendu.
+    const bibliotheque = { [d.id]: d };
+    const importer = () => {
+      const r = m.convertirImport(fichier, { idsPris: Object.keys(bibliotheque) });
+      verifier(r.ok, 'import accepté');
+      bibliotheque[r.donjon.id] = r.donjon;
+      return r.donjon;
+    };
+    const premier = importer(), second = importer(), troisieme = importer();
+    egal(new Set([d.id, premier.id, second.id, troisieme.id]).size, 4, 'quatre identifiants distincts');
+    verifier(bibliotheque[d.id] === d && d.nom === 'Original', 'le donjon d’origine n’a pas été touché');
+    egal(Object.keys(bibliotheque).length, 4, 'trois donjons de plus, aucun remplacé');
+    verifier([premier, second, troisieme].every((x) => x.nom === 'Original' && Object.keys(x.salles).join() === Object.keys(d.salles).join()), 'contenu identique');
+    // Un identifiant invalide n'est pas gardé ; l'ancien format et un plan seul reçoivent un identifiant neuf, jamais un identifiant pris.
+    const invalide = m.convertirImport({ ...fichier, id: 'avec des espaces' }, { idsPris: [d.id] });
+    verifier(invalide.ok && /^donjon-/.test(invalide.donjon.id) && invalide.donjon.id !== d.id, 'identifiant invalide : un neuf');
+    const plan = analyser('salle de 4 par 4 cases, une porte au nord').plan;
+    for (const entree of [{ format: 'jdr-carte', version: 1, salles: [plan] }, plan]) {
+      const x = m.convertirImport(entree, { idsPris: [d.id] });
+      verifier(x.ok && /^donjon-/.test(x.donjon.id) && x.donjon.id !== d.id, 'identifiant neuf');
     }
   }],
   ['estDebutant : vrai tant qu’aucun donjon n’a de liaison ni plus d’une salle', () => {

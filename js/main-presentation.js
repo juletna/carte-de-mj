@@ -415,8 +415,7 @@ function demarrerRegie() {
       const brut = await stockage.lireFichierJson(fichier);
       const res = modele.convertirImport(brut, { echelle: r.echelle });
       if (!res.donjon) throw new Error(res.erreurs.join(' · '));
-      // Un fichier de donjon garde son identifiant : on retrouve ainsi sa partie en cours. Il n'entre PAS dans la bibliothèque.
-      if (brut.format === modele.FORMAT && typeof brut.id === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(brut.id)) res.donjon.id = brut.id;
+      // Un fichier de donjon garde son identifiant (convertirImport) : on retrouve ainsi sa partie en cours. Il n'entre PAS dans la bibliothèque.
       etat.fichier = { donjon: res.donjon, avertissements: res.avertissements };
       afficherDepart();
     } catch (err) {

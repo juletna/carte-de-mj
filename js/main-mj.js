@@ -1244,11 +1244,10 @@ function messageFichier(texte, erreurs = []) {
 
 /** Ajoute le donjon lu dans un fichier ou un texte collé. Renvoie true s'il a été ajouté. */
 function ajouterDonjonLu(brut) {
-  const resultat = modele.convertirImport(brut, { echelle: r.echelle });
+  // Le donjon importé s'AJOUTE aux autres : il garde l'identifiant de son fichier, sauf s'il est déjà pris (alors il en reçoit un neuf) ; rien n'est écrasé.
+  const resultat = modele.convertirImport(brut, { echelle: r.echelle, idsPris: Object.keys(etat.donjons) });
   if (!resultat.donjon) { messageFichier('', [`Import refusé : ${resultat.erreurs.join(' · ')}`]); return false; }
-  // Le donjon importé s'AJOUTE aux autres, sous un identifiant neuf : rien n'est écrasé.
   const d = resultat.donjon;
-  while (d.id in etat.donjons) d.id = modele.idUnique('donjon', Object.keys(etat.donjons));
   etat.donjons[d.id] = d;
   etat.actif = d.id;
   afficherSalleActive();

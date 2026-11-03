@@ -474,19 +474,22 @@ export function donjonDepuisAncien(ancien, { nom = 'Donjon' } = {}) {
 
 /**
  * Importe le contenu d'un fichier : nouveau format, ancien format (`jdr-carte`, une salle)
- * ou plan seul. Le donjon renvoyé reçoit toujours de nouveaux identifiants de donjon, pour
- * ne jamais écraser un donjon existant.
+ * ou plan seul. Un fichier de donjon GARDE son identifiant (on retrouve ainsi sa partie en cours) ; mais si cet identifiant
+ * est dans `idsPris` (les donjons de l'utilisateur), le donjon en reçoit un neuf : importer deux fois le même fichier
+ * ne remplace jamais un donjon existant. Un fichier sans identifiant valide, un ancien format et un plan seul en reçoivent toujours un neuf.
+ * @param {{echelle?:number, idsPris?:Iterable<string>}} [options]
  * @returns {{ok:boolean, erreurs:string[], avertissements:string[], donjon:object|null}}
  */
-export function convertirImport(brut, { echelle } = {}) {
+export function convertirImport(brut, { echelle, idsPris = [] } = {}) {
   const refus = (...erreurs) => ({ ok: false, erreurs, avertissements: [], donjon: null });
   if (!estObjet(brut)) return refus('le fichier doit contenir un objet JSON');
-
-  if (brut.format === FORMAT) {
-    const r = validerDonjon(brut, { echelle });
-    if (r.donjon) r.donjon.id = idUnique('donjon');
+  const pris = new Set(idsPris);
+  const sansCollision = (r) => {
+    if (r.donjon && pris.has(r.donjon.id)) r.donjon.id = idUnique('donjon', pris);
     return r;
-  }
+  };
+
+  if (brut.format === FORMAT) return sansCollision(validerDonjon(brut, { echelle }));
 
   let planBrut, texte;
   if (brut.format === FORMAT_ANCIEN) {
@@ -504,10 +507,10 @@ export function convertirImport(brut, { echelle } = {}) {
   const v = validerPlan(planBrut);
   if (!v.plan) return refus(`plan invalide : ${v.erreurs.join(', ')}`);
   const donjon = creerDonjon({ nom: v.plan.nom !== 'Salle' ? v.plan.nom : 'Donjon importé', plan: v.plan, texte, echelle });
-  return {
+  return sansCollision({
     ok: true,
     erreurs: [],
     avertissements: v.ok ? [] : [`éléments écartés : ${v.erreurs.join(', ')}`],
     donjon,
-  };
+  });
 }
