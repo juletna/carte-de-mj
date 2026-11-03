@@ -1,0 +1,17 @@
+# Lance la suite de tests (node tests/node.mjs) à chaque push et à chaque pull request.
+# Le site, lui, est publié par GitHub Pages depuis la racine : ce dossier .github n'y change rien.
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+      - run: node tests/node.mjs
