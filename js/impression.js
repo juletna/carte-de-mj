@@ -36,6 +36,8 @@ export const ZONE = {
   portrait: { l: FEUILLE.portrait.l - 2 * MARGE_PAGE_MM, h: FEUILLE.portrait.h - 2 * MARGE_PAGE_MM },
   paysage: { l: FEUILLE.paysage.l - 2 * MARGE_PAGE_MM, h: FEUILLE.paysage.h - 2 * MARGE_PAGE_MM },
 };
+/** Les pages dessinées sont un peu plus courtes que la zone imprimable : un arrondi du navigateur ne doit pas créer une page blanche. */
+export const JEU_PAGE_MM = 0.5;
 export const ENTETE_MM = 9;          // titre, position dans l'assemblage, échelle
 export const PIED_MM = 10;           // règle de contrôle et consigne
 export const REPERE_COLONNES_MM = 5; // lettres au-dessus de la grille
@@ -46,6 +48,22 @@ export const REGLE_MM = 50;          // règle de contrôle : 5 cm exacts
 export const PPP = 254;              // résolution des canvas : 10 pixels par mm (dans la plage 200–300 ppp)
 export const MESSAGE_REGLE = 'Cette règle doit mesurer exactement 5 cm. Sinon, imprime à 100 % (échelle « Réelle »), sans « Ajuster à la page ».';
 export const VERSIONS = ['mj', 'joueurs'];
+
+/**
+ * Les mesures que la feuille de style de l'impression reprend (custom properties posées sur <html> au démarrage), pour que
+ * le dessin des pages et le découpage en cases parlent des mêmes millimètres. `@page` ne peut pas lire de variable :
+ * sa marge et son format sont gardés dans css/impression.css, et tests/mesures-impression.test.js vérifie qu'ils concordent avec les constantes.
+ */
+export function variablesCss() {
+  const mm = (v) => `${v}mm`;
+  return {
+    '--marge-page': mm(MARGE_PAGE_MM),
+    '--page-portrait-l': mm(ZONE.portrait.l), '--page-portrait-h': mm(ZONE.portrait.h - JEU_PAGE_MM),
+    '--page-paysage-l': mm(ZONE.paysage.l), '--page-paysage-h': mm(ZONE.paysage.h - JEU_PAGE_MM),
+    '--entete': mm(ENTETE_MM), '--repere-colonnes': mm(REPERE_COLONNES_MM), '--repere-lignes': mm(REPERE_LIGNES_MM),
+    '--regle': mm(REGLE_MM),
+  };
+}
 
 const EPS = 1e-9;
 const arrondi = (v, n = 2) => Math.round(v * 10 ** n) / 10 ** n;

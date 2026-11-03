@@ -1,6 +1,8 @@
 /* Impression : page de réglages à l'écran, et pages A4 (aperçu fidèle à ce qui sort de l'imprimante). Complète css/style.css. */
 
-/* La feuille d'impression : A4 avec 10 mm de marge, exactement comme @page. */
+/* La feuille d'impression : A4 avec 10 mm de marge, exactement comme @page. `@page` ne lit pas de variable : sa marge et son format
+   sont écrits ici, et tests/impression.test.js les compare aux constantes de js/impression.js. Les autres mesures (--marge-page,
+   --page-*, --entete, --repere-*, --regle) sont posées sur <html> par main-impression.js, depuis les mêmes constantes. */
 @page { size: A4; margin: 10mm; }
 @page paysage { size: A4 landscape; margin: 10mm; }
 
@@ -41,14 +43,14 @@ body.impression a { color: var(--accent); }
 .apercu { background: #3a3940; padding: 16px 0 32px; overflow-x: auto; }
 .apercu > * { margin-left: auto; margin-right: auto; }
 
-.page, .feuille-mj { position: relative; background: #fff; color: #000; box-shadow: 0 0 0 10mm #fff, 0 2px 14px 10mm rgba(0, 0, 0, 0.5); margin-top: 24mm; margin-bottom: 24mm; font: 3.3mm/1.25 system-ui, -apple-system, "Segoe UI", sans-serif; }
+.page, .feuille-mj { position: relative; background: #fff; color: #000; box-shadow: 0 0 0 var(--marge-page) #fff, 0 2px 14px var(--marge-page) rgba(0, 0, 0, 0.5); margin-top: 24mm; margin-bottom: 24mm; font: 3.3mm/1.25 system-ui, -apple-system, "Segoe UI", sans-serif; }
 .apercu > :first-child { margin-top: 14mm; }
-.page.portrait { width: 190mm; height: 276.5mm; }
-.page.paysage { width: 277mm; height: 189.5mm; page: paysage; }
+.page.portrait { width: var(--page-portrait-l); height: var(--page-portrait-h); }
+.page.paysage { width: var(--page-paysage-l); height: var(--page-paysage-h); page: paysage; }
 .page { overflow: hidden; }
 
 /* En-tête : titre, position dans l'assemblage, échelle, pages voisines */
-.page .entete { position: absolute; left: 0; right: 0; top: 0; height: 9mm; overflow: hidden; border-bottom: 0.2mm solid #000; }
+.page .entete { position: absolute; left: 0; right: 0; top: 0; height: var(--entete); overflow: hidden; border-bottom: 0.2mm solid #000; }
 .page .ligne-entete { display: flex; justify-content: space-between; gap: 4mm; white-space: nowrap; height: 4.3mm; line-height: 4.3mm; }
 .page .titre { font-weight: 700; font-size: 3.8mm; overflow: hidden; text-overflow: ellipsis; }
 .page .position { font-weight: 600; font-size: 3.2mm; }
@@ -60,9 +62,9 @@ body.impression a { color: var(--accent); }
 .page .grille { position: absolute; }
 .page .grille img { position: absolute; display: block; max-width: none; image-rendering: auto; }
 .page .lettres, .page .numeros { position: absolute; display: flex; font-weight: 700; font-size: 3.2mm; }
-.page .lettres { height: 5mm; }
-.page .lettres span { flex: none; text-align: center; line-height: 5mm; }
-.page .numeros { width: 6mm; flex-direction: column; }
+.page .lettres { height: var(--repere-colonnes); }
+.page .lettres span { flex: none; text-align: center; line-height: var(--repere-colonnes); }
+.page .numeros { width: var(--repere-lignes); flex-direction: column; }
 .page .numeros span { flex: none; display: flex; align-items: center; justify-content: flex-end; padding-right: 1.2mm; }
 /* Raccords : trait pointillé de coupe (côtés nord et ouest, qui reçoivent la page voisine par-dessus) et étiquette (est, sud) */
 .page .coupe { position: absolute; border: 0 dashed #000; }
@@ -74,12 +76,12 @@ body.impression a { color: var(--accent); }
 
 /* Pied : règle de contrôle de 5 cm et consigne */
 .page .pied { position: absolute; left: 0; right: 0; bottom: 0; height: 9mm; border-top: 0.2mm solid #000; display: flex; gap: 4mm; align-items: center; }
-.page .regle { flex: none; display: block; width: 50mm; height: 8mm; }
+.page .regle { flex: none; display: block; width: var(--regle); height: 8mm; }
 .page .consigne-regle { font-size: 2.9mm; line-height: 1.25; }
 .page .consigne-regle b { margin-right: 1.5mm; }
 
 /* Feuille du MJ : texte, qui peut courir sur plusieurs pages */
-.feuille-mj { width: 190mm; min-height: 100mm; padding: 0; }
+.feuille-mj { width: var(--page-portrait-l); min-height: 100mm; padding: 0; }
 .feuille-mj h1 { font-size: 6mm; margin: 0 0 2mm; letter-spacing: 0; }
 .feuille-mj h2 { font-size: 4.6mm; margin: 5mm 0 1mm; text-transform: none; letter-spacing: 0; color: #000; border-bottom: 0.2mm solid #000; }
 .feuille-mj h3 { font-size: 3.5mm; margin: 2mm 0 0.5mm; }

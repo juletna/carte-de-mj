@@ -11,7 +11,9 @@ import { CLE_DONJONS, chargerDonjons } from './stockage.js';
 import { dessinerFenetre } from './rendu/moteur.js';
 import { EPAISSEUR_MUR } from './rendu/geometrie.js';
 import * as papier from './rendu/themes/papier.js';
-import { preparerImpression, messageEchelle, resolutionCanvas, REGLE_MM, MESSAGE_REGLE } from './impression.js';
+import {
+  preparerImpression, messageEchelle, resolutionCanvas, variablesCss, FEUILLE, REPERE_COLONNES_MM, REPERE_LIGNES_MM, REGLE_MM, MESSAGE_REGLE,
+} from './impression.js';
 import { $, h } from './dom.js';
 import { pluriel, virgule } from './format.js';
 
@@ -144,9 +146,9 @@ function creerPage(salle, decoupage, p, version) {
         : h('span', { className: 'detail-entete', textContent: `1 case = ${virgule(c)} mm (échelle réelle)` }),
       h('span', { className: 'detail-entete', textContent: p.total > 1 ? `Raccords — ${voisinesTexte(p)}` : '' })));
 
-  const lettres = h('div', { className: 'lettres', style: `left:0;top:${mm(-(5 + (p.bords.nord ? mur : 0)))}` },
+  const lettres = h('div', { className: 'lettres', style: `left:0;top:${mm(-(REPERE_COLONNES_MM + (p.bords.nord ? mur : 0)))}` },
     ...p.lettres.map((l) => h('span', { textContent: l, style: `width:${mm(c)}` })));
-  const numeros = h('div', { className: 'numeros', style: `top:0;left:${mm(-(6 + (p.bords.ouest ? mur : 0)))}` },
+  const numeros = h('div', { className: 'numeros', style: `top:0;left:${mm(-(REPERE_LIGNES_MM + (p.bords.ouest ? mur : 0)))}` },
     ...p.numeros.map((n) => h('span', { textContent: String(n), style: `height:${mm(c)}` })));
 
   const grille = h('div', { className: 'grille', style: `left:${mm(g.x)};top:${mm(g.y)};width:${mm(g.l)};height:${mm(g.h)}` }, lettres, numeros);
@@ -311,7 +313,7 @@ async function rendre() {
 /** Aperçu à l'écran : réduit pour tenir dans la fenêtre (CSS zoom), jamais à l'impression. */
 function ajusterApercu() {
   const apercu = $('apercu');
-  const large = apercu.querySelector('.page.paysage') ? 297 : 210; // mm : feuille avec marges
+  const large = apercu.querySelector('.page.paysage') ? FEUILLE.paysage.l : FEUILLE.portrait.l; // mm : feuille avec marges
   const pxLarge = (large * 96) / 25.4;
   const dispo = document.documentElement.clientWidth;
   apercu.style.zoom = dispo < pxLarge ? String(Math.max(0.3, dispo / pxLarge)) : '';
@@ -320,6 +322,7 @@ function ajusterApercu() {
 // --- Démarrage -------------------------------------------------------------------------
 
 function demarrer() {
+  for (const [nom, valeur] of Object.entries(variablesCss())) document.documentElement.style.setProperty(nom, valeur);
   const lecture = lireDonjons();
   if (lecture.erreur) { afficherMessage(lecture.erreur); return; }
   etat.donjons = lecture.donjons;

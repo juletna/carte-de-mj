@@ -321,7 +321,7 @@ css/base.css        socle commun : jetons (couleurs du thème sombre, rayons, es
 css/style.css       styles communs au Donjon, à la Présentation et à l'Impression : panneau, champs, boutons, scène, onglets du téléphone, fiches de personnage
 css/donjon.css      mise en page du Donjon : barre, rail d'outils, panneau, bande des salles, bulle d'actions, zoom
 css/presentation.css  écran de départ, régie et vue table
-css/impression.css  pages A4 et réglages de l'impression
+css/impression.css  pages A4 et réglages de l'impression (mesures reprises de js/impression.js par des variables CSS ; `@page` écrit en dur, comparé par un test)
 js/dom.js           outils DOM communs aux pages : `$`, `h`, bouton, confirmation en deux temps, choix d'un fichier à importer
 js/format.js        pluriel, virgule française, sans accents, objet JSON, libellés communs « Fermer » et micro (pur, sans DOM)
 js/main-mj.js       branchement de l'interface du Donjon (donjons, salles, sélection)
@@ -335,7 +335,7 @@ js/affichage.js     réglages d'affichage : taille par défaut et bornes, échel
 js/presentation.js  partie en cours, portes, révélations, ce que voit la table (`visibleATable`), états des pions, improvisation, vueTable (pur, sans DOM)
 js/main-presentation.js  régie et vue table (DOM, stockage, BroadcastChannel)
 js/commande-table.js  quelle régie commande la table quand plusieurs sont ouvertes (pur, sans DOM)
-js/impression.js    découpage en pages A4, échelle, proposition de réduction, versions MJ / joueurs (pur, sans DOM)
+js/impression.js    découpage en pages A4, mesures de la feuille (aussi données au CSS), échelle, proposition de réduction, versions MJ / joueurs (pur, sans DOM)
 js/main-impression.js  page d'impression (DOM, aperçu, règle de contrôle, proposition de réduction, barre collante)
 js/telephone.js     sous 760 px : onglets Texte / Carte et Actions / Carte, taille de case qui tient dans la zone, défilement au doigt d'une grande carte
 js/donjon.js        modèle du donjon : salles, liaisons, orphelines, validation (pur, sans DOM)
