@@ -897,6 +897,25 @@ function demarrerRegie() {
       return `Consulter la salle ${s.nom}${statut}`;
     },
   });
+  /** Dégâts et soins d'un personnage à fiche : un champ pour le nombre de PV, et un bouton par sens. */
+  function reglagePV(perso, enJeu) {
+    const champ = h('input', { type: 'number', min: '1', step: '1', inputMode: 'numeric', placeholder: 'PV', 'aria-label': `PV à retirer ou à rendre à ${perso.fiche.nom}` });
+    champ.dataset.pv = perso.id;
+    const reprendreLaMain = () => [...$('personnages-liste').querySelectorAll('input[data-pv]')].find((c) => c.dataset.pv === perso.id)?.focus({ preventScroll: true });
+    const appliquer = (sens) => {
+      const n = Math.floor(Number(champ.value));
+      if (!(n >= 1)) { annoncer('Indique d’abord un nombre de PV.'); champ.focus(); return; }
+      const res = pres.changerPV(etat.p, perso.id, sens * n);
+      etat.message = `${perso.fiche.nom} : ${sens < 0 ? pluriel(n, 'dégât', 'dégâts') : `${n} PV rendu${n > 1 ? 's' : ''}`}, ${res.pv}/${res.pvMax} PV.`;
+      modifie();
+      reprendreLaMain();
+    };
+    return h('div', { className: 'reglage-pv' }, champ,
+      bouton('Dégâts', () => appliquer(-1), 'discret'),
+      bouton('Soins', () => appliquer(1), 'discret'),
+      ...(enJeu ? [bouton('PV de la fiche', () => { pres.oublierPV(etat.p, perso.id); etat.message = `${perso.fiche.nom} reprend les PV de sa fiche.`; modifie(); reprendreLaMain(); }, 'discret')] : []));
+  }
+
   /** Les fiches du donjon et les joueurs sans fiche, et de quoi poser le pion de chacun dans la salle regardée. */
   function majPersonnages() {
     const p = etat.p;
@@ -914,7 +933,11 @@ function demarrerRegie() {
     const persos = p.donjon.personnages || [], joueurs = p.joueurs || [];
     $('personnages-vide').hidden = persos.length + joueurs.length > 0;
     $('personnages-liste').replaceChildren(
-      ...persos.map((perso) => carte(perso.id, (actions, mention) => carteFiche(perso.fiche, actions, mention))),
+      ...persos.map((perso) => carte(perso.id, (actions, mention) => {
+        const { pv, pvTemp, enJeu } = pres.pvPersonnage(p, perso.id);
+        const note = enJeu ? 'PV changés en jeu : la fiche du joueur, elle, ne bouge pas.' : '';
+        return carteFiche({ ...perso.fiche, pv, pvTemp }, [reglagePV(perso, enJeu), ...actions], [note, mention].filter(Boolean).join(' '));
+      })),
       ...joueurs.map((joueur) => carte(joueur.id, (actions, mention) => carteJoueur(joueur, actions, mention))));
   }
 

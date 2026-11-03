@@ -10,7 +10,8 @@
  *   reveles:       { idSalle: [idElement] },   // éléments `cache: true` que le MJ a révélés
  *   notesPartie:   { idSalle: texte },         // notes prises en jouant (facultatif : absent des anciennes parties)
  *   masques:       { idSalle: ['monstres'|'objets'] }, // ce que le MJ a retiré de la table dans cette salle (facultatif, idem)
- *   joueurs:       [{ id, nom, race, classe }]  // joueurs sans fiche, indiqués au lancement (facultatif, idem ; voir personnages.js)
+ *   joueurs:       [{ id, nom, race, classe }],  // joueurs sans fiche, indiqués au lancement (facultatif, idem ; voir personnages.js)
+ *   pvEnJeu:       { idPersonnage: { pv, pvTemp } }  // PV changés en régie (facultatif, idem). À part : les fiches sont recopiées du donjon à chaque ouverture
  * }
  *
  * Démarrer une présentation copie le donjon : le donjon préparé n'est JAMAIS modifié, et aucun
@@ -97,7 +98,7 @@ export function creerPresentation(donjon, { salleDepart } = {}) {
   const depart = typeof salleDepart === 'string' && salleDepart in copie.salles ? salleDepart : Object.keys(copie.salles)[0];
   return {
     format: FORMAT_PRESENTATION, version: VERSION_PRESENTATION,
-    donjon: copie, salleCourante: depart, decouvertes: [depart], reveles: dictionnaire(), notesPartie: dictionnaire(), masques: dictionnaire(), joueurs: [],
+    donjon: copie, salleCourante: depart, decouvertes: [depart], reveles: dictionnaire(), notesPartie: dictionnaire(), masques: dictionnaire(), joueurs: [], pvEnJeu: dictionnaire(),
   };
 }
 
@@ -148,7 +149,17 @@ export function validerPresentation(brut) {
       if (gardes.length) masques[idSalle] = gardes;
     }
   }
-  return { ok: true, erreurs: [], presentation: { format: FORMAT_PRESENTATION, version: VERSION_PRESENTATION, donjon, salleCourante, decouvertes, reveles, notesPartie, masques, joueurs: validerJoueurs(brut.joueurs) } };
+
+  // PV changés en régie (facultatifs) : seulement pour les fiches de ce donjon, en nombres positifs.
+  const pvEnJeu = dictionnaire();
+  if (estObjet(brut.pvEnJeu)) {
+    const positif = (v) => Number.isFinite(v) && v >= 0;
+    for (const { id } of donjon.personnages || []) {
+      const e = Object.hasOwn(brut.pvEnJeu, id) ? brut.pvEnJeu[id] : null;
+      if (estObjet(e) && positif(e.pv) && positif(e.pvTemp)) pvEnJeu[id] = { pv: e.pv, pvTemp: e.pvTemp };
+    }
+  }
+  return { ok: true, erreurs: [], presentation: { format: FORMAT_PRESENTATION, version: VERSION_PRESENTATION, donjon, salleCourante, decouvertes, reveles, notesPartie, masques, joueurs: validerJoueurs(brut.joueurs), pvEnJeu } };
 }
 
 // --- Découvertes, salle courante -------------------------------------------------------
@@ -585,6 +596,41 @@ export function poserPersonnage(p, idSalle, idPersonnage) {
   const pion = { id: idLibre(plan, 'c'), ...modele, x: places[0].x, y: places[0].y, numero: Math.max(0, ...numeros) + 1 };
   plan.creatures.push(pion);
   return { ok: true, pion };
+}
+
+/**
+ * Les PV d'un personnage à fiche : ceux changés en jeu, sinon ceux de la fiche.
+ * @returns {{pv:number, pvTemp:number, pvMax:number, enJeu:boolean}|null}  null : pas de fiche (un joueur sans fiche n'a pas de PV)
+ */
+export function pvPersonnage(p, id) {
+  const fiche = (p.donjon.personnages || []).find((x) => x.id === id)?.fiche;
+  if (!fiche) return null;
+  const enJeu = p.pvEnJeu?.[id];
+  return enJeu ? { pv: Math.min(enJeu.pv, fiche.pvMax), pvTemp: enJeu.pvTemp, pvMax: fiche.pvMax, enJeu: true } : { pv: fiche.pv, pvTemp: fiche.pvTemp, pvMax: fiche.pvMax, enJeu: false };
+}
+
+/**
+ * Change les PV d'un personnage à fiche, comme l'outil Fiche : des dégâts (montant négatif) entament d'abord les PV temporaires et
+ * s'arrêtent à 0 ; des soins (montant positif) s'arrêtent aux PV max. La fiche elle-même n'est pas touchée.
+ * @returns {{pv:number, pvTemp:number, pvMax:number, enJeu:boolean}|null}  null : pas de fiche, ou montant illisible
+ */
+export function changerPV(p, id, montant) {
+  const actuels = pvPersonnage(p, id);
+  if (!actuels || !Number.isInteger(montant) || !montant) return null;
+  let { pv, pvTemp } = actuels;
+  if (montant < 0) {
+    const absorbe = Math.min(pvTemp, -montant);
+    pvTemp -= absorbe;
+    pv = Math.max(0, pv + montant + absorbe);
+  } else pv = Math.max(pv, Math.min(actuels.pvMax, pv + montant));
+  if (!estObjet(p.pvEnJeu)) p.pvEnJeu = dictionnaire();
+  p.pvEnJeu[id] = { pv, pvTemp };
+  return pvPersonnage(p, id);
+}
+
+/** Oublie les PV changés en jeu : le personnage reprend ceux de sa fiche. */
+export function oublierPV(p, id) {
+  if (p.pvEnJeu) delete p.pvEnJeu[id];
 }
 
 /** La partie reprend les fiches du donjon de la bibliothèque : ce ne sont pas des données de jeu, et elles ont pu changer. */

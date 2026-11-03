@@ -84,6 +84,8 @@ Dans le Donjon, l'outil « Personnages » associe des fiches au donjon : celles 
 
 En régie, le bloc « Personnages » montre les mêmes fiches, et « Poser dans cette salle » crée le pion du personnage. Les fiches ne partent jamais à la table.
 
+**PV en jeu :** chaque fiche de la régie a un champ avec « Dégâts » et « Soins », aux mêmes règles que la Fiche : les PV temporaires partent d'abord, jamais sous 0 ni au-dessus du max. Ces PV sont gardés dans la partie, à part des fiches, qui sont recopiées du donjon à chaque ouverture. Ni le donjon préparé ni le téléphone du joueur ne sont modifiés ; « PV de la fiche » y revient. Un joueur sans fiche n'a pas de PV, et les PV ne partent jamais à la table.
+
 **Au hasard :** « 🎲 Au hasard » tire une fiche complète (`js/fiche-hasard.js`, pur), sur le modèle du donjon au hasard : classe, race et niveau choisis ou tirés, numéro de tirage (le même numéro et les mêmes paramètres redonnent la même fiche), et un nouveau tirage remplace le précédent. Le bouton est à deux endroits. Dans le Donjon, outil « Personnages », on peut tirer plusieurs fiches d'un coup (les classes ne se répètent qu'une fois toutes tirées), le donjon en garde le résumé comme pour un fichier ajouté, et « Garder » fixe un tirage. Rien n'est écrit dans les fiches du navigateur. Dans la Fiche, depuis le nom en haut ou l'onglet Fiche, le personnage est enregistré dans ce navigateur, et le retoucher le garde. Il est alors proposé dans le Donjon comme les autres fiches.
 
 **Jouer sans fiche :** quand une partie commence (« Présenter », « Recommencer »), la Présentation demande qui joue. Soit on coche des fiches du donjon, soit on indique un nombre de joueurs, puis le nom, la race et la classe de chacun (rien n'est obligatoire), soit on ne pose aucun pion. Les pions sont posés dans la première salle, numérotés P1, P2… dans l'ordre de saisie. Ces joueurs appartiennent à la partie et pas au donjon préparé, et aucune fiche n'est créée. En régie, ils sont dans le bloc « Personnages » et le pion sélectionné porte leur nom ; à la table, le pion reste « P1 », et ni le nom, ni la race, ni la classe n'y partent.
@@ -268,7 +270,8 @@ ni de la Fiche ni d'un réseau, et n'exige de décrire quoi que ce soit : elle o
   "salleCourante": "s-x1y2z3", "decouvertes": ["s-x1y2z3"], "reveles": { "s-x1y2z3": ["o1", "p1"] },
   "notesPartie": { "s-x1y2z3": "Les joueurs ont forcé la serrure." },
   "masques": { "s-x1y2z3": ["monstres", "objets"] },
-  "joueurs": [{ "id": "joueur-1", "nom": "Mira", "race": "Elfe", "classe": "Barde" }] }
+  "joueurs": [{ "id": "joueur-1", "nom": "Mira", "race": "Elfe", "classe": "Barde" }],
+  "pvEnJeu": { "pj-a1b2c3": { "pv": 13, "pvTemp": 0 } } }
 ```
 
 Rangé dans `carte-de-mj:presentations-v1` sous la forme `{ "presentations": { "<idDonjon>": <partie> } }`. Les identifiants d'éléments
@@ -281,6 +284,8 @@ nettoyé (salles inconnues, valeurs qui ne sont pas du texte, longueur bornée) 
 `masques` est un autre ajout facultatif : absent, tout est visible. Une salle inconnue ou une catégorie autre que `monstres` et `objets` est écartée à la relecture.
 
 `joueurs` aussi : absent, la partie n'a aucun joueur sans fiche. Leurs pions portent leur identifiant dans le champ `fiche`, comme ceux des fiches du donjon.
+
+`pvEnJeu` aussi : absent, chaque personnage a les PV de sa fiche. Un personnage inconnu du donjon ou une valeur négative est écarté à la relecture.
 
 ## Imprimer un donjon
 

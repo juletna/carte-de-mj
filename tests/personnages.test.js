@@ -128,6 +128,52 @@ const TESTS = [
     verifier(!('personnages' in pres.donjon), 'plus aucune');
     verifier(p.validerPresentation(JSON.parse(JSON.stringify(pres))).presentation, 'partie toujours valide');
   }],
+  ['PV en régie : dégâts et soins bornés, PV temporaires d’abord, sans toucher à la fiche', () => {
+    const d = donjon();
+    ajouterPersonnage(d, resumerFiche(FICHE), 'loc1'); // 20/28, 2 temporaires
+    const pres = p.creerPresentation(d);
+    const id = pres.donjon.personnages[0].id;
+    const avant = JSON.stringify(pres.donjon.personnages);
+    egal(p.pvPersonnage(pres, id), { pv: 20, pvTemp: 2, pvMax: 28, enJeu: false }, 'au départ, ceux de la fiche');
+    egal(p.changerPV(pres, id, -5), { pv: 17, pvTemp: 0, pvMax: 28, enJeu: true }, 'les temporaires partent d’abord');
+    egal(p.changerPV(pres, id, -100).pv, 0, 'jamais sous 0');
+    egal(p.changerPV(pres, id, 7).pv, 7, 'soins');
+    egal(p.changerPV(pres, id, 100).pv, 28, 'jamais au-dessus du max');
+    egal(JSON.stringify(pres.donjon.personnages), avant, 'la fiche n’est pas touchée');
+    for (const montant of [0, 1.5, 'x', NaN]) egal(p.changerPV(pres, id, montant), null, `montant refusé : ${montant}`);
+    egal(p.changerPV(pres, 'inconnu', -1), null, 'personnage inconnu');
+    const [joueur] = p.ajouterJoueurs(pres, [{ nom: 'Mira' }]);
+    egal(p.pvPersonnage(pres, joueur), null, 'un joueur sans fiche n’a pas de PV');
+    egal(p.changerPV(pres, joueur, -1), null, 'ni de dégâts');
+    p.changerPV(pres, id, -8);
+    p.oublierPV(pres, id);
+    egal(p.pvPersonnage(pres, id), { pv: 20, pvTemp: 2, pvMax: 28, enJeu: false }, 'retour aux PV de la fiche');
+  }],
+  ['PV en régie : ils survivent à la recopie des fiches et à la relecture, sans jamais partir à la table', () => {
+    const d = donjon();
+    ajouterPersonnage(d, resumerFiche({ ...FICHE, tmp: 0 }), 'loc1');
+    const pres = p.creerPresentation(d);
+    const id = pres.donjon.personnages[0].id;
+    p.poserPersonnage(pres, pres.salleCourante, id);
+    p.changerPV(pres, id, -7);
+    p.synchroniserPersonnages(pres, d);
+    egal(p.pvPersonnage(pres, id).pv, 13, 'la recopie des fiches ne les efface pas');
+    const vue = JSON.stringify([p.vueTable(pres), p.miniPlanTable(pres)]);
+    verifier(!vue.includes('pvEnJeu') && !vue.includes('"pv"') && !vue.includes(id), 'rien à la table');
+    const brut = JSON.parse(JSON.stringify(pres));
+    egal(p.pvPersonnage(p.validerPresentation(brut).presentation, id).pv, 13, 'relus');
+    d.personnages[0].fiche = resumerFiche({ ...FICHE, hpMax: 10, hp: 10 });
+    p.synchroniserPersonnages(pres, d);
+    egal(p.pvPersonnage(pres, id).pv, 10, 'une fiche au max plus bas les plafonne');
+    const ancienne = JSON.parse(JSON.stringify(pres));
+    delete ancienne.pvEnJeu;
+    egal(p.validerPresentation(ancienne).presentation.pvEnJeu, {}, 'partie sans PV en jeu');
+    egal(p.pvPersonnage(ancienne, id).enJeu, false, 'lue sans le champ');
+    verifier(p.changerPV(ancienne, id, -1), 'le champ se crée au premier changement');
+    const piege = JSON.parse(JSON.stringify(pres));
+    piege.pvEnJeu = { [id]: { pv: -3, pvTemp: 0 }, fantome: { pv: 1, pvTemp: 0 } };
+    egal(p.validerPresentation(piege).presentation.pvEnJeu, {}, 'valeur absurde et personnage inconnu écartés');
+  }],
   ['joueurs sans fiche : relus par liste blanche, avec un nom par défaut et des identifiants uniques', () => {
     egal(validerJoueurs('x'), [], 'mauvaise forme');
     const j = validerJoueurs([{ nom: '  Mira ', race: ' Elfe', classe: 'Barde ', secret: 'x' }, {}, 3, { nom: 42 }]);

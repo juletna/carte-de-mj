@@ -124,6 +124,9 @@ body.presentation a { color: var(--accent); }
 .nouvelle-salle label { font-weight: 600; }
 .nouvelle-salle input[type="text"], .nouvelle-salle textarea { width: 100%; background: var(--champ); color: var(--texte); border: 1px solid var(--bord); border-radius: var(--rayon); padding: 8px 10px; font: inherit; }
 
+.reglage-pv { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; flex: 1 1 100%; }
+.reglage-pv input { width: 72px; min-height: var(--cible); background: var(--panneau); color: var(--texte); border: 1px solid var(--bord); border-radius: var(--rayon); padding: 6px 8px; font: inherit; }
+
 /* --- Vue table : la carte seule --- */
 body.vue-table { overflow: hidden; background: #000; }
 #ecran-table { position: fixed; inset: 0; background: #000; z-index: 50; }
