@@ -25,7 +25,7 @@ import { carteFiche, carteJoueur } from './carte-personnage.js';
 import { MAX_JOUEURS } from './personnages.js';
 import { nomCase, lettreColonne } from './parseur/coordonnees.js';
 import { nomAffiche } from './parseur/lexique.js';
-import { creerMicro, voixDisponible } from './voix.js';
+import { creerMicro } from './voix.js';
 import { MODES_TABLE, modeTable, tailleTable } from './affichage.js';
 import { telephone, activerOnglets, marquerDefilement, tailleQuiTient } from './telephone.js';
 

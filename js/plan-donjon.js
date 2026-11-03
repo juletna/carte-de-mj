@@ -28,7 +28,6 @@
 
 import { casesRetirees, retraitPorte } from './formes.js';
 
-const VECTEUR = { nord: [0, -1], sud: [0, 1], est: [1, 0], ouest: [-1, 0] };
 const OPPOSE = { nord: 'sud', sud: 'nord', est: 'ouest', ouest: 'est' };
 
 export const ECART_LIAISON = 3;   // cases entre les murs de deux salles reliées
@@ -579,10 +578,7 @@ export function cheminCouloir(c) {
   } else if (horizontal(a)) pts.push({ x: b.x, y: a.y });
   else pts.push({ x: a.x, y: b.y });
   pts.push({ x: b.x, y: b.y });
-  // Ni point en double, ni point aligné inutile.
-  const sans = pts.filter((p, i) => i === 0 || p.x !== pts[i - 1].x || p.y !== pts[i - 1].y);
-  return sans.filter((p, i) => i === 0 || i === sans.length - 1
-    || !((sans[i - 1].x === p.x && p.x === sans[i + 1].x) || (sans[i - 1].y === p.y && p.y === sans[i + 1].y)));
+  return sansPointsAlignes(pts); // ni point en double, ni point aligné inutile
 }
 
 /**

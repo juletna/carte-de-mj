@@ -99,11 +99,7 @@ function aleatoire(graine) {
 /** Case intérieure juste devant une porte. */
 function devantPorte(p, W, L, plan) {
   const d = retraitPorte(plan, p.mur, p.position);
-  if (d) return { nord: [p.position, d], sud: [p.position, L - 1 - d], ouest: [d, p.position], est: [W - 1 - d, p.position] }[p.mur];
-  if (p.mur === 'nord') return [p.position, 0];
-  if (p.mur === 'sud') return [p.position, L - 1];
-  if (p.mur === 'ouest') return [0, p.position];
-  return [W - 1, p.position];
+  return { nord: [p.position, d], sud: [p.position, L - 1 - d], ouest: [d, p.position], est: [W - 1 - d, p.position] }[p.mur];
 }
 
 /**
@@ -416,7 +412,7 @@ export function construirePlan({ largeur: W, longueur: L, sol, forme, intentions
           [x, y] = [x0 + px * decal, y0 + py * decal];
         } else if (rel === 'flancs' || rel === 'cote') {
           const cote = rel === 'flancs' ? (k % 2 ? -1 : 1) : (k % 2 ? 1 : -1);
-          const rang = rel === 'flancs' ? Math.floor(k / 2) : Math.floor(k / 2);
+          const rang = Math.floor(k / 2);
           const [x0, y0] = depart(px * cote, py * cote);
           [x, y] = [x0 + px * cote * rang, y0 + py * cote * rang];
         } else if (rel === 'face') {

@@ -6,7 +6,7 @@
  * dessinerPortrait() s'occupe de l'échelle et du détourage. Un type sans portrait garde son abréviation.
  */
 
-/** Trace un polygone, ou une forme aux coins arrondis par des courbes (`courbe`). */
+/** Trace un polygone, rempli et/ou contourné. */
 function forme(ctx, points, remplissage, trait, epaisseur = 0.05) {
   ctx.beginPath();
   points.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));

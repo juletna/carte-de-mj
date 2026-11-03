@@ -6,12 +6,11 @@
  * texte → analyser() → plan → carte et JSON. Aucune dépendance à un autre outil ni au réseau.
  */
 import { analyser } from './parseur/index.js';
-import { validerPlan } from './schema.js';
+import { validerPlan, SOLS } from './schema.js';
 import { dessiner, dessinerPlanDonjon, MARGE, rectPorte } from './rendu/moteur.js';
 import { disposerPlan, salleSous, cleDisposition } from './plan-donjon.js';
 import { tailleRemplir } from './affichage.js';
-import { elementsPalette, GROUPES_PALETTE, SOUS_GROUPES, redimensionner, changerForme } from './pose.js';
-import { SOLS } from './schema.js';
+import { ajouterElement, elementsPalette, GROUPES_PALETTE, SOUS_GROUPES, redimensionner, changerForme } from './pose.js';
 import { genererDonjon, BORNES, FAMILLES } from './generateur.js';
 import { ajouterPersonnage, retirerPersonnage, actualiserPersonnages, ficheDepuisFichier, resumerFiche } from './personnages.js';
 import { genererFiches, decrireTirage, BORNES as BORNES_FICHE, CLASSES, RACES } from './fiche-hasard.js';
@@ -29,7 +28,7 @@ import { nomCase, lettreColonne } from './parseur/coordonnees.js';
 import { nomAffiche } from './parseur/lexique.js';
 import * as modele from './donjon.js';
 import { creerMiniPlan } from './miniplan.js';
-import { telephone, activerOnglets, marquerDefilement } from './telephone.js';
+import { telephone, activerOnglets, marquerDefilement, LARGEUR_TELEPHONE } from './telephone.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -779,7 +778,7 @@ const NOMS_POSITIONS = { milieu: 'Au milieu', haut: 'En haut', bas: 'En bas', no
 
 /** Petit dessin de la forme, tiré du même calcul que la vraie salle. */
 function iconeForme(forme) {
-  const plan = { largeur: 5, longueur: 5, forme, bras: forme === 'octogone' ? 1 : forme === 'rectangle' ? undefined : 1 };
+  const plan = { largeur: 5, longueur: 5, forme, bras: forme === 'rectangle' ? undefined : 1 };
   const vides = casesRetirees(plan);
   let cases = '';
   for (let y = 0; y < 5; y++) for (let x = 0; x < 5; x++) if (!vides.has(`${x},${y}`)) cases += `<rect x="${x}" y="${y}" width="1.02" height="1.02"/>`;
@@ -941,7 +940,7 @@ function poserSurCarte(item, clientX, clientY) {
   const dansCarte = clientX >= cv.left && clientX <= cv.right && clientY >= cv.top && clientY <= cv.bottom;
   if (!dansScene || !dansCarte) { annoncerCarte('Lâche l’élément sur la carte pour le poser.', true); return false; }
   const t = tailleAffichee(salle().plan);
-  const res = modele.ajouterElement(salle().plan, item, (clientX - cv.left) / t - MARGE, (clientY - cv.top) / t - MARGE);
+  const res = ajouterElement(salle().plan, item, (clientX - cv.left) / t - MARGE, (clientY - cv.top) / t - MARGE);
   if (res.erreur) { annoncerCarte(res.erreur, true); return false; }
   memoriser();
   etat.selection = null;
@@ -994,7 +993,7 @@ const rail = creerRail($('rail'), {
   onChange: ({ outil }) => { if (OUTILS_CATALOGUE.includes(outil) && palette.groupe() !== outil) palette.afficherGroupe(outil); },
 });
 // Passage de l'ordinateur au téléphone (rotation, fenêtre redimensionnée) : le rail et le tiroir se remettent d'aplomb.
-matchMedia('(max-width: 760px)').addEventListener('change', () => { ouvrirTiroir(false); rail.appliquer(); });
+matchMedia(`(max-width: ${LARGEUR_TELEPHONE}px)`).addEventListener('change', () => { ouvrirTiroir(false); rail.appliquer(); });
 
 // --- Menu du donjon (barre du haut) -------------------------------------------------------------------
 function ouvrirMenu(ouvert) {

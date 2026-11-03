@@ -192,7 +192,6 @@ export function retirerElement(plan, trouve) {
 
 // --- Dimensions de la salle ---------------------------------------------------------
 
-export const COTES = ['nord', 'sud', 'ouest', 'est'];
 const CASES_MAX = 60; // même limite que le parseur et schema.js
 
 /**

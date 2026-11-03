@@ -4,7 +4,7 @@
  * {
  *   "version": 1,
  *   "id": "salle-1", "nom": "Salle aux piliers",
- *   "forme": "rectangle",               // ou croix, L, T, U, octogone (avec "bras" et "position" facultatifs : voir formes.js)
+ *   "forme": "rectangle",               // ou une autre forme de FORMES (croix, octogone, L, T, U, 8, E, F, H, O, S), avec "bras" et "position" facultatifs : voir formes.js
  *   "largeur": 3, "longueur": 8,        // en cases ; x : ouest→est, y : nord→sud
  *   "sol": "pierre",                    // pierre, bois, terre, sable, herbe, marbre, glace
  *   "entree": "sud",                    // mur d'entrée ; « le fond » est le mur opposé

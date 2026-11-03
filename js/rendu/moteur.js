@@ -112,24 +112,6 @@ export function dessinerFenetre(canvas, plan, { fenetre, bords, taille, debord =
 const CANVAS_COTE_MAX = 8192;
 const CANVAS_SURFACE_MAX = 16_000_000;
 
-/**
- * Plan complet du donjon : toutes les salles à leur vraie taille, sur le fond de roche, reliées par des couloirs.
- * Chaque salle est peinte par `peindre` (comme dans la vue MJ : sol, objets, murs, portes, pions, secrets en translucide),
- * sans repères A1. Les couloirs passent dessous (ils débouchent sur les portes), les noms au-dessus des salles.
- * C'est LA façon de dessiner un plan : vue Plan du Donjon, miniature de la sidebar et de la régie (miniplan.js), encart de la table.
- *
- * @param {HTMLCanvasElement} canvas
- * @param {object} d            donjon
- * @param {object} disposition  résultat de `disposerPlan(d)` (js/plan-donjon.js), en cases
- * @param {{taille?:number, actif?:string, survol?:string|null, grille?:boolean, theme?:object, noms?:boolean, pions?:boolean,
- *          surbrillance?:boolean, courante?:string, inconnues?:string[]}} options
- *        taille = côté d'une case en pixels CSS (réduit si le canvas dépasserait les limites du navigateur)
- *        actif = salle affichée (cadre et nom en couleur d'accent) ; survol = salle sous le curseur (surlignée)
- *        noms, pions = false pour une miniature ; surbrillance = la salle active est aussi teintée, pour se voir en tout petit
- *        courante = salle à la table (cadre vert) ; inconnues = salles pas encore découvertes (assombries) : régie
- *        portesFermees = portes pas encore ouvertes [{salle, mur, position}] : un trait rouge cerné de blanc sur le mur
- * @returns {{taille:number, largeur:number, hauteur:number}} côté de case réellement utilisé et taille CSS du canvas
- */
 /** Côté de case pour qu'un plan tienne dans un cadre, sans jamais grossir au-delà de `plafond` px (miniatures). */
 export function tailleQuiTientPlan(disposition, largeurMax, hauteurMax, plafond = 16) {
   return Math.max(1, Math.min(largeurMax / disposition.largeur, hauteurMax / disposition.longueur, plafond));
@@ -178,6 +160,24 @@ function dessinerPont(ctx, { x, y, horizontal }, t) {
   ctx.restore();
 }
 
+/**
+ * Plan complet du donjon : toutes les salles à leur vraie taille, sur le fond de roche, reliées par des couloirs.
+ * Chaque salle est peinte par `peindre` (comme dans la vue MJ : sol, objets, murs, portes, pions, secrets en translucide),
+ * sans repères A1. Les couloirs passent dessous (ils débouchent sur les portes), les noms au-dessus des salles.
+ * C'est LA façon de dessiner un plan : vue Plan du Donjon, miniature de la sidebar et de la régie (miniplan.js), encart de la table.
+ *
+ * @param {HTMLCanvasElement} canvas
+ * @param {object} d            donjon
+ * @param {object} disposition  résultat de `disposerPlan(d)` (js/plan-donjon.js), en cases
+ * @param {{taille?:number, actif?:string, survol?:string|null, grille?:boolean, theme?:object, noms?:boolean, pions?:boolean,
+ *          surbrillance?:boolean, courante?:string, inconnues?:string[], portesFermees?:object[]}} options
+ *        taille = côté d'une case en pixels CSS (réduit si le canvas dépasserait les limites du navigateur)
+ *        actif = salle affichée (cadre et nom en couleur d'accent) ; survol = salle sous le curseur (surlignée)
+ *        noms, pions = false pour une miniature ; surbrillance = la salle active est aussi teintée, pour se voir en tout petit
+ *        courante = salle à la table (cadre vert) ; inconnues = salles pas encore découvertes (assombries) : régie
+ *        portesFermees = portes pas encore ouvertes [{salle, mur, position}] : un trait rouge cerné de blanc sur le mur
+ * @returns {{taille:number, largeur:number, hauteur:number}} côté de case réellement utilisé et taille CSS du canvas
+ */
 export function dessinerPlanDonjon(canvas, d, disposition, { taille = 16, actif = null, survol = null, grille = false, theme = vectoriel, noms = true, pions = true, surbrillance = false, courante = null, inconnues = [], portesFermees = [] } = {}) {
   const casesL = disposition.largeur, casesH = disposition.longueur;
   let dpr = window.devicePixelRatio || 1;

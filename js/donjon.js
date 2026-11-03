@@ -25,7 +25,7 @@ import { validerPersonnages } from './personnages.js';
 import { validerPlan, MURS } from './schema.js';
 import { analyser } from './parseur/index.js';
 import { decrire } from './parseur/decrire.js';
-import { ajouterElement, retirerElement } from './pose.js';
+import { retirerElement } from './pose.js';
 
 export const FORMAT = 'carte-de-mj-donjon';
 export const FORMAT_ANCIEN = 'jdr-carte';
@@ -108,9 +108,7 @@ export function elementDeplace(ancien, nouveau) {
   return null;
 }
 
-// --- Ajouter et supprimer un élément (palette, bulle d'actions) ---------------------------
-
-export { ajouterElement };
+// --- Supprimer un élément (bulle d'actions) ------------------------------------------------------
 
 /**
  * Plan de la salle sans l'élément décrit. Une porte reliée perd d'abord sa liaison (jamais de liaison orpheline
