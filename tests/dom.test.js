@@ -6,29 +6,31 @@ import { pluriel, virgule } from '../js/format.js';
 import { h, bouton, deuxTemps, fichierChoisi } from '../js/dom.js';
 import { verifier, egal, executerSuite } from './mini-test.js';
 
-/** Un élément minimal : de quoi suivre ce que h(), bouton() et deuxTemps() lui font. */
+/** Un élément minimal (sous Node) : de quoi suivre ce que h(), bouton() et deuxTemps() lui font. Dans le navigateur, h() crée de vrais éléments. */
 function fauxElement(tag) {
-  const classes = new Set(), ecouteurs = {};
+  const classes = new Set(), ecouteurs = {}, attributs = {};
   return {
-    tag, attributs: {}, style: { cssText: '' }, dataset: {}, enfants: [], offsetWidth: 80,
+    tagName: tag.toUpperCase(), style: { cssText: '' }, dataset: {}, childNodes: [], offsetWidth: 80,
     classList: { add: (c) => classes.add(c), remove: (c) => classes.delete(c), contains: (c) => classes.has(c) },
-    setAttribute(k, v) { this.attributs[k] = v; },
-    append(...e) { this.enfants.push(...e); },
+    setAttribute(k, v) { attributs[k] = v; },
+    getAttribute: (k) => attributs[k] ?? null,
+    append(...e) { this.childNodes.push(...e); },
     addEventListener(type, f) { ecouteurs[type] = f; },
     emettre(type) { ecouteurs[type]?.(); },
+    click() { this.emettre('click'); },
   };
 }
 
-/** Joue `corps` avec un faux document et un faux minuteur (setTimeout manuel), puis remet l'environnement. */
+/** Joue `corps` avec un faux minuteur (setTimeout manuel) et, sous Node, un faux document ; puis remet l'environnement. */
 function avecFaux(corps) {
   const doc = globalThis.document, st = globalThis.setTimeout, ct = globalThis.clearTimeout;
   const minuteurs = new Map();
   let n = 0;
-  globalThis.document = { createElement: fauxElement };
+  if (doc === undefined) globalThis.document = { createElement: fauxElement };
   globalThis.setTimeout = (f, ms) => { minuteurs.set(++n, { f, ms }); return n; };
   globalThis.clearTimeout = (id) => { minuteurs.delete(id); };
   try { corps(minuteurs); } finally {
-    if (doc === undefined) delete globalThis.document; else globalThis.document = doc;
+    if (doc === undefined) delete globalThis.document;
     globalThis.setTimeout = st; globalThis.clearTimeout = ct;
   }
 }
@@ -43,21 +45,21 @@ const TESTS = [
   }],
   ['h : style en texte CSS, aria-* et data-* en attributs, le reste en propriétés ; les enfants suivent', () => {
     avecFaux(() => {
-      const enfant = fauxElement('b');
-      const e = h('div', { className: 'x', textContent: 'a', style: 'left:0', 'aria-label': 'L', 'data-groupe': 'g', hidden: true }, enfant, 'texte');
-      egal([e.tag, e.className, e.textContent, e.hidden], ['div', 'x', 'a', true], 'propriétés');
-      egal(e.style.cssText, 'left:0', 'style');
-      egal(e.attributs, { 'aria-label': 'L', 'data-groupe': 'g' }, 'attributs');
-      egal(e.enfants.length, 2, 'enfants');
-      egal(h('p').enfants, [], 'sans propriétés ni enfants');
+      const enfant = globalThis.document.createElement('b');
+      const e = h('div', { className: 'x', style: 'color: red;', 'aria-label': 'L', 'data-groupe': 'g', hidden: true }, enfant, 'texte');
+      egal([e.tagName.toLowerCase(), e.className, e.hidden], ['div', 'x', true], 'propriétés');
+      egal(e.style.cssText, 'color: red;', 'style');
+      egal([e.getAttribute('aria-label'), e.getAttribute('data-groupe')], ['L', 'g'], 'attributs');
+      egal(e.childNodes.length, 2, 'enfants');
+      egal(h('p').childNodes.length, 0, 'sans propriétés ni enfants');
     });
   }],
   ['bouton : de type button, avec son texte, sa classe et son clic', () => {
     avecFaux(() => {
       let clics = 0;
       const b = bouton('Fermer', () => { clics++; }, 'discret petit');
-      egal([b.tag, b.type, b.textContent, b.className], ['button', 'button', 'Fermer', 'discret petit'], 'bouton');
-      b.emettre('click');
+      egal([b.tagName.toLowerCase(), b.type, b.textContent, b.className], ['button', 'button', 'Fermer', 'discret petit'], 'bouton');
+      b.click();
       egal(clics, 1, 'clic');
       egal(bouton('Ok', () => {}).className, '', 'classe vide par défaut');
     });
