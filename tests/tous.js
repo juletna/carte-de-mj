@@ -23,13 +23,14 @@ import { executer as executerThemes } from './themes.test.js';
 import { executer as executerReferences } from './references.test.js';
 import { executer as executerOutils } from './dom.test.js';
 import { executer as executerMurs } from './murs.test.js';
+import { executer as executerCoordonnees } from './coordonnees.test.js';
 
 /** Les suites, dans l'ordre d'exécution : chacune reçoit `{ lire }` et rend (ou promet) une liste de résultats. */
 export const SUITES = [
   executerPhrases, executerAllerRetour, executerDonjon, executerPresentation, executerCommandes, executerImpression,
   executerPose, executerPlan, executerFormes, executerGenerateur, executerModeles, executerPersonnages,
   executerFicheHasard, executerCommandeTable, executerNavigation,
-  executerThemes, executerReferences, executerOutils, executerMurs,
+  executerThemes, executerReferences, executerOutils, executerMurs, executerCoordonnees,
 ];
 
 /** Joue toutes les suites ; renvoie les résultats { phrase, ecarts, resultat? } à la suite les uns des autres. */

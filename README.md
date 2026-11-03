@@ -352,7 +352,7 @@ js/formes.js        formes de salle : cases retirées, portes en retrait, murs d
 js/stockage.js      localStorage (donjons, réglages, migration de l'ancien format), export/import JSON
 js/voix.js          dictée (Web Speech API)
 js/deplacement.js   glisser-déposer et clic sur la carte
-js/parseur/         index (chaîne d'analyse), normalisation, nombres, lexique, dimensions, positions, placement, coordonnées (A1…),
+js/parseur/         index (chaîne d'analyse), normalisation, nombres, lexique, dimensions, positions, placement, coordonnées (A1…, repère d'une porte, libellé d'une sélection),
                     decrire (plan → texte), commandes (« ajoute trois gobelins » en cours de partie : pur, sans DOM)
 js/rendu/           moteur Canvas, portraits de monstres, thème vectoriel et thème papier (impression)
 tests/              un fichier de test par module (*.test.js), tous.js (la liste unique des suites, lue par node.mjs et tests.html),

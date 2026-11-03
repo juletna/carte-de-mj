@@ -23,13 +23,12 @@ import { activerDeplacement } from './deplacement.js';
 import { creerMiniPlan } from './miniplan.js';
 import { carteFiche, carteJoueur } from './carte-personnage.js';
 import { MAX_JOUEURS } from './personnages.js';
-import { nomCase, lettreColonne } from './parseur/coordonnees.js';
+import { nomCase, libelleSelection, libelleDePorte } from './parseur/coordonnees.js';
 import { nomAffiche } from './parseur/lexique.js';
 import { creerMicro } from './voix.js';
 import { MODES_TABLE, modeTable, tailleTable } from './affichage.js';
 import { telephone, activerOnglets, marquerDefilement, tailleQuiTient } from './telephone.js';
 import { $, h, bouton, deuxTemps, fichierChoisi } from './dom.js';
-import { estHorizontal } from './murs.js';
 import { pluriel } from './format.js';
 
 const ouvrirCanal = () => { try { return new BroadcastChannel(pres.CANAL); } catch { return null; } };
@@ -562,7 +561,6 @@ function demarrerRegie() {
     const e = sel && (plan[LISTES[sel.genre]] || []).find((x) => x.id === sel.id);
     return e ? { genre: sel.genre, element: e } : null;
   };
-  const reperePorte = (q) => (estHorizontal(q.mur) ? lettreColonne(q.position) : String(q.position + 1));
 
   /** Côté de case de la régie : réduit pour que la salle tienne dans la zone (réglage `r.taille` jamais modifié). Sous 760 px, marge plus étroite. */
   function tailleRegie(plan) {
@@ -689,12 +687,7 @@ function demarrerRegie() {
     return nom ? `${nom} (P${k.numero})` : `${nomAffiche(k.type)} ${k.numero}`;
   };
 
-  function libelleElement(trouve) {
-    const e = trouve.element;
-    if (trouve.genre === 'porte') return `${e.type} · mur ${e.mur}, repère ${reperePorte(e)}`;
-    if (trouve.genre === 'creature') return `${nomPion(e)} · ${nomCase(e.x, e.y)}`;
-    return `${nomAffiche(e.type)} · ${nomCase(e.x, e.y)}`;
-  }
+  const libelleElement = (trouve) => libelleSelection(trouve, nomPion);
 
   /** Phrases communes à tout passage de porte : le groupe qui suit, les pions restés faute de place. */
   function phrasesGroupe(res, depart) {
@@ -872,7 +865,7 @@ function demarrerRegie() {
     $('liste-portes').replaceChildren(...s.plan.portes.map((q) => {
       const lien = modele.liaisonDePorte(p.donjon, s.id, q);
       const vers = lien && p.donjon.salles[lien.autre.salle];
-      return boutonListe('porte', q, `${q.type} · mur ${q.mur}, repère ${reperePorte(q)} · ${vers ? `→ ${vers.nom}` : 'non reliée'}${q.cache ? ' · cachée' : ''}`, q.cache);
+      return boutonListe('porte', q, `${libelleDePorte(q)} · ${vers ? `→ ${vers.nom}` : 'non reliée'}${q.cache ? ' · cachée' : ''}`, q.cache);
     }));
     // Éléments de la salle : pions puis objets, cachés repérés (comme sur la carte du MJ). Liste repliable.
     const marque = (e) => (!e.cache ? '' : pres.estRevele(p, s.id, e.id) ? ' · caché, révélé' : ' · caché');

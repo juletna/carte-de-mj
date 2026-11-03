@@ -15,8 +15,8 @@ import * as modele from './donjon.js';
 import { analyser } from './parseur/index.js';
 import { debutDescription } from './parseur/decrire.js';
 import { nomAffiche, CREATURES } from './parseur/lexique.js';
-import { lettreColonne } from './parseur/coordonnees.js';
-import { OPPOSE, VECTEUR, estHorizontal, longueurMur } from './murs.js';
+import { reperePorte } from './parseur/coordonnees.js';
+import { OPPOSE, VECTEUR, longueurMur } from './murs.js';
 import { POSITIONS_FORMES, brasMax, retraitPorte } from './formes.js';
 import { generateur, lireGraine, nouvelleGraine, melanger, GRAINE_MAX } from './alea.js';
 
@@ -145,13 +145,12 @@ function positionPorte(forme, mur, alea) {
 }
 
 const quantite = (n, mot) => `${n} ${mot}`;
-const repere = (mur, p) => (estHorizontal(mur) ? lettreColonne(p) : p + 1);
 
 /** Le texte d'une salle, avec des portes déjà placées. */
 function texteSalle(forme, spec, portes) {
   const parties = debutDescription(forme);
   if (spec.role.sol) parties.push(`sol en ${spec.role.sol}`);
-  for (const q of portes) parties.push(`${q.type === 'arche' ? 'une arche' : `une porte${q.secrete ? ' secrète' : ''}`} au mur ${q.mur} en ${repere(q.mur, q.position)}`);
+  for (const q of portes) parties.push(`${q.type === 'arche' ? 'une arche' : `une porte${q.secrete ? ' secrète' : ''}`} au mur ${q.mur} en ${reperePorte(q.mur, q.position)}`);
   parties.push(...spec.role.contenu);
   if (spec.coffres) parties.push(quantite(spec.coffres, nomAffiche('coffre', spec.coffres)));
   if (spec.pieges) parties.push(`${spec.pieges} ${spec.pieges > 1 ? 'fosses cachées' : 'fosse cachée'}`);

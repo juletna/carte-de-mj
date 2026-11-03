@@ -24,13 +24,12 @@ import * as stockage from './stockage.js';
 import { rapport } from './rapport.js';
 import { activerDeplacement } from './deplacement.js';
 import { decrire } from './parseur/decrire.js';
-import { nomCase, lettreColonne } from './parseur/coordonnees.js';
-import { nomAffiche } from './parseur/lexique.js';
+import { reperePorte, libelleSelection } from './parseur/coordonnees.js';
 import * as modele from './donjon.js';
 import { creerMiniPlan } from './miniplan.js';
 import { telephone, activerOnglets, marquerDefilement, LARGEUR_TELEPHONE } from './telephone.js';
 import { $, h, bouton, deuxTemps, fichierChoisi } from './dom.js';
-import { OPPOSE, estHorizontal } from './murs.js';
+import { OPPOSE } from './murs.js';
 import { pluriel } from './format.js';
 
 const EXEMPLES = [
@@ -307,15 +306,6 @@ $('annuler-carte').addEventListener('click', annulerDeplacement); // même actio
 // --- Bulle d'actions de l'élément sélectionné -------------------------------------------------
 // Sur ordinateur, `#selection` est une bulle posée à côté de l'élément, dans `#support` (elle défile avec la carte) ;
 // sous 760 px, c'est le bandeau fixe en bas de l'écran (CSS). Le contenu est le même.
-const reperePorte = (p) => (estHorizontal(p.mur) ? lettreColonne(p.position) : String(p.position + 1));
-
-function libelleSelection(trouve) {
-  const e = trouve.element;
-  if (trouve.genre === 'porte') return `${e.type} · mur ${e.mur}, repère ${reperePorte(e)}`;
-  if (trouve.genre === 'creature') return `${nomAffiche(e.type)} ${e.numero} · ${nomCase(e.x, e.y)}`;
-  return `${nomAffiche(e.type)} · ${nomCase(e.x, e.y)}`;
-}
-
 /** Supprime l'élément sélectionné (une porte reliée perd d'abord sa liaison) ; annulable avec « Annuler ». */
 function supprimerSelection() {
   const s = salle();
@@ -1014,7 +1004,7 @@ function majOrphelines() {
     b.addEventListener('click', () => { modele.delier(d, o.liaison.id); rendre(); });
     return h('div', { className: 'orpheline' },
       h('p', { className: 'note erreur' },
-        `Liaison orpheline : il n’y a plus de porte au mur ${o.mur} (repère ${estHorizontal(o.mur) ? lettreColonne(o.position) : o.position + 1}), `
+        `Liaison orpheline : il n’y a plus de porte au mur ${o.mur} (repère ${reperePorte(o.mur, o.position)}), `
         + 'qui menait à « ', h('strong', { textContent: autre?.nom ?? '?' }), ' ». Rétablis la porte dans le texte, ou retire la liaison.'),
       b);
   }));

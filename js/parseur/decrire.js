@@ -6,8 +6,8 @@
  * coordonnées de cases : « deux coffres en A1 C1 », « un lit de A2 à B2 ».
  */
 import { definition, nomAffiche } from './lexique.js';
-import { lettreColonne, nomCase } from './coordonnees.js';
-import { REGARD_VERS, estHorizontal } from '../murs.js';
+import { nomCase, reperePorte } from './coordonnees.js';
+import { REGARD_VERS } from '../murs.js';
 
 const FEMININS = new Set([
   'colonne', 'statue', 'table', 'chaise', 'caisse', 'fosse', 'bibliotheque', 'torche', 'fontaine',
@@ -33,8 +33,7 @@ const motCache = (type, n) => ` ${accord('caché', type, n)}`;
 
 /** Une porte : « une porte au mur sud en D », « une herse au mur est en 4 », « une porte secrète au mur nord en B ». */
 function decrirePorte(p) {
-  const repere = estHorizontal(p.mur) ? lettreColonne(p.position) : p.position + 1;
-  return `${quantite(p.type, 1)} ${p.type}${p.cache ? ' secrète' : ''} au mur ${p.mur} en ${repere}`;
+  return `${quantite(p.type, 1)} ${p.type}${p.cache ? ' secrète' : ''} au mur ${p.mur} en ${reperePorte(p.mur, p.position)}`;
 }
 
 /** « deux coffres en A1 C1 » ou, si la taille n'est pas celle par défaut, « un lit de A2 à B2 ». */
