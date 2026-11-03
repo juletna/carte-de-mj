@@ -17,7 +17,9 @@
  *   marqueLiaison(ctx, rect, mur, t)      porte reliée à une autre salle
  *   marqueSelection(ctx, rect, t)         élément sélectionné
  */
-import { casesRetirees, dessinerMursDecoupes } from '../../formes.js';
+import { casesRetirees } from '../../formes.js';
+import { dessinerMursDecoupes } from '../trace.js';
+import { rect, rectArrondi, rond } from './commun.js';
 import { EPAISSEUR_MUR, ancragePorte } from '../geometrie.js';
 import { dessinerPortrait } from '../portraits.js';
 import { CREATURES, COULEURS } from '../../parseur/lexique.js';
@@ -47,22 +49,7 @@ const hash = (x, y) => {
   return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
 };
 
-// --- Petites primitives ------------------------------------------------------
-function rect(ctx, x, y, w, h, fond, trait, epaisseur = 1) {
-  ctx.beginPath(); ctx.rect(x, y, w, h);
-  if (fond) { ctx.fillStyle = fond; ctx.fill(); }
-  if (trait) { ctx.strokeStyle = trait; ctx.lineWidth = epaisseur; ctx.stroke(); }
-}
-function rectArrondi(ctx, x, y, w, h, r, fond, trait, epaisseur = 1) {
-  ctx.beginPath(); ctx.roundRect(x, y, w, h, r);
-  if (fond) { ctx.fillStyle = fond; ctx.fill(); }
-  if (trait) { ctx.strokeStyle = trait; ctx.lineWidth = epaisseur; ctx.stroke(); }
-}
-function rond(ctx, x, y, r, fond, trait, epaisseur = 1) {
-  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
-  if (fond) { ctx.fillStyle = fond; ctx.fill(); }
-  if (trait) { ctx.strokeStyle = trait; ctx.lineWidth = epaisseur; ctx.stroke(); }
-}
+// --- Petites primitives (rect, rectArrondi et rond sont dans commun.js) -----------
 /** Ombre portée douce sous un objet. */
 function ombre(ctx, t, f) {
   ctx.save();

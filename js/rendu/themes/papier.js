@@ -7,7 +7,9 @@
  *   marqueLiaison(ctx, rect, mur, t, p)   porte reliée : pastille « → N » (p.vers = numéro de la salle de destination)
  * Les tailles de trait sont proportionnelles à la case, avec un minimum en pixels (le canvas d'impression est à ~254 ppp).
  */
-import { casesRetirees, tracerSol, dessinerMursDecoupes } from '../../formes.js';
+import { casesRetirees } from '../../formes.js';
+import { tracerSol, dessinerMursDecoupes } from '../trace.js';
+import { rect, rectArrondi, rond } from './commun.js';
 import { EPAISSEUR_MUR, ancragePorte } from '../geometrie.js';
 import { CREATURES } from '../../parseur/lexique.js';
 import { dessinerPortrait } from '../portraits.js';
@@ -16,22 +18,7 @@ const NOIR = '#111', GRIS = '#8c8c8c', CLAIR = '#e4e4e4', TRES_CLAIR = '#f3f3f3'
 /** Épaisseur de trait : proportionnelle à la case, jamais plus fine que 2 pixels. */
 const trait = (t, k) => Math.max(2, t * k);
 
-// --- Petites primitives ------------------------------------------------------
-function rect(ctx, x, y, w, h, fond, contour, ep) {
-  ctx.beginPath(); ctx.rect(x, y, w, h);
-  if (fond) { ctx.fillStyle = fond; ctx.fill(); }
-  if (contour) { ctx.strokeStyle = contour; ctx.lineWidth = ep; ctx.stroke(); }
-}
-function rectArrondi(ctx, x, y, w, h, r, fond, contour, ep) {
-  ctx.beginPath(); ctx.roundRect(x, y, w, h, r);
-  if (fond) { ctx.fillStyle = fond; ctx.fill(); }
-  if (contour) { ctx.strokeStyle = contour; ctx.lineWidth = ep; ctx.stroke(); }
-}
-function rond(ctx, x, y, r, fond, contour, ep) {
-  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
-  if (fond) { ctx.fillStyle = fond; ctx.fill(); }
-  if (contour) { ctx.strokeStyle = contour; ctx.lineWidth = ep; ctx.stroke(); }
-}
+// --- Petites primitives (rect, rectArrondi et rond sont dans commun.js) -----------
 function ligne(ctx, x1, y1, x2, y2, ep, couleur = NOIR) {
   ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
   ctx.strokeStyle = couleur; ctx.lineWidth = ep; ctx.stroke();

@@ -9,7 +9,8 @@
 import * as vectoriel from './themes/vectoriel.js';
 import { lettreColonne } from '../parseur/coordonnees.js';
 import { cheminCouloir, PONT_DEMI_LONGUEUR, ETIQUETTE_ISOLEES } from '../plan-donjon.js';
-import { retraitPorte, tracerSol, contourSol } from '../formes.js';
+import { retraitPorte, contourSol } from '../formes.js';
+import { tracerSol } from './trace.js';
 import { estHorizontal } from '../murs.js';
 import { MARGE, EPAISSEUR_MUR, rectPorte, rectDe } from './geometrie.js';
 import { TAILLE_PAR_DEFAUT } from '../affichage.js';

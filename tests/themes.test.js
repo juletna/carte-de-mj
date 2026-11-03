@@ -5,6 +5,9 @@
  */
 import * as vectoriel from '../js/rendu/themes/vectoriel.js';
 import * as papier from '../js/rendu/themes/papier.js';
+import * as commun from '../js/rendu/themes/commun.js';
+import { tracerSol, dessinerMursDecoupes } from '../js/rendu/trace.js';
+import { nombreCases } from '../js/formes.js';
 import { OBJETS, CREATURES } from '../js/parseur/lexique.js';
 import { verifier, egal, executerSuite } from './mini-test.js';
 
@@ -26,6 +29,16 @@ function ctxPermissif() {
       : () => {}),
     set: () => true,
   });
+}
+
+/** Contexte qui note chaque appel (`nom(args)`) et chaque affectation (`nom=valeur`), dans l'ordre. */
+function ctxJournal() {
+  const lignes = [];
+  const ctx = new Proxy({}, {
+    get: (_, nom) => (typeof nom === 'symbol' ? undefined : (...args) => { lignes.push(`${nom}(${args.join(',')})`); }),
+    set: (_, nom, v) => { lignes.push(`${nom}=${v}`); return true; },
+  });
+  return { ctx, lignes };
 }
 
 const TESTS = [
@@ -60,6 +73,25 @@ const TESTS = [
         }
       }
     }
+  }],
+  ['primitives communes : remplissage puis contour, dans cet ordre ; épaisseur 1 par défaut ; rien à tracer sans fond ni contour', () => {
+    const essai = (f, ...args) => { const { ctx, lignes } = ctxJournal(); f(ctx, ...args); return lignes; };
+    egal(essai(commun.rect, 1, 2, 3, 4, '#fff', '#000', 5), ['beginPath()', 'rect(1,2,3,4)', 'fillStyle=#fff', 'fill()', 'strokeStyle=#000', 'lineWidth=5', 'stroke()'], 'rect');
+    egal(essai(commun.rect, 1, 2, 3, 4, null, '#000'), ['beginPath()', 'rect(1,2,3,4)', 'strokeStyle=#000', 'lineWidth=1', 'stroke()'], 'rect : contour seul');
+    egal(essai(commun.rectArrondi, 1, 2, 3, 4, 6, '#fff'), ['beginPath()', 'roundRect(1,2,3,4,6)', 'fillStyle=#fff', 'fill()'], 'rectArrondi : fond seul');
+    egal(essai(commun.rond, 5, 6, 7, '#fff', '#000', 2), ['beginPath()', `arc(5,6,7,0,${Math.PI * 2})`, 'fillStyle=#fff', 'fill()', 'strokeStyle=#000', 'lineWidth=2', 'stroke()'], 'rond');
+    egal(essai(commun.rond, 5, 6, 7), ['beginPath()', `arc(5,6,7,0,${Math.PI * 2})`], 'rond : ni fond ni contour');
+  }],
+  ['tracerSol : un carré par case de sol, aucun pour les cases retirées ; dessinerMursDecoupes : un tronçon par côté sur le vide', () => {
+    const plan = { largeur: 5, longueur: 5, forme: 'croix', bras: 1, position: 'milieu' };
+    const { ctx, lignes } = ctxJournal();
+    tracerSol(ctx, plan, 10);
+    egal([lignes[0], lignes.length - 1], ['beginPath()', nombreCases(plan)], 'un rect par case de sol');
+    egal(lignes[1], 'rect(20,0,10,10)', 'première case de sol (la branche nord de la croix)');
+    const murs = ctxJournal();
+    dessinerMursDecoupes(murs.ctx, plan, 10, 3, { fond: '#aaa', trait: '#000', epaisseurTrait: 2, joints: true });
+    egal([murs.lignes[0], murs.lignes[1], murs.lignes.at(-2), murs.lignes.at(-1)], ['save()', 'fillStyle=#aaa', 'stroke()', 'restore()'], 'encadrement du dessin');
+    verifier(murs.lignes.filter((l) => l.startsWith('fillRect')).length === 20, 'un fillRect par tronçon : le contour de cette croix compte 20 côtés');
   }],
   ['chaque pion se dessine dans les deux thèmes, pour chaque type de créature et chaque camp', () => {
     for (const [nom, theme] of Object.entries(THEMES)) {

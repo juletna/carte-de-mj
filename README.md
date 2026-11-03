@@ -354,7 +354,7 @@ js/voix.js          dictée (Web Speech API)
 js/deplacement.js   glisser-déposer et clic sur la carte
 js/parseur/         index (chaîne d'analyse), normalisation, nombres, lexique, dimensions, positions, placement, coordonnées (A1…, repère d'une porte, libellé d'une sélection),
                     decrire (plan → texte), commandes (« ajoute trois gobelins » en cours de partie : pur, sans DOM)
-js/rendu/           moteur Canvas, géométrie (marge, épaisseur des murs, rectangle d'un élément, ancrage d'une porte : pur), portraits de monstres, thème vectoriel et thème papier (impression)
+js/rendu/           moteur Canvas, géométrie (marge, épaisseur des murs, rectangle d'un élément, ancrage d'une porte : pur), trace.js (tracé Canvas du sol et des murs découpés), portraits de monstres, thème vectoriel et thème papier (impression) avec leurs primitives communes (themes/commun.js)
 tests/              un fichier de test par module (*.test.js), tous.js (la liste unique des suites, lue par node.mjs et tests.html),
                     mini-test.js (assertions et harnais communs), phrases.js (phrases du parseur), references.js (empreintes de rendu
                     et de disposition, générées par regenerer-references.mjs)
