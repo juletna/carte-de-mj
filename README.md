@@ -11,7 +11,7 @@ Le site est 100 % statique, sans IA et sans serveur. Il marche hors ligne au cla
 
 ## Trois outils indépendants
 
-Chaque outil est complet seul : il a ses propres données (dans le navigateur) et sa propre adresse. Aucun ne dépend d'un autre, il n'y a ni compte ni réseau. La page d'accueil `index.html` ne fait que les présenter.
+Chaque outil est complet seul : il a ses propres données (dans le navigateur) et sa propre adresse, et il n'y a ni compte ni réseau. Aucun n'a besoin d'un autre pour marcher. Seule liaison, facultative : le Donjon peut proposer les personnages de l'outil Fiche enregistrés dans le même navigateur (lecture seule, voir « Fiches de personnage du donjon »). La page d'accueil `index.html` ne fait que les présenter.
 
 | Outil | Adresse | Pour qui |
 |---|---|---|
@@ -42,8 +42,12 @@ Il faut un petit serveur local. Celui du projet désactive le cache, pour voir t
 python3 outils/serveur.py
 ```
 
-Ouvrez ensuite <http://localhost:8765> (accueil). Les tests du parseur sont sur <http://localhost:8765/tests.html>,
-ou en ligne de commande avec `node tests/node.mjs`.
+Ouvrez ensuite <http://localhost:8765> (accueil). Les tests sont sur <http://localhost:8765/tests.html>,
+ou en ligne de commande avec `node tests/node.mjs` (c'est aussi ce que lance GitHub Actions à chaque push et chaque pull request).
+
+Au-delà des tests de comportement, `tests/references.js` garde l'empreinte du dessin des moteurs de rendu et de la disposition du plan du donjon,
+pour prouver qu'une refactorisation ne les change pas. Après un changement voulu de l'un ou de l'autre, relire le diff puis lancer
+`node tests/regenerer-references.mjs`.
 
 ## Ce que comprend le parseur
 
@@ -311,12 +315,20 @@ donjon.html         outil Donjon (vue MJ)
 impression.html     impression des plans d'un donjon (A4, version MJ ou joueurs)
 presentation.html   outil Présentation (régie, ou vue table avec ?vue=table)
 fiche.html          outil Fiche (palette et polices propres, en ligne ; seul l'en-tête vient de css/base.css)
-tests.html          tests du parseur, du donjon, de la présentation et de l'impression dans le navigateur
+tests.html          tous les tests dans le navigateur (la même liste que node tests/node.mjs)
+.github/workflows/tests.yml  lance node tests/node.mjs à chaque push et chaque pull request
 css/base.css        socle commun : jetons (couleurs du thème sombre, rayons, espacements, focus, taille de cible tactile) et en-tête de navigation
-css/style.css
+css/style.css       styles communs au Donjon, à la Présentation et à l'Impression : panneau, champs, boutons, scène, onglets du téléphone, fiches de personnage
+css/donjon.css      mise en page du Donjon : barre, rail d'outils, panneau, bande des salles, bulle d'actions, zoom
 css/presentation.css  écran de départ, régie et vue table
 css/impression.css  pages A4 et réglages de l'impression
-js/main-mj.js       branchement de l'interface (donjons, salles, sélection)
+js/main-mj.js       branchement de l'interface du Donjon (donjons, salles, sélection)
+js/palette.js       palette du Donjon : vignettes de portes, de mobilier et de créatures, pose au clic ou au glisser
+js/vignettes.js     une vignette (petit canvas) par élément de la palette, dessinée avec le thème vectoriel
+js/rail.js          rail d'outils du Donjon et panneau contextuel
+js/pose.js          règle unique de « où poser un élément » : ajouter, retirer, redimensionner, changer de forme (pur, sans DOM)
+js/plan-donjon.js   plan du donjon : salles posées à leur vraie taille, reliées par des couloirs (pur, sans DOM)
+js/rapport.js       rapport texte à copier pour signaler une erreur de lecture
 js/affichage.js     taille de la carte à la table : modes « remplir » / « échelle réelle », mode par défaut (pur, sans DOM)
 js/presentation.js  partie en cours, portes, révélations, improvisation, vueTable (pur, sans DOM)
 js/main-presentation.js  régie et vue table (DOM, stockage, BroadcastChannel)
@@ -334,13 +346,16 @@ js/alea.js          tirages reproductibles, communs aux deux générateurs (pur,
 js/personnages.js   fiches associées au donjon : résumé, ajout, validation (pur, sans DOM)
 js/carte-personnage.js  une fiche à l'écran, la même dans le Donjon et la régie
 js/formes.js        formes de salle : cases retirées, portes en retrait, murs découpés (calcul pur)
-js/stockage.js      localStorage (donjons, réglages, migration), export/import JSON
+js/stockage.js      localStorage (donjons, réglages, migration de l'ancien format), export/import JSON
 js/voix.js          dictée (Web Speech API)
 js/deplacement.js   glisser-déposer et clic sur la carte
-js/parseur/         normalisation, nombres, lexique, dimensions, positions, placement, decrire (plan → texte),
-                    commandes (« ajoute trois gobelins » en cours de partie : pur, sans DOM)
-js/rendu/           moteur Canvas, thème vectoriel et thème papier (impression)
-tests/              phrases de test, tests du donjon, des commandes, de la présentation et de l'impression, mini-outil d'assertions
+js/parseur/         index (chaîne d'analyse), normalisation, nombres, lexique, dimensions, positions, placement, coordonnées (A1…),
+                    decrire (plan → texte), commandes (« ajoute trois gobelins » en cours de partie : pur, sans DOM)
+js/rendu/           moteur Canvas, portraits de monstres, thème vectoriel et thème papier (impression)
+tests/              un fichier de test par module (*.test.js), tous.js (la liste unique des suites, lue par node.mjs et tests.html),
+                    mini-test.js (assertions et harnais communs), phrases.js (phrases du parseur), references.js (empreintes de rendu
+                    et de disposition, générées par regenerer-references.mjs)
+assets/polices/     polices embarquées de la Fiche (licences OFL)
 outils/serveur.py   serveur local sans cache
 ```
 
