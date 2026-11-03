@@ -55,9 +55,7 @@ const etat = {
   zoomPlan: null,    // côté de case du plan choisi au zoom (px), propre au plan ; null = le plan remplit la scène
   planDispo: null,   // dernière disposition calculée (pour retrouver la salle sous un clic)
   planTaille: 0,     // côté de case réellement utilisé au dernier dessin du plan (peut être plafonné)
-  planSurvol: null,  // salle survolée (souris ou focus clavier)
   clePlan: '',       // donjon du plan affiché : quand il change, le zoom du plan est oublié
-  signatureListePlan: '', // salles de la liste clavier du plan : elle n'est reconstruite que si elle change
 };
 const r = etat.reglages;
 

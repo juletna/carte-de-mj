@@ -364,7 +364,7 @@ js/impression.js    découpage en pages A4, mesures de la feuille (aussi donnée
 js/main-impression.js  page d'impression (DOM, aperçu, règle de contrôle, proposition de réduction, barre collante)
 js/telephone.js     sous 760 px : onglets Texte / Carte et Actions / Carte, taille de case qui tient dans la zone, défilement au doigt d'une grande carte
 js/donjon.js        modèle du donjon : salles, liaisons, orphelines, validation, MJ débutant (pur, sans DOM)
-js/miniplan.js      miniature cliquable du plan (sidebar, régie) : même dessin que le plan complet
+js/miniplan.js      plan de donjon cliquable : survol, clic et liste clavier communs (`creerPlanInteractif`, aussi pour la vue Plan du Donjon) ; miniature (sidebar, régie) : même dessin que le plan complet
 js/murs.js          les quatre murs : opposés, regards, vecteurs, longueur d'un mur, portes du mur d'entrée d'abord (pur, sans dépendance)
 js/schema.js        schéma du plan d'une salle et validation, taille maximale d'une salle
 js/modeles.js       modèles de donjon de l'outil, copie d'un donjon (pur, sans DOM)

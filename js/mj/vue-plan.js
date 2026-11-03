@@ -6,16 +6,24 @@
  * au moment de l'appel. Renvoie `ouvrir(ouvert)`, `dessiner()` et `cibleZoom` (voir zoom.js).
  */
 import { dessinerPlanDonjon } from '../rendu/moteur.js';
-import { salleSous } from '../plan-donjon.js';
+import { creerPlanInteractif } from '../miniplan.js';
 import { PLAN_ZOOM_MIN, PLAN_ZOOM_MAX, zoomBorne, tailleAfficheePlan as tailleDuPlan } from '../mise-en-page.js';
 import * as modele from '../donjon.js';
-import { $, h } from '../dom.js';
+import { $ } from '../dom.js';
 
 export function creerVuePlan(ctx) {
   const { etat } = ctx;
   const r = etat.reglages;
   const donjon = () => ctx.donjon();
   const salle = () => ctx.salle();
+
+  // Le survol, le clic sur une salle et la liste clavier sont ceux de la miniature (miniplan.js) ; l'état du survol y est gardé.
+  const interactif = creerPlanInteractif($('plan-donjon'), $('plan-salles'), {
+    disposition: () => etat.planDispo,
+    taille: () => etat.planTaille,
+    redessiner: () => dessinerPlan(),
+    onChoisir: (id) => ctx.activerSalle(id),
+  });
 
   // --- Vue Plan : tout le donjon d'un coup, les salles à leur vraie taille (js/plan-donjon.js, moteur.dessinerPlanDonjon) ---
   // Elle remplace la carte de la salle dans la scène (#support, donc les bandes de dimensions et la bulle, est masqué). Son zoom
@@ -34,7 +42,7 @@ export function creerVuePlan(ctx) {
     ctx.dispositionDuDonjon(d);
     const t = tailleAfficheePlan();
     const res = dessinerPlanDonjon($('plan-donjon'), d, etat.planDispo, {
-      taille: t, actif: d.salleActive, survol: etat.planSurvol, grille: r.grille && t >= 24,
+      taille: t, actif: d.salleActive, survol: interactif.survol(), grille: r.grille && t >= 24,
     });
     etat.planTaille = res.taille;
     const n = Object.keys(d.salles).length;
@@ -48,22 +56,7 @@ export function creerVuePlan(ctx) {
     const d = donjon();
     const salles = modele.listerSalles(d);
     const signature = JSON.stringify([d.id, d.salleActive, salles.map((s) => [s.id, s.nom])]);
-    if (signature === etat.signatureListePlan) return;
-    etat.signatureListePlan = signature;
-    $('plan-salles').replaceChildren(...salles.map((s) => {
-      const b = h('button', { type: 'button', textContent: `Ouvrir la salle ${s.nom}${s.id === d.salleActive ? ' (affichée)' : ''}` });
-      b.addEventListener('click', () => ctx.activerSalle(s.id));
-      b.addEventListener('focus', () => survolerPlan(s.id));
-      b.addEventListener('blur', () => survolerPlan(null));
-      return h('li', {}, b);
-    }));
-  }
-
-  function survolerPlan(id) {
-    if (etat.planSurvol === id) return;
-    etat.planSurvol = id;
-    $('plan-donjon').classList.toggle('sur-salle', !!id);
-    dessinerPlan();
+    interactif.majListe(salles.map((s) => ({ id: s.id, texte: `Ouvrir la salle ${s.nom}${s.id === d.salleActive ? ' (affichée)' : ''}` })), signature);
   }
 
   function majZoomPlan() {
@@ -95,8 +88,8 @@ export function creerVuePlan(ctx) {
     $('plan-donjon').hidden = !ouvert;
     $('plan-salles').hidden = !ouvert;
     $('zoom-reel').hidden = ouvert; // « Taille réelle » n'a pas de sens pour un plan entier
-    etat.planSurvol = null;
-    etat.signatureListePlan = '';
+    interactif.retirerSurvol();
+    interactif.oublierListe();
     if (ouvert) {
       ctx.carte.palette.desarmer(); // un élément armé ne doit pas rester pendant qu'on regarde le plan
       ctx.carte.ouvrirTiroir(false);
@@ -112,19 +105,6 @@ export function creerVuePlan(ctx) {
   }
   $('plan-bouton').addEventListener('click', () => ouvrirPlan(!etat.plan));
   $('plan-complet').addEventListener('click', () => ouvrirPlan(true));
-
-  /** Salle sous un événement souris ou toucher, d'après la disposition et le côté de case du dernier dessin. */
-  function salleDuPlan(e) {
-    if (!etat.planDispo || !etat.planTaille) return null;
-    const cv = $('plan-donjon').getBoundingClientRect();
-    return salleSous(etat.planDispo, (e.clientX - cv.left) / etat.planTaille, (e.clientY - cv.top) / etat.planTaille);
-  }
-  $('plan-donjon').addEventListener('pointermove', (e) => { if (e.pointerType !== 'touch') survolerPlan(salleDuPlan(e)); });
-  $('plan-donjon').addEventListener('pointerleave', () => survolerPlan(null));
-  $('plan-donjon').addEventListener('click', (e) => {
-    const id = salleDuPlan(e);
-    if (id) ctx.activerSalle(id);
-  });
 
   return { ouvrir: ouvrirPlan, dessiner: dessinerPlan, cibleZoom };
 }
