@@ -721,15 +721,14 @@ function demarrerRegie() {
     modifie();
   }
 
-  const LIBELLES_ETAT = { normal: 'normal', blesse: 'blessé', mort: 'mort' };
   function changerEtat(pion, valeur) {
     const s = salleConsultee();
     pres.definirEtat(etat.p, s.id, pion.id, valeur);
     const qui = nomPion(pion);
-    const visible = !pion.cache || pres.estRevele(etat.p, s.id, pion.id);
+    const devoile = pres.estDevoile(etat.p, s.id, pion);
     const masquee = pres.categorieMasquee(etat.p, s.id, 'creature', pion);
-    const ou = !visible ? ' (pion caché : la table ne le voit pas)' : masquee ? ` (${masquee} masqués : la table ne le voit pas)` : s.id === etat.p.salleCourante ? ' : visible sur la table' : ' (cette salle n’est pas à la table)';
-    etat.message = valeur === 'normal' ? `${qui} est de nouveau normal${ou}.` : `${qui} est ${LIBELLES_ETAT[valeur]}${ou}.`;
+    const ou = !devoile ? ' (pion caché : la table ne le voit pas)' : masquee ? ` (${masquee} masqués : la table ne le voit pas)` : s.id === etat.p.salleCourante ? ' : visible sur la table' : ' (cette salle n’est pas à la table)';
+    etat.message = valeur === pres.ETAT_NORMAL ? `${qui} est de nouveau normal${ou}.` : `${qui} est ${pres.LIBELLES_ETAT[valeur]}${ou}.`;
     modifie();
   }
 
@@ -813,13 +812,14 @@ function demarrerRegie() {
     if (masquee) contenu.push(h('p', { className: 'note', textContent: `Les ${masquee} de cette salle sont masqués à la table : les joueurs ne le voient pas.` }));
 
     if (trouve.genre === 'creature') {
-      const actuel = el.etat || 'normal';
-      contenu.push(h('p', { className: 'note', id: 'etat-pion', textContent: `État : ${LIBELLES_ETAT[actuel]}. Un pion blessé porte une croix rouge, un pion mort est grisé et barré ; la table les voit.` }));
+      const actuel = el.etat || pres.ETAT_NORMAL;
+      contenu.push(h('p', { className: 'note', id: 'etat-pion', textContent: `État : ${pres.LIBELLES_ETAT[actuel]}. Un pion blessé porte une croix rouge, un pion mort est grisé et barré ; la table les voit.` }));
       const boutons = h('div', { className: 'etats' });
       boutons.setAttribute('role', 'group');
       boutons.setAttribute('aria-label', 'État du pion');
-      for (const valeur of ['normal', 'blesse', 'mort']) {
-        const b = bouton(valeur === 'normal' ? 'Normal' : valeur === 'blesse' ? 'Blessé' : 'Mort', () => changerEtat(el, valeur), 'discret');
+      for (const valeur of pres.ETATS_DE_PION) {
+        const libelle = pres.LIBELLES_ETAT[valeur];
+        const b = bouton(libelle.charAt(0).toUpperCase() + libelle.slice(1), () => changerEtat(el, valeur), 'discret');
         b.setAttribute('aria-pressed', String(actuel === valeur));
         boutons.append(b);
       }
@@ -864,8 +864,8 @@ function demarrerRegie() {
     // Éléments de la salle : pions puis objets, cachés repérés (comme sur la carte du MJ). Liste repliable.
     const marque = (e) => (!e.cache ? '' : pres.estRevele(p, s.id, e.id) ? ' · caché, révélé' : ' · caché');
     const elements = [
-      ...s.plan.creatures.map((k) => boutonListe('creature', k, `${nomPion(k)} · ${nomCase(k.x, k.y)}${k.etat ? ` · ${LIBELLES_ETAT[k.etat]}` : ''}${marque(k)}`, k.cache && !pres.estRevele(p, s.id, k.id))),
-      ...s.plan.objets.map((o) => boutonListe('objet', o, `${nomAffiche(o.type)} · ${nomCase(o.x, o.y)}${marque(o)}`, o.cache && !pres.estRevele(p, s.id, o.id))),
+      ...s.plan.creatures.map((k) => boutonListe('creature', k, `${nomPion(k)} · ${nomCase(k.x, k.y)}${k.etat ? ` · ${pres.LIBELLES_ETAT[k.etat]}` : ''}${marque(k)}`, !pres.estDevoile(p, s.id, k))),
+      ...s.plan.objets.map((o) => boutonListe('objet', o, `${nomAffiche(o.type)} · ${nomCase(o.x, o.y)}${marque(o)}`, !pres.estDevoile(p, s.id, o))),
     ];
     $('nb-elements').textContent = `(${elements.length})`;
     $('liste-elements').replaceChildren(...(elements.length ? elements : [h('li', { className: 'note', textContent: 'Aucun pion ni objet dans cette salle.' })]));

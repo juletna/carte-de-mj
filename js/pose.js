@@ -3,7 +3,9 @@
  *
  * Ce module est la règle unique de « où peut-on poser quelque chose » :
  *  - deplacement.js s'en sert quand on lâche un pion, un objet ou une porte déplacé ;
- *  - la palette du Donjon s'en sert pour AJOUTER un élément (par un clic ou un glisser-déposer).
+ *  - la palette du Donjon s'en sert pour AJOUTER un élément (par un clic ou un glisser-déposer) ;
+ *  - les commandes à la volée (parseur/commandes.js) et le placement du groupe qui passe une porte (presentation.js) en reprennent
+ *    les règles de pose et le test de chevauchement (`seChevauchent`).
  * Rien ici n'écrit la description : l'appelant passe le plan obtenu à decrire(), puis à analyser().
  *
  * Coordonnées : en cases, x de l'ouest vers l'est, y du nord vers le sud (voir schema.js).
@@ -19,8 +21,9 @@ const MARGE_PORTE = 1;
 
 export const largeurDe = (e) => e.taille ?? e.l;
 export const hauteurDe = (e) => e.taille ?? e.h;
-export const seChevauchent = (a, x, y, b) => x < b.x + largeurDe(b) && b.x < x + largeurDe(a)
-  && y < b.y + hauteurDe(b) && b.y < y + hauteurDe(a);
+/** Deux éléments (ou rectangles { x, y, l, h }) occupent-ils au moins une case en commun ? Le seul test de chevauchement du site. */
+export const seChevauchent = (a, b) => a.x < b.x + largeurDe(b) && b.x < a.x + largeurDe(a)
+  && a.y < b.y + hauteurDe(b) && b.y < a.y + hauteurDe(a);
 
 /** Mur le plus proche d'un point exprimé en cases. */
 export function murProche(cx, cy, plan) {
@@ -40,19 +43,24 @@ export function positionSurMur(mur, cx, cy, plan) {
  * `ignorer` : l'élément déplacé lui-même (il ne se gêne pas), ou null pour un ajout.
  * Règles : dans la pièce ; un pion peut monter sur un objet, pas sur un autre pion ; un objet ne se pose ni sur un objet
  * bloquant ni sur un pion ; une torche (non bloquante) se pose sur un mur, dos au mur le plus proche.
- * @returns {{ok:true, modifs:object}|{ok:false, raison:'hors'|'gene'}}
+ * @returns {{ok:true, modifs:object}|{ok:false, raison:'hors'}|{ok:false, raison:'gene', gene:{genre:'objet'|'creature', element:object}}}
+ *   `gene` : le premier élément qui gêne (les objets d'abord, puis les pions), pour que l'appelant puisse le citer.
  */
 export function evaluerPose(plan, genre, el, x, y, ignorer = null) {
   if (!surLeSol(plan, x, y, largeurDe(el), hauteurDe(el))) return { ok: false, raison: 'hors' };
   const creatures = plan.creatures || [];
+  const cible = { ...el, x, y }; // l'élément à la place visée
   if (genre === 'creature') {
-    return creatures.some((k) => k !== ignorer && seChevauchent(el, x, y, k)) ? { ok: false, raison: 'gene' } : { ok: true, modifs: { x, y } };
+    const pion = creatures.find((k) => k !== ignorer && seChevauchent(cible, k));
+    return pion ? { ok: false, raison: 'gene', gene: { genre: 'creature', element: pion } } : { ok: true, modifs: { x, y } };
   }
   if (definition(el.type).bloquant === false) {
     return { ok: true, modifs: { x, y, rotation: REGARD[murProche(x + 0.5, y + 0.5, plan)] } };
   }
-  const gene = (o) => o !== ignorer && definition(o.type).bloquant !== false && seChevauchent(el, x, y, o);
-  if (plan.objets.some(gene) || creatures.some((k) => seChevauchent(el, x, y, k))) return { ok: false, raison: 'gene' };
+  const objet = plan.objets.find((o) => o !== ignorer && definition(o.type).bloquant !== false && seChevauchent(cible, o));
+  if (objet) return { ok: false, raison: 'gene', gene: { genre: 'objet', element: objet } };
+  const pion = creatures.find((k) => seChevauchent(cible, k));
+  if (pion) return { ok: false, raison: 'gene', gene: { genre: 'creature', element: pion } };
   return { ok: true, modifs: { x, y } };
 }
 

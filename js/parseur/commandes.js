@@ -20,7 +20,8 @@
  * @returns {{ok:false, message:string}
  *          |{ok:true, message:string, plan:object, ajoutes:string[], supprimes:string[], deplaces:string[]}}
  */
-import { estSol, surLeSol } from '../formes.js';
+import { estSol } from '../formes.js';
+import { evaluerPose } from '../pose.js';
 import { normaliser } from './normaliser.js';
 import { convertirNombres } from './nombres.js';
 import { trouverObjet, definition, nomAffiche, souderExpressions, MOTS_VIDES, ADJ_CACHE } from './lexique.js';
@@ -41,8 +42,6 @@ const MAX_LISTE = 8; // éléments cités au plus dans un message
 const refus = (message) => ({ ok: false, message });
 const citer = (mots) => mots.map((m) => `« ${m} »`).join(', ');
 const rectDe = (e) => ({ x: e.x, y: e.y, l: e.taille ?? e.l, h: e.taille ?? e.h });
-const seChevauchent = (a, b) => a.x < b.x + b.l && b.x < a.x + a.l && a.y < b.y + b.h && b.y < a.y + a.h;
-const bloquant = (o) => definition(o.type)?.bloquant !== false;
 const estChiffres = (m) => /^\d+$/.test(m);
 const casePrincipale = (e) => nomCase(e.x, e.y);
 
@@ -113,25 +112,34 @@ function rejouer(plan, sauf, nouvelles, graine) {
 }
 
 /**
- * Règles de pose (celles de deplacement.js) : dans la pièce ; un pion ne se pose pas sur un autre
- * pion ; un objet bloquant ne se pose ni sur un pion ni sur un autre objet bloquant ; un pion peut
+ * Règles de pose : celles de deplacement.js, c'est-à-dire `evaluerPose` (pose.js) : dans la pièce ; un pion ne se pose
+ * pas sur un autre pion ; un objet bloquant ne se pose ni sur un pion ni sur un autre objet bloquant ; un pion peut
  * monter sur un objet ; un objet non bloquant (torche) va partout.
  * @returns {{gardes:object[], refuses:{n:object, raison:string}[]}}
  */
 function controlerPose(plan, sauf, nouveaux) {
-  const pris = occupants(plan).filter((o) => o.e !== sauf);
+  // Deux plans, interrogés dans cet ordre : la salle sans l'élément déplacé, puis ce qui vient d'être gardé. Ainsi l'élément
+  // cité quand plusieurs gênent est toujours le premier dans l'ordre « objets en place, pions en place, nouveaux objets, nouveaux pions ».
+  const enPlace = { ...plan, objets: plan.objets.filter((o) => o !== sauf), creatures: plan.creatures.filter((k) => k !== sauf) };
+  const ajoutes = { ...plan, objets: [], creatures: [] };
   const gardes = [], refuses = [];
   for (const n of nouveaux) {
     const r = rectDe(n.e);
-    if (!surLeSol(plan, r.x, r.y, r.l, r.h)) {
+    let pose = null;
+    for (const salle of [enPlace, ajoutes]) {
+      pose = evaluerPose(salle, n.genre, n.e, r.x, r.y);
+      if (!pose.ok) break;
+    }
+    if (pose.raison === 'hors') {
       refuses.push({ n, raison: `${libelle(n.genre, n.e)} ne tient pas dans la salle à cet endroit.` });
       continue;
     }
-    const gene = pris.find((o) => seChevauchent(r, rectDe(o.e)) && (n.genre === 'creature'
-      ? o.genre === 'creature'
-      : bloquant(n.e) && (o.genre === 'creature' || bloquant(o.e))));
-    if (gene) { refuses.push({ n, raison: `${casePrincipale(n.e)} est déjà occupée (${libelle(gene.genre, gene.e)}).` }); continue; }
-    gardes.push(n); pris.push(n);
+    if (!pose.ok) {
+      refuses.push({ n, raison: `${casePrincipale(n.e)} est déjà occupée (${libelle(pose.gene.genre, pose.gene.element)}).` });
+      continue;
+    }
+    gardes.push(n);
+    ajoutes[n.genre === 'creature' ? 'creatures' : 'objets'].push(n.e);
   }
   return { gardes, refuses };
 }
