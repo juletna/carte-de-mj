@@ -52,6 +52,8 @@ export function chargerReglages(stock = stockParDefaut()) {
     // `modeTable` (« remplir » ou « reel », choisi dans la régie de la Présentation). Absents tant que personne n'y a touché.
     ...(r.calibre === true ? { calibre: true } : {}),
     ...(r.modeTable === 'remplir' || r.modeTable === 'reel' ? { modeTable: r.modeTable } : {}),
+    // `miniTable` : seulement si le MJ l'a éteinte (par défaut, la table a sa mini-carte).
+    ...(r.miniTable === false ? { miniTable: false } : {}),
   };
 }
 export const sauverReglages = (reglages, stock = stockParDefaut()) => ecrireJson(stock, CLE_REGLAGES, reglages);

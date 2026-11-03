@@ -124,6 +124,38 @@ const CANVAS_SURFACE_MAX = 16_000_000;
  *        actif = salle affichée (cadre et nom en couleur d'accent) ; survol = salle sous le curseur (surlignée)
  * @returns {{taille:number, largeur:number, hauteur:number}} côté de case réellement utilisé et taille CSS du canvas
  */
+/**
+ * Mini-carte de la table (voir `miniPlanTable`) : des rectangles et des traits, la salle en cours en couleur d'accent.
+ * Le canvas prend la taille qui tient dans `largeurMax` × `hauteurMax`, sans jamais grossir au-delà de 12 px par case.
+ */
+export function dessinerMiniPlan(canvas, mini, { largeurMax = 240, hauteurMax = 200 } = {}) {
+  const t = Math.min(largeurMax / mini.largeur, hauteurMax / mini.longueur, 12);
+  const dpr = window.devicePixelRatio || 1;
+  const largeurPx = Math.round(mini.largeur * t), hauteurPx = Math.round(mini.longueur * t);
+  canvas.width = Math.round(largeurPx * dpr);
+  canvas.height = Math.round(hauteurPx * dpr);
+  canvas.style.width = `${largeurPx}px`;
+  canvas.style.height = `${hauteurPx}px`;
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, largeurPx, hauteurPx);
+  ctx.strokeStyle = '#77736c';
+  ctx.lineWidth = Math.max(1.5, t * 0.6);
+  ctx.lineJoin = 'miter';
+  for (const chemin of mini.couloirs) {
+    ctx.beginPath();
+    chemin.forEach((q, i) => (i ? ctx.lineTo(q.x * t, q.y * t) : ctx.moveTo(q.x * t, q.y * t)));
+    ctx.stroke();
+  }
+  for (const s of mini.salles) {
+    ctx.fillStyle = s.courante ? '#f0c64a' : '#8a8680';
+    ctx.fillRect(s.x * t, s.y * t, s.l * t, s.h * t);
+    ctx.strokeStyle = s.courante ? '#fff3c4' : '#2a2724';
+    ctx.lineWidth = s.courante ? Math.max(2, t * 0.3) : 1;
+    ctx.strokeRect(s.x * t, s.y * t, s.l * t, s.h * t);
+  }
+}
+
 /** Un pont de planches là où deux couloirs se croisent : le couloir du dessus continue, celui du dessous passe sous lui. */
 function dessinerPont(ctx, { x, y, horizontal }, t) {
   const demi = PONT_DEMI_LONGUEUR * t, large = t * 0.46, garde = t * 0.15;

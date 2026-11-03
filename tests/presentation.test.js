@@ -308,6 +308,61 @@ const TESTS = [
     verifier(!sortieB.includes('"pilier"'), 'rien de la première salle');
   }],
 
+  ['mini-carte : seulement les salles découvertes, sans nom ni identifiant', () => {
+    const { d, a, b, c } = donjonDeTest();
+    const pres = p.creerPresentation(d, { salleDepart: a.id });
+    const debut = p.miniPlanTable(pres);
+    egal(debut.salles.length, 1, 'au départ : la salle de départ seule');
+    egal(debut.couloirs, [], 'aucun couloir vers une salle non découverte');
+    egal([debut.largeur, debut.longueur], [10, 10], 'le cadre suit la salle découverte, pas le donjon');
+    verifier(debut.salles[0].courante === true, 'elle est en surbrillance');
+    p.afficherATable(pres, b.id);
+    const deux = p.miniPlanTable(pres);
+    egal(deux.salles.length, 2, 'deux salles découvertes');
+    egal(deux.couloirs.length, 1, 'le couloir entre les deux');
+    egal(deux.salles.filter((s) => s.courante).length, 1, 'une seule salle en surbrillance');
+    egal(deux.salles.find((s) => s.courante).l, 6, 'la surbrillance suit la salle en cours');
+    const sortie = JSON.stringify(deux);
+    for (const s of ['Crypte', 'Couloir', 'Trésor', a.id, b.id, c.id, 'liaison', 'plan', 'nom']) verifier(!sortie.includes(s), `« ${s} » est sorti dans la mini-carte`);
+    verifier(!deux.salles.some((s) => s.l === 4 && s.h === 4), 'rien de la salle non découverte');
+    p.afficherATable(pres, a.id);
+    egal(p.miniPlanTable(pres).salles.length, 2, 'revenir en arrière n’oublie rien');
+    egal(p.miniPlanTable({ donjon: { salles: {} }, salleCourante: 'x' }), null, 'pas de salle courante : pas de mini-carte');
+  }],
+
+  ['mini-carte : un couloir derrière une porte secrète non révélée ne se devine pas', () => {
+    const { d, a } = donjonDeTest();
+    const caveau = m.ajouterSalle(d, { nom: 'Caveau', texte: 'Salle de 5 par 5 cases, une porte au mur sud en C.' });
+    const secrete = d.salles[a.id].plan.portes.find((q) => q.mur === 'nord');
+    m.relier(d, { salle: a.id, mur: 'nord', position: secrete.position }, { salle: caveau.id, mur: 'sud', position: 2 });
+    const pres = p.creerPresentation(d, { salleDepart: a.id });
+    const idPorte = pres.donjon.salles[a.id].plan.portes.find((q) => q.mur === 'nord').id;
+    p.afficherATable(pres, caveau.id);
+    egal(p.miniPlanTable(pres).couloirs, [], 'les deux salles sont connues, la porte reste secrète');
+    p.revelerElement(pres, a.id, idPorte);
+    egal(p.miniPlanTable(pres).couloirs.length, 1, 'révélée : le couloir apparaît');
+    p.recacherElement(pres, a.id, idPorte);
+    egal(p.miniPlanTable(pres).couloirs, [], 'recachée : il disparaît');
+  }],
+
+  ['mini-carte : la fenêtre table relit ce qu’elle reçoit, champ par champ', () => {
+    const { d, a } = donjonDeTest();
+    const mini = p.miniPlanTable(p.creerPresentation(d, { salleDepart: a.id }));
+    egal(p.recevoirMiniPlan(mini), mini, 'une mini-carte valide passe telle quelle');
+    const piegee = { ...mini, nom: 'SECRET', salles: [{ ...mini.salles[0], nom: 'SECRET', courante: 'oui' }] };
+    const relue = p.recevoirMiniPlan(piegee);
+    verifier(!JSON.stringify(relue).includes('SECRET'), 'les champs inconnus sont écartés');
+    verifier(relue.salles[0].courante === false, 'courante : true ou rien');
+    for (const brut of [null, 'x', {}, { ...mini, largeur: 'grand' }, { ...mini, salles: [{ x: 1 }] }, { ...mini, couloirs: [[{ x: -1, y: 0 }]] }]) {
+      egal(p.recevoirMiniPlan(brut), null, `refusé : ${JSON.stringify(brut)?.slice(0, 40)}`);
+    }
+  }],
+
+  ['réglage de la mini-carte : relu seulement si le MJ l’a éteinte', () => {
+    verifier(chargerReglages(fauxStock({ [CLE_REGLAGES]: JSON.stringify({ miniTable: false }) })).miniTable === false, 'éteinte : relu');
+    verifier(!('miniTable' in chargerReglages(fauxStock({ [CLE_REGLAGES]: JSON.stringify({ miniTable: 'non' }) }))), 'valeur inconnue : ignorée');
+  }],
+
   ['vueTable : un élément révélé apparaît, recaché il disparaît ; salle absente → null', () => {
     const { pres, a } = presentationAvecSecrets();
     const types = () => p.vueTable(pres).objets.map((o) => o.type).sort().join(',');

@@ -9,12 +9,13 @@
  * Ici : DOM, stockage et BroadcastChannel.
  *
  * SÉCURITÉ : la vue table ne lit jamais les présentations du localStorage et ne reçoit de la
- * régie que le résultat de vueTable() (voir presentation.js). Aucun secret n'arrive à sa fenêtre.
+ * régie que le résultat de vueTable() et de miniPlanTable() (voir presentation.js). Aucun secret n'arrive à sa fenêtre.
  */
 import * as stockage from './stockage.js';
 import * as modele from './donjon.js';
 import * as pres from './presentation.js';
-import { dessiner } from './rendu/moteur.js';
+import { dessiner, dessinerMiniPlan } from './rendu/moteur.js';
+import { disposerPlan } from './plan-donjon.js';
 import { activerDeplacement } from './deplacement.js';
 import { dessinerMiniCarte } from './minicarte.js';
 import { nomCase, lettreColonne } from './parseur/coordonnees.js';
@@ -58,7 +59,7 @@ const pluriel = (n, un, plusieurs) => `${n} ${n > 1 ? plusieurs : un}`;
 // =============================================================================
 // Écran de table (partagé : fenêtre ?vue=table et « Plein écran ici »)
 // =============================================================================
-const ecran = { plan: null, affichage: { taille: 48, grille: true, reperes: true, mode: 'remplir' } };
+const ecran = { plan: null, mini: null, affichage: { taille: 48, grille: true, reperes: true, mode: 'remplir' } };
 
 /** Côté de case à la table : « échelle réelle » = la taille calibrée, exacte ; « remplir » = calculé sur la fenêtre. */
 function tailleEcranTable() {
@@ -70,7 +71,10 @@ function rendreEcranTable() {
   const carte = $('carte-table');
   $('attente').hidden = !!ecran.plan;
   carte.hidden = !ecran.plan;
+  const mini = $('mini-table');
+  mini.hidden = !ecran.plan || !ecran.mini;
   if (!ecran.plan) return;
+  if (ecran.mini) dessinerMiniPlan(mini, ecran.mini, { largeurMax: Math.min(window.innerWidth * 0.24, 300), hauteurMax: Math.min(window.innerHeight * 0.32, 240) });
   const taille = tailleEcranTable();
   carte.dataset.taille = String(taille); // mesurable (tests, vérification) ; aucun secret
   const { grille, reperes } = ecran.affichage;
@@ -144,6 +148,7 @@ function demarrerTable() {
       recu = true;
       ecran.affichage = affichageValide(m.affichage, ecran.affichage);
       const plan = m.plan ? pres.recevoirVueTable(m.plan) : null;
+      ecran.mini = m.mini ? pres.recevoirMiniPlan(m.mini) : null;
       if (plan) { ecran.plan = plan; rendreEcranTable(); } else attendre('La présentation n’a pas commencé. Lance-la depuis la régie.');
     } else if (m.type === 'defiler') {
       defilerEcranTable({ dx: entierSigne(m.dx), dy: entierSigne(m.dy), recentrer: m.recentrer === true });
@@ -203,9 +208,18 @@ function demarrerRegie() {
 
   // --- Communication avec la fenêtre table -------------------------------------------------------
   const affichageTable = () => ({ taille: r.taille, grille: r.grille, reperes: r.reperes !== false, mode: modeTable(r) });
-  /** Envoie à la table le plan de vueTable() et rien d'autre. */
+  // Le plan complet essaie plusieurs dispositions : on ne le refait que si les salles, leurs portes ou les liaisons ont changé.
+  let dispositionPartie = { cle: null, plan: null };
+  function miniTable() {
+    if (!etat.p || r.miniTable === false) return null;
+    const d = etat.p.donjon;
+    const cle = JSON.stringify([Object.values(d.salles).map((s) => [s.id, s.plan.largeur, s.plan.longueur, s.plan.portes]), d.liaisons]);
+    if (cle !== dispositionPartie.cle) dispositionPartie = { cle, plan: disposerPlan(d) };
+    return pres.miniPlanTable(etat.p, dispositionPartie.plan);
+  }
+  /** Envoie à la table le plan de vueTable(), la mini-carte de miniPlanTable(), et rien d'autre. */
   function diffuser() {
-    canal?.postMessage({ type: 'etat', plan: etat.p ? pres.vueTable(etat.p) : null, affichage: affichageTable() });
+    canal?.postMessage({ type: 'etat', plan: etat.p ? pres.vueTable(etat.p) : null, mini: miniTable(), affichage: affichageTable() });
   }
   if (canal) canal.onmessage = (ev) => { if (ev.data?.type === 'demande-etat') diffuser(); };
 
@@ -723,6 +737,7 @@ function demarrerRegie() {
   function majEcranLocal() {
     if (!etat.pleinIci || !etat.p) return;
     ecran.plan = pres.vueTable(etat.p);
+    ecran.mini = miniTable();
     ecran.affichage = affichageTable();
     rendreEcranTable();
   }
@@ -765,6 +780,8 @@ function demarrerRegie() {
   $('grille').checked = r.grille;
   $('reperes').checked = r.reperes !== false;
   $('ajuster').checked = etat.ajuster;
+  $('mini-active').checked = r.miniTable !== false;
+  $('mini-active').addEventListener('change', (e) => { r.miniTable = e.target.checked; sauverReglages(); diffuser(); majEcranLocal(); });
   function majModeTable() {
     const mode = modeTable(r);
     $('mode-remplir').checked = mode === 'remplir';

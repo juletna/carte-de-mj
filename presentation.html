@@ -89,6 +89,7 @@
           <label class="ligne case"><input type="radio" name="mode-table" id="mode-reel" value="reel"> Échelle réelle (figurines)</label>
           <p id="aide-mode-table" class="note"></p>
         </fieldset>
+        <label class="ligne case"><input id="mini-active" type="checkbox" checked> Mini-carte à la table (salles découvertes seulement)</label>
         <details class="defilement">
           <summary>Faire défiler la vue table</summary>
           <p class="note">Utile si la carte dépasse l'écran de la table. Tu peux aussi réduire la taille d'une case dans les réglages.</p>
@@ -194,6 +195,8 @@
     <div id="vue-table" tabindex="-1">
       <canvas id="carte-table" aria-label="Carte de la salle"></canvas>
     </div>
+    <!-- Salles découvertes seulement (presentation.js, miniPlanTable). Ne reçoit aucun clic : le doigt d'un joueur passe au travers. -->
+    <canvas id="mini-table" aria-label="Plan des salles découvertes, la salle en cours en surbrillance" hidden></canvas>
     <p id="attente" role="status" hidden></p>
     <button id="retour-regie" type="button" class="coin coin-gauche" hidden>← Retour à la régie</button>
     <button id="plein-ecran-table" type="button" class="coin coin-droite">⛶ Plein écran</button>

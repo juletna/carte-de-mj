@@ -31,6 +31,7 @@
  * Elle construit le plan à partir d'une liste blanche de champs : notes, noms, textes, éléments
  * cachés non révélés, liaisons et autres salles n'y entrent jamais. L'état d'un pion (blessé, mort) est une
  * information de jeu : il y entre, au même titre que sa position.
+ * `miniPlanTable()` est la seule autre source : des rectangles et des traits, seulement pour les salles découvertes.
  */
 import * as modele from './donjon.js';
 import { validerDonjon, liaisonDePorte, OPPOSE, longueurMur } from './donjon.js';
@@ -39,6 +40,7 @@ import { definition } from './parseur/lexique.js';
 import { analyser } from './parseur/index.js';
 import { decrire } from './parseur/decrire.js';
 import { interpreterCommande } from './parseur/commandes.js';
+import { disposerPlan, cheminCouloir } from './plan-donjon.js';
 
 export { ETATS };
 
@@ -452,6 +454,59 @@ export function vueTable(p) {
   if (!plan) return null;
   const rev = new Set(Array.isArray(p.reveles?.[p.salleCourante]) ? p.reveles[p.salleCourante] : []);
   return planPublic(plan, { visible: (e) => !estCache(e) || rev.has(e.id) });
+}
+
+const MARGE_MINI = 1; // cases autour des salles de la mini-carte
+
+/**
+ * La mini-carte de la table : les salles DÉCOUVERTES seulement, et la salle en cours. Rien d'autre ne sort : ni identifiant,
+ * ni nom, ni contenu. Un couloir n'y figure que si ses deux salles sont découvertes et si ses deux portes sont visibles
+ * à la table (une porte secrète non révélée ne se devine pas). Le cadre suit les salles découvertes : sa taille ne dit
+ * rien de celles qui restent. Les positions viennent du plan complet, pour qu'une salle ne bouge pas quand une autre se découvre.
+ * @param {object} p  la présentation
+ * @param {object} [disposition]  résultat de disposerPlan(p.donjon), si l'appelant l'a déjà
+ * @returns {{largeur:number, longueur:number, salles:Array<{x,y,l,h,courante:boolean}>, couloirs:Array<Array<{x,y}>>}|null}
+ */
+export function miniPlanTable(p, disposition = p?.donjon?.salles ? disposerPlan(p.donjon) : null) {
+  const d = p?.donjon;
+  if (!d?.salles?.[p.salleCourante] || !disposition) return null;
+  const connues = new Set((p.decouvertes || []).filter((id) => id in d.salles && disposition.positions[id]));
+  connues.add(p.salleCourante);
+  const porteVisible = ({ salle, mur, position }) => {
+    const porte = d.salles[salle].plan.portes.find((q) => q.mur === mur && q.position === position);
+    return !!porte && (!estCache(porte) || estRevele(p, salle, porte.id));
+  };
+  const liaisons = new Map((d.liaisons || []).map((l) => [l.id, l]));
+  const montrable = (c) => {
+    const l = liaisons.get(c.liaison);
+    return !!l && !c.orpheline && connues.has(l.a.salle) && connues.has(l.b.salle) && porteVisible(l.a) && porteVisible(l.b);
+  };
+  const couloirs = disposition.couloirs.filter(montrable).map(cheminCouloir);
+  const rects = [...connues].map((id) => ({ id, ...disposition.positions[id] }));
+  const xs = [...rects.flatMap((r) => [r.x, r.x + r.largeur]), ...couloirs.flat().map((q) => q.x)];
+  const ys = [...rects.flatMap((r) => [r.y, r.y + r.longueur]), ...couloirs.flat().map((q) => q.y)];
+  const x0 = Math.min(...xs) - MARGE_MINI, y0 = Math.min(...ys) - MARGE_MINI;
+  return {
+    largeur: Math.max(...xs) + MARGE_MINI - x0,
+    longueur: Math.max(...ys) + MARGE_MINI - y0,
+    salles: rects.map((r) => ({ x: r.x - x0, y: r.y - y0, l: r.largeur, h: r.longueur, courante: r.id === p.salleCourante })),
+    couloirs: couloirs.map((pts) => pts.map((q) => ({ x: q.x - x0, y: q.y - y0 }))),
+  };
+}
+
+/** Côté fenêtre table : relit une mini-carte reçue, champ par champ. Le moindre écart : pas de mini-carte. */
+export function recevoirMiniPlan(brut) {
+  const n = (v) => Number.isFinite(v) && v >= 0;
+  if (!brut || !n(brut.largeur) || !n(brut.longueur) || !Array.isArray(brut.salles) || !Array.isArray(brut.couloirs)) return null;
+  const sallesOk = brut.salles.every((s) => s && n(s.x) && n(s.y) && n(s.l) && n(s.h));
+  const couloirsOk = brut.couloirs.every((c) => Array.isArray(c) && c.every((q) => q && n(q.x) && n(q.y)));
+  if (!sallesOk || !couloirsOk) return null;
+  return {
+    largeur: brut.largeur,
+    longueur: brut.longueur,
+    salles: brut.salles.map((s) => ({ x: s.x, y: s.y, l: s.l, h: s.h, courante: s.courante === true })),
+    couloirs: brut.couloirs.map((c) => c.map((q) => ({ x: q.x, y: q.y }))),
+  };
 }
 
 /**
