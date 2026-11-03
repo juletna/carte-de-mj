@@ -29,7 +29,7 @@ import * as stockage from './stockage.js';
 import { rapport } from './rapport.js';
 import { activerDeplacement } from './deplacement.js';
 import { decrire } from './parseur/decrire.js';
-import { reperePorte, libelleSelection } from './parseur/coordonnees.js';
+import { reperePorte, libelleSelection } from './coordonnees.js';
 import * as modele from './donjon.js';
 import { creerMiniPlan } from './miniplan.js';
 import { telephone, activerOnglets, marquerDefilement, LARGEUR_TELEPHONE } from './telephone.js';

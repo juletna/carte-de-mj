@@ -1,9 +1,9 @@
 /**
- * Tests des libellés de coordonnées (js/parseur/coordonnees.js) : repère d'une porte et texte d'une sélection,
+ * Tests des libellés de coordonnées (js/coordonnees.js) : repère d'une porte et texte d'une sélection,
  * que le Donjon, la régie, le générateur, l'impression et decrire() écrivent tous de la même façon.
  * Sans dépendance : marche sous Node et dans tests.html.
  */
-import { lettreColonne, indexColonne, nomCase, lireCase, reperePorte, libelleDePorte, libelleSelection } from '../js/parseur/coordonnees.js';
+import { lettreColonne, indexColonne, nomCase, lireCase, reperePorte, libelleDePorte, libelleSelection } from '../js/coordonnees.js';
 import { libellePorte } from '../js/impression.js';
 import { decrire } from '../js/parseur/decrire.js';
 import { egal, executerSuite } from './mini-test.js';

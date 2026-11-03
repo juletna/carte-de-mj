@@ -4,8 +4,8 @@
  * Au-delà de la colonne Z : AA, AB… puis BA, BB…
  * Et les libellés qui s'en servent : repère d'une porte sur son mur, texte d'un élément sélectionné.
  */
-import { estHorizontal } from '../murs.js';
-import { nomAffiche } from './lexique.js';
+import { estHorizontal } from './murs.js';
+import { nomAffiche } from './parseur/lexique.js';
 
 /** Numéro de colonne (à partir de 0) → lettres : 0 → « A », 26 → « AA ». */
 export function lettreColonne(x) {

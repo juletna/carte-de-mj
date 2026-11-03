@@ -16,7 +16,7 @@ import { analyser } from './parseur/index.js';
 import { debutDescription } from './parseur/decrire.js';
 import { nomAffiche } from './parseur/lexique.js';
 import { CREATURES } from './catalogue.js';
-import { reperePorte } from './parseur/coordonnees.js';
+import { reperePorte } from './coordonnees.js';
 import { OPPOSE, VECTEUR, longueurMur } from './murs.js';
 import { POSITIONS_FORMES, brasMax, retraitPorte } from './formes.js';
 import { generateur, lireGraine, nouvelleGraine, melanger, GRAINE_MAX } from './alea.js';

@@ -26,7 +26,7 @@ import { trouverObjet, definition, nomAffiche, MOTS_VIDES, ADJ_CACHE } from './l
 import { analyserPosition } from './positions.js';
 import { construirePlan } from './placement.js';
 import { analyserProposition, decouper, hacher, preparer } from './index.js';
-import { lireCase, nomCase } from './coordonnees.js';
+import { lireCase, nomCase } from '../coordonnees.js';
 import { portesEntreeDabord } from '../murs.js';
 
 const VERBES = {

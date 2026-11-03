@@ -7,7 +7,7 @@
  * un thème pixel art ou des sprites sans toucher à ce fichier.
  */
 import * as vectoriel from './themes/vectoriel.js';
-import { lettreColonne } from '../parseur/coordonnees.js';
+import { lettreColonne } from '../coordonnees.js';
 import { cheminCouloir, PONT_DEMI_LONGUEUR, ETIQUETTE_ISOLEES } from '../plan-donjon.js';
 import { retraitPorte, contourSol } from '../formes.js';
 import { tracerSol } from './trace.js';

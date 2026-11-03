@@ -23,7 +23,7 @@
  * celle dont le grand côté suit le grand côté de la salle.
  */
 import { planPublic } from './presentation.js';
-import { lettreColonne, nomCase, reperePorte } from './parseur/coordonnees.js';
+import { lettreColonne, nomCase, reperePorte } from './coordonnees.js';
 import { nomAffiche } from './parseur/lexique.js';
 import { EPAISSEUR_MUR } from './rendu/geometrie.js';
 import { virgule, pluriel } from './format.js';

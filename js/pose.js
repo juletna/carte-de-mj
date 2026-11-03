@@ -12,7 +12,7 @@
  */
 import { PORTES, definition, nomAffiche } from './parseur/lexique.js';
 import { OBJETS, CREATURES } from './catalogue.js';
-import { nomCase } from './parseur/coordonnees.js';
+import { nomCase } from './coordonnees.js';
 import { normaliserForme, surLeSol } from './formes.js';
 import { REGARD, REGARD_VERS, estHorizontal, longueurMur, murEntree } from './murs.js';
 import { CASES_MAX, LISTES } from './schema.js';

@@ -7,7 +7,7 @@
  */
 import { definition, nomAffiche } from './lexique.js';
 import { estFeminin, estSymetrique } from '../catalogue.js';
-import { nomCase, reperePorte } from './coordonnees.js';
+import { nomCase, reperePorte } from '../coordonnees.js';
 import { REGARD_VERS, portesEntreeDabord, murEntree } from '../murs.js';
 import { nomDesBras } from '../formes.js';
 

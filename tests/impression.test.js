@@ -3,7 +3,7 @@
  * Sans dépendance : marche sous Node et dans tests.html. Chaque test lève une Error au premier écart ;
  * executer() renvoie la même forme que les autres.
  */
-import { lettreColonne, indexColonne } from '../js/parseur/coordonnees.js';
+import { lettreColonne, indexColonne } from '../js/coordonnees.js';
 import * as m from '../js/donjon.js';
 import * as imp from '../js/impression.js';
 import { vueTable, planPublic } from '../js/presentation.js';

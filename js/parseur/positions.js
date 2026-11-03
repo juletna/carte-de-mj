@@ -11,7 +11,7 @@
  * cible }) ; c'est placement.js qui la traduit en coordonnées.
  */
 import { trouverObjet } from './lexique.js';
-import { lireCase, indexColonne } from './coordonnees.js';
+import { lireCase, indexColonne } from '../coordonnees.js';
 import { MURS, REGARD_VERS } from '../murs.js';
 
 // Préposition relative → type de relation

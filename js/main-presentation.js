@@ -24,7 +24,7 @@ import { creerMiniPlan } from './miniplan.js';
 import { carteFiche, carteJoueur } from './carte-personnage.js';
 import { MAX_JOUEURS } from './personnages.js';
 import { LISTES } from './schema.js';
-import { nomCase, libelleSelection, libelleDePorte } from './parseur/coordonnees.js';
+import { nomCase, libelleSelection, libelleDePorte } from './coordonnees.js';
 import { nomAffiche } from './parseur/lexique.js';
 import { creerMicro } from './voix.js';
 import { AFFICHAGE_PAR_DEFAUT, modeTable, tailleTable, affichageDeReglages, validerAffichage, tailleQuiTientPlan } from './affichage.js';
