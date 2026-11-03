@@ -1,5 +1,5 @@
 /**
- * Tests de l'impression (impression.js, planPublic de presentation.js, thème papier, fenêtre du moteur).
+ * Tests de l'impression (impression.js, planPublic de vue-publique.js, thème papier, fenêtre du moteur).
  * Sans dépendance : marche sous Node et dans tests.html. Chaque test lève une Error au premier écart ;
  * executer() renvoie la même forme que les autres.
  */

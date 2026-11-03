@@ -5,7 +5,7 @@
  * Deux versions :
  *  - « mj »      tout, secrets compris (dessinés avec un repère « S » en pointillés), avec nom de la salle,
  *                notes de préparation, liaisons (porte → salle) et liste des secrets pour la feuille du MJ ;
- *  - « joueurs » mêmes règles de secret que la table : le plan passe par planPublic() de presentation.js
+ *  - « joueurs » mêmes règles de secret que la table : le plan passe par planPublic() de vue-publique.js
  *                (liste blanche : ni élément caché, ni porte secrète, ni notes, ni liaisons, ni nom de salle,
  *                ni état blessé / mort). Les pions de monstres et de PNJ en sont exclus par défaut, car un plan
  *                imprimé d'avance ne doit pas les dévoiler ; les pions de personnages (camp pj) restent.
@@ -22,7 +22,7 @@
  * L'orientation (portrait ou paysage) est choisie par salle, pour avoir le moins de pages ; à égalité, on garde
  * celle dont le grand côté suit le grand côté de la salle.
  */
-import { planPublic } from './presentation.js';
+import { planPublic } from './vue-publique.js';
 import { lettreColonne, nomCase, reperePorte } from './coordonnees.js';
 import { nomAffiche } from './parseur/lexique.js';
 import { EPAISSEUR_MUR } from './rendu/geometrie.js';

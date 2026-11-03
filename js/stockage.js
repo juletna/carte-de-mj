@@ -5,7 +5,7 @@
  * Clés :
  *   carte-de-mj:donjons-v1    { actif, donjons: { <id>: donjon } }   (voir donjon.js)
  *   carte-de-mj:reglages-v1   { echelle, taille, grille, reperes? }  (affichage, hors donjons)
- *   carte-de-mj:presentations-v1  { presentations: { <idDonjon>: présentation } }  (parties en cours : voir presentation.js)
+ *   carte-de-mj:presentations-v1  { presentations: { <idDonjon>: présentation } }  (parties en cours : voir partie.js)
  *   carte-de-mj:modeles-v1    { modeles: [donjon] }  (donjons gardés comme modèles : voir modeles.js)
  *   dd-fiche-personnages-v1   { actif, persos }  (outil Fiche : lue ici seulement, jamais écrite)
  *   carte-de-mj:regie-retrait-v1  { partie }  (dans le sessionStorage, propre à l'onglet : régie en retrait, voir commande-table.js)
@@ -19,7 +19,7 @@
  * Les fonctions de lecture/écriture acceptent un `stock` (par défaut localStorage) pour être testées sous Node.
  */
 import { validerDonjon, donjonDepuisAncien, creerDonjon, FORMAT, VERSION, FORMAT_ANCIEN } from './donjon.js';
-import { validerPresentation } from './presentation.js';
+import { validerPresentation } from './partie.js';
 import { fichesDuNavigateur } from './personnages.js';
 import { CLE_FICHES } from './fiche/format.js';
 import { TAILLE_PAR_DEFAUT, ECHELLE_PAR_DEFAUT, MODES_TABLE, tailleReglable } from './affichage.js';

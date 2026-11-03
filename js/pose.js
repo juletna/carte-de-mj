@@ -4,7 +4,7 @@
  * Ce module est la règle unique de « où peut-on poser quelque chose » :
  *  - deplacement.js s'en sert quand on lâche un pion, un objet ou une porte déplacé ;
  *  - la palette du Donjon s'en sert pour AJOUTER un élément (par un clic ou un glisser-déposer) ;
- *  - les commandes à la volée (parseur/commandes.js) et le placement du groupe qui passe une porte (presentation.js) en reprennent
+ *  - les commandes à la volée (parseur/commandes.js) et le placement du groupe qui passe une porte (passage.js) en reprennent
  *    les règles de pose et le test de chevauchement (`seChevauchent`).
  * Rien ici n'écrit la description : l'appelant passe le plan obtenu à decrire(), puis à analyser().
  *
