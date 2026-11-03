@@ -213,6 +213,7 @@ ni de la Fiche ni d'un réseau, et n'exige de décrire quoi que ce soit : elle o
   - « Ouvrir la fenêtre table » (`presentation.html?vue=table`) : à glisser sur l'écran de la table ; un bouton « Plein écran » discret
     apparaît quelques secondes après un mouvement de **souris** (inactif sinon : `pointer-events: none`, et un toucher ne le réveille pas). Synchronisée par BroadcastChannel (canal `carte-de-mj-presentation`, même navigateur). Ouverte seule ou rechargée, elle
     demande l'état à la régie, et affiche un message d'attente si aucune régie ne répond.
+  - *Plusieurs régies ouvertes* : une seule commande la table, la dernière qui a ouvert une partie (`js/commande-table.js`). Les autres passent **en retrait** : elles ne diffusent plus, ne répondent plus à la table, ignorent ses gestes, le disent en permanence (bandeau et panneau) et proposent « Reprendre la main », qui renvoie aussitôt leur état. Une régie sans la main ne vide jamais la table. Recharger la régie active lui rend la main ; recharger une régie en retrait la laisse en retrait. Si la régie active est fermée, rien n'est repris tout seul : la table attend qu'on clique sur « Reprendre la main ». Chaque régie n'enregistre que sa partie, et une régie en retrait n'écrase pas une version plus récente de la même partie.
   - « Plein écran ici » : pour un seul écran ; Échap pour revenir, ou « Retour à la régie », qui demande **deux appuis**
     (le premier arme le bouton, le second confirme dans les 4 secondes).
   - *Taille de la carte* (choix de la régie, mémorisé dans les réglages, `modeTable`) :
@@ -319,6 +320,7 @@ js/main-mj.js       branchement de l'interface (donjons, salles, sélection)
 js/affichage.js     taille de la carte à la table : modes « remplir » / « échelle réelle », mode par défaut (pur, sans DOM)
 js/presentation.js  partie en cours, portes, révélations, improvisation, vueTable (pur, sans DOM)
 js/main-presentation.js  régie et vue table (DOM, stockage, BroadcastChannel)
+js/commande-table.js  quelle régie commande la table quand plusieurs sont ouvertes (pur, sans DOM)
 js/impression.js    découpage en pages A4, échelle, proposition de réduction, versions MJ / joueurs (pur, sans DOM)
 js/main-impression.js  page d'impression (DOM, aperçu, règle de contrôle, proposition de réduction, barre collante)
 js/telephone.js     sous 760 px : onglets Texte / Carte et Actions / Carte, taille de case qui tient dans la zone, défilement au doigt d'une grande carte

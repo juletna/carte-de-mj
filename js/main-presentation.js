@@ -8,12 +8,15 @@
  * La logique (copie du donjon, portes, révélations, improvisation, plan envoyé à la table) est dans presentation.js.
  * Ici : DOM, stockage et BroadcastChannel.
  *
+ * Plusieurs régies peuvent être ouvertes : une seule commande la table (voir commande-table.js).
+ *
  * SÉCURITÉ : la vue table ne lit jamais les présentations du localStorage et ne reçoit de la
  * régie que le résultat de vueTable() et de miniPlanTable() (voir presentation.js). Aucun secret n'arrive à sa fenêtre.
  */
 import * as stockage from './stockage.js';
 import * as modele from './donjon.js';
 import * as pres from './presentation.js';
+import * as table from './commande-table.js';
 import { dessiner, dessinerPlanDonjon, tailleQuiTientPlan } from './rendu/moteur.js';
 import { disposerPlan, cleDisposition } from './plan-donjon.js';
 import { activerDeplacement } from './deplacement.js';
@@ -169,7 +172,7 @@ function demarrerTable() {
 
   const canal = ouvrirCanal();
   if (!canal) { attendre('Ce navigateur ne permet pas de recevoir la présentation (BroadcastChannel indisponible).'); return; }
-  let recu = false;
+  let recu = false, regiePresente = false;
   canal.onmessage = (ev) => {
     const m = ev.data;
     if (!m || typeof m !== 'object') return;
@@ -182,6 +185,9 @@ function demarrerTable() {
       if (plan) { ecran.plan = plan; rendreEcranTable(); } else attendre('La présentation n’a pas commencé. Lance-la depuis la régie.');
     } else if (m.type === 'defiler') {
       defilerEcranTable({ dx: entierSigne(m.dx), dy: entierSigne(m.dy), recentrer: m.recentrer === true });
+    } else if (m.type === table.PRESENCE) {
+      regiePresente = true; // on continue à demander : la régie qui a la main, ou qui la reprendra, nous servira
+      if (!ecran.plan) attendre('En attente de la régie : lance une présentation, ou clique sur « Reprendre la main » dans une régie en retrait.');
     }
   };
   activerActionsTable({
@@ -193,7 +199,7 @@ function demarrerTable() {
   demander();
   const relance = setInterval(() => { if (recu) clearInterval(relance); else demander(); }, 2000);
   setTimeout(() => {
-    if (!recu) attendre('Aucune régie ne répond. Ouvre presentation.html dans une autre fenêtre de ce navigateur et lance une présentation.');
+    if (!recu && !regiePresente) attendre('Aucune régie ne répond. Ouvre presentation.html dans une autre fenêtre de ce navigateur et lance une présentation.');
   }, 1500);
 }
 
@@ -202,6 +208,8 @@ function demarrerTable() {
 // =============================================================================
 function demarrerRegie() {
   const canal = ouvrirCanal();
+  const retraitAvantRechargement = stockage.retraitMemorise();
+  const commande = table.creerCommande(table.nouvelIdRegie(), { retrait: !!retraitAvantRechargement });
   const r = stockage.chargerReglages();
   const etat = {
     presentations: {},   // { idDonjon: présentation } (copie en mémoire de ce qui est sauvegardé)
@@ -218,6 +226,8 @@ function demarrerRegie() {
     caseVisee: null,     // { salle, x, y } : la case que le MJ montre aux joueurs. Jamais sauvegardée
     pleinIci: false,
     enregistre: true,
+    empreinte: null,     // la partie telle que cette régie l'a lue ou écrite en dernier (voir sauvegarder)
+    perimee: false,      // en retrait : l'autre régie a fait avancer cette partie, on ne l'enregistre plus ici
   };
 
   // --- Retour d'action : toast transitoire, hors du flux, annoncé par aria-live (#toast) ------------------
@@ -256,6 +266,7 @@ function demarrerRegie() {
   }
   /** Envoie à la table le plan de vueTable(), la mini-carte de miniPlanTable(), et rien d'autre. */
   function diffuser() {
+    if (!commande.main) return;
     canal?.postMessage({ type: 'etat', plan: etat.p ? pres.vueTable(etat.p) : null, mini: miniTable(), caseVisee: caseATable(), affichage: affichageTable() });
   }
   /** La case montrée, si elle est dans la salle que voient les joueurs. */
@@ -276,16 +287,67 @@ function demarrerRegie() {
   if (canal) {
     canal.onmessage = (ev) => {
       const m = ev.data;
-      if (m?.type === 'demande-etat') diffuser();
-      else if (m?.type === 'table-deplacer') deplacerDepuisTable(m.id, m.x, m.y);
-      else if (m?.type === 'table-viser' && etat.p) viserCase(etat.p.salleCourante, m.x, m.y);
+      const action = table.surMessage(commande, m);
+      if (action === 'retrait') { noterRetrait(); if (etat.p) majRetrait(); }
+      else if (action === 'diffuser') diffuser();
+      else if (action === 'presence') canal.postMessage({ type: table.PRESENCE });
+      else if (action === 'appliquer' && m.type === 'table-deplacer') deplacerDepuisTable(m.id, m.x, m.y);
+      else if (action === 'appliquer' && etat.p) viserCase(etat.p.salleCourante, m.x, m.y);
     };
   }
+  const noterRetrait = () => { if (commande.retrait) stockage.memoriserRetrait(etat.p?.donjon.id); };
+  function prendreLaMain() {
+    canal?.postMessage(table.prendreMain(commande, Date.now()));
+    stockage.oublierRetrait();
+  }
+  window.addEventListener('pagehide', () => {
+    const depart = table.messageDepart(commande);
+    if (depart) canal?.postMessage(depart);
+  });
+  // Revenue du cache du navigateur par « Précédent » : elle a annoncé son départ et a pu manquer des messages.
+  window.addEventListener('pageshow', (e) => { if (e.persisted && commande.main) prendreLaMain(); });
 
+  /** Une régie en retrait le dit en permanence : dans son panneau, et dans le bandeau au-dessus de la carte (hauteur fixe : la carte ne bouge pas). */
+  function majRetrait() {
+    const alerte = $('alerte-retrait');
+    alerte.hidden = !commande.retrait;
+    if (commande.retrait) {
+      $('texte-retrait').textContent = [
+        commande.titulaireParti
+          ? 'La régie qui avait la main a été fermée : la table n’est plus servie. Reprends la main pour lui montrer cette partie.'
+          : 'Cette régie est en retrait : une autre régie a ouvert une partie et commande la table. Ce que tu fais ici n’est plus montré aux joueurs. Si cette autre régie a été fermée, reprends la main.',
+        ...(etat.perimee ? ['Cette partie a avancé dans l’autre régie : ce que tu fais ici n’est plus enregistré. « Reprendre la main » repart de la version la plus récente.'] : []),
+      ].join(' ');
+    }
+    $('support').className = commande.retrait ? '' : etat.consultee === etat.p.salleCourante ? 'sur-table' : 'consultation';
+    majBandeau();
+  }
+  function reprendreLaMain() {
+    if (!etat.p) return;
+    viderSauvegarde(); // encore en retrait : ne peut rien écraser
+    const id = etat.p.donjon.id;
+    if (stockage.empreintePartie(id) !== etat.empreinte && stockage.chargerPresentations()[id]) { entrer(etat.p, { reprise: true }); return; }
+    prendreLaMain();
+    stockage.memoriserPartieOuverte(id);
+    etat.message = 'Cette régie a repris la main : la table montre sa partie.';
+    rendre();
+  }
+  $('reprendre-main').addEventListener('click', reprendreLaMain);
+
+  /**
+   * N'écrit que la partie de cette régie, jamais sa copie en mémoire des autres : elles ont pu avancer dans un autre onglet.
+   * En retrait, si l'autre régie a fait avancer CETTE partie, on n'écrase pas sa version plus récente.
+   */
   function sauvegarder() {
     if (!etat.p) return;
-    etat.presentations[etat.p.donjon.id] = etat.p;
-    const ok = stockage.sauverPresentations(etat.presentations);
+    const id = etat.p.donjon.id;
+    if (commande.retrait && stockage.empreintePartie(id) !== etat.empreinte) {
+      if (!etat.perimee) { etat.perimee = true; majRetrait(); }
+      return;
+    }
+    etat.presentations[id] = etat.p;
+    const ok = stockage.enregistrerPartie(etat.p);
+    if (ok) etat.empreinte = JSON.stringify(etat.p);
     if (!ok && etat.enregistre) {
       etat.enregistre = false; // alerte permanente (en haut de la régie) : un toast serait manqué
       const alerte = $('alerte-stockage');
@@ -348,8 +410,7 @@ function demarrerRegie() {
     reprendre.addEventListener('click', () => entrer(p, { reprise: true }));
     const abandonner = h('button', { type: 'button', className: 'discret' });
     deuxTemps(abandonner, 'Abandonner', 'Supprimer la partie ?', () => {
-      delete etat.presentations[p.donjon.id];
-      stockage.sauverPresentations(etat.presentations);
+      stockage.supprimerPartie(p.donjon.id);
       afficherDepart();
     });
     return h('li', {}, h('div', { className: 'infos' }, h('b', { textContent: p.donjon.nom }), h('span', { className: 'en-cours', textContent: resumePartie(p) })),
@@ -360,6 +421,7 @@ function demarrerRegie() {
     viderSauvegarde();
     etat.p = null;
     etat.consultee = null;
+    noterRetrait();
     quitterPleinIci();
     $('regie').hidden = true;
     $('choix-joueurs').hidden = true;
@@ -375,7 +437,7 @@ function demarrerRegie() {
     $('orphelines-presentations').hidden = orphelines.length === 0;
     $('liste-orphelines').replaceChildren(...orphelines.map(ligneOrpheline));
     $('liste-fichier').replaceChildren(...(etat.fichier ? [ligneFichier(etat.fichier)] : []));
-    diffuser(); // la table n'affiche plus rien tant qu'aucune partie n'est ouverte
+    diffuser(); // si cette régie a la main, la table n'affiche plus rien tant qu'aucune partie n'est ouverte
   }
 
   function ligneFichier({ donjon, avertissements }) {
@@ -488,9 +550,17 @@ function demarrerRegie() {
     ].join(' '));
   });
 
-  /** `reprise` : on rouvre une partie déjà enregistrée, sans rien réécrire (aucune sauvegarde tant que rien ne change). */
-  function entrer(p, { reprise = false } = {}) {
+  /**
+   * `reprise` : on rouvre une partie déjà enregistrée, sans rien réécrire (aucune sauvegarde tant que rien ne change).
+   * `main` : ouvrir une partie prend la main ; seul le rechargement d'une régie en retrait ne la prend pas.
+   */
+  function entrer(p, { reprise = false, main = true } = {}) {
+    // La liste a pu rester ouverte pendant qu'un autre onglet jouait : on repart de ce qui est enregistré.
+    if (reprise) p = stockage.chargerPresentations()[p.donjon.id] || p;
     etat.p = p;
+    etat.empreinte = stockage.empreintePartie(p.donjon.id);
+    etat.perimee = false;
+    if (main) prendreLaMain(); else noterRetrait();
     const prepare = stockage.chargerDonjons()?.donjons?.[p.donjon.id];
     if (prepare) pres.synchroniserPersonnages(p, prepare); // les fiches ont pu changer dans le Donjon
     etat.consultee = p.salleCourante;
@@ -507,11 +577,12 @@ function demarrerRegie() {
     $('nom-donjon').textContent = p.donjon.nom;
     document.title = `${p.donjon.nom} · Présentation · Carte de MJ`;
     if (!reprise) sauvegarder();
-    stockage.memoriserPartieOuverte(p.donjon.id); // un rechargement rouvre cette partie
+    if (main) stockage.memoriserPartieOuverte(p.donjon.id); // un rechargement rouvre cette partie
     if (reprise) etat.message = `Partie « ${p.donjon.nom} » rouverte, salle « ${salleConsultee().nom} ». « ← Liste des donjons » ramène à l’écran de départ.`;
     rendre();
   }
-  $('quitter').addEventListener('click', () => { stockage.oublierPartieOuverte(); afficherDepart(); });
+  // En retrait, la partie ouverte mémorisée est celle de l'autre régie : on n'y touche pas.
+  $('quitter').addEventListener('click', () => { if (!commande.retrait) stockage.oublierPartieOuverte(); afficherDepart(); });
 
   // --- Rendu de la régie ---------------------------------------------------------------------------
   const LISTES = { porte: 'portes', objet: 'objets', creature: 'creatures' };
@@ -557,8 +628,7 @@ function demarrerRegie() {
     oublierCaseSiResolue();
     const s = salleConsultee();
     dessinerRegie(s.plan);
-    $('support').className = etat.consultee === etat.p.salleCourante ? 'sur-table' : 'consultation';
-    majBandeau();
+    majRetrait();
     majProjection();
     if (etat.message) { annoncer(etat.message); etat.message = ''; } // hors du flux : la carte ne bouge jamais
     majSelection();
@@ -592,6 +662,14 @@ function demarrerRegie() {
   function majBandeau() {
     const p = etat.p, courante = salleCourante(), consultee = salleConsultee();
     const bandeau = $('bandeau');
+    if (commande.retrait) { // la table ne montre pas cette partie : « À la table » serait faux
+      bandeau.className = 'retrait';
+      const texte = h('div', { className: 'texte' }, h('span', { className: 'pastille', textContent: 'En retrait' }),
+        commande.titulaireParti ? 'La régie qui avait la main a été fermée : la table n’est plus servie.' : 'Une autre régie commande la table : les joueurs ne voient pas ce que tu fais ici.');
+      texte.title = texte.textContent;
+      bandeau.replaceChildren(texte, h('div', { className: 'actions' }, bouton('Reprendre la main', reprendreLaMain)));
+      return;
+    }
     const meme = consultee.id === courante.id;
     bandeau.className = meme ? 'sur-table' : 'consultation';
     const texte = h('div', { className: 'texte' });
@@ -1023,7 +1101,7 @@ function demarrerRegie() {
     b.addEventListener('click', () => {
       const [dx, dy] = b.dataset.defiler.split(',').map(Number);
       const recentrer = dx === 0 && dy === 0;
-      canal?.postMessage({ type: 'defiler', dx, dy, recentrer });
+      if (commande.main) canal?.postMessage({ type: 'defiler', dx, dy, recentrer });
       if (etat.pleinIci) defilerEcranTable({ dx, dy, recentrer });
     });
   }
@@ -1065,10 +1143,12 @@ function demarrerRegie() {
   const demande = pres.partieDemandee(parametres.get('donjon'), stockage.chargerDonjons()?.donjons, etat.presentations);
   // L'adresse perd sa demande : recharger la page ou revenir à la liste ne doit pas rouvrir ce donjon de force.
   if (parametres.has('donjon')) history.replaceState(null, '', 'presentation.html');
-  const aReprendre = stockage.partieAReprendre(etat.presentations);
+  // Rechargement : l'onglet qui avait la main la reprend (sinon la table resterait sans régie) ; celui qui était en retrait y reste,
+  // avec sa propre partie : recharger un vieil onglet ne doit pas renvoyer sa partie à la table.
+  const aReprendre = retraitAvantRechargement ? stockage.partieDuRetrait(retraitAvantRechargement, etat.presentations) : stockage.partieAReprendre(etat.presentations);
   if (demande?.reprise) entrer(demande.partie, { reprise: true });
   else if (demande) demanderJoueurs(demande.partie);
-  else if (aReprendre) entrer(aReprendre, { reprise: true });
+  else if (aReprendre) entrer(aReprendre, { reprise: true, main: !retraitAvantRechargement });
   else afficherDepart();
 }
 

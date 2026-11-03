@@ -8,6 +8,7 @@
  *   carte-de-mj:presentations-v1  { presentations: { <idDonjon>: présentation } }  (parties en cours : voir presentation.js)
  *   carte-de-mj:modeles-v1    { modeles: [donjon] }  (donjons gardés comme modèles : voir modeles.js)
  *   dd-fiche-personnages-v1   { actif, persos }  (outil Fiche : lue ici seulement, jamais écrite)
+ *   carte-de-mj:regie-retrait-v1  { partie }  (dans le sessionStorage, propre à l'onglet : régie en retrait, voir commande-table.js)
  *   jdr-carte:v1              ANCIENNE clé (une salle) : lue une fois pour la migration, jamais supprimée
  *
  * Les fonctions de lecture/écriture acceptent un `stock` (par défaut localStorage) pour être testées sous Node.
@@ -22,11 +23,13 @@ export const CLE_PRESENTATIONS = 'carte-de-mj:presentations-v1';
 export const CLE_PARTIE_OUVERTE = 'carte-de-mj:partie-ouverte-v1';
 export const CLE_MODELES = 'carte-de-mj:modeles-v1';
 export const CLE_FICHES = 'dd-fiche-personnages-v1';
+export const CLE_RETRAIT = 'carte-de-mj:regie-retrait-v1';
 const CLE = 'jdr-carte:v1';
 const TAILLE_MAX_FICHIER = 5 * 1024 * 1024;
 const REGLAGES_DEFAUT = { echelle: 1.5, taille: 48, grille: true };
 
 const stockParDefaut = () => { try { return globalThis.localStorage || null; } catch { return null; } };
+const stockOnglet = () => { try { return globalThis.sessionStorage || null; } catch { return null; } };
 function lireJson(stock, cle) {
   try {
     const brut = stock?.getItem(cle);
@@ -94,6 +97,22 @@ export function chargerPresentations(stock = stockParDefaut()) {
 }
 export const sauverPresentations = (presentations, stock = stockParDefaut()) => ecrireJson(stock, CLE_PRESENTATIONS, { presentations });
 
+// Plusieurs régies peuvent être ouvertes : chacune n'écrit que sa partie, sur ce qui est enregistré à cet instant, jamais sa copie en mémoire des autres.
+const presentationsBrutes = (stock) => {
+  const toutes = lireJson(stock, CLE_PRESENTATIONS)?.presentations;
+  return toutes && typeof toutes === 'object' ? toutes : {};
+};
+export const enregistrerPartie = (p, stock = stockParDefaut()) => sauverPresentations({ ...presentationsBrutes(stock), [p.donjon.id]: p }, stock);
+export function supprimerPartie(idDonjon, stock = stockParDefaut()) {
+  const { [idDonjon]: _supprimee, ...reste } = presentationsBrutes(stock);
+  return sauverPresentations(reste, stock);
+}
+/** La partie telle qu'enregistrée, en texte (null si absente) : si elle diffère de ce qu'on y a lu ou écrit, un autre onglet l'a fait avancer. */
+export function empreintePartie(idDonjon, stock = stockParDefaut()) {
+  const toutes = presentationsBrutes(stock);
+  return Object.prototype.hasOwnProperty.call(toutes, idDonjon) ? JSON.stringify(toutes[idDonjon]) : null;
+}
+
 /** Les fiches de l'outil Fiche dans ce navigateur : [{ source, fiche }]. Rien n'y est jamais écrit depuis le Donjon. */
 export const chargerFichesLocales = (stock = stockParDefaut()) => fichesDuNavigateur(lireJson(stock, CLE_FICHES));
 
@@ -117,6 +136,19 @@ export function partieAReprendre(presentations, stock = stockParDefaut()) {
   const id = lireJson(stock, CLE_PARTIE_OUVERTE)?.id;
   return typeof id === 'string' && Object.prototype.hasOwnProperty.call(presentations, id) ? presentations[id] : null;
 }
+
+/**
+ * Régie en retrait : retenu pour l'onglet seul, car un rechargement ne doit pas lui rendre la main, ni lui faire rouvrir la partie
+ * d'une autre régie (la partie ouverte ci-dessus est commune aux onglets). `partie` : l'identifiant de sa partie, ou null sur la liste.
+ */
+export const memoriserRetrait = (idDonjon, stock = stockOnglet()) => ecrireJson(stock, CLE_RETRAIT, { partie: idDonjon ?? null });
+export const oublierRetrait = (stock = stockOnglet()) => { try { stock?.removeItem?.(CLE_RETRAIT); } catch { /* sans mémoire */ } };
+export const retraitMemorise = (stock = stockOnglet()) => {
+  const m = lireJson(stock, CLE_RETRAIT);
+  return m && typeof m === 'object' ? { partie: typeof m.partie === 'string' ? m.partie : null } : null;
+};
+/** La partie d'une régie en retrait parmi `presentations`, ou null. */
+export const partieDuRetrait = (retrait, presentations) => (retrait?.partie && Object.prototype.hasOwnProperty.call(presentations, retrait.partie) ? presentations[retrait.partie] : null);
 
 /**
  * Point d'entrée au démarrage : donjons et réglages à utiliser.

@@ -11,8 +11,9 @@ import { executer as executerGenerateur } from './generateur.test.js';
 import { executer as executerModeles } from './modeles.test.js';
 import { executer as executerPersonnages } from './personnages.test.js';
 import { executer as executerFicheHasard } from './fiche-hasard.test.js';
+import { executer as executerCommandeTable } from './commande-table.test.js';
 
-const resultats = [...executer(), ...executerAllerRetour(), ...executerDonjon(), ...executerPresentation(), ...executerCommandes(), ...executerImpression(), ...executerPose(), ...executerPlan(), ...executerFormes(), ...executerGenerateur(), ...executerModeles(), ...executerPersonnages(), ...executerFicheHasard()];
+const resultats = [...executer(), ...executerAllerRetour(), ...executerDonjon(), ...executerPresentation(), ...executerCommandes(), ...executerImpression(), ...executerPose(), ...executerPlan(), ...executerFormes(), ...executerGenerateur(), ...executerModeles(), ...executerPersonnages(), ...executerFicheHasard(), ...executerCommandeTable()];
 let echecs = 0;
 for (const r of resultats) {
   const ok = r.ecarts.length === 0;
