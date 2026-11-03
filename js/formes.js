@@ -158,6 +158,26 @@ export function troncons(plan) {
 }
 
 /**
+ * Le contour du sol, à `d` pixels à l'extérieur : un segment par côté de case qui donne sur le vide.
+ * Il suit les coins : un coin sortant allonge le segment de `d`, un coin rentrant le raccourcit de `d`. Les trous (O, 8) ont aussi leur contour.
+ * @returns {Array<{x1:number,y1:number,x2:number,y2:number}>} en pixels, l'origine étant le coin nord-ouest de la salle
+ */
+export function contourSol(plan, t, d) {
+  // Bout d'un segment : la case voisine le long du mur, et la case en face de celle-ci, du côté du vide.
+  const bout = (voisine, enFace) => (!voisine ? d : enFace ? -d : 0);
+  return troncons(plan).map(({ x, y, mur }) => {
+    const horizontal = mur === 'nord' || mur === 'sud';
+    const dehors = mur === 'nord' || mur === 'ouest' ? -1 : 1;
+    if (horizontal) {
+      const Y = (mur === 'nord' ? y : y + 1) * t + dehors * d;
+      return { x1: x * t - bout(estSol(plan, x - 1, y), estSol(plan, x - 1, y + dehors)), y1: Y, x2: (x + 1) * t + bout(estSol(plan, x + 1, y), estSol(plan, x + 1, y + dehors)), y2: Y };
+    }
+    const X = (mur === 'ouest' ? x : x + 1) * t + dehors * d;
+    return { x1: X, y1: y * t - bout(estSol(plan, x, y - 1), estSol(plan, x + dehors, y - 1)), x2: X, y2: (y + 1) * t + bout(estSol(plan, x, y + 1), estSol(plan, x + dehors, y + 1)) };
+  });
+}
+
+/**
  * Dessine les murs d'une salle découpée, pour les deux thèmes.
  * @param {{fond:string, trait:string, epaisseurTrait:number, joints:boolean}} style
  */

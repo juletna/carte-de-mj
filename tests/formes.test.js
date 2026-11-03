@@ -3,7 +3,7 @@
  * Sans dépendance : marche sous Node et dans tests.html.
  */
 import * as m from '../js/donjon.js';
-import { FORMES, POSITIONS_FORMES, casesRetirees, estSol, nombreCases, retraitPorte, brasDe, brasMax, surLeSol } from '../js/formes.js';
+import { FORMES, POSITIONS_FORMES, casesRetirees, estSol, nombreCases, retraitPorte, brasDe, brasMax, surLeSol, contourSol } from '../js/formes.js';
 import { analyser } from '../js/parseur/index.js';
 import { decrire } from '../js/parseur/decrire.js';
 import { validerPlan, SOLS } from '../js/schema.js';
@@ -239,6 +239,27 @@ const TESTS = [
     verifier(ok.ok, `ajout attendu : ${JSON.stringify(ok).slice(0, 120)}`);
     for (const k of ok.plan.creatures) verifier(surLeSol(ok.plan, k.x, k.y, k.taille, k.taille), 'pions sur le sol');
     egal(ok.plan.forme, 'croix', 'la commande garde la forme');
+  }],
+  ['le contour d’une salle suit sa forme, sans déborder sur les coins vides', () => {
+    const cadre = (segments) => {
+      const xs = segments.flatMap((s) => [s.x1, s.x2]), ys = segments.flatMap((s) => [s.y1, s.y2]);
+      return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
+    };
+    egal(cadre(contourSol(plan('rectangle', 3, 2), 10, 1)), [-1, -1, 31, 21], 'un rectangle : son cadre, décalé de d');
+    const segments = contourSol(plan('L', 3, 3, 1, 'sud-ouest'), 10, 1);
+    egal(cadre(segments), [-1, -1, 31, 31], 'le L tient dans son rectangle');
+    const coin = (s, x, y) => (s.x1 === x && s.y1 === y) || (s.x2 === x && s.y2 === y);
+    egal(segments.filter((s) => coin(s, 11, 19)).length, 2, 'le coin rentrant : deux segments raccourcis qui se rejoignent');
+    verifier(!segments.some((s) => coin(s, 31, -1)), 'rien dans le coin vide');
+    for (const forme of FORMES) {
+      for (const position of POSITIONS_FORMES[forme] || [undefined]) {
+        const q = plan(forme, 11, 11, undefined, position);
+        const bouts = new Map();
+        for (const s of contourSol(q, 10, 3)) for (const c of [`${s.x1},${s.y1}`, `${s.x2},${s.y2}`]) bouts.set(c, (bouts.get(c) || 0) + 1);
+        const ouverts = [...bouts].filter(([, n]) => n % 2);
+        egal(ouverts, [], `${forme} ${position || ''} : le contour est fermé`);
+      }
+    }
   }],
 ];
 

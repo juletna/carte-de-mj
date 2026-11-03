@@ -9,7 +9,7 @@
 import * as vectoriel from './themes/vectoriel.js';
 import { lettreColonne } from '../parseur/coordonnees.js';
 import { cheminCouloir, PONT_DEMI_LONGUEUR, ETIQUETTE_ISOLEES } from '../plan-donjon.js';
-import { retraitPorte, tracerSol } from '../formes.js';
+import { retraitPorte, tracerSol, contourSol } from '../formes.js';
 
 export const MARGE = 1; // cases de roche autour de la pièce
 
@@ -240,12 +240,16 @@ export function dessinerPlanDonjon(canvas, d, disposition, { taille = 16, actif 
   const cadre = (id, couleur, epais, voile) => {
     const p = disposition.positions[id];
     if (!p) return;
-    const e = EPAISSEUR_MUR * t, x = p.x * t - e, y = p.y * t - e, l = p.largeur * t + 2 * e, h = p.longueur * t + 2 * e;
+    const plan = d.salles[id].plan;
     ctx.save();
-    if (voile) { ctx.fillStyle = voile; ctx.fillRect(p.x * t, p.y * t, p.largeur * t, p.longueur * t); }
+    ctx.translate(p.x * t, p.y * t);
+    if (voile) { ctx.fillStyle = voile; tracerSol(ctx, plan, t); ctx.fill(); }
     ctx.strokeStyle = couleur;
     ctx.lineWidth = epais;
-    ctx.strokeRect(x - epais / 2, y - epais / 2, l + epais, h + epais);
+    ctx.lineCap = 'square'; // le bout carré ferme les coins entre deux segments
+    ctx.beginPath();
+    for (const { x1, y1, x2, y2 } of contourSol(plan, t, EPAISSEUR_MUR * t + epais / 2)) { ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); }
+    ctx.stroke();
     ctx.restore();
   };
   for (const id of inconnues) cadre(id, '#55525a', 1, 'rgba(10, 10, 14, 0.62)');
