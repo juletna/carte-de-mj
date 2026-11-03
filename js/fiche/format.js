@@ -3,8 +3,7 @@
  * Feuille sans dépendance de l'application (elle n'importe que le test d'objet de ../format.js, lui-même sans import) :
  * le Donjon la lit pour ses personnages (personnages.js, stockage.js), la Fiche ne dépend jamais de stockage.js.
  *
- * `fiche.html` garde pour l'instant sa propre copie de ces valeurs dans son script (classique, en ligne) : tests/fiche-contrat.test.js
- * compare les deux, pour qu'elles ne divergent pas.
+ * La page de la Fiche (js/fiche/main.js) les importe et n'en garde aucune copie : tests/fiche-contrat.test.js le vérifie.
  */
 import { estObjet } from '../format.js';
 

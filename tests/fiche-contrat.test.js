@@ -1,52 +1,49 @@
 /**
  * Contrat entre l'outil Fiche et le Donjon : la clé, le format du fichier exporté, les caractéristiques et ce qu'est une fiche
- * viennent de js/fiche/format.js et js/fiche/regles.js ; le script de fiche.html (classique, en ligne pour l'instant) en garde
- * une copie, que ce test compare. Il fait aussi passer l'exemple et la fiche vierge de fiche.html, et des fiches au hasard,
- * dans resumerFiche(), la lecture que le Donjon fait d'une fiche. Les pages sont lues par `lire(chemin)` (disque sous Node, fetch dans tests.html).
+ * viennent de js/fiche/format.js et js/fiche/regles.js ; la page de la Fiche (js/fiche/main.js, module) les importe et n'en garde
+ * aucune copie, ce que ce test vérifie. Il fait aussi passer l'exemple et la fiche vierge de la Fiche (js/fiche/base.js), et des fiches
+ * au hasard, dans resumerFiche(), la lecture que le Donjon fait d'une fiche. Les sources sont lues par `lire(chemin)` (disque sous Node, fetch dans tests.html).
  */
 import { CLE_FICHES, CLE_FICHE_ANCIENNE, FORMAT_FICHE, VERSION_FICHE, estFiche } from '../js/fiche/format.js';
 import { STATS } from '../js/fiche/regles.js';
+import { sample, blank } from '../js/fiche/base.js';
 import { resumerFiche, ficheDepuisFichier, fichesDuNavigateur } from '../js/personnages.js';
 import { genererFiches, CLASSES } from '../js/fiche-hasard.js';
 import { CLE_FICHES as CLE_FICHES_STOCKAGE, chargerFichesLocales } from '../js/stockage.js';
 import { verifier, egal, executerSuite } from './mini-test.js';
 
-/** Le morceau de texte de `source` entre deux repères, ou une erreur claire si la page a changé de forme. */
-function entre(source, debut, fin, quoi) {
-  const i = source.indexOf(debut), j = source.indexOf(fin, i);
-  verifier(i >= 0 && j > i, `fiche.html : repères introuvables pour ${quoi} (« ${debut} » … « ${fin} »)`);
-  return source.slice(i, j);
-}
 const trouver = (source, re, quoi) => {
   const m = source.match(re);
-  verifier(m, `fiche.html : ${quoi} introuvable (${re})`);
+  verifier(m, `${quoi} introuvable (${re})`);
   return m;
 };
 
 export async function executer({ lire }) {
   const html = await lire('fiche.html');
+  const page = await lire('js/fiche/main.js');
+  const sources = { 'js/fiche/main.js': page, 'js/fiche/base.js': await lire('js/fiche/base.js'), 'js/fiche/jeu.js': await lire('js/fiche/jeu.js'), 'js/fiche/des.js': await lire('js/fiche/des.js') };
   const feuilles = { 'js/fiche/format.js': await lire('js/fiche/format.js'), 'js/fiche/regles.js': await lire('js/fiche/regles.js') };
-  const script = html.slice(html.indexOf('<script>'), html.lastIndexOf('</script>'));
-  verifier(script.length > 1000, 'fiche.html : script en ligne introuvable');
-  // L'exemple et la fiche vierge, tels que la page les construit.
-  const pageFiche = () => new Function(`${entre(script, 'const slots=', '/* Complète', 'sample() et blank()')}; return { sample, blank };`)();
+  verifier(/<script type="module" src="js\/fiche\/main\.js"><\/script>/.test(html), 'fiche.html : doit charger js/fiche/main.js en module');
+  verifier(!/<script>/.test(html), 'fiche.html : plus de script en ligne');
+  verifier(page.length > 1000, 'js/fiche/main.js : page introuvable');
 
   const TESTS = [
-    ['fiche.html garde les mêmes clés, le même format de fichier et les mêmes caractéristiques que js/fiche/', () => {
-      const [, ancienne, actuelle] = trouver(script, /const KEY='([^']+)',KEY2='([^']+)'/, 'les clés');
-      egal([actuelle, ancienne], [CLE_FICHES, CLE_FICHE_ANCIENNE], 'clés (actuelle, ancienne)');
-      const [, stats] = trouver(script, /const STATS=\[([^\]]*)\]/, 'STATS');
-      egal(stats.split(',').map((s) => s.trim().replace(/'/g, '')), STATS, 'caractéristiques et leur ordre');
-      const [, formatExport, versionExport] = trouver(script, /format:'([^']+)',version:(\d+),personnage:/, 'l’export');
-      egal([formatExport, Number(versionExport)], [FORMAT_FICHE, VERSION_FICHE], 'format et version exportés');
-      const [, formatImport] = trouver(script, /j\.format==='([^']+)'/, 'le format importé');
-      const [, versionMax] = trouver(script, /env&&j\.version>(\d+)/, 'la version importée au plus');
-      egal([formatImport, Number(versionMax)], [FORMAT_FICHE, VERSION_FICHE], 'format et version acceptés');
+    ['la Fiche prend sa clé, son format de fichier et ses caractéristiques de js/fiche/, sans en garder de copie', () => {
+      for (const [fichier, source] of Object.entries(sources)) {
+        verifier(!source.includes(CLE_FICHES) && !source.includes(CLE_FICHE_ANCIENNE), `${fichier} : recopie une clé du navigateur`);
+        verifier(!/const STATS\s*=/.test(source), `${fichier} : recopie STATS`);
+        verifier(!source.includes(`'${FORMAT_FICHE}'`), `${fichier} : recopie le format du fichier`);
+      }
+      trouver(page, /import \{[^}]*\bCLE_FICHES\b[^}]*\bFORMAT_FICHE\b[^}]*\bVERSION_FICHE\b[^}]*\} from '\.\/format\.js'/, 'l’import de la clé et du format');
+      trouver(page, /import \{ STATS \} from '\.\/regles\.js'/, 'l’import de STATS');
+      trouver(sources['js/fiche/base.js'], /import \{ CLE_FICHES, CLE_FICHE_ANCIENNE \} from '\.\/format\.js'/, 'l’import des clés dans base.js');
+      trouver(page, /format:FORMAT_FICHE,version:VERSION_FICHE,personnage:/, 'l’export');
+      trouver(page, /j\.format===FORMAT_FICHE/, 'le format importé');
+      trouver(page, /env&&j\.version>VERSION_FICHE/, 'la version importée au plus');
       egal(CLE_FICHES_STOCKAGE, CLE_FICHES, 'le stockage du Donjon lit la même clé');
     }],
 
-    ['l’exemple et la fiche vierge de fiche.html passent dans resumerFiche, comme un fichier exporté', () => {
-      const { sample, blank } = pageFiche();
+    ['l’exemple et la fiche vierge de la Fiche passent dans resumerFiche, comme un fichier exporté', () => {
       const exemple = resumerFiche(sample());
       verifier(exemple, 'l’exemple doit être une fiche');
       egal([exemple.nom, exemple.race, exemple.classe, exemple.niveau, exemple.pv, exemple.pvMax, exemple.ca], ['Elwyn Brisevent', 'Demi-elfe', 'Rôdeur', 3, 28, 28, 15], 'résumé de l’exemple');
@@ -87,8 +84,13 @@ export async function executer({ lire }) {
       for (const non of [null, undefined, 'x', 3, [], {}, { stats: null }, { stats: [] }, { stats: 3 }]) verifier(!estFiche(non), JSON.stringify(non));
     }],
 
-    ['la Fiche n’importe pas stockage.js, et js/fiche/ ne dépend de rien d’autre que du test d’objet', () => {
+    ['la Fiche n’importe pas stockage.js, et js/fiche/format.js et regles.js ne dépendent de rien d’autre que du test d’objet', () => {
       verifier(!/stockage\.js/.test(html), 'fiche.html ne doit pas parler de stockage.js');
+      for (const [fichier, source] of Object.entries(sources)) {
+        const imports = [...source.matchAll(/^\s*import\b[^;]*from\s+'([^']+)'/gm)].map((m) => m[1]);
+        verifier(imports.every((i) => /^\.\/(format|regles|base|des|jeu)\.js$|^\.\.\/fiche-hasard\.js$/.test(i)), `${fichier} : importe ${imports.join(', ')}`);
+        verifier(!/stockage/.test(source.replace(/\/\*[\s\S]*?\*\//g, '')), `${fichier} : ne doit pas toucher à stockage.js`);
+      }
       for (const [fichier, source] of Object.entries(feuilles)) {
         const imports = [...source.matchAll(/^\s*import\b[^;]*from\s+'([^']+)'/gm)].map((m) => m[1]);
         verifier(imports.every((i) => i === '../format.js'), `${fichier} : importe ${imports.join(', ')}`);

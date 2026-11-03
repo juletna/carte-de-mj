@@ -35,7 +35,7 @@ Au-dessus de 760 px, ni la mise en page ni la carte ne changent. En dessous, le 
 
 ## Lancer en local
 
-Les modules JavaScript ne se chargent pas en ouvrant `donjon.html` d'un double-clic (protocole `file://`).
+Les modules JavaScript ne se chargent pas en ouvrant `donjon.html` (ni `fiche.html`, désormais un module aussi) d'un double-clic (protocole `file://`).
 Il faut un petit serveur local. Celui du projet désactive le cache, pour voir tout de suite chaque modification :
 
 ```bash
@@ -318,10 +318,11 @@ index.html          accueil (présente les trois outils)
 donjon.html         outil Donjon (vue MJ)
 impression.html     impression des plans d'un donjon (A4, version MJ ou joueurs)
 presentation.html   outil Présentation (régie, ou vue table avec ?vue=table)
-fiche.html          outil Fiche (palette et polices propres, en ligne ; seul l'en-tête vient de css/base.css)
+fiche.html          outil Fiche (page HTML ; sa feuille est css/fiche.css, son script js/fiche/main.js)
 tests.html          tous les tests dans le navigateur (la même liste que node tests/node.mjs)
 .github/workflows/tests.yml  lance node tests/node.mjs à chaque push et chaque pull request
 css/base.css        socle commun : jetons (couleurs du thème sombre, rayons, espacements, focus, taille de cible tactile) et en-tête de navigation
+css/fiche.css       feuille de la Fiche : palette et polices propres (seul l'en-tête vient de css/base.css)
 css/style.css       styles communs au Donjon, à la Présentation et à l'Impression : panneau, champs, boutons, scène, onglets du téléphone, fiches de personnage
 css/donjon.css      mise en page du Donjon : barre, rail d'outils, panneau, bande des salles, bulle d'actions, zoom
 css/presentation.css  écran de départ, régie et vue table
@@ -363,7 +364,8 @@ js/generateur.js    donjon au hasard : paramètres et numéro de tirage → un d
 js/fiche-hasard.js  fiche au hasard : paramètres et numéro de tirage → des fiches complètes au format de l'outil Fiche (pur, sans DOM)
 js/alea.js          tirages reproductibles, communs aux deux générateurs (pur, sans DOM)
 js/personnages.js   fiches associées au donjon : résumé, ajout, validation (pur, sans DOM)
-js/fiche/           ce que la Fiche et le Donjon ont en commun, sans dépendance : `format.js` (clé du navigateur, format du fichier exporté, `estFiche`), `regles.js` (les six caractéristiques) ; `fiche.html` en garde une copie, comparée par un test
+js/fiche/           l'outil Fiche. Ce qu'elle partage avec le Donjon, sans dépendance : `format.js` (clé du navigateur, format du fichier exporté, `estFiche`), `regles.js` (les six caractéristiques) ; la page les importe, un test vérifie qu'elle n'en garde pas de copie.
+                    Le reste : `main.js` (la page : rendu, clics, saisies, sauvegarde ; module), `jeu.js` (règles : jet d'un d20, CA, vitesse, dégâts, soins, tour ; la fiche `S` en paramètre, pur), `des.js` (dés et expressions, pur), `base.js` (listes de la règle, types d'objet, exemple et fiche vierge, base des personnages du navigateur, pur)
 js/carte-personnage.js  une fiche à l'écran, la même dans le Donjon et la régie
 js/formes.js        formes de salle : table des formes (libellés, mots, positions, pans de l'octogone), cases retirées, portes en retrait, murs découpés (calcul pur)
 js/stockage.js      localStorage (donjons, réglages, migration de l'ancien format, mise de côté de ce qui ne se relit pas), export/import JSON

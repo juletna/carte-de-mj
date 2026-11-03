@@ -28,7 +28,7 @@ const texte = (v, max = MAX_TEXTE) => (typeof v === 'string' || typeof v === 'nu
 const nombre = (v, defaut = 0) => (Number.isFinite(Number(v)) && v !== null && v !== '' ? Number(v) : defaut);
 const liste = (v) => (Array.isArray(v) ? v.filter(estObjet).slice(0, MAX_LISTE) : []);
 
-/** La CA de l'outil Fiche est une base : les objets équipés du sac s'y ajoutent (voir acTotal dans fiche.html). */
+/** La CA de l'outil Fiche est une base : les objets équipés du sac s'y ajoutent (voir acTotal dans js/fiche/jeu.js). */
 const bonusEquipe = (sac) => liste(sac).reduce((total, o) => total + (o.type === 'equip' && o.eq ? nombre(o.acb) : 0), 0);
 
 /** Résumé d'une fiche, par liste blanche. @returns {object|null}  null : ce n'est pas une fiche de personnage */

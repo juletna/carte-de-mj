@@ -10,7 +10,7 @@ import { STATS } from '../js/fiche/regles.js';
 import { verifier, egal, executerSuite } from './mini-test.js';
 
 const mod = (v) => Math.floor((v - 10) / 2);
-/** Les compétences reconnues par l'outil Fiche (SKILLS de fiche.html). */
+/** Les compétences reconnues par l'outil Fiche (SKILLS de js/fiche/base.js). */
 const COMPETENCES = ['Acrobaties', 'Arcanes', 'Athlétisme', 'Discrétion', 'Dressage', 'Escamotage', 'Histoire', 'Intimidation', 'Intuition', 'Investigation', 'Médecine', 'Nature', 'Perception', 'Persuasion', 'Religion', 'Représentation', 'Survie', 'Tromperie'];
 
 const TESTS = [
