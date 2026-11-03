@@ -620,7 +620,8 @@ function vFiche(){
  </section>
  <section class="card"><h2>Personnage</h2>
   <div class="plist">${plist()}</div>
-  <div class="grid2"><button data-a="newp">Nouveau personnage</button><button data-a="demo">Ajouter l'exemple</button></div>
+  <div class="grid2"><button data-a="newp">Nouveau personnage</button><button data-a="hasard">🎲 Au hasard</button></div>
+  <button data-a="demo">Ajouter l'exemple</button>
   <div class="grid2"><button data-a="exp">Exporter</button><button data-a="imp">Importer</button></div>
   <button class="danger-btn ${armed?'armed':''}" data-a="pdel">${armed?`Confirmer : supprimer « ${esc(S.name||'Sans nom')} »`:'Supprimer ce personnage'}</button>
   ${armed?'<small class="confirm">Touche encore une fois pour confirmer. Tu pourras annuler quelques secondes.</small>':''}
@@ -679,10 +680,24 @@ function vSheetHp(){
  <div class="keys">${[1,2,3,4,5,6,7,8,9].map(n=>`<button data-a="key" data-v="${n}">${n}</button>`).join('')}<button data-a="key" data-v="c" aria-label="Effacer tout">C</button><button data-a="key" data-v="0">0</button><button data-a="key" data-v="b" aria-label="Effacer un chiffre">⌫</button></div>
  <div class="padact"><button class="red" data-a="padgo" data-v="dmg">Dégâts</button><button class="heal" data-a="padgo" data-v="heal">Soins</button><button data-a="padgo" data-v="tmp">Temp</button></div>`;
 }
+/* Personnage au hasard (js/fiche-hasard.js, le même que dans le Donjon) : chargé à la demande, le reste de la page n'en dépend pas. */
+let H=null,dernierTirage=null;const tirage={ouvert:false,classe:'',race:'',niveau:'1',graine:'',msg:''};
+function vTirage(){if(!tirage.ouvert||!H)return'';
+ const opts=(table,v)=>`<option value="">Au hasard</option>${Object.entries(table).map(([k,o])=>`<option value="${esc(k)}" ${k===v?'selected':''}>${esc(o.nom)}</option>`).join('')}`;
+ return`<div class="edit">
+  <div class="grid2"><label class="field"><span class="lbl">Classe</span><select id="tg_classe">${opts(H.CLASSES,tirage.classe)}</select></label>
+  <label class="field"><span class="lbl">Race / espèce</span><select id="tg_race">${opts(H.RACES,tirage.race)}</select></label></div>
+  <div class="grid2"><label class="field"><span class="lbl">Niveau</span><input id="tg_niveau" type="number" inputmode="numeric" min="${H.BORNES.niveau[1]}" max="${H.BORNES.niveau[2]}" value="${esc(tirage.niveau)}"></label>
+  <label class="field"><span class="lbl">Numéro de tirage</span><input id="tg_graine" type="number" inputmode="numeric" min="1" max="${H.GRAINE_MAX}" placeholder="Vide : un nouveau" value="${esc(tirage.graine)}"></label></div>
+  <button class="primary" data-a="tgo">Générer</button>
+  ${tirage.msg?`<small class="muted" role="status">${esc(tirage.msg)}</small>`:''}
+ </div>`}
 function vSheetPerso(){
  return`<h2>Personnages <button class="x" data-a="close" aria-label="Fermer">✕</button></h2>
  <div class="plist">${plist()}</div>
  <button class="primary" data-a="newp">+ Nouveau personnage</button>
+ <button data-a="hasard" aria-expanded="${tirage.ouvert}">🎲 Au hasard</button>
+ ${vTirage()}
  <button data-a="imp">Importer un fichier</button>
  <small class="muted">Exporter et supprimer : onglet Fiche, tout en bas.</small>`;
 }
@@ -830,6 +845,15 @@ document.addEventListener('click',e=>{
   case 'psw':if(DB.persos[id])setActive(id);break;
   case 'newp':addP(blank(),'fiche');toast('Nouveau personnage');break;
   case 'demo':addP(sample(),'combat');toast('Exemple ajouté');window.scrollTo(0,0);break;
+  case 'hasard':{const fermer=S.sheet==='perso'&&tirage.ouvert;
+   if(!H){import('./js/fiche-hasard.js').then(m=>{H=m;tirage.ouvert=true;S.sheet='perso';render()}).catch(()=>toast('Tirage indisponible : cette page doit être ouverte depuis le site'));return}
+   tirage.ouvert=!fermer;S.sheet='perso';break}
+  case 'tgo':{Object.assign(tirage,{classe:document.getElementById('tg_classe').value,race:document.getElementById('tg_race').value,niveau:document.getElementById('tg_niveau').value,graine:document.getElementById('tg_graine').value});
+   /* Un nouveau tirage remplace le précédent tant qu'on n'y a pas touché, plutôt que d'empiler les essais. */
+   if(dernierTirage&&DB.persos[dernierTirage.id]&&snapP(DB.persos[dernierTirage.id])===dernierTirage.snap)delete DB.persos[dernierTirage.id];
+   const r=H.genererFiches({nombre:1,niveau:tirage.niveau,classe:tirage.classe,race:tirage.race,graine:tirage.graine});
+   addP(complete(r.fiches[0]),'fiche');S.sheet='perso';dernierTirage={id:DB.actif,snap:snapP(S)};
+   tirage.msg=`Tirage ${r.graine} : ${H.decrireTirage(r.resume[0])}. Tu peux tout retoucher ; un nouveau tirage remplace celui-ci tant que tu n'y touches pas.`;break}
   case 'pdel':{if(!armed){armed=true;break}armed=false;
    const gone=DB.actif,u={id:gone,p:DB.persos[gone],order:Object.keys(DB.persos),auto:null,snap:''};
    delete DB.persos[gone];const ids=Object.keys(DB.persos);

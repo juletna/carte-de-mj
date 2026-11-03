@@ -218,7 +218,24 @@
         </div>
       </div>
       <p id="personnages-message" class="note" role="status" hidden></p>
-      <p class="note">Les fiches se créent dans <a href="fiche.html">l'outil Fiche</a>. Celle d'un joueur sur son téléphone : il l'exporte, tu ajoutes le fichier.</p>
+      <div class="actions">
+        <button id="personnages-hasard" type="button" class="discret" aria-pressed="false" aria-controls="fiche-hasard">🎲 Au hasard</button>
+      </div>
+      <div id="fiche-hasard" class="hasard" hidden>
+        <div class="hasard-nombres">
+          <label>Nombre de fiches <input id="fiche-hasard-nombre" type="number"></label>
+          <label>Niveau <input id="fiche-hasard-niveau" type="number"></label>
+          <label>Classe <select id="fiche-hasard-classe"></select></label>
+          <label>Race <select id="fiche-hasard-race"></select></label>
+        </div>
+        <label class="hasard-tirage">Numéro de tirage <span class="doux">(vide : un nouveau à chaque fois)</span> <input id="fiche-hasard-graine" type="number" min="1" max="999999" step="1"></label>
+        <div class="actions">
+          <button id="fiche-hasard-generer" type="button">Générer</button>
+          <button id="fiche-hasard-garder" type="button" class="discret" hidden>Garder</button>
+        </div>
+        <p id="fiche-hasard-message" class="note" role="status" hidden></p>
+      </div>
+      <p class="note">Les fiches se créent dans <a href="fiche.html">l'outil Fiche</a>, ou ici au hasard. Celle d'un joueur sur son téléphone : il l'exporte, tu ajoutes le fichier.</p>
     </div>
 
     <div class="outil" data-pour="notes" hidden>

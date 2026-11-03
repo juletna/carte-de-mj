@@ -13,7 +13,8 @@ import { tailleRemplir } from './affichage.js';
 import { elementsPalette, GROUPES_PALETTE, SOUS_GROUPES, redimensionner, changerForme } from './pose.js';
 import { SOLS } from './schema.js';
 import { genererDonjon, BORNES, FAMILLES } from './generateur.js';
-import { ajouterPersonnage, retirerPersonnage, actualiserPersonnages, ficheDepuisFichier } from './personnages.js';
+import { ajouterPersonnage, retirerPersonnage, actualiserPersonnages, ficheDepuisFichier, resumerFiche } from './personnages.js';
+import { genererFiches, decrireTirage, BORNES as BORNES_FICHE, CLASSES, RACES } from './fiche-hasard.js';
 import { carteFiche } from './carte-personnage.js';
 import { MODELES, donjonDepuisModele, copieDonjon } from './modeles.js';
 import { FORMES, LIBELLES_FORMES, POSITIONS_FORMES, casesRetirees, brasDe, brasMax, nombreCases } from './formes.js';
@@ -726,6 +727,50 @@ $('personnages-fichier').addEventListener('change', async (e) => {
   } catch {
     messagePersonnages('Ce fichier n’est pas une fiche de personnage : rien n’a été ajouté.');
   }
+});
+
+// --- Fiches au hasard (js/fiche-hasard.js) ---
+$('personnages-hasard').addEventListener('click', () => {
+  const ouvert = $('fiche-hasard').hidden;
+  $('fiche-hasard').hidden = !ouvert;
+  $('personnages-hasard').setAttribute('aria-pressed', String(ouvert));
+});
+for (const [cle, [defaut, min, max]] of Object.entries(BORNES_FICHE)) {
+  Object.assign($(`fiche-hasard-${cle}`), { value: String(defaut), min: String(min), max: String(max), step: '1' });
+}
+const optionsTirage = (table) => [h('option', { value: '', textContent: 'Au hasard' }), ...Object.entries(table).map(([cle, { nom }]) => h('option', { value: cle, textContent: nom }))];
+$('fiche-hasard-classe').replaceChildren(...optionsTirage(CLASSES));
+$('fiche-hasard-race').replaceChildren(...optionsTirage(RACES));
+
+/** Les dernières fiches tirées : un nouveau tirage les remplace tant que le MJ ne les a pas gardées, plutôt que d'empiler les essais. */
+let dernieresFiches = null;
+function oublierTirageFiches() {
+  dernieresFiches = null;
+  $('fiche-hasard-garder').hidden = true;
+}
+$('fiche-hasard-generer').addEventListener('click', () => {
+  const d = donjon();
+  if (dernieresFiches?.donjon === d.id) for (const id of dernieresFiches.ids) retirerPersonnage(d, id);
+  oublierTirageFiches();
+  const { fiches, graine, resume } = genererFiches({
+    nombre: $('fiche-hasard-nombre').value, niveau: $('fiche-hasard-niveau').value,
+    classe: $('fiche-hasard-classe').value, race: $('fiche-hasard-race').value, graine: $('fiche-hasard-graine').value,
+  });
+  const ajoutes = fiches.map((fiche) => ajouterPersonnage(d, resumerFiche(fiche))).filter(Boolean);
+  const message = $('fiche-hasard-message');
+  message.hidden = false;
+  if (ajoutes.length) {
+    dernieresFiches = { donjon: d.id, ids: ajoutes.map((p) => p.id) };
+    $('fiche-hasard-garder').hidden = false;
+  }
+  message.textContent = `Tirage ${graine} : ${resume.slice(0, ajoutes.length).map(decrireTirage).join(', ') || 'aucune fiche'}.`
+    + (ajoutes.length < fiches.length ? ' Ce donjon a atteint le maximum de fiches.' : '')
+    + (ajoutes.length ? ' Un nouveau tirage remplace celui-ci tant que tu ne le gardes pas.' : '');
+  rendre();
+});
+$('fiche-hasard-garder').addEventListener('click', () => {
+  oublierTirageFiches();
+  $('fiche-hasard-message').textContent = 'Gardé : le prochain tirage s’ajoutera à ces fiches.';
 });
 
 // --- Forme de la salle : boutons, épaisseur et position (js/formes.js) ---

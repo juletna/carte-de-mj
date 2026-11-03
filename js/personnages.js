@@ -26,6 +26,9 @@ const texte = (v, max = MAX_TEXTE) => (typeof v === 'string' || typeof v === 'nu
 const nombre = (v, defaut = 0) => (Number.isFinite(Number(v)) && v !== null && v !== '' ? Number(v) : defaut);
 const liste = (v) => (Array.isArray(v) ? v.filter(estObjet).slice(0, MAX_LISTE) : []);
 
+/** La CA de l'outil Fiche est une base : les objets équipés du sac s'y ajoutent (voir acTotal dans fiche.html). */
+const bonusEquipe = (sac) => liste(sac).reduce((total, o) => total + (o.type === 'equip' && o.eq ? nombre(o.acb) : 0), 0);
+
 /** Résumé d'une fiche, par liste blanche. @returns {object|null}  null : ce n'est pas une fiche de personnage */
 export function resumerFiche(brut) {
   if (!estObjet(brut) || !estObjet(brut.stats)) return null;
@@ -33,7 +36,7 @@ export function resumerFiche(brut) {
     nom: texte(brut.name ?? brut.nom).trim() || 'Personnage',
     race: texte(brut.race), classe: texte(brut.cls ?? brut.classe), niveau: nombre(brut.lvl ?? brut.niveau, 1),
     pv: nombre(brut.hp ?? brut.pv), pvMax: nombre(brut.hpMax ?? brut.pvMax), pvTemp: nombre(brut.tmp ?? brut.pvTemp),
-    ca: nombre(brut.ac ?? brut.ca, 10), vitesse: nombre(brut.speed ?? brut.vitesse), initiative: nombre(brut.init ?? brut.initiative),
+    ca: nombre(brut.ac ?? brut.ca, 10) + bonusEquipe(brut.inv), vitesse: nombre(brut.speed ?? brut.vitesse), initiative: nombre(brut.init ?? brut.initiative),
     stats: Object.fromEntries(STATS.map((s) => [s, nombre(brut.stats[s], 10)])),
     etats: (Array.isArray(brut.conds ?? brut.etats) ? brut.conds ?? brut.etats : []).map((c) => texte(c)).filter(Boolean).slice(0, MAX_LISTE),
     attaques: liste(brut.attacks ?? brut.attaques).map((a) => ({ nom: texte(a.n ?? a.nom), toucher: nombre(a.hit ?? a.toucher), degats: texte(a.dmg ?? a.degats), note: texte(a.note) })),

@@ -17,6 +17,9 @@ import { debutDescription } from './parseur/decrire.js';
 import { nomAffiche, CREATURES } from './parseur/lexique.js';
 import { lettreColonne } from './parseur/coordonnees.js';
 import { POSITIONS_FORMES, brasMax, retraitPorte } from './formes.js';
+import { generateur, lireGraine, nouvelleGraine, melanger, GRAINE_MAX } from './alea.js';
+
+export { GRAINE_MAX };
 
 /** Familles de monstres : `troupe` peuple les salles, `boss` attend au fond. */
 export const FAMILLES = {
@@ -32,7 +35,6 @@ export const FAMILLES = {
 export const BORNES = {
   salles: [8, 1, 30], monstres: [15, 0, 150], coffres: [4, 0, 40], pieges: [2, 0, 30], secretes: [1, 0, 10], boucles: [2, 0, 12],
 };
-export const GRAINE_MAX = 999999;
 
 const ROLES = [
   { nom: 'Salle des gardes', contenu: ['une table', '2 lits', '2 tonneaux'] },
@@ -67,16 +69,6 @@ const PAR_PHRASE = 40;          // le parseur lit au plus 40 éléments par grou
 
 const tailleDe = (type) => CREATURES.find((c) => c.type === type).taille;
 
-function generateur(graine) {
-  let a = (graine * 2654435761) >>> 0;
-  return () => {
-    a = (a + 0x6d2b79f5) >>> 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
 /** Bornes appliquées, familles inconnues écartées. Sans numéro de tirage valable : `graine` reste null, à l'appelant d'en tirer un. */
 export function normaliserOptions(brut = {}) {
   const nombre = (cle) => {
@@ -84,13 +76,12 @@ export function normaliserOptions(brut = {}) {
     const v = Math.round(Number(brut[cle]));
     return Number.isFinite(v) && brut[cle] !== '' && brut[cle] !== null && brut[cle] !== undefined ? Math.max(min, Math.min(max, v)) : defaut;
   };
-  const graine = Math.round(Number(brut.graine));
   return {
     ...Object.fromEntries(Object.keys(BORNES).map((cle) => [cle, nombre(cle)])),
     familles: (Array.isArray(brut.familles) ? brut.familles : []).filter((f) => f in FAMILLES),
     formes: brut.formes !== false,
     boss: brut.boss !== false,
-    graine: Number.isInteger(graine) && graine >= 1 && graine <= GRAINE_MAX ? graine : null,
+    graine: lireGraine(brut.graine),
   };
 }
 
@@ -129,15 +120,6 @@ function bouclesPossibles(cases, arbre) {
   });
   return res;
 }
-
-const melanger = (liste, alea) => {
-  const copie = [...liste];
-  for (let i = copie.length - 1; i > 0; i--) {
-    const j = Math.floor(alea() * (i + 1));
-    [copie[i], copie[j]] = [copie[j], copie[i]];
-  }
-  return copie;
-};
 
 /** Répartit `total` unités sur `salles`, à poids tirés au sort : certaines salles en ont beaucoup, d'autres peu ou pas. */
 function repartir(total, salles, alea) {
@@ -228,7 +210,7 @@ function construireSalle(spec, murs, alea) {
  */
 export function genererDonjon(brut = {}) {
   const o = normaliserOptions(brut);
-  const graine = o.graine ?? 1 + Math.floor(Math.random() * GRAINE_MAX);
+  const graine = o.graine ?? nouvelleGraine();
   const alea = generateur(graine);
   const tirer = (liste) => liste[Math.floor(alea() * liste.length)];
 

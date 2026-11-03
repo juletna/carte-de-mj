@@ -84,6 +84,8 @@ Dans le Donjon, l'outil « Personnages » associe des fiches au donjon : celles 
 
 En régie, le bloc « Personnages » montre les mêmes fiches, et « Poser dans cette salle » crée le pion du personnage. Les fiches ne partent jamais à la table.
 
+**Au hasard :** « 🎲 Au hasard » tire une fiche complète (`js/fiche-hasard.js`, pur), sur le modèle du donjon au hasard : classe, race et niveau choisis ou tirés, numéro de tirage (le même numéro et les mêmes paramètres redonnent la même fiche), et un nouveau tirage remplace le précédent. Le bouton est à deux endroits. Dans le Donjon, outil « Personnages », on peut tirer plusieurs fiches d'un coup (les classes ne se répètent qu'une fois toutes tirées), le donjon en garde le résumé comme pour un fichier ajouté, et « Garder » fixe un tirage. Rien n'est écrit dans les fiches du navigateur. Dans la Fiche, depuis le nom en haut ou l'onglet Fiche, le personnage est enregistré dans ce navigateur, et le retoucher le garde. Il est alors proposé dans le Donjon comme les autres fiches.
+
 **Jouer sans fiche :** quand une partie commence (« Présenter », « Recommencer »), la Présentation demande qui joue. Soit on coche des fiches du donjon, soit on indique un nombre de joueurs, puis le nom, la race et la classe de chacun (rien n'est obligatoire), soit on ne pose aucun pion. Les pions sont posés dans la première salle, numérotés P1, P2… dans l'ordre de saisie. Ces joueurs appartiennent à la partie et pas au donjon préparé, et aucune fiche n'est créée. En régie, ils sont dans le bloc « Personnages » et le pion sélectionné porte leur nom ; à la table, le pion reste « P1 », et ni le nom, ni la race, ni la classe n'y partent.
 
 **Montrer une case aux joueurs :** en régie, un clic sur une case vide la met en surbrillance, ici et à la table ; un second clic ou Échap l'enlève, et elle s'efface quand un pion s'y pose. Glisser un pion le déplace, ceux des joueurs compris. À la souris, les mêmes gestes marchent sur l'écran de table (fenêtre table ou plein écran) : c'est la régie qui décide, et un doigt de joueur sur la carte ne déclenche rien.
@@ -320,6 +322,8 @@ js/miniplan.js      miniature cliquable du plan (sidebar, régie) : même dessin
 js/schema.js        schéma du plan d'une salle et validation
 js/modeles.js       modèles de donjon de l'outil, copie d'un donjon (pur, sans DOM)
 js/generateur.js    donjon au hasard : paramètres et numéro de tirage → un donjon complet (pur, sans DOM)
+js/fiche-hasard.js  fiche au hasard : paramètres et numéro de tirage → des fiches complètes au format de l'outil Fiche (pur, sans DOM)
+js/alea.js          tirages reproductibles, communs aux deux générateurs (pur, sans DOM)
 js/personnages.js   fiches associées au donjon : résumé, ajout, validation (pur, sans DOM)
 js/carte-personnage.js  une fiche à l'écran, la même dans le Donjon et la régie
 js/formes.js        formes de salle : cases retirées, portes en retrait, murs découpés (calcul pur)

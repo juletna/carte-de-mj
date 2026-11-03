@@ -37,8 +37,9 @@
     import { executer as executerGenerateur } from './tests/generateur.test.js';
     import { executer as executerModeles } from './tests/modeles.test.js';
     import { executer as executerPersonnages } from './tests/personnages.test.js';
+    import { executer as executerFicheHasard } from './tests/fiche-hasard.test.js';
 
-    const resultats = [...executer(), ...executerAllerRetour(), ...executerDonjon(), ...executerPresentation(), ...executerCommandes(), ...executerImpression(), ...executerPose(), ...executerPlan(), ...executerFormes(), ...executerGenerateur(), ...executerModeles(), ...executerPersonnages()];
+    const resultats = [...executer(), ...executerAllerRetour(), ...executerDonjon(), ...executerPresentation(), ...executerCommandes(), ...executerImpression(), ...executerPose(), ...executerPlan(), ...executerFormes(), ...executerGenerateur(), ...executerModeles(), ...executerPersonnages(), ...executerFicheHasard()];
     const echecs = resultats.filter((r) => r.ecarts.length).length;
     document.getElementById('bilan').textContent =
       `${resultats.length - echecs} / ${resultats.length} réussis` + (echecs ? ` — ${echecs} échec(s)` : '');
