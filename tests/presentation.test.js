@@ -543,6 +543,104 @@ const TESTS = [
     for (const vue of [p.vueTable(pres)]) verifier(!JSON.stringify(vue).includes('SENT-NOTE-PARTIE'), 'jamais à la table');
   }],
 
+  ['masquage : la table perd les monstres et/ou les objets, séparément ; la régie garde tout ; les pions des joueurs restent', () => {
+    const { d, a } = donjonDeTest();
+    const pres = p.creerPresentation(d);
+    const plan = pres.donjon.salles[a.id].plan;
+    plan.creatures.push({ id: 'c-pnj', type: 'garde', camp: 'pnj', x: 6, y: 6, taille: 1, numero: 1 });
+    const avant = JSON.stringify(plan);
+    const camps = () => [...new Set(p.vueTable(pres).creatures.map((k) => k.camp))].sort();
+    const types = () => p.vueTable(pres).objets.map((o) => o.type);
+    egal(camps(), ['monstre', 'pj', 'pnj'], 'au départ : tout est montré');
+    egal(types(), ['pilier'], 'au départ : les objets visibles');
+
+    verifier(p.definirMasque(pres, a.id, 'monstres', true), 'monstres masqués');
+    egal(camps(), ['pj'], 'monstres et PNJ retirés, pions des joueurs gardés');
+    egal(types(), ['pilier'], 'les objets ne bougent pas');
+    verifier(p.definirMasque(pres, a.id, 'objets', true), 'objets masqués');
+    egal(types(), [], 'objets retirés');
+    egal(p.vueTable(pres).portes.length, 1, 'les portes restent');
+    p.definirMasque(pres, a.id, 'monstres', false);
+    egal(camps(), ['monstre', 'pj', 'pnj'], 'monstres remontrés seuls');
+    egal(types(), [], 'les objets restent masqués');
+
+    p.definirMasque(pres, a.id, 'monstres', true);
+    egal(JSON.stringify(plan), avant, 'le plan de la régie n’est jamais touché');
+    egal(p.planRegie(plan, []).creatures.length, plan.creatures.length, 'la régie dessine tous les pions');
+    egal(p.planRegie(plan, []).objets.length, plan.objets.length, 'la régie dessine tous les objets');
+    verifier(!p.definirMasque(pres, a.id, 'portes', true), 'catégorie inconnue refusée');
+    verifier(!p.definirMasque(pres, 'salle-fantome', 'objets', true), 'salle inconnue refusée');
+    p.definirMasque(pres, a.id, 'monstres', false);
+    p.definirMasque(pres, a.id, 'objets', false);
+    egal(pres.masques, {}, 'plus rien de masqué : plus d’entrée');
+  }],
+
+  ['masquage : un élément masqué ne part pas vers la table, ni dans la carte ni dans l’encart ; caché et masqué se cumulent', () => {
+    const { pres, a } = presentationAvecSecrets();
+    const coffre = 'SENT-ID-COFFRE';
+    p.revelerElement(pres, a.id, coffre);
+    verifier(Object.values(p.miniPlanTable(pres).plans)[0].objets.some((o) => o.id === coffre), 'montré : présent dans l’encart');
+    p.definirMasque(pres, a.id, 'objets', true);
+    egal(p.vueTable(pres).objets, [], 'révélé mais masqué : absent de la table');
+    egal(Object.values(p.miniPlanTable(pres).plans)[0].objets, [], 'aucun objet de la salle dans l’encart');
+    p.definirMasque(pres, a.id, 'objets', false);
+    verifier(p.vueTable(pres).objets.some((o) => o.id === coffre), 'remontré : le révélé revient');
+    p.recacherElement(pres, a.id, coffre);
+    verifier(!p.vueTable(pres).objets.some((o) => o.id === coffre), 'catégorie montrée, élément caché : toujours absent');
+    const pion = pres.donjon.salles[a.id].plan.creatures.find((k) => k.camp === 'monstre');
+    egal(p.categorieMasquee(pres, a.id, 'creature', pion), null, 'rien de masqué');
+    p.definirMasque(pres, a.id, 'monstres', true);
+    egal(p.categorieMasquee(pres, a.id, 'creature', pion), 'monstres', 'pion masqué');
+    egal(p.categorieMasquee(pres, a.id, 'creature', { camp: 'pj' }), null, 'un pion de joueur ne l’est jamais');
+    egal(p.categorieMasquee(pres, a.id, 'porte', {}), null, 'une porte non plus');
+  }],
+
+  ['masquage : chaque salle garde le sien et ses positions, jusque dans l’enregistrement ; une salle neuve montre tout', () => {
+    const { d, a, b } = donjonDeTest();
+    const pres = p.creerPresentation(d);
+    const pion = pres.donjon.salles[a.id].plan.creatures.find((k) => k.camp === 'monstre');
+    const place = (partie) => { const k = partie.donjon.salles[a.id].plan.creatures.find((c) => c.id === pion.id); return [k.x, k.y]; };
+    verifier(p.deplacerPion(pres, a.id, pion.id, 5, 5), 'le pion bouge');
+    p.definirMasque(pres, a.id, 'monstres', true);
+    p.definirMasque(pres, a.id, 'objets', true);
+    const vueDeA = JSON.stringify(p.vueTable(pres));
+
+    p.afficherATable(pres, b.id);
+    verifier(p.vueTable(pres).objets.length > 0, 'la salle B montre ses objets');
+    p.definirMasque(pres, b.id, 'objets', true);
+    egal(p.vueTable(pres).objets, [], 'masqués dans B');
+    p.afficherATable(pres, a.id);
+    egal(JSON.stringify(p.vueTable(pres)), vueDeA, 'retour dans A : comme au départ');
+    egal(place(pres), [5, 5], 'le pion masqué garde sa place');
+
+    const stock = fauxStock();
+    verifier(sauverPresentations({ [d.id]: pres }, stock), 'enregistré');
+    const relu = chargerPresentations(stock)[d.id];
+    egal(relu.masques, { [a.id]: ['monstres', 'objets'], [b.id]: ['objets'] }, 'relu par salle');
+    egal(JSON.stringify(p.vueTable(relu)), vueDeA, 'après rechargement : la même table');
+    egal(place(relu), [5, 5], 'après rechargement : la même place');
+
+    const secrete = pres.donjon.salles[a.id].plan.portes.find((q) => q.cache);
+    const creee = p.creerSalleEtPasser(pres, a.id, secrete.id, '');
+    verifier(creee.ok, 'salle créée derrière la porte');
+    egal(p.estMasque(pres, creee.vers, 'monstres') || p.estMasque(pres, creee.vers, 'objets'), false, 'salle créée en jeu : rien de masqué');
+  }],
+
+  ['masquage : compat et valeurs absurdes (partie sans masques ; salle, catégorie ou forme inconnues écartées)', () => {
+    const { d, a, b } = donjonDeTest();
+    const ancienne = JSON.parse(JSON.stringify(p.creerPresentation(d)));
+    delete ancienne.masques;
+    const v = p.validerPresentation(ancienne);
+    verifier(v.ok, v.erreurs.join(' '));
+    egal(v.presentation.masques, {}, 'absent → rien de masqué');
+    verifier(p.vueTable(v.presentation).objets.length > 0 && p.vueTable(ancienne).objets.length > 0, 'tout reste visible');
+    egal(p.estMasque(ancienne, a.id, 'objets'), false, 'lu sans le champ');
+    verifier(p.definirMasque(ancienne, a.id, 'objets', true), 'le champ se crée au premier masquage');
+    const piege = JSON.parse(JSON.stringify(p.creerPresentation(d)));
+    piege.masques = { [a.id]: ['objets', 'portes', 'objets', 3], [b.id]: 'monstres', 'salle-fantome': ['objets'] };
+    egal(p.validerPresentation(piege).presentation.masques, { [a.id]: ['objets'] }, 'seul ce qui est valide reste');
+  }],
+
   ['compat : une partie enregistrée avant l’étape 4 (sans notesPartie ni etat) se charge ; les nouveaux champs sont validés', () => {
     const { d, a } = donjonDeTest();
     const ancienne = JSON.parse(JSON.stringify(p.creerPresentation(d)));

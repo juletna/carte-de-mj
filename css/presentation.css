@@ -37,11 +37,17 @@ body.presentation a { color: var(--accent); }
 #bandeau .actions button { white-space: nowrap; }
 @media (max-width: 1100px) { #bandeau { flex-wrap: wrap; height: 112px; align-content: center; } #bandeau .texte { flex: 1 1 100%; } }
 
+/* Hauteur fixe aussi : changer ce que montre la table ne décale jamais la carte. Le texte du bouton dit l'état (pas la couleur seule). */
+#projection { display: flex; align-items: center; gap: 8px; height: 52px; flex: none; padding: 0 16px; border-bottom: 1px solid var(--bord); background: var(--panneau); font-size: 14px; }
+#projection-titre { color: var(--texte-doux); line-height: 1.2; }
+#projection button { padding: 4px 12px; white-space: nowrap; border-color: #2f6b3a; background: #14281a; }
+#projection button.masque { border-color: #8a6d17; background: #33280a; }
+
 /* Retour d'action transitoire : posé sur la carte, jamais dans le flux. Opacité (pas display/visibility) : la zone aria-live reste annoncée. */
 #principal { position: relative; }
-#toast { position: absolute; top: 76px; left: 50%; transform: translate(-50%, -6px); z-index: 15; max-width: min(640px, calc(100% - 32px)); padding: 10px 14px; border-radius: var(--rayon); border: 1px solid #2f6b3a; background: #14281a; color: var(--texte); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5); overflow-wrap: anywhere; cursor: pointer; opacity: 0; pointer-events: none; transition: opacity 0.2s, transform 0.2s; }
+#toast { position: absolute; top: 128px; left: 50%; transform: translate(-50%, -6px); z-index: 15; max-width: min(640px, calc(100% - 32px)); padding: 10px 14px; border-radius: var(--rayon); border: 1px solid #2f6b3a; background: #14281a; color: var(--texte); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5); overflow-wrap: anywhere; cursor: pointer; opacity: 0; pointer-events: none; transition: opacity 0.2s, transform 0.2s; }
 #toast.visible { opacity: 1; pointer-events: auto; transform: translate(-50%, 0); }
-@media (max-width: 1100px) { #toast { top: 124px; } }
+@media (max-width: 1100px) { #toast { top: 176px; } }
 @media (prefers-reduced-motion: reduce) { #toast { transition: none; } }
 
 .bloc-table, .cette-salle { border: 1px solid var(--bord); border-radius: var(--rayon); padding: 10px; }
@@ -126,4 +132,6 @@ body.vue-table { overflow: hidden; background: #000; }
   body[data-onglet="carte"] #principal { height: calc(100vh - var(--barre-onglets) - var(--reserve-selection)); height: calc(100dvh - var(--barre-onglets) - var(--reserve-selection)); }
   body[data-onglet] #principal #scene { min-height: 0; }
   body[data-onglet] #principal #support { padding: 6px; }
+  #projection { padding: 0 8px; font-size: 13px; gap: 6px; }
+  #projection button { flex: 1 1 0; padding: 4px; }
 }

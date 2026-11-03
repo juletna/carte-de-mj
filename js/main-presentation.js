@@ -471,6 +471,7 @@ function demarrerRegie() {
     dessinerRegie(s.plan);
     $('support').className = etat.consultee === etat.p.salleCourante ? 'sur-table' : 'consultation';
     majBandeau();
+    majProjection();
     if (etat.message) { annoncer(etat.message); etat.message = ''; } // hors du flux : la carte ne bouge jamais
     majSelection();
     majSalle();
@@ -522,6 +523,26 @@ function demarrerRegie() {
     }
     texte.title = texte.textContent; // si le texte est tronqué (hauteur fixe), la phrase entière reste lisible
     bandeau.replaceChildren(texte, actions);
+  }
+
+  /** Ce que la table montre de la salle regardée : un bouton par catégorie, dont le texte dit l'état. */
+  const NOMS_MASQUE = { monstres: 'Monstres', objets: 'Objets' };
+  function majProjection() {
+    const sur = etat.consultee === etat.p.salleCourante;
+    $('projection-titre').textContent = sur ? 'À la table :' : 'Une fois à la table :';
+    for (const b of $('projection').querySelectorAll('button')) {
+      const categorie = b.dataset.categorie, masque = pres.estMasque(etat.p, etat.consultee, categorie);
+      b.textContent = `${NOMS_MASQUE[categorie]} ${masque ? 'masqués' : 'visibles'}`;
+      b.classList.toggle('masque', masque);
+      b.title = `${masque ? 'Montrer' : 'Masquer'} à la table les ${categorie === 'monstres' ? 'monstres et les PNJ' : 'objets'} de cette salle. Cette régie les montre toujours.`;
+    }
+  }
+  for (const b of $('projection').querySelectorAll('button')) {
+    b.addEventListener('click', () => {
+      if (!etat.p) return;
+      pres.definirMasque(etat.p, etat.consultee, b.dataset.categorie, !pres.estMasque(etat.p, etat.consultee, b.dataset.categorie));
+      modifie();
+    });
   }
 
   function libelleElement(trouve) {
@@ -581,7 +602,8 @@ function demarrerRegie() {
     pres.definirEtat(etat.p, s.id, pion.id, valeur);
     const qui = `${nomAffiche(pion.type)} ${pion.numero}`;
     const visible = !pion.cache || pres.estRevele(etat.p, s.id, pion.id);
-    const ou = !visible ? ' (pion caché : la table ne le voit pas)' : s.id === etat.p.salleCourante ? ' : visible sur la table' : ' (cette salle n’est pas à la table)';
+    const masquee = pres.categorieMasquee(etat.p, s.id, 'creature', pion);
+    const ou = !visible ? ' (pion caché : la table ne le voit pas)' : masquee ? ` (${masquee} masqués : la table ne le voit pas)` : s.id === etat.p.salleCourante ? ' : visible sur la table' : ' (cette salle n’est pas à la table)';
     etat.message = valeur === 'normal' ? `${qui} est de nouveau normal${ou}.` : `${qui} est ${LIBELLES_ETAT[valeur]}${ou}.`;
     modifie();
   }
@@ -652,16 +674,18 @@ function demarrerRegie() {
     const contenu = [h('div', { className: 'selection-entete' }, h('h2', { textContent: 'Sélection' }), fermer),
       h('p', { className: 'selection-titre', textContent: libelleElement(trouve) })];
     const sur = s.id === p.salleCourante;
+    const masquee = pres.categorieMasquee(p, s.id, trouve.genre, el);
 
     if (el.cache) {
       const revele = pres.estRevele(p, s.id, el.id);
       contenu.push(h('p', { className: 'note', textContent: revele
-        ? `Révélé : visible sur la table${sur ? '' : ' dès que la salle y sera affichée'}.`
+        ? `Révélé${masquee ? '' : ` : visible sur la table${sur ? '' : ' dès que la salle y sera affichée'}`}.`
         : 'Caché : les joueurs ne le voient pas. Tu le vois ici en translucide, contour en pointillés.' }));
       contenu.push(h('div', { className: 'actions' }, revele
         ? bouton('Recacher', () => { pres.recacherElement(p, s.id, el.id); etat.message = 'Recaché : il disparaît de la table.'; modifie(); }, 'discret')
-        : bouton('Révéler', () => { pres.revelerElement(p, s.id, el.id); etat.message = `Révélé${sur ? ' : il apparaît sur la table' : ', mais cette salle n’est pas à la table'}.`; modifie(); })));
+        : bouton('Révéler', () => { pres.revelerElement(p, s.id, el.id); etat.message = `Révélé${masquee ? `, mais les ${masquee} sont masqués à la table` : sur ? ' : il apparaît sur la table' : ', mais cette salle n’est pas à la table'}.`; modifie(); })));
     }
+    if (masquee) contenu.push(h('p', { className: 'note', textContent: `Les ${masquee} de cette salle sont masqués à la table : les joueurs ne le voient pas.` }));
 
     if (trouve.genre === 'creature') {
       const actuel = el.etat || 'normal';
@@ -766,7 +790,8 @@ function demarrerRegie() {
   $('reveler-tout').addEventListener('click', () => {
     const s = salleConsultee();
     const n = pres.revelerToute(etat.p, s.id);
-    etat.message = n ? `${pluriel(n, 'élément révélé', 'éléments révélés')}${s.id === etat.p.salleCourante ? ' : visibles sur la table' : ', mais cette salle n’est pas à la table'}.` : 'Rien de plus à révéler.';
+    const masquage = pres.CATEGORIES_MASQUABLES.some((c) => pres.estMasque(etat.p, s.id, c));
+    etat.message = n ? `${pluriel(n, 'élément révélé', 'éléments révélés')}${s.id !== etat.p.salleCourante ? ', mais cette salle n’est pas à la table' : masquage ? ' : visibles sur la table, sauf ce qui y est masqué' : ' : visibles sur la table'}.` : 'Rien de plus à révéler.';
     modifie();
   });
 

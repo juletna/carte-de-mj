@@ -202,6 +202,7 @@ ni de la Fiche ni d'un réseau, et n'exige de décrire quoi que ce soit : elle o
   - *Table ou consultation* : cliquer une salle de la miniature la **consulte** sans la montrer ni la marquer découverte. Un bandeau
     permanent dit si la salle regardée est « À LA TABLE » (vert) ou en « CONSULTATION » (jaune, cadre en pointillés) et rappelle laquelle
     est à la table ; « Afficher à la table » la rend courante et découverte.
+  - *Monstres et objets à la table* : pour jouer sur une carte projetée sur une vraie table. Sous le bandeau, deux boutons montrent ou masquent, séparément et à tout moment, les monstres et les objets de la salle regardée : le MJ les montre pour poser ses vrais pions et coffres aux bons endroits, puis les masque. « Monstres » veut dire tous les pions qui ne sont pas des joueurs (PNJ compris) ; les pions des joueurs et les portes restent. Une salle s'affiche d'abord entière. Le choix est gardé **par salle** et enregistré avec la partie, comme les positions : en revenant dans une salle, on la retrouve telle qu'on l'a laissée. Sur une salle en consultation, le choix s'appliquera quand elle sera à la table. Seule la table est concernée (carte et mini-carte) : la régie montre toujours tout.
 - **Vue table** : uniquement la carte, sans interface. Deux façons :
   - « Ouvrir la fenêtre table » (`presentation.html?vue=table`) : à glisser sur l'écran de la table ; un bouton « Plein écran » discret
     apparaît quelques secondes après un mouvement de **souris** (inactif sinon : `pointer-events: none`, et un toucher ne le réveille pas). Synchronisée par BroadcastChannel (canal `carte-de-mj-presentation`, même navigateur). Ouverte seule ou rechargée, elle
@@ -216,7 +217,7 @@ ni de la Fiche ni d'un réseau, et n'exige de décrire quoi que ce soit : elle o
     on règle la taille avec la case « Calibrer avec une carte bancaire », ou à défaut une taille différente de 48 px), sinon « Remplir ».
     Le mode est un simple mot joint aux réglages d'affichage envoyés à la table : il ne passe pas par `vueTable()` et ne contient aucun secret.
 - **Sécurité** : ce que reçoit la table est le résultat de `vueTable()` (`js/presentation.js`), construit par liste blanche : salle courante
-  uniquement, sans notes, sans nom ni description, sans notes (ni de préparation, ni de partie), sans élément caché non révélé (portes comprises), sans `cache`,
+  uniquement, sans notes, sans nom ni description, sans notes (ni de préparation, ni de partie), sans élément caché non révélé (portes comprises), sans élément masqué, sans `cache`,
   sans liaisons ni autres salles. Seul ajout propre au jeu : l'état blessé / mort des pions. Les secrets ne quittent donc jamais la régie, ils ne sont pas seulement masqués à l'affichage. La fenêtre table ne lit jamais les
   présentations du localStorage (elle ne lit que les réglages d'affichage) et relit ce qu'elle reçoit (`recevoirVueTable`).
 - **Improvisation** : le MJ fait évoluer le donjon pendant la partie, toujours dans la copie (le donjon préparé n'est jamais modifié).
@@ -261,7 +262,8 @@ ni de la Fiche ni d'un réseau, et n'exige de décrire quoi que ce soit : elle o
 { "format": "carte-de-mj-presentation", "version": 1,
   "donjon": { "…": "copie du donjon, même format que ci-dessus" },
   "salleCourante": "s-x1y2z3", "decouvertes": ["s-x1y2z3"], "reveles": { "s-x1y2z3": ["o1", "p1"] },
-  "notesPartie": { "s-x1y2z3": "Les joueurs ont forcé la serrure." } }
+  "notesPartie": { "s-x1y2z3": "Les joueurs ont forcé la serrure." },
+  "masques": { "s-x1y2z3": ["monstres", "objets"] } }
 ```
 
 Rangé dans `carte-de-mj:presentations-v1` sous la forme `{ "presentations": { "<idDonjon>": <partie> } }`. Les identifiants d'éléments
@@ -270,6 +272,8 @@ Rangé dans `carte-de-mj:presentations-v1` sous la forme `{ "presentations": { "
 Étape 4 : le format reste en version 1, avec deux ajouts facultatifs. `notesPartie` (texte par salle) et `etat` sur une créature du plan
 (`"blesse"` ou `"mort"`, absent = normal). Une partie enregistrée avant l'étape 4 se charge donc telle quelle ; à l'import, `notesPartie` est
 nettoyé (salles inconnues, valeurs qui ne sont pas du texte, longueur bornée) et un `etat` inconnu est écarté, sans refuser la partie.
+
+`masques` est un autre ajout facultatif : absent, tout est visible. Une salle inconnue ou une catégorie autre que `monstres` et `objets` est écartée à la relecture.
 
 ## Imprimer un donjon
 

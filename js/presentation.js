@@ -8,7 +8,8 @@
  *   salleCourante: idSalle,                    // la salle montrée à la table
  *   decouvertes:   [idSalle],                  // salles déjà montrées aux joueurs
  *   reveles:       { idSalle: [idElement] },   // éléments `cache: true` que le MJ a révélés
- *   notesPartie:   { idSalle: texte }          // notes prises en jouant (facultatif : absent des anciennes parties)
+ *   notesPartie:   { idSalle: texte },         // notes prises en jouant (facultatif : absent des anciennes parties)
+ *   masques:       { idSalle: ['monstres'|'objets'] } // ce que le MJ a retiré de la table dans cette salle (facultatif, idem)
  * }
  *
  * Démarrer une présentation copie le donjon : le donjon préparé n'est JAMAIS modifié, et aucun
@@ -27,9 +28,12 @@
  *    salle en a toujours un.
  *  - `notesPartie` est séparé de `notes` (préparation, jamais modifié) et ne quitte jamais la régie.
  *
+ * MASQUAGE : table réelle, vrais pions et vrais coffres. Le MJ montre les monstres et les objets d'une salle le temps de les
+ * poser, puis les retire de la table. Le choix est gardé par salle ; il ne touche pas au plan, et la régie voit tout, toujours.
+ *
  * SÉCURITÉ : `vueTable()` est la SEULE source de ce qui part vers la fenêtre ou l'écran de table.
  * Elle construit le plan à partir d'une liste blanche de champs : notes, noms, textes, éléments
- * cachés non révélés, liaisons et autres salles n'y entrent jamais. L'état d'un pion (blessé, mort) est une
+ * cachés non révélés, éléments masqués, liaisons et autres salles n'y entrent jamais. L'état d'un pion (blessé, mort) est une
  * information de jeu : il y entre, au même titre que sa position.
  * `miniPlanTable()` est la seule autre source : le plan réduit aux salles découvertes, sans nom ni pion.
  */
@@ -56,6 +60,8 @@ const estObjet = (v) => v !== null && typeof v === 'object' && !Array.isArray(v)
 const LISTES = { porte: 'portes', objet: 'objets', creature: 'creatures' };
 /** Longueur maximale d'une note de partie (comme les notes de préparation). */
 const MAX_NOTE = 20000;
+/** Ce que le MJ peut retirer de la table. Les pions des joueurs restent : « monstres » veut dire tout pion qui n'est pas pj (PNJ compris). */
+export const CATEGORIES_MASQUABLES = ['monstres', 'objets'];
 
 /** Un élément est caché dès que son champ `cache` est vrai (lecture volontairement large). */
 const estCache = (e) => !!e?.cache;
@@ -89,7 +95,7 @@ export function creerPresentation(donjon, { salleDepart } = {}) {
   const depart = typeof salleDepart === 'string' && salleDepart in copie.salles ? salleDepart : Object.keys(copie.salles)[0];
   return {
     format: FORMAT_PRESENTATION, version: VERSION_PRESENTATION,
-    donjon: copie, salleCourante: depart, decouvertes: [depart], reveles: dictionnaire(), notesPartie: dictionnaire(),
+    donjon: copie, salleCourante: depart, decouvertes: [depart], reveles: dictionnaire(), notesPartie: dictionnaire(), masques: dictionnaire(),
   };
 }
 
@@ -130,7 +136,17 @@ export function validerPresentation(brut) {
       if (idSalle in donjon.salles && typeof texte === 'string' && texte) notesPartie[idSalle] = texte.slice(0, MAX_NOTE);
     }
   }
-  return { ok: true, erreurs: [], presentation: { format: FORMAT_PRESENTATION, version: VERSION_PRESENTATION, donjon, salleCourante, decouvertes, reveles, notesPartie } };
+
+  // Masquage (facultatif : absent des parties enregistrées avant lui, où tout est donc visible).
+  const masques = dictionnaire();
+  if (estObjet(brut.masques)) {
+    for (const [idSalle, categories] of Object.entries(brut.masques)) {
+      if (!(idSalle in donjon.salles) || !Array.isArray(categories)) continue;
+      const gardes = CATEGORIES_MASQUABLES.filter((c) => categories.includes(c));
+      if (gardes.length) masques[idSalle] = gardes;
+    }
+  }
+  return { ok: true, erreurs: [], presentation: { format: FORMAT_PRESENTATION, version: VERSION_PRESENTATION, donjon, salleCourante, decouvertes, reveles, notesPartie, masques } };
 }
 
 // --- Découvertes, salle courante -------------------------------------------------------
@@ -198,6 +214,26 @@ export function planRegie(plan, idsReveles = []) {
     return sans;
   });
   return { ...plan, portes: nettoie(plan.portes), objets: nettoie(plan.objets), creatures: nettoie(plan.creatures) };
+}
+
+// --- Masquage à la table ----------------------------------------------------------------------
+
+export const estMasque = (p, idSalle, categorie) => (Array.isArray(p.masques?.[idSalle]) ? p.masques[idSalle] : []).includes(categorie);
+
+/** Montre ou retire de la table une catégorie d'éléments de la salle. Le plan n'est pas touché : positions et états restent. */
+export function definirMasque(p, idSalle, categorie, masque) {
+  if (!(idSalle in p.donjon.salles) || !CATEGORIES_MASQUABLES.includes(categorie)) return false;
+  if (!estObjet(p.masques)) p.masques = dictionnaire();
+  const reste = CATEGORIES_MASQUABLES.filter((c) => (c === categorie ? masque : estMasque(p, idSalle, c)));
+  if (reste.length) p.masques[idSalle] = reste;
+  else delete p.masques[idSalle];
+  return true;
+}
+
+/** La catégorie masquée qui retire cet élément de la table, ou null (une porte ou un pion de joueur n'en a jamais). */
+export function categorieMasquee(p, idSalle, genre, element) {
+  const categorie = genre === 'objet' ? 'objets' : genre === 'creature' && element.camp !== 'pj' ? 'monstres' : null;
+  return categorie && estMasque(p, idSalle, categorie) ? categorie : null;
 }
 
 // --- Déplacement des pions ------------------------------------------------------------------
@@ -425,10 +461,11 @@ export function creerSalleEtPasser(p, idSalle, idPorte, description, { nom, eche
  * (ni nom, ni description, ni notes, ni `cache`, ni champ inconnu) ; partagé par la vue table et par l'impression.
  *  - visible(e)  : un porte, un objet ou un pion est-il montré ? (par défaut : tout ce qui n'est pas caché) ;
  *  - garder(k)   : filtre supplémentaire sur les pions (par défaut : tous) ;
+ *  - garderObjet(o) : filtre supplémentaire sur les objets (par défaut : tous) ;
  *  - avecEtat    : l'état blessé / mort d'un pion est une information de jeu (vrai pour la table, pas pour un plan imprimé).
  * @returns {object} un plan neuf, sans aucune référence vers le plan d'origine
  */
-export function planPublic(plan, { visible = (e) => !estCache(e), garder = () => true, avecEtat = true } = {}) {
+export function planPublic(plan, { visible = (e) => !estCache(e), garder = () => true, garderObjet = () => true, avecEtat = true } = {}) {
   const creature = (k) => ({
     id: k.id, type: k.type, camp: k.camp, x: k.x, y: k.y, taille: k.taille, numero: k.numero,
     ...(k.couleur ? { couleur: k.couleur } : {}),
@@ -438,16 +475,26 @@ export function planPublic(plan, { visible = (e) => !estCache(e), garder = () =>
     version: 1, id: 'table', nom: '', ...normaliserForme(plan),
     largeur: plan.largeur, longueur: plan.longueur, sol: plan.sol, entree: 'sud',
     portes: (plan.portes || []).filter(visible).map((q) => ({ id: q.id, mur: q.mur, position: q.position, type: q.type })),
-    objets: (plan.objets || []).filter(visible).map((o) => ({ id: o.id, type: o.type, x: o.x, y: o.y, l: o.l, h: o.h, rotation: o.rotation })),
+    objets: (plan.objets || []).filter((o) => visible(o) && garderObjet(o)).map((o) => ({ id: o.id, type: o.type, x: o.x, y: o.y, l: o.l, h: o.h, rotation: o.rotation })),
     creatures: (plan.creatures || []).filter((k) => visible(k) && garder(k)).map(creature),
     connexions: [],
+  };
+}
+
+/** Les filtres de planPublic pour ce que la table montre d'une salle : ni caché non révélé, ni catégorie masquée par le MJ. */
+function filtresTable(p, idSalle) {
+  const rev = new Set(Array.isArray(p.reveles?.[idSalle]) ? p.reveles[idSalle] : []);
+  return {
+    visible: (e) => !estCache(e) || rev.has(e.id),
+    garder: (k) => !categorieMasquee(p, idSalle, 'creature', k),
+    garderObjet: (o) => !categorieMasquee(p, idSalle, 'objet', o),
   };
 }
 
 /**
  * Plan de la salle courante tel que les joueurs peuvent le voir. Construit par LISTE BLANCHE (planPublic) :
  *  - rien d'autre que la salle courante (ni autres salles, ni liaisons, ni nom, ni description, ni notes) ;
- *  - aucun élément caché non révélé, portes comprises ;
+ *  - aucun élément caché non révélé, portes comprises, ni aucun élément masqué par le MJ ;
  *  - aucun champ `cache` ni aucun champ inconnu (le seul ajout propre au jeu : l'état blessé / mort d'un pion).
  * @returns {object|null} un plan, ou null s'il n'y a pas de salle courante
  */
@@ -455,8 +502,7 @@ export function vueTable(p) {
   const salle = p?.donjon?.salles?.[p.salleCourante];
   const plan = salle?.plan;
   if (!plan) return null;
-  const rev = new Set(Array.isArray(p.reveles?.[p.salleCourante]) ? p.reveles[p.salleCourante] : []);
-  return planPublic(plan, { visible: (e) => !estCache(e) || rev.has(e.id) });
+  return planPublic(plan, filtresTable(p, p.salleCourante));
 }
 
 /**
@@ -585,8 +631,7 @@ export function miniPlanTable(p, disposition = p?.donjon?.salles ? disposerPlan(
     const cle = `s${i}`; // jamais l'identifiant de la salle
     cles.set(r.id, cle);
     positions[cle] = { x: r.x, y: r.y, largeur: r.largeur, longueur: r.longueur };
-    const reveles = new Set(Array.isArray(p.reveles?.[r.id]) ? p.reveles[r.id] : []);
-    plans[cle] = planPublic(d.salles[r.id].plan, { visible: (e) => !estCache(e) || reveles.has(e.id), garder: () => false });
+    plans[cle] = planPublic(d.salles[r.id].plan, { ...filtresTable(p, r.id), garder: () => false });
     if (r.id === p.salleCourante) actif = cle;
   });
   const portesFermees = fermees.map((q) => ({ salle: cles.get(q.salle), mur: q.mur, position: q.position }));

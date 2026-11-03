@@ -178,6 +178,12 @@
 
     <main id="principal">
       <div id="bandeau" role="status"></div>
+      <!-- Ce que la table montre de la salle regardée. La carte de la régie, elle, montre toujours tout. -->
+      <div id="projection" role="group" aria-labelledby="projection-titre">
+        <span id="projection-titre"></span>
+        <button id="montrer-monstres" type="button" class="discret" data-categorie="monstres"></button>
+        <button id="montrer-objets" type="button" class="discret" data-categorie="objets"></button>
+      </div>
       <div id="scene">
         <div id="support">
           <canvas id="carte" aria-label="Carte de la salle consultée"></canvas>
