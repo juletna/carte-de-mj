@@ -11,16 +11,7 @@ import { modeTableDefaut, modeTable, tailleRemplir, tailleTable, TAILLE_MIN, TAI
 import { decrire } from '../js/parseur/decrire.js';
 import { validerPlan } from '../js/schema.js';
 import { chargerPresentations, sauverPresentations, chargerReglages, CLE_PRESENTATIONS, CLE_REGLAGES, CLE_PARTIE_OUVERTE, memoriserPartieOuverte, oublierPartieOuverte, partieAReprendre } from '../js/stockage.js';
-
-function verifier(condition, message) { if (!condition) throw new Error(message); }
-function egal(obtenu, attendu, quoi) {
-  const a = JSON.stringify(obtenu), b = JSON.stringify(attendu);
-  if (a !== b) throw new Error(`${quoi} : attendu ${b}, obtenu ${a}`);
-}
-function fauxStock(initial = {}) {
-  const donnees = { ...initial };
-  return { donnees, getItem: (k) => (k in donnees ? donnees[k] : null), setItem: (k, v) => { donnees[k] = String(v); }, removeItem: (k) => { delete donnees[k]; } };
-}
+import { verifier, egal, fauxStock, executerSuite } from './mini-test.js';
 
 const analyserPlanCroix = () => validerPlan({ largeur: 9, longueur: 9, forme: 'croix', bras: 3 }).plan;
 const TEXTE_A = 'Salle de 8 par 8 cases, une porte au mur est en 3, une porte secrète au mur nord en B, un coffre caché en D4, deux personnages en B7 C7, un gobelin en F2, un pilier en E5.';
@@ -1104,13 +1095,4 @@ const TESTS = [
   }],
 ];
 
-export function executer() {
-  return TESTS.map(([nom, test]) => {
-    try {
-      test();
-      return { phrase: `présentation : ${nom}`, ecarts: [], resultat: null };
-    } catch (err) {
-      return { phrase: `présentation : ${nom}`, ecarts: [err.message], resultat: null };
-    }
-  });
-}
+export const executer = () => executerSuite('présentation : ', TESTS);

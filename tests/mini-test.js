@@ -2,6 +2,12 @@
  * Micro-outil de test, sans dépendance : marche dans le navigateur
  * (tests.html) comme sous Node (node tests/node.mjs).
  *
+ * Harnais commun des suites (`*.test.js`) :
+ *   verifier(condition, message)    lève une Error si la condition est fausse
+ *   egal(obtenu, attendu, quoi)     égalité profonde (par JSON), le message dit ce qui était comparé
+ *   fauxStock(initial)              localStorage simulé, pour tester le stockage sans navigateur
+ *   executerSuite(prefixe, tests)   joue des [nom, test] ; un test lève une Error au premier écart
+ *
  * Les attentes sont PARTIELLES : on ne vérifie que les champs écrits.
  *   largeur, longueur, sol, nom      égalité stricte
  *   compter: { pilier: 4 }           nombre d'objets par type (et aucun autre type)
@@ -59,4 +65,31 @@ export function comparer(resultat, attendu) {
   }
 
   return ecarts;
+}
+
+/** Condition fausse : lève une Error avec le message donné. */
+export function verifier(condition, message) { if (!condition) throw new Error(message); }
+
+/** Égalité profonde (comparaison des JSON) ; `quoi` nomme ce qui est comparé. */
+export function egal(obtenu, attendu, quoi) {
+  const a = JSON.stringify(obtenu), b = JSON.stringify(attendu);
+  if (a !== b) throw new Error(`${quoi} : attendu ${b}, obtenu ${a}`);
+}
+
+/** Faux localStorage : `donnees` expose le contenu pour les vérifications. */
+export function fauxStock(initial = {}) {
+  const donnees = { ...initial };
+  return { donnees, getItem: (k) => (k in donnees ? donnees[k] : null), setItem: (k, v) => { donnees[k] = String(v); }, removeItem: (k) => { delete donnees[k]; } };
+}
+
+/** Joue une suite de [nom, test] ; chaque résultat a la forme des autres suites : { phrase, ecarts, resultat }. */
+export function executerSuite(prefixe, tests) {
+  return tests.map(([nom, test]) => {
+    try {
+      test();
+      return { phrase: `${prefixe}${nom}`, ecarts: [], resultat: null };
+    } catch (err) {
+      return { phrase: `${prefixe}${nom}`, ecarts: [err.message], resultat: null };
+    }
+  });
 }

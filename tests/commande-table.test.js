@@ -6,16 +6,8 @@ import * as t from '../js/commande-table.js';
 import * as m from '../js/donjon.js';
 import * as p from '../js/presentation.js';
 import { chargerPresentations, sauverPresentations, enregistrerPartie, supprimerPartie, empreintePartie, memoriserRetrait, oublierRetrait, retraitMemorise, partieDuRetrait, CLE_PRESENTATIONS, CLE_RETRAIT } from '../js/stockage.js';
+import { verifier, egal, fauxStock, executerSuite } from './mini-test.js';
 
-function verifier(condition, message) { if (!condition) throw new Error(message); }
-function egal(obtenu, attendu, quoi) {
-  const a = JSON.stringify(obtenu), b = JSON.stringify(attendu);
-  if (a !== b) throw new Error(`${quoi} : attendu ${b}, obtenu ${a}`);
-}
-function fauxStock(initial = {}) {
-  const donnees = { ...initial };
-  return { donnees, getItem: (k) => (k in donnees ? donnees[k] : null), setItem: (k, v) => { donnees[k] = String(v); }, removeItem: (k) => { delete donnees[k]; } };
-}
 /** Une partie d'un donjon d'une salle, avec un identifiant choisi. */
 function partie(id) {
   const d = m.creerDonjon({ texte: 'Salle de 4 par 4 cases.' });
@@ -169,13 +161,4 @@ const TESTS = [
   }],
 ];
 
-export function executer() {
-  return TESTS.map(([nom, test]) => {
-    try {
-      test();
-      return { phrase: `commande de la table : ${nom}`, ecarts: [], resultat: null };
-    } catch (err) {
-      return { phrase: `commande de la table : ${nom}`, ecarts: [err.message], resultat: null };
-    }
-  });
-}
+export const executer = () => executerSuite('commande de la table : ', TESTS);

@@ -6,12 +6,8 @@ import * as m from '../js/donjon.js';
 import { genererFiches, normaliserOptions, decrireTirage, BORNES, CLASSES, RACES, GRAINE_MAX } from '../js/fiche-hasard.js';
 import { genererDonjon } from '../js/generateur.js';
 import { resumerFiche, ajouterPersonnage, STATS } from '../js/personnages.js';
+import { verifier, egal, executerSuite } from './mini-test.js';
 
-function verifier(condition, message) { if (!condition) throw new Error(message); }
-function egal(obtenu, attendu, quoi) {
-  const a = JSON.stringify(obtenu), b = JSON.stringify(attendu);
-  if (a !== b) throw new Error(`${quoi} : attendu ${b}, obtenu ${a}`);
-}
 const mod = (v) => Math.floor((v - 10) / 2);
 /** Les compétences reconnues par l'outil Fiche (SKILLS de fiche.html). */
 const COMPETENCES = ['Acrobaties', 'Arcanes', 'Athlétisme', 'Discrétion', 'Dressage', 'Escamotage', 'Histoire', 'Intimidation', 'Intuition', 'Investigation', 'Médecine', 'Nature', 'Perception', 'Persuasion', 'Religion', 'Représentation', 'Survie', 'Tromperie'];
@@ -108,13 +104,4 @@ const TESTS = [
   }],
 ];
 
-export function executer() {
-  return TESTS.map(([nom, test]) => {
-    try {
-      test();
-      return { phrase: `fiche au hasard : ${nom}`, ecarts: [], resultat: null };
-    } catch (err) {
-      return { phrase: `fiche au hasard : ${nom}`, ecarts: [err.message], resultat: null };
-    }
-  });
-}
+export const executer = () => executerSuite('fiche au hasard : ', TESTS);

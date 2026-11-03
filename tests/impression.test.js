@@ -11,12 +11,8 @@ import { dessinerFenetre } from '../js/rendu/moteur.js';
 import * as papier from '../js/rendu/themes/papier.js';
 import { CREATURES } from '../js/parseur/lexique.js';
 import { aPortrait } from '../js/rendu/portraits.js';
+import { verifier, egal, executerSuite } from './mini-test.js';
 
-function verifier(condition, message) { if (!condition) throw new Error(message); }
-function egal(obtenu, attendu, quoi) {
-  const a = JSON.stringify(obtenu), b = JSON.stringify(attendu);
-  if (a !== b) throw new Error(`${quoi} : attendu ${b}, obtenu ${a}`);
-}
 const proche = (a, b, eps = 0.011) => Math.abs(a - b) <= eps;
 function geler(v) { if (v && typeof v === 'object' && !Object.isFrozen(v)) { Object.freeze(v); Object.values(v).forEach(geler); } return v; }
 
@@ -384,13 +380,4 @@ const TESTS = [
   }],
 ];
 
-export function executer() {
-  return TESTS.map(([nom, test]) => {
-    try {
-      test();
-      return { phrase: `impression : ${nom}`, ecarts: [], resultat: null };
-    } catch (err) {
-      return { phrase: `impression : ${nom}`, ecarts: [err.message], resultat: null };
-    }
-  });
-}
+export const executer = () => executerSuite('impression : ', TESTS);

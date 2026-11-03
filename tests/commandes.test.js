@@ -5,12 +5,7 @@
 import { analyser } from '../js/parseur/index.js';
 import { interpreterCommande as commande } from '../js/parseur/commandes.js';
 import { validerPlan } from '../js/schema.js';
-
-function verifier(condition, message) { if (!condition) throw new Error(message); }
-function egal(obtenu, attendu, quoi) {
-  const a = JSON.stringify(obtenu), b = JSON.stringify(attendu);
-  if (a !== b) throw new Error(`${quoi} : attendu ${b}, obtenu ${a}`);
-}
+import { verifier, egal, executerSuite } from './mini-test.js';
 
 const TEXTE = 'Salle de 8 par 8 cases, une porte au mur sud en D, une porte au mur est en 3, deux coffres en C4 F2, une statue en B6, deux gobelins en A1 H8, un pilier en E5.';
 const plan = () => analyser(TEXTE).plan;
@@ -263,13 +258,4 @@ const TESTS = [
   }],
 ];
 
-export function executer() {
-  return TESTS.map(([nom, test]) => {
-    try {
-      test();
-      return { phrase: `commandes : ${nom}`, ecarts: [], resultat: null };
-    } catch (err) {
-      return { phrase: `commandes : ${nom}`, ecarts: [err.message], resultat: null };
-    }
-  });
-}
+export const executer = () => executerSuite('commandes : ', TESTS);

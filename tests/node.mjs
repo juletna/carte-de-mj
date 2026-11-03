@@ -1,19 +1,12 @@
-// Lance les tests du parseur sans navigateur : node tests/node.mjs
-import { executer, executerAllerRetour } from './parseur.test.js';
-import { executer as executerDonjon } from './donjon.test.js';
-import { executer as executerPresentation } from './presentation.test.js';
-import { executer as executerCommandes } from './commandes.test.js';
-import { executer as executerImpression } from './impression.test.js';
-import { executer as executerPose } from './pose.test.js';
-import { executer as executerPlan } from './plan-donjon.test.js';
-import { executer as executerFormes } from './formes.test.js';
-import { executer as executerGenerateur } from './generateur.test.js';
-import { executer as executerModeles } from './modeles.test.js';
-import { executer as executerPersonnages } from './personnages.test.js';
-import { executer as executerFicheHasard } from './fiche-hasard.test.js';
-import { executer as executerCommandeTable } from './commande-table.test.js';
+// Lance toutes les suites sans navigateur : node tests/node.mjs
+import { readFile } from 'node:fs/promises';
+import { executerTout } from './tous.js';
 
-const resultats = [...executer(), ...executerAllerRetour(), ...executerDonjon(), ...executerPresentation(), ...executerCommandes(), ...executerImpression(), ...executerPose(), ...executerPlan(), ...executerFormes(), ...executerGenerateur(), ...executerModeles(), ...executerPersonnages(), ...executerFicheHasard(), ...executerCommandeTable()];
+// Les moteurs de rendu lisent window.devicePixelRatio ; ici, un écran à densité 1.
+globalThis.window ??= { devicePixelRatio: 1 };
+
+const racine = new URL('../', import.meta.url);
+const resultats = await executerTout({ lire: (chemin) => readFile(new URL(chemin, racine), 'utf8') });
 let echecs = 0;
 for (const r of resultats) {
   const ok = r.ecarts.length === 0;

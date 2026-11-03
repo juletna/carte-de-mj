@@ -10,12 +10,7 @@ import { etatDepuis, outilAffiche } from '../js/rail.js';
 import { analyser } from '../js/parseur/index.js';
 import { decrire } from '../js/parseur/decrire.js';
 import { OBJETS, CREATURES } from '../js/parseur/lexique.js';
-
-function verifier(condition, message) { if (!condition) throw new Error(message); }
-function egal(obtenu, attendu, quoi) {
-  const a = JSON.stringify(obtenu), b = JSON.stringify(attendu);
-  if (a !== b) throw new Error(`${quoi} : attendu ${b}, obtenu ${a}`);
-}
+import { verifier, egal, executerSuite } from './mini-test.js';
 
 const BASE = 'Salle de 6 par 6 cases, une porte au mur sud en B, deux coffres en A1 C1, un gobelin en D4';
 const planDe = (texte = BASE) => analyser(texte, { echelle: 1.5 }).plan;
@@ -318,13 +313,4 @@ const TESTS = [
   }],
 ];
 
-export function executer() {
-  return TESTS.map(([nom, test]) => {
-    try {
-      test();
-      return { phrase: `pose : ${nom}`, ecarts: [], resultat: null };
-    } catch (err) {
-      return { phrase: `pose : ${nom}`, ecarts: [err.message], resultat: null };
-    }
-  });
-}
+export const executer = () => executerSuite('pose : ', TESTS);

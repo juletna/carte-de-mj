@@ -8,16 +8,7 @@ import { chargerModeles, sauverModeles, CLE_MODELES } from '../js/stockage.js';
 import { analyser } from '../js/parseur/index.js';
 import { disposerPlan } from '../js/plan-donjon.js';
 import { surLeSol } from '../js/formes.js';
-
-function verifier(condition, message) { if (!condition) throw new Error(message); }
-function egal(obtenu, attendu, quoi) {
-  const a = JSON.stringify(obtenu), b = JSON.stringify(attendu);
-  if (a !== b) throw new Error(`${quoi} : attendu ${b}, obtenu ${a}`);
-}
-function fauxStock(initial = {}) {
-  const donnees = { ...initial };
-  return { donnees, getItem: (k) => (k in donnees ? donnees[k] : null), setItem: (k, v) => { donnees[k] = String(v); }, removeItem: (k) => { delete donnees[k]; } };
-}
+import { verifier, egal, fauxStock, executerSuite } from './mini-test.js';
 
 const TESTS = [
   ['chaque modèle de l’outil donne un donjon valide, entièrement relié et compris', () => {
@@ -74,13 +65,4 @@ const TESTS = [
   }],
 ];
 
-export function executer() {
-  return TESTS.map(([nom, test]) => {
-    try {
-      test();
-      return { phrase: `modèles : ${nom}`, ecarts: [], resultat: null };
-    } catch (err) {
-      return { phrase: `modèles : ${nom}`, ecarts: [err.message], resultat: null };
-    }
-  });
-}
+export const executer = () => executerSuite('modèles : ', TESTS);

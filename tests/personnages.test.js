@@ -7,12 +7,8 @@ import * as p from '../js/presentation.js';
 import { resumerFiche, ficheDepuisFichier, fichesDuNavigateur, validerPersonnages, validerJoueurs, ajouterPersonnage, retirerPersonnage, actualiserPersonnages } from '../js/personnages.js';
 import { chargerFichesLocales, CLE_FICHES } from '../js/stockage.js';
 import { validerPlan } from '../js/schema.js';
+import { verifier, egal, executerSuite } from './mini-test.js';
 
-function verifier(condition, message) { if (!condition) throw new Error(message); }
-function egal(obtenu, attendu, quoi) {
-  const a = JSON.stringify(obtenu), b = JSON.stringify(attendu);
-  if (a !== b) throw new Error(`${quoi} : attendu ${b}, obtenu ${a}`);
-}
 const FICHE = {
   name: 'Elwyn', race: 'Demi-elfe', cls: 'Rôdeur', lvl: 3, hp: 20, hpMax: 28, tmp: 2, ac: 15, speed: 9, init: 3,
   stats: { FOR: 11, DEX: 16, CON: 13, INT: 10, SAG: 14, CHA: 12 }, conds: ['Empoisonné'],
@@ -244,13 +240,4 @@ const TESTS = [
   }],
 ];
 
-export function executer() {
-  return TESTS.map(([nom, test]) => {
-    try {
-      test();
-      return { phrase: `personnages : ${nom}`, ecarts: [], resultat: null };
-    } catch (err) {
-      return { phrase: `personnages : ${nom}`, ecarts: [err.message], resultat: null };
-    }
-  });
-}
+export const executer = () => executerSuite('personnages : ', TESTS);

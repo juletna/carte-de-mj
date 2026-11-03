@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Tests du parseur, du donjon, de la présentation et de l'impression</title>
+  <title>Tests de Carte de MJ</title>
   <style>
     :root { color-scheme: dark; }
     body { margin: 0; padding: 24px 16px; background: #16151a; color: #e8e4dc; font: 15px/1.45 system-ui, sans-serif; }
@@ -21,26 +21,14 @@
 </head>
 <body>
   <main>
-    <h1>Tests du parseur, du donjon, de la présentation et de l'impression</h1>
+    <h1>Tests de Carte de MJ</h1>
     <p id="bilan">Exécution…</p>
     <div id="resultats"></div>
   </main>
   <script type="module">
-    import { executer, executerAllerRetour } from './tests/parseur.test.js';
-    import { executer as executerDonjon } from './tests/donjon.test.js';
-    import { executer as executerPresentation } from './tests/presentation.test.js';
-    import { executer as executerCommandes } from './tests/commandes.test.js';
-    import { executer as executerImpression } from './tests/impression.test.js';
-    import { executer as executerPose } from './tests/pose.test.js';
-    import { executer as executerPlan } from './tests/plan-donjon.test.js';
-    import { executer as executerFormes } from './tests/formes.test.js';
-    import { executer as executerGenerateur } from './tests/generateur.test.js';
-    import { executer as executerModeles } from './tests/modeles.test.js';
-    import { executer as executerPersonnages } from './tests/personnages.test.js';
-    import { executer as executerFicheHasard } from './tests/fiche-hasard.test.js';
-    import { executer as executerCommandeTable } from './tests/commande-table.test.js';
+    import { executerTout } from './tests/tous.js';
 
-    const resultats = [...executer(), ...executerAllerRetour(), ...executerDonjon(), ...executerPresentation(), ...executerCommandes(), ...executerImpression(), ...executerPose(), ...executerPlan(), ...executerFormes(), ...executerGenerateur(), ...executerModeles(), ...executerPersonnages(), ...executerFicheHasard(), ...executerCommandeTable()];
+    const resultats = await executerTout({ lire: (chemin) => fetch(chemin).then((r) => r.text()) });
     const echecs = resultats.filter((r) => r.ecarts.length).length;
     document.getElementById('bilan').textContent =
       `${resultats.length - echecs} / ${resultats.length} réussis` + (echecs ? ` — ${echecs} échec(s)` : '');

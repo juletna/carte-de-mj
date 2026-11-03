@@ -9,25 +9,11 @@ import { analyser } from '../js/parseur/index.js';
 import { decrire } from '../js/parseur/decrire.js';
 import { validerPlan } from '../js/schema.js';
 import { chargerTout, chargerDonjons, sauverDonjons, CLE_DONJONS, CLE_REGLAGES } from '../js/stockage.js';
+import { verifier, egal, fauxStock, executerSuite } from './mini-test.js';
 
-function verifier(condition, message) { if (!condition) throw new Error(message); }
-function egal(obtenu, attendu, quoi) {
-  const a = JSON.stringify(obtenu), b = JSON.stringify(attendu);
-  if (a !== b) throw new Error(`${quoi} : attendu ${b}, obtenu ${a}`);
-}
 function leve(f, morceau, quoi) {
   try { f(); } catch (e) { verifier(e.message.includes(morceau), `${quoi} : message « ${e.message} » sans « ${morceau} »`); return; }
   throw new Error(`${quoi} : aucune erreur levée`);
-}
-
-/** Faux localStorage, pour tester la migration sans navigateur. */
-function fauxStock(initial = {}) {
-  const donnees = { ...initial };
-  return {
-    donnees,
-    getItem: (k) => (k in donnees ? donnees[k] : null),
-    setItem: (k, v) => { donnees[k] = String(v); },
-  };
 }
 
 const SALLE_2_PORTES = 'Salle de 6 par 6 cases, une porte au mur sud en B, une porte au mur est en 3, deux coffres en A1 C1.';
@@ -308,13 +294,4 @@ const TESTS = [
 /** Plan relu depuis un texte, avec l'identifiant de salle (comme le fait l'application). */
 function planDepuis(texte, id) { return m.planDepuisTexte(texte, id); }
 
-export function executer() {
-  return TESTS.map(([nom, test]) => {
-    try {
-      test();
-      return { phrase: `donjon : ${nom}`, ecarts: [], resultat: null };
-    } catch (err) {
-      return { phrase: `donjon : ${nom}`, ecarts: [err.message], resultat: null };
-    }
-  });
-}
+export const executer = () => executerSuite('donjon : ', TESTS);

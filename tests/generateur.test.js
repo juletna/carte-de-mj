@@ -9,12 +9,7 @@ import { CREATURES, nomAffiche } from '../js/parseur/lexique.js';
 import { disposerPlan } from '../js/plan-donjon.js';
 import { surLeSol, retraitPorte } from '../js/formes.js';
 import { vueTable, creerPresentation } from '../js/presentation.js';
-
-function verifier(condition, message) { if (!condition) throw new Error(message); }
-function egal(obtenu, attendu, quoi) {
-  const a = JSON.stringify(obtenu), b = JSON.stringify(attendu);
-  if (a !== b) throw new Error(`${quoi} : attendu ${b}, obtenu ${a}`);
-}
+import { verifier, egal, executerSuite } from './mini-test.js';
 
 const salles = (d) => Object.values(d.salles);
 const monstres = (d) => salles(d).flatMap((s) => s.plan.creatures.filter((k) => k.camp === 'monstre'));
@@ -164,13 +159,4 @@ const TESTS = [
   }],
 ];
 
-export function executer() {
-  return TESTS.map(([nom, test]) => {
-    try {
-      test();
-      return { phrase: `hasard : ${nom}`, ecarts: [], resultat: null };
-    } catch (err) {
-      return { phrase: `hasard : ${nom}`, ecarts: [err.message], resultat: null };
-    }
-  });
-}
+export const executer = () => executerSuite('hasard : ', TESTS);

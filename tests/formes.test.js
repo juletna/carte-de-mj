@@ -12,12 +12,8 @@ import { disposerPlan, cheminCouloir } from '../js/plan-donjon.js';
 import { porteSous } from '../js/deplacement.js';
 import * as p from '../js/presentation.js';
 import { interpreterCommande } from '../js/parseur/commandes.js';
+import { verifier, egal, executerSuite } from './mini-test.js';
 
-function verifier(condition, message) { if (!condition) throw new Error(message); }
-function egal(obtenu, attendu, quoi) {
-  const a = JSON.stringify(obtenu), b = JSON.stringify(attendu);
-  if (a !== b) throw new Error(`${quoi} : attendu ${b}, obtenu ${a}`);
-}
 const plan = (forme, largeur, longueur, bras, position) => ({ forme, largeur, longueur, ...(bras ? { bras } : {}), ...(position ? { position } : {}) });
 
 /** Toutes les cases de sol se touchent-elles ? Une forme ne doit jamais couper la salle en deux. */
@@ -263,13 +259,4 @@ const TESTS = [
   }],
 ];
 
-export function executer() {
-  return TESTS.map(([nom, test]) => {
-    try {
-      test();
-      return { phrase: `formes : ${nom}`, ecarts: [], resultat: null };
-    } catch (err) {
-      return { phrase: `formes : ${nom}`, ecarts: [err.message], resultat: null };
-    }
-  });
-}
+export const executer = () => executerSuite('formes : ', TESTS);

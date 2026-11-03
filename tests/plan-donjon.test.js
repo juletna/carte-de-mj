@@ -5,12 +5,7 @@
  */
 import * as m from '../js/donjon.js';
 import { disposerPlan, pontsDe, PONT_DEMI_LONGUEUR, cheminCouloir, salleSous, ECART_LIAISON, ECART_MIN, ECART_MIN_NOM, ECART_PASSAGE, MARGE_PLAN, ETIQUETTE_ISOLEES } from '../js/plan-donjon.js';
-
-function verifier(condition, message) { if (!condition) throw new Error(message); }
-function egal(obtenu, attendu, quoi) {
-  const a = JSON.stringify(obtenu), b = JSON.stringify(attendu);
-  if (a !== b) throw new Error(`${quoi} : attendu ${b}, obtenu ${a}`);
-}
+import { verifier, egal, executerSuite } from './mini-test.js';
 
 const LETTRES = 'ABCDEFGH';
 /** Texte d'une salle l x h avec les portes demandées : [['est', 2], ['nord', 0]] (position à partir de 0). */
@@ -365,10 +360,4 @@ const TESTS = [
   }],
 ];
 
-export function executer() {
-  return TESTS.map(([phrase, f]) => {
-    const ecarts = [];
-    try { f(); } catch (e) { ecarts.push(e.message); }
-    return { phrase: `Plan du donjon · ${phrase}`, ecarts };
-  });
-}
+export const executer = () => executerSuite('Plan du donjon · ', TESTS);
