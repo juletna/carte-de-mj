@@ -50,7 +50,8 @@ const EXEMPLES = [
 
 // --- État de l'application ----------------------------------------------------
 // Donjons et réglages sont sauvegardés séparément (voir stockage.js). L'ancienne clé
-// `jdr-carte:v1` est migrée au premier démarrage, sans être supprimée.
+// `jdr-carte:v1` est migrée au premier démarrage, sans être supprimée. Ce qui était enregistré et ne se relit pas
+// est mis de côté avant le premier enregistrement (`charge.miseDeCote`, annoncé en fin de fichier).
 const charge = stockage.chargerTout({ texteInitial: EXEMPLES[0] });
 const etat = {
   donjons: charge.donjons,
@@ -866,13 +867,13 @@ for (const bande of document.querySelectorAll('.bord-salle')) {
 
 let minuterieMessage;
 /** Retour d'une pose, posé sur la carte (hors du flux : rien ne bouge). */
-function annoncerCarte(texte, erreur = false) {
+function annoncerCarte(texte, erreur = false, duree = erreur ? 4500 : 2500) {
   const zone = $('message-carte');
   zone.hidden = false;
   zone.textContent = texte;
   zone.classList.toggle('erreur-pose', erreur);
   clearTimeout(minuterieMessage);
-  minuterieMessage = setTimeout(() => { zone.hidden = true; }, erreur ? 4500 : 2500);
+  minuterieMessage = setTimeout(() => { zone.hidden = true; }, duree);
 }
 
 /** Pose l'élément de la palette au point écran donné, si ce point est sur la carte visible. Renvoie vrai si posé. */
@@ -1326,3 +1327,8 @@ const onglets = activerOnglets(document.querySelector('.onglets'), {
 
 // --- Démarrage ----------------------------------------------------------------
 afficherSalleActive();
+if (charge.miseDeCote) { // dit après le premier dessin : le bandeau de la carte est prêt, et l'avertissement reste aussi dans le panneau des fichiers
+  const phrase = stockage.phraseMiseDeCote(charge.miseDeCote);
+  annoncerCarte(phrase, !charge.miseDeCote.ok, 15000);
+  if (charge.miseDeCote.ok) messageFichier(phrase); else messageFichier('', [phrase]);
+}

@@ -12,6 +12,7 @@
  */
 import { normaliserForme, casesRetirees, surLeSol, retraitPorte } from '../formes.js';
 import { definition, nomAffiche } from './lexique.js';
+import { VERSION_PLAN } from '../schema.js';
 import { OPPOSE, REGARD, REGARD_VERS, estHorizontal, longueurMur } from '../murs.js';
 
 // Vu depuis l'entrée en regardant le fond.
@@ -109,7 +110,7 @@ function devantPorte(p, W, L, plan) {
 export function construirePlan({ largeur: W, longueur: L, sol, forme, intentions, graine = 1, entree: entreeImposee }) {
   const g = new Grille(W, L);
   const journal = [];
-  const plan = { version: 1, id: 'salle-1', nom: 'Salle', ...normaliserForme(forme), largeur: W, longueur: L, sol, portes: [], objets: [], creatures: [], connexions: [] };
+  const plan = { version: VERSION_PLAN, id: 'salle-1', nom: 'Salle', ...normaliserForme(forme), largeur: W, longueur: L, sol, portes: [], objets: [], creatures: [], connexions: [] };
   for (const k of casesRetirees(plan)) g.occupe.add(k); // une case retirée n'est jamais libre
 
   // ---- 1. Portes --------------------------------------------------------

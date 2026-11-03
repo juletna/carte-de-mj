@@ -151,6 +151,9 @@ Dans chaque salle, la description reste la seule référence (texte → plan →
 - **Plusieurs donjons** : changer, créer, renommer, supprimer (deux clics). Tout est enregistré dans le navigateur :
   `carte-de-mj:donjons-v1` (les donjons) et `carte-de-mj:reglages-v1` (échelle, taille des cases, grille). L'ancienne clé
   `jdr-carte:v1` est migrée en un donjon d'une salle au premier lancement, et n'est jamais supprimée.
+  Un donjon (ou un modèle) enregistré qui ne se relit pas, par exemple écrit par une version plus récente de l'outil, n'est jamais
+  écrasé en silence : il est copié tel quel dans `carte-de-mj:mis-de-cote-v1` avant que le reste soit réécrit (une seule fois, même
+  si la page est rechargée), et l'outil le dit. Si cette copie échoue (stockage plein), les donjons ne sont plus enregistrés de la session.
 - **Exporter / importer** : « Exporter le donjon » écrit tout (salles, notes, liaisons, éléments cachés). « Importer un donjon »
   ajoute un donjon sans rien écraser ; il accepte le format ci-dessous, l'ancien format `jdr-carte` (une salle) et un plan seul,
   et refuse proprement un fichier invalide ou d'une version plus récente. Rien de ce qui vient d'un fichier n'est interprété
@@ -351,7 +354,7 @@ js/alea.js          tirages reproductibles, communs aux deux générateurs (pur,
 js/personnages.js   fiches associées au donjon : résumé, ajout, validation (pur, sans DOM)
 js/carte-personnage.js  une fiche à l'écran, la même dans le Donjon et la régie
 js/formes.js        formes de salle : cases retirées, portes en retrait, murs découpés (calcul pur)
-js/stockage.js      localStorage (donjons, réglages, migration de l'ancien format), export/import JSON
+js/stockage.js      localStorage (donjons, réglages, migration de l'ancien format, mise de côté de ce qui ne se relit pas), export/import JSON
 js/voix.js          dictée (Web Speech API)
 js/deplacement.js   glisser-déposer et clic sur la carte
 js/parseur/         index (chaîne d'analyse), normalisation, nombres, lexique, dimensions, positions, placement, coordonnées (A1…, repère d'une porte, libellé d'une sélection),

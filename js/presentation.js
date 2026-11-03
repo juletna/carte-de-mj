@@ -44,7 +44,7 @@
 import * as modele from './donjon.js';
 import { validerDonjon, liaisonDePorte } from './donjon.js';
 import { MURS, OPPOSE, longueurMur } from './murs.js';
-import { validerPlan, ETATS, LISTES } from './schema.js';
+import { validerPlan, ETATS, LISTES, VERSION_PLAN } from './schema.js';
 import { definition } from './parseur/lexique.js';
 import { analyser } from './parseur/index.js';
 import { decrire } from './parseur/decrire.js';
@@ -503,7 +503,7 @@ export function planPublic(plan, { visible = (e) => !estCache(e), garder = () =>
     ...(avecEtat && ETATS.includes(k.etat) ? { etat: k.etat } : {}), // liste blanche : blessé ou mort, rien d'autre
   });
   return {
-    version: 1, id: 'table', nom: '', ...normaliserForme(plan),
+    version: VERSION_PLAN, id: 'table', nom: '', ...normaliserForme(plan),
     largeur: plan.largeur, longueur: plan.longueur, sol: plan.sol, entree: 'sud',
     portes: (plan.portes || []).filter((q) => visible(q, 'porte')).map((q) => ({ id: q.id, mur: q.mur, position: q.position, type: q.type })),
     objets: (plan.objets || []).filter((o) => visible(o, 'objet')).map((o) => ({ id: o.id, type: o.type, x: o.x, y: o.y, l: o.l, h: o.h, rotation: o.rotation })),

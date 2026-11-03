@@ -38,6 +38,8 @@ const CAMPS = ['pj', 'pnj', 'monstre'];
 export const ETATS = ['blesse', 'mort'];
 /** Côté maximal d'une salle, en cases : la même limite pour le schéma, le parseur et la pose. */
 export const CASES_MAX = 60;
+/** Numéro de version écrit dans chaque plan (le champ `version` du schéma ci-dessus). */
+export const VERSION_PLAN = 1;
 
 /** Le genre d'un élément du plan (porte, objet, créature) → la liste du plan qui le contient. */
 export const LISTES = { porte: 'portes', objet: 'objets', creature: 'creatures' };
@@ -61,7 +63,7 @@ export function validerPlan(brut) {
   if (erreurs.length) return { ok: false, erreurs, plan: null };
 
   const plan = {
-    version: 1,
+    version: VERSION_PLAN,
     id: String(brut.id || 'salle-1'),
     nom: String(brut.nom || 'Salle'),
     ...normaliserForme(brut),
