@@ -47,13 +47,19 @@
         <label for="donjon-nom" class="doux">Renommer</label>
         <input id="donjon-nom" type="text" maxlength="80" spellcheck="false">
         <div class="actions">
-          <button id="donjon-nouveau" type="button" class="discret">+ Nouveau donjon</button>
+          <button id="donjon-nouveau" type="button" class="discret" aria-expanded="false" aria-controls="nouveau">+ Nouveau donjon</button>
           <button id="exporter" type="button" class="discret" title="Enregistre le donjon entier (salles, notes, liaisons, éléments cachés)">Exporter</button>
           <label class="bouton">Importer <input id="importer" type="file" accept=".json,application/json" hidden></label>
           <button id="donjon-copier" type="button" class="discret" title="Copie le donjon entier, à coller dans un message. Attention : les notes et les éléments cachés sont dedans.">Copier</button>
         </div>
-        <details id="hasard" class="plan-json hasard">
-          <summary>🎲 Donjon au hasard</summary>
+        <section id="nouveau" class="nouveau" aria-label="Nouveau donjon" hidden>
+          <p class="note">Partir :</p>
+          <div class="nouveau-choix">
+            <button id="nouveau-vide" type="button" class="discret">D’un donjon vide</button>
+            <button id="nouveau-hasard" type="button" class="discret" aria-pressed="false" aria-controls="hasard">🎲 Au hasard</button>
+            <button id="nouveau-modele" type="button" class="discret" aria-pressed="false" aria-controls="modeles">D’un modèle</button>
+          </div>
+          <div id="hasard" class="hasard" hidden>
           <div class="hasard-nombres">
             <label>Salles <input id="hasard-salles" type="number"></label>
             <label>Monstres en tout <input id="hasard-monstres" type="number"></label>
@@ -69,9 +75,15 @@
           <label class="ligne case"><input id="hasard-boss" type="checkbox" checked> Un boss dans la salle la plus éloignée</label>
           <label class="ligne case"><input id="hasard-formes" type="checkbox" checked> Des salles en croix, en L, en T…</label>
           <label class="hasard-tirage">Numéro de tirage <span class="doux">(vide : un nouveau à chaque fois)</span> <input id="hasard-graine" type="number" min="1" max="999999" step="1"></label>
-          <div class="actions"><button id="hasard-generer" type="button">Générer</button></div>
+          <div class="actions"><button id="hasard-generer" type="button">Générer ce donjon</button></div>
           <p id="hasard-message" class="note" role="status" hidden></p>
-        </details>
+          </div>
+          <div id="modeles" class="modeles" hidden>
+            <ul id="modeles-liste"></ul>
+            <div class="actions"><button id="modele-garder" type="button" class="discret" title="Garde une copie de ce donjon dans ce navigateur, pour repartir de lui plus tard. Les notes et les éléments cachés sont gardés.">Garder le donjon affiché comme modèle</button></div>
+            <p id="modele-message" class="note" role="status" hidden></p>
+          </div>
+        </section>
         <details class="plan-json">
           <summary>Coller un donjon</summary>
           <textarea id="donjon-colle" rows="5" spellcheck="false" aria-label="Texte du donjon à coller" placeholder="Colle ici le texte copié avec « Copier »"></textarea>

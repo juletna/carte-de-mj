@@ -12,6 +12,7 @@ import { disposerPlan, salleSous, cleDisposition } from './plan-donjon.js';
 import { tailleRemplir } from './affichage.js';
 import { elementsPalette, GROUPES_PALETTE, SOUS_GROUPES, redimensionner, changerForme } from './pose.js';
 import { genererDonjon, BORNES, FAMILLES } from './generateur.js';
+import { MODELES, donjonDepuisModele, copieDonjon } from './modeles.js';
 import { FORMES, LIBELLES_FORMES, POSITIONS_FORMES, casesRetirees, brasDe, brasMax, nombreCases } from './formes.js';
 import { creerPalette } from './palette.js';
 import { creerRail, OUTILS_CATALOGUE } from './rail.js';
@@ -1026,12 +1027,63 @@ $('donjon-nom').addEventListener('change', (e) => {
   majDonjons();
   sauvegarder();
 });
-$('donjon-nouveau').addEventListener('click', () => {
-  const d = modele.creerDonjon({ nom: `Donjon ${Object.keys(etat.donjons).length + 1}`, echelle: r.echelle });
+// --- Nouveau donjon : vide, au hasard ou à partir d'un modèle ---
+function choixNouveau(quoi) {
+  const ouvrir = (bouton, zone, actif) => { $(bouton).setAttribute('aria-pressed', String(actif)); $(zone).hidden = !actif; };
+  ouvrir('nouveau-hasard', 'hasard', quoi === 'hasard');
+  ouvrir('nouveau-modele', 'modeles', quoi === 'modele');
+  if (quoi === 'modele') majModeles();
+}
+/** Le donjon neuf prend la place : il devient le donjon affiché, et le menu se referme sur lui. */
+function accueillirDonjon(d, { plan = true } = {}) {
   etat.donjons[d.id] = d;
   etat.actif = d.id;
-  etat.neuves.add(d.salleActive);
   afficherSalleActive();
+  if (plan) ouvrirPlan(true);
+  fermerMenu();
+}
+$('donjon-nouveau').addEventListener('click', () => {
+  const ouvert = $('nouveau').hidden;
+  $('nouveau').hidden = !ouvert;
+  $('donjon-nouveau').setAttribute('aria-expanded', String(ouvert));
+});
+$('nouveau-vide').addEventListener('click', () => {
+  const d = modele.creerDonjon({ nom: `Donjon ${Object.keys(etat.donjons).length + 1}`, echelle: r.echelle });
+  etat.neuves.add(d.salleActive);
+  accueillirDonjon(d, { plan: false });
+});
+$('nouveau-hasard').addEventListener('click', () => choixNouveau($('hasard').hidden ? 'hasard' : null));
+$('nouveau-modele').addEventListener('click', () => choixNouveau($('modeles').hidden ? 'modele' : null));
+
+function ligneModele(nom, description, partir, supprimer) {
+  const bouton = h('button', { type: 'button', className: 'discret modele-choix' }, h('b', { textContent: nom }), h('span', { className: 'doux', textContent: description }));
+  bouton.addEventListener('click', partir);
+  return h('li', {}, bouton, ...(supprimer ? [supprimer] : []));
+}
+/** La liste des modèles : ceux de l'outil, puis ceux gardés par le MJ dans ce navigateur. */
+function majModeles() {
+  const gardes = stockage.chargerModeles();
+  const pluriel = (n) => `${n} salle${n > 1 ? 's' : ''}`;
+  $('modeles-liste').replaceChildren(
+    ...MODELES.map((m) => ligneModele(m.nom, m.description, () => accueillirDonjon(donjonDepuisModele(m)))),
+    ...gardes.map((g) => {
+      const retirer = h('button', { type: 'button', className: 'discret petit' });
+      deuxTemps(retirer, 'Retirer', 'Confirmer', () => {
+        stockage.sauverModeles(stockage.chargerModeles().filter((x) => x.id !== g.id));
+        majModeles();
+      });
+      return ligneModele(g.nom, `Ton modèle · ${pluriel(Object.keys(g.salles).length)}`,
+        () => accueillirDonjon(copieDonjon(g, { idsPris: Object.keys(etat.donjons) })), retirer);
+    }),
+  );
+}
+$('modele-garder').addEventListener('click', () => {
+  const copie = copieDonjon(donjon());
+  const message = $('modele-message');
+  message.hidden = false;
+  const ok = stockage.sauverModeles([...stockage.chargerModeles(), copie]);
+  message.textContent = ok ? `« ${copie.nom} » est gardé comme modèle, dans ce navigateur.` : 'Impossible de garder ce modèle : le stockage de ce navigateur est plein ou bloqué.';
+  majModeles();
 });
 // --- Donjon au hasard (js/generateur.js) ---
 for (const [cle, [defaut, min, max]] of Object.entries(BORNES)) {
@@ -1057,15 +1109,11 @@ $('hasard-generer').addEventListener('click', () => {
     delete etat.donjons[dernierTirage.id];
     for (const cle of [...historiques.keys()]) if (cle.startsWith(`${dernierTirage.id}/`)) historiques.delete(cle);
   }
-  etat.donjons[d.id] = d;
-  etat.actif = d.id;
   dernierTirage = { id: d.id, signature: JSON.stringify(d) };
-  afficherSalleActive();
-  ouvrirPlan(true);
+  accueillirDonjon(d);
   const message = $('hasard-message');
   message.hidden = false;
   message.textContent = `Tirage ${graine} : ${resume.salles} salle${resume.salles > 1 ? 's' : ''}, ${resume.monstres} monstre${resume.monstres > 1 ? 's' : ''}, ${resume.coffres} coffre${resume.coffres > 1 ? 's' : ''}, ${resume.pieges} piège${resume.pieges > 1 ? 's' : ''}. Tu peux tout retoucher ; un nouveau tirage remplace celui-ci tant que tu n'y touches pas.`;
-  fermerMenu();
   annoncerCarte(`« ${d.nom} » : ${resume.salles} salles, ${resume.monstres} monstres, ${resume.coffres} coffres.`);
 });
 

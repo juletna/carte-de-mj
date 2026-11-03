@@ -6,6 +6,7 @@
  *   carte-de-mj:donjons-v1    { actif, donjons: { <id>: donjon } }   (voir donjon.js)
  *   carte-de-mj:reglages-v1   { echelle, taille, grille, reperes? }  (affichage, hors donjons)
  *   carte-de-mj:presentations-v1  { presentations: { <idDonjon>: présentation } }  (parties en cours : voir presentation.js)
+ *   carte-de-mj:modeles-v1    { modeles: [donjon] }  (donjons gardés comme modèles : voir modeles.js)
  *   jdr-carte:v1              ANCIENNE clé (une salle) : lue une fois pour la migration, jamais supprimée
  *
  * Les fonctions de lecture/écriture acceptent un `stock` (par défaut localStorage) pour être testées sous Node.
@@ -17,6 +18,7 @@ export const CLE_DONJONS = 'carte-de-mj:donjons-v1';
 export const CLE_REGLAGES = 'carte-de-mj:reglages-v1';
 export const CLE_PRESENTATIONS = 'carte-de-mj:presentations-v1';
 export const CLE_PARTIE_OUVERTE = 'carte-de-mj:partie-ouverte-v1';
+export const CLE_MODELES = 'carte-de-mj:modeles-v1';
 const CLE = 'jdr-carte:v1';
 const TAILLE_MAX_FICHIER = 5 * 1024 * 1024;
 const REGLAGES_DEFAUT = { echelle: 1.5, taille: 48, grille: true };
@@ -88,6 +90,14 @@ export function chargerPresentations(stock = stockParDefaut()) {
   return res;
 }
 export const sauverPresentations = (presentations, stock = stockParDefaut()) => ecrireJson(stock, CLE_PRESENTATIONS, { presentations });
+
+/** Modèles gardés par le MJ, validés un à un comme des donjons : un modèle abîmé est simplement écarté. */
+export function chargerModeles(stock = stockParDefaut()) {
+  const brut = lireJson(stock, CLE_MODELES);
+  if (!Array.isArray(brut?.modeles)) return [];
+  return brut.modeles.map((d) => validerDonjon(d).donjon).filter(Boolean);
+}
+export const sauverModeles = (modeles, stock = stockParDefaut()) => ecrireJson(stock, CLE_MODELES, { modeles });
 
 /**
  * Partie ouverte dans la régie : on ne mémorise que l'identifiant du donjon (la partie elle-même est dans

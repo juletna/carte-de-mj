@@ -35,8 +35,9 @@
     import { executer as executerPlan } from './tests/plan-donjon.test.js';
     import { executer as executerFormes } from './tests/formes.test.js';
     import { executer as executerGenerateur } from './tests/generateur.test.js';
+    import { executer as executerModeles } from './tests/modeles.test.js';
 
-    const resultats = [...executer(), ...executerAllerRetour(), ...executerDonjon(), ...executerPresentation(), ...executerCommandes(), ...executerImpression(), ...executerPose(), ...executerPlan(), ...executerFormes(), ...executerGenerateur()];
+    const resultats = [...executer(), ...executerAllerRetour(), ...executerDonjon(), ...executerPresentation(), ...executerCommandes(), ...executerImpression(), ...executerPose(), ...executerPlan(), ...executerFormes(), ...executerGenerateur(), ...executerModeles()];
     const echecs = resultats.filter((r) => r.ecarts.length).length;
     document.getElementById('bilan').textContent =
       `${resultats.length - echecs} / ${resultats.length} réussis` + (echecs ? ` — ${echecs} échec(s)` : '');

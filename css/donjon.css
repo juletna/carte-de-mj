@@ -234,3 +234,14 @@ body.vue-plan #aide-carte { display: none; }
 .hasard-familles { margin: 8px 0; padding: 6px 8px; border: 1px solid var(--bordure, #3a3833); border-radius: var(--rayon); }
 .hasard-familles legend { font-size: 13px; padding: 0 4px; }
 .hasard-tirage { display: block; margin: 8px 0; font-size: 13px; }
+
+/* --- Nouveau donjon : vide, au hasard ou modèle --- */
+.nouveau { margin: 8px 0; padding: 8px; border: 1px solid var(--bordure, #3a3833); border-radius: var(--rayon); }
+.nouveau > .note { margin: 0 0 6px; }
+.nouveau-choix { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.nouveau-choix button { min-height: 44px; padding: 4px; font-size: 13px; }
+.nouveau-choix button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+.modeles ul { list-style: none; margin: 8px 0; padding: 0; display: grid; gap: 6px; }
+.modeles li { display: flex; gap: 6px; align-items: center; }
+.modele-choix { flex: 1; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; padding: 6px 8px; }
+.modele-choix span { font-size: 12px; white-space: normal; }

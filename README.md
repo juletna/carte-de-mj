@@ -86,9 +86,13 @@ Une salle reste un rectangle (largeur × longueur) auquel on retire des cases : 
 - Une porte garde son écriture (mur + position) : elle se pose sur le premier mur rencontré de ce côté, au fond de l'entaille si le coin est retiré.
 - Changer de forme pousse ce qui tomberait dans le vide vers la case libre la plus proche ; s'il n'y a plus de place, le changement est refusé.
 
-## Donjon au hasard
+## Nouveau donjon : vide, au hasard ou modèle
 
-Dans le menu du donjon, « 🎲 Donjon au hasard » : nombre de salles, de monstres, de coffres, de pièges cachés, de portes secrètes, de chemins en plus, types de monstres, boss, formes de salles (`js/generateur.js`, pur).
+« + Nouveau donjon », dans le menu du donjon, laisse le choix : partir d'un donjon vide, au hasard, ou d'un modèle.
+
+**Modèles** (`js/modeles.js`) : quelques départs fournis par l'outil (église en croix, petite crypte, cloître, repaire gobelin), et ceux que tu gardes toi-même avec « Garder le donjon affiché comme modèle » : une copie dans ce navigateur (`carte-de-mj:modeles-v1`), notes et éléments cachés compris. Partir d'un modèle crée un donjon neuf, le modèle ne change jamais. Les modèles gardés ne partent pas avec « Exporter », qui ne concerne que le donjon affiché.
+
+**Au hasard** : nombre de salles, de monstres, de coffres, de pièges cachés, de portes secrètes, de chemins en plus, types de monstres, boss, formes de salles (`js/generateur.js`, pur).
 
 - Chaque salle est décrite par un texte relu par le parseur : tout se retouche ensuite comme un donjon écrit à la main.
 - Les nombres demandés sont tenus exactement : une salle trop petite est agrandie jusqu'à ce que tout y tienne.
@@ -299,6 +303,7 @@ js/telephone.js     sous 760 px : onglets Texte / Carte et Actions / Carte, tail
 js/donjon.js        modèle du donjon : salles, liaisons, orphelines, validation (pur, sans DOM)
 js/minicarte.js     mini-carte SVG des salles et de leurs liaisons
 js/schema.js        schéma du plan d'une salle et validation
+js/modeles.js       modèles de donjon de l'outil, copie d'un donjon (pur, sans DOM)
 js/generateur.js    donjon au hasard : paramètres et numéro de tirage → un donjon complet (pur, sans DOM)
 js/formes.js        formes de salle : cases retirées, portes en retrait, murs découpés (calcul pur)
 js/stockage.js      localStorage (donjons, réglages, migration), export/import JSON
