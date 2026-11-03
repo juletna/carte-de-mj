@@ -5,6 +5,7 @@
  * que les autres tests ({ phrase, ecarts }).
  */
 import * as m from '../js/donjon.js';
+import { validerDonjon, convertirImport } from '../js/donjon-validation.js';
 import { analyser } from '../js/parseur/index.js';
 import { decrire } from '../js/parseur/decrire.js';
 import { validerPlan } from '../js/schema.js';
@@ -223,7 +224,7 @@ const TESTS = [
 
   ['validation d’un import : refus propres', () => {
     const bon = JSON.parse(JSON.stringify(donjonDeTest()));
-    verifier(m.validerDonjon(bon).ok, 'un donjon valide passe');
+    verifier(validerDonjon(bon).ok, 'un donjon valide passe');
     const cas = [
       [null, 'objet JSON'], ['texte', 'objet JSON'], [[], 'objet JSON'],
       [{}, 'pas un donjon'], [{ ...bon, format: 'autre' }, 'pas un donjon'],
@@ -236,7 +237,7 @@ const TESTS = [
       [{ ...bon, salles: { x: { nom: 'sans plan ni texte' } } }, 'ni plan ni texte'],
     ];
     cas.forEach(([entree, attendu], i) => {
-      const r = m.validerDonjon(entree);
+      const r = validerDonjon(entree);
       verifier(!r.ok && r.donjon === null && r.erreurs.join(' ').includes(attendu), `cas ${i + 1} : erreurs ${JSON.stringify(r.erreurs)} sans « ${attendu} »`);
     });
     // Liaisons invalides : écartées avec avertissement, le reste est importé.
@@ -250,11 +251,11 @@ const TESTS = [
         'n’importe quoi',
       ],
     };
-    const r = m.validerDonjon(sale);
+    const r = validerDonjon(sale);
     verifier(r.ok && r.donjon.liaisons.length === 0 && r.avertissements.length === 4, `liaisons invalides écartées : ${JSON.stringify(r.avertissements)}`);
     // Clés dangereuses, texte HTML : rien n'est interprété, tout est borné.
     const piege = JSON.parse(`{"format":"carte-de-mj-donjon","version":1,"nom":"<img src=x onerror=alert(1)>","salles":{"__proto__":{"nom":"${'N'.repeat(500)}","texte":"salle de 4 par 4 cases","notes":"<script>1</script>"}}}`);
-    const rp = m.validerDonjon(piege);
+    const rp = validerDonjon(piege);
     verifier(rp.ok && Object.keys(rp.donjon.salles).includes('__proto__') && ({}).nom === undefined, 'clé __proto__ sans effet sur les prototypes');
     verifier(rp.donjon.salles.__proto__.nom.length === 80, 'noms bornés à 80 caractères');
     verifier(rp.donjon.nom === '<img src=x onerror=alert(1)>', 'le nom reste du texte brut (l’interface utilise textContent)');
@@ -264,18 +265,18 @@ const TESTS = [
     const d = donjonDeTest();
     m.creerSalleDerriere(d, { depuis: { salle: premiere(d).id, mur: 'sud', position: 1 } });
     const exporte = JSON.parse(JSON.stringify(d));
-    const r = m.convertirImport(exporte, { idsPris: [d.id] });
+    const r = convertirImport(exporte, { idsPris: [d.id] });
     verifier(r.ok && r.donjon.id !== d.id, 'un nouvel identifiant de donjon est donné quand le sien est pris : jamais d’écrasement');
     verifier(Object.keys(r.donjon.salles).length === 2 && r.donjon.liaisons.length === 1, 'salles et liaisons conservées');
     egal(Object.keys(r.donjon.salles), Object.keys(d.salles), 'identifiants de salle conservés');
 
     const plan = analyser('salle de 4 par 4 cases, une porte au nord, un coffre caché').plan;
-    const ancien = m.convertirImport({ format: 'jdr-carte', version: 1, salles: [plan], texte: 'salle de 4 par 4 cases, une porte au nord, un coffre caché', reglages: {} });
+    const ancien = convertirImport({ format: 'jdr-carte', version: 1, salles: [plan], texte: 'salle de 4 par 4 cases, une porte au nord, un coffre caché', reglages: {} });
     verifier(ancien.ok && Object.keys(ancien.donjon.salles).length === 1, 'ancien format à une salle');
     verifier(premiere(ancien.donjon).plan.objets[0].cache === true && /caché/.test(premiere(ancien.donjon).texte), 'ancien format : texte et éléments cachés');
-    const sansTexte = m.convertirImport({ format: 'jdr-carte', version: 1, salles: [plan] });
+    const sansTexte = convertirImport({ format: 'jdr-carte', version: 1, salles: [plan] });
     verifier(sansTexte.ok && /Salle de 4 par 4 cases/.test(premiere(sansTexte.donjon).texte), 'ancien format sans texte : decrire(plan)');
-    const seul = m.convertirImport(plan);
+    const seul = convertirImport(plan);
     verifier(seul.ok && premiere(seul.donjon).plan.largeur === 4, 'plan seul');
 
     for (const [entree, morceau] of [
@@ -285,7 +286,7 @@ const TESTS = [
       [{ ...exporte, version: 3 }, 'plus récente'],
       [{ bonjour: 1 }, 'non reconnu'], [[1, 2]], [42], [null],
     ]) {
-      const x = m.convertirImport(entree);
+      const x = convertirImport(entree);
       verifier(!x.ok && x.donjon === null && (!morceau || x.erreurs.join(' ').includes(morceau)), `refus attendu (${morceau || 'objet JSON'}) : ${JSON.stringify(x.erreurs)}`);
     }
   }],
@@ -294,13 +295,13 @@ const TESTS = [
     d.nom = 'Original';
     const fichier = JSON.parse(JSON.stringify(d));
     // Aucun donjon en commun : l'identifiant du fichier est gardé (la Présentation y retrouve sa partie).
-    const seul = m.convertirImport(fichier);
+    const seul = convertirImport(fichier);
     verifier(seul.ok && seul.donjon.id === d.id, 'identifiant du fichier gardé');
-    verifier(m.convertirImport(fichier, { idsPris: ['autre-id'] }).donjon.id === d.id, 'gardé tant qu’il n’est pas pris');
+    verifier(convertirImport(fichier, { idsPris: ['autre-id'] }).donjon.id === d.id, 'gardé tant qu’il n’est pas pris');
     // Ce que fait l'appelant (main-mj) : le donjon importé s'ajoute à la bibliothèque, sous l'identifiant rendu.
     const bibliotheque = { [d.id]: d };
     const importer = () => {
-      const r = m.convertirImport(fichier, { idsPris: Object.keys(bibliotheque) });
+      const r = convertirImport(fichier, { idsPris: Object.keys(bibliotheque) });
       verifier(r.ok, 'import accepté');
       bibliotheque[r.donjon.id] = r.donjon;
       return r.donjon;
@@ -311,11 +312,11 @@ const TESTS = [
     egal(Object.keys(bibliotheque).length, 4, 'trois donjons de plus, aucun remplacé');
     verifier([premier, second, troisieme].every((x) => x.nom === 'Original' && Object.keys(x.salles).join() === Object.keys(d.salles).join()), 'contenu identique');
     // Un identifiant invalide n'est pas gardé ; l'ancien format et un plan seul reçoivent un identifiant neuf, jamais un identifiant pris.
-    const invalide = m.convertirImport({ ...fichier, id: 'avec des espaces' }, { idsPris: [d.id] });
+    const invalide = convertirImport({ ...fichier, id: 'avec des espaces' }, { idsPris: [d.id] });
     verifier(invalide.ok && /^donjon-/.test(invalide.donjon.id) && invalide.donjon.id !== d.id, 'identifiant invalide : un neuf');
     const plan = analyser('salle de 4 par 4 cases, une porte au nord').plan;
     for (const entree of [{ format: 'jdr-carte', version: 1, salles: [plan] }, plan]) {
-      const x = m.convertirImport(entree, { idsPris: [d.id] });
+      const x = convertirImport(entree, { idsPris: [d.id] });
       verifier(x.ok && /^donjon-/.test(x.donjon.id) && x.donjon.id !== d.id, 'identifiant neuf');
     }
   }],

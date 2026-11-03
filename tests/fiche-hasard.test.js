@@ -3,6 +3,7 @@
  * Sans dépendance : marche sous Node et dans tests.html.
  */
 import * as m from '../js/donjon.js';
+import { validerDonjon } from '../js/donjon-validation.js';
 import { genererFiches, normaliserOptions, decrireTirage, BORNES, CLASSES, RACES, GRAINE_MAX } from '../js/fiche-hasard.js';
 import { genererDonjon } from '../js/generateur.js';
 import { resumerFiche, ajouterPersonnage } from '../js/personnages.js';
@@ -98,7 +99,7 @@ const TESTS = [
     egal(resumerFiche(r), r, 'relire le résumé le laisse tel quel');
     const d = m.creerDonjon({ texte: 'Salle de 6 par 6 cases.' });
     verifier(ajouterPersonnage(d, r), 'associée au donjon');
-    egal(m.validerDonjon(JSON.parse(JSON.stringify(d))).donjon.personnages[0].fiche, r, 'elle survit à la relecture du donjon');
+    egal(validerDonjon(JSON.parse(JSON.stringify(d))).donjon.personnages[0].fiche, r, 'elle survit à la relecture du donjon');
     const a = genererDonjon({ graine: 77, salles: 3 }), b = genererDonjon({ graine: 77, salles: 3 });
     egal(Object.values(a.donjon.salles).map((s) => s.texte), Object.values(b.donjon.salles).map((s) => s.texte), 'le générateur de donjon reste reproductible');
     verifier(Object.keys(RACES).length > 1, 'plusieurs races');

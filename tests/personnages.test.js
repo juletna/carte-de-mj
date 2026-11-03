@@ -3,6 +3,7 @@
  * Sans dépendance : marche sous Node et dans tests.html.
  */
 import * as m from '../js/donjon.js';
+import { validerDonjon } from '../js/donjon-validation.js';
 import * as p from '../js/presentation.js';
 import { resumerFiche, ficheDepuisFichier, fichesDuNavigateur, validerPersonnages, validerJoueurs, ajouterPersonnage, retirerPersonnage, actualiserPersonnages } from '../js/personnages.js';
 import { chargerFichesLocales, CLE_FICHES } from '../js/stockage.js';
@@ -56,12 +57,12 @@ const TESTS = [
   }],
   ['un donjon garde ses fiches à la relecture, et un donjon sans fiche reste identique', () => {
     const d = donjon();
-    verifier(!('personnages' in m.validerDonjon(JSON.parse(JSON.stringify(d))).donjon), 'pas de champ ajouté');
+    verifier(!('personnages' in validerDonjon(JSON.parse(JSON.stringify(d))).donjon), 'pas de champ ajouté');
     ajouterPersonnage(d, resumerFiche(FICHE), 'loc1');
-    const relu = m.validerDonjon(JSON.parse(JSON.stringify(d))).donjon;
+    const relu = validerDonjon(JSON.parse(JSON.stringify(d))).donjon;
     egal(relu.personnages, d.personnages, 'relues');
     const abime = { ...JSON.parse(JSON.stringify(d)), personnages: [3, { fiche: 'x' }, { id: '<b>', fiche: { name: 'Ok', stats: {} } }] };
-    const propre = m.validerDonjon(abime).donjon.personnages;
+    const propre = validerDonjon(abime).donjon.personnages;
     egal(propre.length, 1, 'seule la bonne reste');
     verifier(/^pj-/.test(propre[0].id), 'identifiant refait');
     egal(validerPersonnages('x'), [], 'mauvaise forme');

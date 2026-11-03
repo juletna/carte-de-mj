@@ -5,7 +5,7 @@
  * `quitterPleinIci`, `diffuser`, `salleCourante`), lu au moment de l'appel.
  */
 import * as stockage from './stockage.js';
-import * as modele from './donjon.js';
+import { convertirImport } from './donjon-validation.js';
 import * as pres from './presentation.js';
 import { MAX_JOUEURS } from './personnages.js';
 import { $, h, deuxTemps, fichierChoisi } from './dom.js';
@@ -102,7 +102,7 @@ export function creerDepart(ctx) {
     erreur.hidden = true;
     try {
       const brut = await stockage.lireFichierJson(fichier);
-      const res = modele.convertirImport(brut, { echelle: r.echelle });
+      const res = convertirImport(brut, { echelle: r.echelle });
       if (!res.donjon) throw new Error(res.erreurs.join(' · '));
       // Un fichier de donjon garde son identifiant (convertirImport) : on retrouve ainsi sa partie en cours. Il n'entre PAS dans la bibliothèque.
       etat.fichier = { donjon: res.donjon, avertissements: res.avertissements };

@@ -11,6 +11,7 @@ import { MODELES, donjonDepuisModele, copieDonjon } from '../modeles.js';
 import * as stockage from '../stockage.js';
 import { rapport } from '../rapport.js';
 import * as modele from '../donjon.js';
+import { convertirImport } from '../donjon-validation.js';
 import { $, h, deuxTemps, fichierChoisi } from '../dom.js';
 import { pluriel } from '../format.js';
 
@@ -195,7 +196,7 @@ export function creerMenu(ctx) {
   /** Ajoute le donjon lu dans un fichier ou un texte collé. Renvoie true s'il a été ajouté. */
   function ajouterDonjonLu(brut) {
     // Le donjon importé s'AJOUTE aux autres : il garde l'identifiant de son fichier, sauf s'il est déjà pris (alors il en reçoit un neuf) ; rien n'est écrasé.
-    const resultat = modele.convertirImport(brut, { echelle: r.echelle, idsPris: Object.keys(etat.donjons) });
+    const resultat = convertirImport(brut, { echelle: r.echelle, idsPris: Object.keys(etat.donjons) });
     if (!resultat.donjon) { messageFichier('', [`Import refusé : ${resultat.erreurs.join(' · ')}`]); return false; }
     const d = resultat.donjon;
     etat.donjons[d.id] = d;

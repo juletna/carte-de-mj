@@ -3,6 +3,7 @@
  * Sans dépendance : marche sous Node et dans tests.html.
  */
 import * as m from '../js/donjon.js';
+import { validerDonjon } from '../js/donjon-validation.js';
 import { genererDonjon, normaliserOptions, BORNES, FAMILLES } from '../js/generateur.js';
 import { analyser } from '../js/parseur/index.js';
 import { nomAffiche } from '../js/parseur/lexique.js';
@@ -64,7 +65,7 @@ const TESTS = [
       const quoi = JSON.stringify(o);
       egal(atteintes(d).size, o.salles, `salles atteintes de ${quoi}`);
       egal(m.liaisonsOrphelines(d).length, 0, `liaisons orphelines de ${quoi}`);
-      const relu = m.validerDonjon(JSON.parse(JSON.stringify(d)));
+      const relu = validerDonjon(JSON.parse(JSON.stringify(d)));
       verifier(relu.donjon, `donjon refusé (${quoi}) : ${relu.erreurs}`);
       for (const s of salles(d)) {
         for (const e of [...s.plan.objets, ...s.plan.creatures]) verifier(surLeSol(s.plan, e.x, e.y, e.taille ?? e.l, e.taille ?? e.h), `${e.type} hors du sol dans ${s.nom} (${quoi})`);

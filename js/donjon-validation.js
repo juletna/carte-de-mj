@@ -1,0 +1,166 @@
+/**
+ * Validation d'un donjon venu de l'extérieur (fichier importé, stockage, partie) et conversion d'un fichier en donjon.
+ * Module PUR, sans DOM. Il lit donjon.js (constantes, `creerDonjon`) ; donjon.js ne l'importe jamais, donc pas de cycle :
+ * ceux qui ont besoin de `validerDonjon` ou de `convertirImport` l'importent d'ici directement.
+ *
+ * `validerDonjon` refuse ce qui n'est pas exploitable et écarte avec un avertissement ce qui peut l'être (liaisons invalides,
+ * éléments d'un plan). Il ne signale pas toutes les pertes : un défaut connu, conservé tel quel.
+ */
+import { validerPersonnages } from './personnages.js';
+import { validerPlan } from './schema.js';
+import { MURS, longueurMur } from './murs.js';
+import { decrire } from './parseur/decrire.js';
+import { estObjet } from './format.js';
+import {
+  FORMAT, FORMAT_ANCIEN, VERSION, MAX_SALLES, LIMITES, coupe, dictionnaire, nomParDefaut, idUnique, planDepuisTexte, creerDonjon,
+} from './donjon.js';
+
+const MAX_LIAISONS = 1000;
+const RE_ID = /^[A-Za-z0-9_-]{1,64}$/;
+
+function messageVersion(version) {
+  if (!Number.isInteger(version) || version < 1) return 'numéro de version invalide';
+  if (version > VERSION) return `fichier de version ${version}, plus récente que celle que cet outil comprend (${VERSION}) : mets l'outil à jour`;
+  return null;
+}
+
+/** Une salle venue de l'extérieur : texte, plan validé et notes bornés. Renvoie { salle, erreurs, avertissements }. */
+function validerSalle(brut, id, echelle) {
+  const erreurs = [], avertissements = [];
+  if (!estObjet(brut)) return { erreurs: [`salle « ${id} » : ce n'est pas un objet`] };
+  const etiquette = `salle « ${coupe(brut.nom || id, 40)} »`;
+  let plan = null;
+  let texte = typeof brut.texte === 'string' ? coupe(brut.texte, LIMITES.texte) : null;
+  if (brut.plan !== undefined) {
+    const v = validerPlan(brut.plan);
+    if (!v.plan) erreurs.push(`${etiquette} : plan invalide (${v.erreurs.join(', ')})`);
+    else {
+      plan = v.plan;
+      if (!v.ok) avertissements.push(`${etiquette} : éléments écartés (${v.erreurs.join(', ')})`);
+    }
+  } else if (texte !== null) {
+    plan = planDepuisTexte(texte, id, echelle);
+  } else {
+    erreurs.push(`${etiquette} : ni plan ni texte`);
+  }
+  if (erreurs.length) return { erreurs, avertissements };
+  plan.id = id;
+  if (texte === null) texte = coupe(decrire(plan), LIMITES.texte);
+  return {
+    erreurs, avertissements,
+    salle: { id, nom: coupe(brut.nom, LIMITES.nom).trim() || nomParDefaut({ salles: {} }, plan), texte, plan, notes: coupe(brut.notes, LIMITES.notes) },
+  };
+}
+
+function validerExtremite(e, salles) {
+  if (!estObjet(e)) return 'extrémité invalide';
+  if (typeof e.salle !== 'string' || !(e.salle in salles)) return 'salle inconnue';
+  if (!MURS.includes(e.mur)) return 'mur inconnu';
+  if (!Number.isInteger(e.position) || e.position < 0 || e.position >= longueurMur(e.mur, salles[e.salle].plan.largeur, salles[e.salle].plan.longueur)) return 'position hors du mur';
+  return null;
+}
+
+/**
+ * Valide (et nettoie) un donjon venu d'un fichier ou du stockage. Refuse ce qui n'est pas
+ * exploitable, écarte avec un avertissement ce qui peut l'être (liaisons invalides).
+ * @returns {{ok:boolean, erreurs:string[], avertissements:string[], donjon:object|null}}
+ */
+export function validerDonjon(brut, { echelle } = {}) {
+  const refus = (...erreurs) => ({ ok: false, erreurs, avertissements: [], donjon: null });
+  if (!estObjet(brut)) return refus('le fichier doit contenir un objet JSON');
+  if (brut.format !== FORMAT) return refus('ce fichier n’est pas un donjon de Carte de MJ');
+  const mv = messageVersion(brut.version);
+  if (mv) return refus(mv);
+  if (!estObjet(brut.salles)) return refus('le donjon n’a pas de salles');
+  const entrees = Object.entries(brut.salles);
+  if (!entrees.length) return refus('le donjon n’a aucune salle');
+  if (entrees.length > MAX_SALLES) return refus(`trop de salles (${MAX_SALLES} au plus)`);
+
+  const erreurs = [], avertissements = [];
+  const salles = dictionnaire();
+  for (const [cle, s] of entrees) {
+    if (!RE_ID.test(cle) || (s?.id !== undefined && s.id !== cle)) { erreurs.push(`identifiant de salle invalide : « ${coupe(cle, 30)} »`); continue; }
+    const r = validerSalle(s, cle, echelle);
+    erreurs.push(...r.erreurs);
+    avertissements.push(...(r.avertissements || []));
+    if (r.salle) salles[cle] = r.salle;
+  }
+  if (erreurs.length) return refus(...erreurs);
+
+  const liaisons = [];
+  const vues = new Set();
+  const ids = new Set();
+  const brutes = Array.isArray(brut.liaisons) ? brut.liaisons.slice(0, MAX_LIAISONS) : [];
+  for (const [i, l] of brutes.entries()) {
+    const probleme = !estObjet(l) ? 'liaison invalide' : validerExtremite(l.a, salles) || validerExtremite(l.b, salles)
+      || (l.a.salle === l.b.salle ? 'liaison d’une salle avec elle-même' : null);
+    const cleA = probleme ? null : `${l.a.salle}|${l.a.mur}|${l.a.position}`;
+    const cleB = probleme ? null : `${l.b.salle}|${l.b.mur}|${l.b.position}`;
+    if (probleme || vues.has(cleA) || vues.has(cleB)) {
+      avertissements.push(`liaison ${i + 1} ignorée : ${probleme || 'une porte est déjà reliée'}`);
+      continue;
+    }
+    vues.add(cleA); vues.add(cleB);
+    const id = typeof l.id === 'string' && RE_ID.test(l.id) && !ids.has(l.id) ? l.id : idUnique('l', ids);
+    ids.add(id);
+    liaisons.push({
+      id,
+      a: { salle: l.a.salle, mur: l.a.mur, position: l.a.position },
+      b: { salle: l.b.salle, mur: l.b.mur, position: l.b.position },
+    });
+  }
+
+  const donjon = {
+    format: FORMAT, version: VERSION,
+    id: typeof brut.id === 'string' && RE_ID.test(brut.id) ? brut.id : idUnique('donjon'),
+    nom: coupe(brut.nom, LIMITES.nom).trim() || 'Donjon',
+    salleActive: typeof brut.salleActive === 'string' && brut.salleActive in salles ? brut.salleActive : Object.keys(salles)[0],
+    salles, liaisons,
+  };
+  const personnages = validerPersonnages(brut.personnages);
+  if (personnages.length) donjon.personnages = personnages;
+  return { ok: true, erreurs: [], avertissements, donjon };
+}
+
+/**
+ * Importe le contenu d'un fichier : nouveau format, ancien format (`jdr-carte`, une salle)
+ * ou plan seul. Un fichier de donjon GARDE son identifiant (on retrouve ainsi sa partie en cours) ; mais si cet identifiant
+ * est dans `idsPris` (les donjons de l'utilisateur), le donjon en reçoit un neuf : importer deux fois le même fichier
+ * ne remplace jamais un donjon existant. Un fichier sans identifiant valide, un ancien format et un plan seul en reçoivent toujours un neuf.
+ * @param {{echelle?:number, idsPris?:Iterable<string>}} [options]
+ * @returns {{ok:boolean, erreurs:string[], avertissements:string[], donjon:object|null}}
+ */
+export function convertirImport(brut, { echelle, idsPris = [] } = {}) {
+  const refus = (...erreurs) => ({ ok: false, erreurs, avertissements: [], donjon: null });
+  if (!estObjet(brut)) return refus('le fichier doit contenir un objet JSON');
+  const pris = new Set(idsPris);
+  const sansCollision = (r) => {
+    if (r.donjon && pris.has(r.donjon.id)) r.donjon.id = idUnique('donjon', pris);
+    return r;
+  };
+
+  if (brut.format === FORMAT) return sansCollision(validerDonjon(brut, { echelle }));
+
+  let planBrut, texte;
+  if (brut.format === FORMAT_ANCIEN) {
+    const mv = messageVersion(brut.version);
+    if (mv) return refus(mv);
+    if (!Array.isArray(brut.salles) || !estObjet(brut.salles[0])) return refus('ancien format : aucune salle dans le fichier');
+    planBrut = brut.salles[0];
+    texte = typeof brut.texte === 'string' && brut.texte ? coupe(brut.texte, LIMITES.texte) : undefined;
+  } else if ('largeur' in brut && 'longueur' in brut) {
+    planBrut = brut; // un plan seul
+  } else {
+    return refus('format de fichier non reconnu : ni donjon, ni ancienne carte, ni plan');
+  }
+
+  const v = validerPlan(planBrut);
+  if (!v.plan) return refus(`plan invalide : ${v.erreurs.join(', ')}`);
+  const donjon = creerDonjon({ nom: v.plan.nom !== 'Salle' ? v.plan.nom : 'Donjon importé', plan: v.plan, texte, echelle });
+  return sansCollision({
+    ok: true,
+    erreurs: [],
+    avertissements: v.ok ? [] : [`éléments écartés : ${v.erreurs.join(', ')}`],
+    donjon,
+  });
+}

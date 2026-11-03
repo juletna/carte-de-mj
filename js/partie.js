@@ -35,7 +35,7 @@
  * MASQUAGE : table réelle, vrais pions et vrais coffres. Le MJ montre les monstres et les objets d'une salle le temps de les
  * poser, puis les retire de la table. Le choix est gardé par salle ; il ne touche pas au plan, et la régie voit tout, toujours.
  */
-import { validerDonjon } from './donjon.js';
+import { validerDonjon } from './donjon-validation.js';
 import { validerPlan, ETATS, LISTES } from './schema.js';
 import { interpreterCommande } from './parseur/commandes.js';
 import { evaluerPose } from './pose.js';

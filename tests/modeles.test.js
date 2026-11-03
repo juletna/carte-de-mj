@@ -3,6 +3,7 @@
  * Sans dépendance : marche sous Node et dans tests.html.
  */
 import * as m from '../js/donjon.js';
+import { validerDonjon } from '../js/donjon-validation.js';
 import { MODELES, donjonDepuisModele, copieDonjon } from '../js/modeles.js';
 import { chargerModeles, sauverModeles, CLE_MODELES } from '../js/stockage.js';
 import { analyser } from '../js/parseur/index.js';
@@ -17,7 +18,7 @@ const TESTS = [
       egal(Object.keys(d.salles).length, modele.salles.length, `${modele.nom} : salles`);
       egal(d.liaisons.length, modele.liens.length, `${modele.nom} : liaisons`);
       egal(m.liaisonsOrphelines(d).length, 0, `${modele.nom} : orphelines`);
-      verifier(m.validerDonjon(JSON.parse(JSON.stringify(d))).donjon, `${modele.nom} : refusé`);
+      verifier(validerDonjon(JSON.parse(JSON.stringify(d))).donjon, `${modele.nom} : refusé`);
       egal(Object.values(d.salles).map((s) => s.nom), modele.salles.map((s) => s.nom), `${modele.nom} : noms`);
       for (const s of Object.values(d.salles)) {
         egal(analyser(s.texte).ignores, [], `${modele.nom} : mots non compris dans « ${s.texte} »`);
