@@ -8,8 +8,22 @@
  * Le dernier outil et l'état replié sont mémorisés (localStorage, jamais bloquant).
  */
 
-/** Outils qui montrent le catalogue de vignettes ; sur téléphone, il vit dans un tiroir de l'onglet Carte. */
-export const OUTILS_CATALOGUE = ['portes', 'mobilier', 'creatures'];
+/**
+ * Les outils du rail, dans l'ordre des boutons de donjon.html (`data-outil`). `titre` : celui du panneau. `catalogue` : l'outil montre
+ * le catalogue de vignettes ; sur téléphone, il vit dans un tiroir de l'onglet Carte. Un test garde cette table et la page d'accord.
+ */
+export const OUTILS = [
+  { id: 'salle', titre: 'Salle' },
+  { id: 'portes', titre: 'Portes', catalogue: true },
+  { id: 'mobilier', titre: 'Mobilier', catalogue: true },
+  { id: 'creatures', titre: 'Créatures', catalogue: true },
+  { id: 'personnages', titre: 'Personnages' },
+  { id: 'notes', titre: 'Notes' },
+  { id: 'plan', titre: 'Plan du donjon' },
+  { id: 'reglages', titre: 'Réglages' },
+];
+export const OUTILS_CATALOGUE = OUTILS.filter((o) => o.catalogue).map((o) => o.id);
+export const TITRES_OUTILS = Object.fromEntries(OUTILS.map((o) => [o.id, o.titre]));
 export const OUTIL_DEFAUT = 'salle';
 
 /**

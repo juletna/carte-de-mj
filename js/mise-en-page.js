@@ -1,6 +1,6 @@
 /**
  * Calculs de mise en page du Donjon, sans DOM (pur, testable sous Node) : où poser la bulle de sélection, les pas du zoom,
- * la taille du plan complet. main-mj.js mesure l'écran et applique le résultat ; les décisions sont ici.
+ * la taille du plan complet. Les modules de js/mj/ mesurent l'écran et appliquent le résultat ; les décisions sont ici.
  */
 import { TAILLE_MAX_REMPLIR } from './affichage.js';
 

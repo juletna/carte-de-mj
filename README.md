@@ -342,7 +342,7 @@ js/historique.js     historique d'annulation du Donjon : une pile par salle (pur
 js/mise-en-page.js  calculs de mise en page du Donjon : position de la bulle, pas de zoom, taille du plan complet (pur, sans DOM)
 js/palette.js       palette du Donjon : vignettes de portes, de mobilier et de créatures, pose au clic ou au glisser
 js/vignettes.js     une vignette (petit canvas) par élément de la palette, dessinée avec le thème vectoriel
-js/rail.js          rail d'outils du Donjon et panneau contextuel
+js/rail.js          rail d'outils du Donjon et panneau contextuel ; la table `OUTILS` (identifiant, titre, catalogue) dont dérivent les titres et les outils du catalogue
 js/pose.js          règle unique de « où poser un élément » (et élément qui gêne), chevauchement : ajouter, retirer, redimensionner, changer de forme (pur, sans DOM)
 js/plan-donjon.js   plan du donjon : salles posées à leur vraie taille, reliées par des couloirs (pur, sans DOM)
 js/rapport.js       rapport texte à copier pour signaler une erreur de lecture

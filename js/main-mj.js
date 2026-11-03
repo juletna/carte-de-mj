@@ -1,6 +1,8 @@
 /**
- * Point d'entrée de la vue MJ (outil Donjon) : relie la saisie, le parseur, le rendu,
- * le modèle de donjon (donjon.js), la mini-carte, les réglages et la sauvegarde.
+ * Point d'entrée de la vue MJ (outil Donjon) : racine de composition. Elle garde l'état (`etat`), l'historique d'annulation, le
+ * rendu (`rendre`), la navigation entre salles, la saisie de la description, les notes, le rail d'outils, les réglages, le micro
+ * et le démarrage ; le reste est dans les modules de js/mj/, des fabriques `creerX(ctx)` qui ne s'importent pas entre elles :
+ * personnages-ui, salles-liste, menu-donjon, salle-forme, bulle, vue-carte, vue-plan et zoom.
  *
  * Rappel : dans chaque salle, la description est la seule référence.
  * texte → analyser() → plan → carte et JSON. Aucune dépendance à un autre outil ni au réseau.
@@ -8,7 +10,7 @@
 import { analyser } from './parseur/index.js';
 import { disposerPlan, cleDisposition } from './plan-donjon.js';
 import { creerHistorique } from './historique.js';
-import { creerRail, OUTILS_CATALOGUE } from './rail.js';
+import { creerRail, OUTILS_CATALOGUE, TITRES_OUTILS } from './rail.js';
 import { creerMicro, voixDisponible } from './voix.js';
 import * as stockage from './stockage.js';
 import { decrire } from './parseur/decrire.js';
@@ -71,8 +73,9 @@ function memoriser(idSalle = donjon().salleActive, liaisons = []) {
   historique.memoriser(donjon().id, idSalle, { texte: donjon().salles[idSalle].texte, ancres: modele.ancresDeSalle(donjon(), idSalle), liaisons });
 }
 
-// Contexte des modules mj/ (fabriques `creerX(ctx)`) : ils le lisent au moment de l'appel et ne s'importent pas entre eux.
-// Les fonctions (rendre, modifierPlan, activerSalle…) sont déclarées plus bas dans ce fichier ; les modules s'y ajoutent à mesure.
+// Contexte des modules mj/ : ils le lisent au moment de l'appel (jamais pendant leur création) et ne s'importent pas entre eux.
+// Ici ce que le tronc fournit ; les fonctions sont déclarées plus bas dans ce fichier. Chaque module qu'un autre appelle s'ajoute à
+// `ctx` sous son nom en le créant : `ctx.carte`, `ctx.bulle`, `ctx.zoom`, `ctx.plan`, `ctx.salles`, `ctx.menu`, puis `ctx.onglets`.
 const ctx = { etat, donjon, salle, rendre, modifierPlan, annoncerCarte, deselectionner, sauvegarder, historique, activerSalle, afficherSalleActive, dispositionDuDonjon };
 
 // --- Rendu --------------------------------------------------------------------
@@ -260,7 +263,6 @@ function annoncerCarte(texte, erreur = false, duree = erreur ? 4500 : 2500) {
 // --- Rail d'outils et panneau contextuel ---------------------------------------------------------------
 // Portes, Mobilier et Créatures montrent le catalogue (le groupe suit l'outil) ; les autres outils, leur bloc du panneau.
 // Cliquer l'outil actif replie le panneau : la scène grandit et l'observateur de taille réajuste la carte.
-const TITRES_OUTILS = { salle: 'Salle', portes: 'Portes', mobilier: 'Mobilier', creatures: 'Créatures', personnages: 'Personnages', notes: 'Notes', plan: 'Plan du donjon', reglages: 'Réglages' };
 const rail = creerRail($('rail'), {
   cle: 'carte-de-mj:outil',
   telephone,
