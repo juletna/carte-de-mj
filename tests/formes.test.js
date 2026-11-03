@@ -43,6 +43,20 @@ const TESTS = [
     egal(nombreCases(plan('croix', 12, 13, 2)), 46, '12 × 13, bras de 2');
     egal(nombreCases(plan('croix', 12, 13, 4)), 84, '12 × 13, bras de 4');
   }],
+  ['les lettres et le 8 ont la bonne silhouette', () => {
+    const dessin = (forme, W, L) => {
+      const q = plan(forme, W, L, 1);
+      return Array.from({ length: L }, (_, y) => Array.from({ length: W }, (_, x) => (estSol(q, x, y) ? '#' : '.')).join('')).join(' ');
+    };
+    egal(dessin('O', 4, 4), '#### #..# #..# ####', 'O');
+    egal(dessin('8', 3, 5), '### #.# ### #.# ###', '8');
+    egal(dessin('E', 3, 5), '### #.. ### #.. ###', 'E');
+    egal(dessin('F', 4, 5), '#### #... ###. #... #...', 'F');
+    egal(dessin('H', 3, 3), '#.# ### #.#', 'H');
+    egal(dessin('S', 3, 5), '### #.. ### ..# ###', 'S');
+    egal(nombreCases(plan('O', 8, 8, 2)), 48, 'un O de 8 × 8, bras de 2');
+    egal(nombreCases(plan('8', 3, 4, 1)), 12, 'trop petit pour un 8 : reste un rectangle');
+  }],
   ['les bras d’une croix montent et descendent', () => {
     const rangee = (position) => { for (let y = 0; y < 13; y++) if (estSol(plan('croix', 12, 13, 1, position), 0, y)) return y; return null; };
     egal([rangee('haut'), rangee('milieu'), rangee('bas')], [4, 6, 8], 'rangée des bras');
@@ -83,6 +97,10 @@ const TESTS = [
     egal(lire('Salle en T de 8 par 8 cases, barre au nord').forme, 'T', 'T');
     egal(lire('Salle octogonale de 9 par 9 cases, pans de 2 cases').bras, 2, 'octogone');
     egal(lire('Église cruciforme de 9 par 9 cases').forme, 'croix', 'cruciforme');
+    for (const f of ['8', 'E', 'F', 'H', 'O', 'S']) {
+      egal(lire(`Salle en ${f} de 9 par 11 cases, bras de 2 cases`), { forme: f, bras: 2, largeur: 9, longueur: 11 }, `forme ${f}`);
+      egal(lire(`Salle en forme de ${f} de 9 par 11 cases`).forme, f, `en forme de ${f}`);
+    }
   }],
   ['texte : « en l » ou « en t » ne sont pas pris pour une forme ailleurs', () => {
     egal(analyser('Salle de 6 par 6 cases, un lustre suspendu en l air').plan.forme, 'rectangle', 'en l air');
@@ -97,6 +115,15 @@ const TESTS = [
       egal(analyser(`Salle de 30 par 30 cases, une porte en ${c}`).plan.forme, 'rectangle', `autre phrase en ${c}`);
     }
     egal(analyser('Salle de 8 par 8 cases en L').plan.forme, 'L', 'après les dimensions, dans la première phrase');
+    for (const [c, position] of [['E', 4], ['F', 5], ['H', 7], ['O', 14], ['S', 18]]) {
+      const porte = analyser(`Salle de 30 par 30 cases, une porte au mur nord en ${c}`).plan;
+      egal([porte.forme, porte.portes[0].position], ['rectangle', position], `porte en colonne ${c}`);
+      egal(analyser(`Une porte en ${c}, salle de 30 par 30 cases`).plan.forme, 'rectangle', `première phrase : porte en ${c}`);
+      egal(analyser(`Un coffre en ${c}, salle de 30 par 30 cases`).plan.forme, 'rectangle', `première phrase : coffre en ${c}`);
+    }
+    const parHuit = analyser('Salle en 8 par 6').plan;
+    egal([parHuit.forme, parHuit.largeur, parHuit.longueur], ['rectangle', 5, 4], '« en 8 par 6 » : des dimensions, en mètres');
+    egal(analyser('Salle de 9 par 9 cases, une porte au mur est en 8').plan.forme, 'rectangle', 'porte à la rangée 8');
   }],
   ['texte : l’aller-retour garde la forme, la porte et le mobilier', () => {
     for (const texte of [
@@ -104,6 +131,12 @@ const TESTS = [
       'Salle en L de 8 par 6 cases, bras de 3 cases, angle au nord est, une porte au mur est en 6, un pilier en B5',
       'Salle en U de 9 par 9 cases, bras de 2 cases, ouverte au est, une porte au mur est en 1',
       'Salle en T de 9 par 7 cases, bras de 2 cases, barre au ouest',
+      'Salle en 8 de 9 par 11 cases, bras de 2 cases, une porte au mur nord en E, un coffre en A1',
+      'Salle en E de 9 par 11 cases, une porte au mur est en 2, deux gobelins en A2 A3',
+      'Salle en F de 9 par 11 cases, une porte au mur sud en A',
+      'Salle en H de 9 par 9 cases, bras de 2 cases, une porte au mur nord en E',
+      'Salle en O de 9 par 9 cases, bras de 2 cases, une porte au mur ouest en 5',
+      'Salle en S de 9 par 11 cases, une porte au mur est en 9',
       'Salle en octogone de 9 par 9 cases, pans de 2 cases, sol en marbre, une porte au mur nord en E',
     ]) {
       const un = analyser(texte).plan;
@@ -119,6 +152,17 @@ const TESTS = [
     for (const k of q.creatures) verifier(surLeSol(q, k.x, k.y, k.taille, k.taille), `${k.type} en ${k.x},${k.y} sur une case retirée`);
     verifier(q.objets.some((o) => o.type === 'coffre'), `le coffre imposé en A1 est gardé, à côté : ${compris}`);
     egal(validerPlan(q).ok, true, 'plan valide');
+  }],
+  ['un O : les couloirs n’entrent pas dans sa cour, rien ne s’y pose', () => {
+    const q = analyser('Salle en O de 9 par 9 cases, bras de 2 cases, huit gobelins, un coffre').plan;
+    for (const k of q.creatures) verifier(surLeSol(q, k.x, k.y, 1, 1), 'pion sur le sol');
+    egal(evaluerPose(q, 'creature', { type: 'gobelin', taille: 1 }, 4, 4).raison, 'hors', 'la cour est vide');
+    const d = m.creerDonjon({ nom: 'Cloître', texte: 'Salle en O de 9 par 9 cases, bras de 2 cases, une porte au mur est en 5' });
+    const b = m.ajouterSalle(d, { nom: 'Annexe', texte: 'Salle de 5 par 5 cases, une porte au mur ouest en 3' });
+    m.relier(d, { salle: d.salleActive, mur: 'est', position: 4 }, { salle: b.id, mur: 'ouest', position: 2 });
+    const disp = disposerPlan(d);
+    const r = disp.positions[d.salleActive];
+    for (const pt of cheminCouloir(disp.couloirs[0]).slice(1, -1)) verifier(pt.x > r.x + 9 - 1, 'le couloir reste dehors');
   }],
   ['validation : un élément sur une case retirée est refusé, la forme est relue', () => {
     const q = { largeur: 8, longueur: 8, forme: 'croix', bras: 2, position: 'haut', objets: [{ type: 'coffre', x: 0, y: 0 }] };

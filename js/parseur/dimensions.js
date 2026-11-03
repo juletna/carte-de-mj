@@ -4,6 +4,8 @@
  * (le passage reconnu est retiré pour ne pas être relu ensuite).
  */
 
+import { trouverObjet, PORTES } from './lexique.js';
+
 const NB = '(\\d+(?:\\.\\d+)?)';
 const UNITE = '(?:\\s+(m|metres?|cases?|carreaux?))?';
 
@@ -88,8 +90,9 @@ export function extraireDimensions(texte, echelle) {
 
 // « en L » n'est une forme que suivi de la fin de la phrase ou des dimensions : « suspendu en l air » n'en est pas une.
 // Et seulement dans la première phrase, hors d'un mur : « une porte au mur nord en L » parle de la colonne L.
-const RE_FORME = /(?<!mur (?:nord|sud|est|ouest) )\b(?:en forme de |en )(croix|octogone|(?:l|t|u)(?= *(?:$|[,.;]| de \d| par )))|\b(cruciforme|octogonale?)\b/;
-const NOMS_FORMES = { croix: 'croix', octogone: 'octogone', l: 'L', t: 'T', u: 'U', cruciforme: 'croix', octogonal: 'octogone', octogonale: 'octogone' };
+// Le chiffre 8 ne se lit pas devant « par » : « salle en 8 par 6 » donne des dimensions.
+const RE_FORME = /(?<!mur (?:nord|sud|est|ouest) )\b(?:en forme de |en )(croix|octogone|(?:[ltuefhos](?= *(?:$|[,.;]| de \d| par )))|(?:8(?= *(?:$|[,.;]| de \d))))|\b(cruciforme|octogonale?)\b/;
+const NOMS_FORMES = { croix: 'croix', octogone: 'octogone', l: 'L', t: 'T', u: 'U', e: 'E', f: 'F', h: 'H', o: 'O', s: 'S', 8: '8', cruciforme: 'croix', octogonal: 'octogone', octogonale: 'octogone' };
 const RE_BRAS = /\b(?:bras|pans?) de (\d+)(?: cases?)?/;
 const RE_POSITION = {
   croix: [/\bbras (?:en |au |vers le )?(haut|milieu|bas)\b/, (m) => m[1]],
@@ -105,7 +108,13 @@ const RE_POSITION = {
 export function extraireForme(texte) {
   const m = texte.match(RE_FORME);
   const finPhrase = texte.search(/[,;.]/);
-  if (!m || (['l', 't', 'u'].includes(m[1]) && finPhrase >= 0 && m.index > finPhrase)) return { champs: {}, reste: texte, compris: [] };
+  if (!m) return { champs: {}, reste: texte, compris: [] };
+  if (m[1]?.length === 1) { // une lettre ou un chiffre peut aussi être une case : on écarte ce qui en a l'air
+    const avant = texte.slice(0, m.index).trim().split(' ').filter(Boolean);
+    const dernier = avant.at(-1);
+    const elementAvant = avant.length > 1 && (trouverObjet(dernier) || dernier in PORTES);
+    if ((finPhrase >= 0 && m.index > finPhrase) || elementAvant) return { champs: {}, reste: texte, compris: [] };
+  }
   const forme = NOMS_FORMES[m[1] || m[2]];
   let t = texte.replace(m[0], ' ');
   const champs = { forme };

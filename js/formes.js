@@ -2,7 +2,7 @@
  * Formes de salle : un rectangle auquel on retire des cases. Module PUR pour le calcul (testable sous Node).
  *
  * Le plan garde sa largeur et sa longueur (le rectangle qui englobe la forme) ; s'y ajoutent, hors rectangle :
- *   forme     croix, L, T, U ou octogone
+ *   forme     croix, L, T, U, octogone, 8, E, F, H, O ou S
  *   bras      épaisseur des bras en cases (pour l'octogone : taille des pans coupés). Absent : selon la taille de la salle
  *   position  croix : haut, milieu, bas (où passent les bras) ; T : mur de la barre ; U : mur ouvert ; L : coin de l'angle
  * Les cases retirées se recalculent toujours : on ne les stocke jamais, et agrandir une salle agrandit sa forme.
@@ -11,8 +11,10 @@
  * « Mur nord en A » tombe donc au fond de l'entaille si le coin est retiré.
  */
 
-export const FORMES = ['rectangle', 'croix', 'L', 'T', 'U', 'octogone'];
-export const LIBELLES_FORMES = { rectangle: 'Rectangle', croix: 'Croix', L: 'L', T: 'T', U: 'U', octogone: 'Octogone' };
+export const FORMES = ['rectangle', 'croix', 'octogone', 'L', 'T', 'U', '8', 'E', 'F', 'H', 'O', 'S'];
+export const LIBELLES_FORMES = { rectangle: 'Rectangle', croix: 'Croix', octogone: 'Octogone', L: 'L', T: 'T', U: 'U', 8: '8', E: 'E', F: 'F', H: 'H', O: 'O', S: 'S' };
+/** Formes à trois barres : leurs bras sont plus fins par défaut, pour laisser voir les vides entre les barres. */
+const TROIS_BARRES = ['8', 'E', 'F', 'S'];
 const MURS = ['nord', 'sud', 'est', 'ouest'];
 /** Choix de `position` par forme ; le premier est la valeur par défaut. */
 export const POSITIONS_FORMES = {
@@ -44,6 +46,10 @@ export function brasMax(plan) {
     case 'T': return Math.max(0, debout ? Math.min(L - 1, W - 2) : Math.min(W - 1, L - 2));
     case 'U': return Math.max(0, debout ? Math.min(L - 1, Math.floor((W - 1) / 2)) : Math.min(W - 1, Math.floor((L - 1) / 2)));
     case 'octogone': return Math.floor((Math.min(W, L) - 1) / 2);
+    case '8': return Math.max(0, Math.min(Math.floor((W - 1) / 2), Math.floor((L - 2) / 3)));
+    case 'E': case 'F': case 'S': return Math.max(0, Math.min(W - 1, Math.floor((L - 2) / 3)));
+    case 'H': return Math.max(0, Math.min(Math.floor((W - 1) / 2), L - 2));
+    case 'O': return Math.floor((Math.min(W, L) - 1) / 2);
     default: return 0;
   }
 }
@@ -52,7 +58,8 @@ export function brasMax(plan) {
 export function brasDe(plan) {
   const max = brasMax(plan);
   if (!max) return 0;
-  const defaut = Math.max(1, Math.round(Math.min(plan.largeur, plan.longueur) / (plan.forme === 'octogone' ? 4 : 3)));
+  const diviseur = TROIS_BARRES.includes(plan.forme) ? 5 : plan.forme === 'octogone' ? 4 : 3;
+  const defaut = Math.max(1, Math.round(Math.min(plan.largeur, plan.longueur) / diviseur));
   return Math.min(max, plan.bras || defaut);
 }
 
@@ -62,6 +69,7 @@ function dansLaForme(plan, a, position, x, y) {
   const centreX = x >= Math.floor((W - a) / 2) && x < Math.floor((W - a) / 2) + a;
   const centreY = y >= Math.floor((L - a) / 2) && y < Math.floor((L - a) / 2) + a;
   const nord = y < a, sud = y >= L - a, ouest = x < a, est = x >= W - a;
+  const barreMilieu = centreY;
   switch (plan.forme) {
     case 'croix': {
       const reste = L - a, haut = { haut: Math.floor(reste / 3), bas: reste - Math.floor(reste / 3) }[position] ?? Math.floor(reste / 2);
@@ -74,6 +82,12 @@ function dansLaForme(plan, a, position, x, y) {
       return (ns === 'nord' ? nord : sud) || (eo === 'ouest' ? ouest : est);
     }
     case 'octogone': return Math.min(x, W - 1 - x) + Math.min(y, L - 1 - y) >= a;
+    case '8': return ouest || est || nord || sud || barreMilieu;
+    case 'E': return ouest || nord || sud || barreMilieu;
+    case 'F': return ouest || nord || (barreMilieu && x < a + Math.ceil((W - a) * 2 / 3));
+    case 'H': return ouest || est || centreY;
+    case 'O': return ouest || est || nord || sud;
+    case 'S': return nord || sud || barreMilieu || (ouest && y < L / 2) || (est && y >= L / 2);
     default: return true;
   }
 }
