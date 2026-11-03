@@ -1,5 +1,4 @@
 /* Présentation : écran de départ, régie du MJ et vue table. Complète css/style.css. */
-[hidden] { display: none !important; }
 
 body.presentation { display: block; height: auto; min-height: 100vh; }
 body.presentation a { color: var(--accent); }
@@ -40,7 +39,6 @@ body.presentation a { color: var(--accent); }
 #principal { display: flex; flex-direction: column; min-width: 0; min-height: 0; background: var(--scene); }
 #principal #scene { flex: 1; display: flex; overflow: auto; min-height: 0; }
 #principal #support { margin: auto; padding: 24px; flex: none; }
-#support .cadre { display: inline-block; }
 #support.sur-table #carte { outline: 3px solid #4f9a5c; outline-offset: 6px; }
 #support.consultation #carte { outline: 3px dashed var(--accent); outline-offset: 6px; }
 
@@ -90,7 +88,6 @@ body.presentation a { color: var(--accent); }
 .selection-entete { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .selection-entete h2 { margin: 0; }
 .selection-titre { margin: 4px 0 0; font-weight: 600; overflow-wrap: anywhere; }
-.alerte-stockage { margin: 0; }
 #alerte-retrait { margin-top: 6px; padding: 8px 10px; border: 1px solid var(--erreur); border-radius: var(--rayon); background: #3a1a15; }
 #alerte-retrait[hidden] { display: none; }
 #alerte-retrait p { margin: 0 0 8px; }

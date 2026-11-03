@@ -3,9 +3,6 @@
    l'organisation (barre du haut, rail d'outils, panneau contextuel, bande des salles, bulle d'actions, zoom flottant).
    Au-dessus de 760 px : ordinateur. En dessous : onglets Texte / Carte, bandeau d'actions fixe (règles de style.css). */
 
-/* Texte réservé aux lecteurs d'écran (titre de page, étiquette de la description). */
-.cache-visuel { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
-
 /* --- Barre du haut (nom, liens, menu du donjon, Imprimer, Présenter) --- */
 #barre { margin: 0; background: var(--panneau); border-bottom: 1px solid var(--bord); }
 #barre .menu-int { flex: 1 1 auto; min-width: 0; }
@@ -32,7 +29,6 @@
 .liens-site { display: none; }
 
 /* --- Onglets des salles : fine bande au-dessus de la carte, quel que soit l'outil ouvert --- */
-[hidden] { display: none !important; }
 .salles-barre { display: flex; align-items: center; gap: 6px; min-width: 0; padding: 5px 12px; background: var(--panneau); border-bottom: 1px solid var(--bord); }
 .salles-onglets { list-style: none; margin: 0; padding: 0 0 2px; display: flex; gap: 4px; flex: 1 1 auto; min-width: 0; overflow-x: auto; scrollbar-width: thin; }
 .salles-onglets li { flex: none; }
@@ -130,7 +126,7 @@ body.vue-plan #aide-carte { display: none; }
 
 
 /* --- Ordinateur (au-dessus de 760 px) : barre, rail 64 px, panneau 300 px, puis bande des salles et carte --- */
-@media (min-width: 761px) {
+@media (min-width: 761px) { /* complément de (max-width: 760px) pour les largeurs entières */
   body { grid-template-columns: 64px 300px minmax(0, 1fr); grid-template-rows: auto auto minmax(0, 1fr); height: 100vh; height: 100dvh; overflow: hidden; }
   /* Panneau replié : la colonne disparaît et la carte récupère la place (l'ajustement passe par le ResizeObserver de la scène). */
   body.panneau-replie { grid-template-columns: 64px 0 minmax(0, 1fr); }
@@ -214,8 +210,10 @@ body.vue-plan #aide-carte { display: none; }
 }
 
 
-/* Après style.css, qui fixe la marge de la carte sur téléphone : les bandes de dimensions y gardent leur place. */
-@media (max-width: 759.98px) {
+/* Après style.css, qui fixe la marge de la carte sur téléphone : les bandes de dimensions y gardent leur place.
+   Même seuil que les autres règles de téléphone (760 px compris, comme telephone.js). `:not(.presentation)` ne sélectionne rien
+   de plus ici (donjon.css ne se charge que dans donjon.html), mais donne à cette règle la spécificité de celle de style.css qu'elle bat. */
+@media (max-width: 760px) {
   body:not(.presentation)[data-onglet="carte"] #support { padding: var(--bande-salle); }
 }
 
@@ -231,12 +229,12 @@ body.vue-plan #aide-carte { display: none; }
 .hasard-nombres { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px 10px; margin: 8px 0; }
 .hasard-nombres label { display: flex; flex-direction: column; gap: 2px; font-size: 13px; }
 .hasard-nombres input, .hasard-nombres select, .hasard-tirage input { width: 100%; box-sizing: border-box; }
-.hasard-familles { margin: 8px 0; padding: 6px 8px; border: 1px solid var(--bordure, #3a3833); border-radius: var(--rayon); }
+.hasard-familles { margin: 8px 0; padding: 6px 8px; border: 1px solid #3a3833; border-radius: var(--rayon); }
 .hasard-familles legend { font-size: 13px; padding: 0 4px; }
 .hasard-tirage { display: block; margin: 8px 0; font-size: 13px; }
 
 /* --- Nouveau donjon : vide, au hasard ou modèle --- */
-.nouveau { margin: 8px 0; padding: 8px; border: 1px solid var(--bordure, #3a3833); border-radius: var(--rayon); }
+.nouveau { margin: 8px 0; padding: 8px; border: 1px solid #3a3833; border-radius: var(--rayon); }
 .nouveau > .note { margin: 0 0 6px; }
 .nouveau-choix { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
 .nouveau-choix button { min-height: 44px; padding: 4px; font-size: 13px; }

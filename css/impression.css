@@ -1,5 +1,4 @@
 /* Impression : page de réglages à l'écran, et pages A4 (aperçu fidèle à ce qui sort de l'imprimante). Complète css/style.css. */
-[hidden] { display: none !important; }
 
 /* La feuille d'impression : A4 avec 10 mm de marge, exactement comme @page. */
 @page { size: A4; margin: 10mm; }
@@ -72,7 +71,6 @@ body.impression a { color: var(--accent); }
 .page .raccord { position: absolute; font-size: 2.6mm; font-weight: 600; white-space: nowrap; }
 .page .raccord.est { left: 100%; top: 0; margin-left: 0.8mm; writing-mode: vertical-rl; }
 .page .raccord.sud { top: 100%; left: 0; margin-top: 0.8mm; }
-.page .raccord.ouest { left: 0.8mm; top: 100%; }
 
 /* Pied : règle de contrôle de 5 cm et consigne */
 .page .pied { position: absolute; left: 0; right: 0; bottom: 0; height: 9mm; border-top: 0.2mm solid #000; display: flex; gap: 4mm; align-items: center; }
