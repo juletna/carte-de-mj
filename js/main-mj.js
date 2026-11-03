@@ -6,7 +6,7 @@
  * texte → analyser() → plan → carte et JSON. Aucune dépendance à un autre outil ni au réseau.
  */
 import { analyser } from './parseur/index.js';
-import { validerPlan, SOLS, NOMS_SOLS } from './schema.js';
+import { SOLS, NOMS_SOLS } from './schema.js';
 import { dessiner, dessinerPlanDonjon } from './rendu/moteur.js';
 import { MARGE, rectDe } from './rendu/geometrie.js';
 import { disposerPlan, salleSous, cleDisposition } from './plan-donjon.js';
@@ -15,15 +15,12 @@ import {
   ZOOM_MIN, ZOOM_MAX, PLAN_ZOOM_MIN, PLAN_ZOOM_MAX, zoomBorne, pasDeZoom, facteurMolette, tailleAfficheePlan as tailleDuPlan, hauteurMaxBulle, positionBulle,
 } from './mise-en-page.js';
 import { ajouterElement, elementsPalette, GROUPES_PALETTE, SOUS_GROUPES, redimensionner, changerForme } from './pose.js';
-import { genererDonjon, BORNES, FAMILLES } from './generateur.js';
-import { MODELES, donjonDepuisModele, copieDonjon } from './modeles.js';
 import { FORMES, LIBELLES_FORMES, POSITIONS_FORMES, LIBELLES_POSITIONS, NOMS_POSITIONS, libelleDesBras, casesRetirees, brasDe, brasMax, nombreCases } from './formes.js';
 import { creerPalette } from './palette.js';
 import { creerHistorique } from './historique.js';
 import { creerRail, OUTILS_CATALOGUE } from './rail.js';
 import { creerMicro, voixDisponible } from './voix.js';
 import * as stockage from './stockage.js';
-import { rapport } from './rapport.js';
 import { activerDeplacement } from './deplacement.js';
 import { decrire } from './parseur/decrire.js';
 import { libelleSelection } from './coordonnees.js';
@@ -31,9 +28,10 @@ import * as modele from './donjon.js';
 import { telephone, activerOnglets, marquerDefilement, LARGEUR_TELEPHONE } from './telephone.js';
 import { creerPersonnages } from './mj/personnages-ui.js';
 import { creerSalles } from './mj/salles-liste.js';
-import { $, h, bouton, deuxTemps, fichierChoisi } from './dom.js';
+import { creerMenu } from './mj/menu-donjon.js';
+import { $, h, bouton, deuxTemps } from './dom.js';
 import { OPPOSE } from './murs.js';
-import { pluriel, LIBELLE_FERMER, libelleMicro } from './format.js';
+import { LIBELLE_FERMER, libelleMicro } from './format.js';
 
 const EXEMPLES = [
   'Grande pièce de 4 m par 12, quatre piliers, deux coffres au fond de la salle, une statue immobile devant une porte',
@@ -85,7 +83,8 @@ function memoriser(idSalle = donjon().salleActive, liaisons = []) {
 
 // Contexte des modules mj/ (fabriques `creerX(ctx)`) : ils le lisent au moment de l'appel et ne s'importent pas entre eux.
 // Les fonctions (rendre, modifierPlan, activerSalle…) sont déclarées plus bas dans ce fichier ; les modules s'y ajoutent à mesure.
-const ctx = { etat, donjon, salle, rendre, modifierPlan, annoncerCarte, historique, activerSalle, afficherSalleActive, dispositionDuDonjon };
+const ctx = { etat, donjon, salle, rendre, modifierPlan, annoncerCarte, deselectionner, sauvegarder, historique, activerSalle, afficherSalleActive, dispositionDuDonjon };
+ctx.plan = { ouvrir: ouvrirPlan }; // le module de la vue Plan le remplacera
 
 // --- Rendu --------------------------------------------------------------------
 /** Repères dessinés sur la carte : portes reliées et élément sélectionné. */
@@ -234,11 +233,11 @@ function afficherSalleActive() {
   $('description').value = salle().texte;
   $('notes').value = salle().notes;
   $('nom-salle-active').textContent = `· ${salle().nom}`;
-  majDonjons();
+  ctx.menu.majDonjons();
   ctx.salles.majListe();
   generer();
   $('panneau').scrollTo({ top: 0 });
-  fermerMenu();
+  ctx.menu.fermer();
   const nouvelle = etat.neuves.delete(salle().id);
   if (nouvelle && !garderMini && !matchMedia('(pointer: coarse)').matches) $('description').focus({ preventScroll: true });
 }
@@ -845,22 +844,14 @@ const rail = creerRail($('rail'), {
 // Passage de l'ordinateur au téléphone (rotation, fenêtre redimensionnée) : le rail et le tiroir se remettent d'aplomb.
 matchMedia(`(max-width: ${LARGEUR_TELEPHONE}px)`).addEventListener('change', () => { ouvrirTiroir(false); rail.appliquer(); });
 
-// --- Menu du donjon (barre du haut) -------------------------------------------------------------------
-function ouvrirMenu(ouvert) {
-  $('menu-donjon').hidden = !ouvert;
-  $('menu-donjon-bouton').setAttribute('aria-expanded', String(ouvert));
-}
-function fermerMenu() { ouvrirMenu(false); }
-$('menu-donjon-bouton').addEventListener('click', () => ouvrirMenu($('menu-donjon').hidden));
-document.addEventListener('pointerdown', (e) => {
-  if (!$('menu-donjon').hidden && !e.target.closest('.menu-donjon')) fermerMenu();
-});
+// --- Menu du donjon (barre du haut) : donjons, fichiers, rapport (js/mj/menu-donjon.js) ---
+ctx.menu = creerMenu(ctx);
 
 // Échap, du plus proche au plus lointain : glisser en cours, menu ouvert, tiroir ouvert, élément armé, bulle ouverte.
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape' || e.defaultPrevented) return;
   if (palette.annulerGlisser()) return;
-  if (!$('menu-donjon').hidden) { fermerMenu(); $('menu-donjon-bouton').focus(); return; }
+  if (ctx.menu.ouvert()) { ctx.menu.fermer(); $('menu-donjon-bouton').focus(); return; }
   if (tiroirOuvert()) { ouvrirTiroir(false); $('ajouter').focus(); return; }
   if (palette.arme()) { palette.desarmer(); return; }
   if (etat.selection) { deselectionner(); rendre(); return; }
@@ -869,154 +860,6 @@ document.addEventListener('keydown', (e) => {
 
 // --- Salles : onglets, liste, liaisons orphelines, miniature du plan (js/mj/salles-liste.js) ---
 ctx.salles = creerSalles(ctx); // la bulle appelle majListe
-
-// --- Donjons : changer, nouveau, renommer, supprimer ------------------------------
-function majDonjons() {
-  const choix = $('donjon-choix');
-  choix.replaceChildren(...Object.values(etat.donjons).map((d) => h('option', { value: d.id, textContent: d.nom, selected: d.id === etat.actif })));
-  choix.value = etat.actif;
-  $('donjon-nom').value = donjon().nom;
-  $('menu-donjon-nom').textContent = donjon().nom;
-  $('presenter').href = `presentation.html?donjon=${encodeURIComponent(etat.actif)}`;
-}
-
-$('donjon-choix').addEventListener('change', (e) => {
-  if (!(e.target.value in etat.donjons)) return;
-  etat.actif = e.target.value;
-  afficherSalleActive();
-});
-$('donjon-nom').addEventListener('change', (e) => {
-  donjon().nom = e.target.value.trim().slice(0, 80) || donjon().nom;
-  majDonjons();
-  sauvegarder();
-});
-// --- Nouveau donjon : vide, au hasard ou à partir d'un modèle ---
-function choixNouveau(quoi) {
-  const ouvrir = (bouton, zone, actif) => { $(bouton).setAttribute('aria-pressed', String(actif)); $(zone).hidden = !actif; };
-  ouvrir('nouveau-hasard', 'hasard', quoi === 'hasard');
-  ouvrir('nouveau-modele', 'modeles', quoi === 'modele');
-  if (quoi === 'modele') majModeles();
-}
-/** Le donjon neuf prend la place : il devient le donjon affiché, et le menu se referme sur lui. */
-function accueillirDonjon(d, { plan = true } = {}) {
-  etat.donjons[d.id] = d;
-  etat.actif = d.id;
-  afficherSalleActive();
-  if (plan) ouvrirPlan(true);
-  fermerMenu();
-}
-$('donjon-nouveau').addEventListener('click', () => {
-  const ouvert = $('nouveau').hidden;
-  $('nouveau').hidden = !ouvert;
-  $('donjon-nouveau').setAttribute('aria-expanded', String(ouvert));
-});
-$('nouveau-vide').addEventListener('click', () => {
-  const d = modele.creerDonjon({ nom: `Donjon ${Object.keys(etat.donjons).length + 1}`, echelle: r.echelle });
-  etat.neuves.add(d.salleActive);
-  accueillirDonjon(d, { plan: false });
-});
-$('nouveau-hasard').addEventListener('click', () => choixNouveau($('hasard').hidden ? 'hasard' : null));
-$('nouveau-modele').addEventListener('click', () => choixNouveau($('modeles').hidden ? 'modele' : null));
-
-function ligneModele(nom, description, partir, supprimer) {
-  const bouton = h('button', { type: 'button', className: 'discret modele-choix' }, h('b', { textContent: nom }), h('span', { className: 'doux', textContent: description }));
-  bouton.addEventListener('click', partir);
-  return h('li', {}, bouton, ...(supprimer ? [supprimer] : []));
-}
-/** La liste des modèles : ceux de l'outil, puis ceux gardés par le MJ dans ce navigateur. */
-function majModeles() {
-  const gardes = stockage.chargerModeles();
-  $('modeles-liste').replaceChildren(
-    ...MODELES.map((m) => ligneModele(m.nom, m.description, () => accueillirDonjon(donjonDepuisModele(m)))),
-    ...gardes.map((g) => {
-      const retirer = h('button', { type: 'button', className: 'discret petit' });
-      deuxTemps(retirer, 'Retirer', 'Confirmer', () => {
-        stockage.sauverModeles(stockage.chargerModeles().filter((x) => x.id !== g.id));
-        majModeles();
-      });
-      return ligneModele(g.nom, `Ton modèle · ${pluriel(Object.keys(g.salles).length, 'salle', 'salles')}`,
-        () => accueillirDonjon(copieDonjon(g, { idsPris: Object.keys(etat.donjons) })), retirer);
-    }),
-  );
-}
-$('modele-garder').addEventListener('click', () => {
-  const copie = copieDonjon(donjon());
-  const message = $('modele-message');
-  message.hidden = false;
-  const ok = stockage.sauverModeles([...stockage.chargerModeles(), copie]);
-  message.textContent = ok ? `« ${copie.nom} » est gardé comme modèle, dans ce navigateur.` : 'Impossible de garder ce modèle : le stockage de ce navigateur est plein ou bloqué.';
-  majModeles();
-});
-// --- Donjon au hasard (js/generateur.js) ---
-for (const [cle, [defaut, min, max]] of Object.entries(BORNES)) {
-  const champ = $(`hasard-${cle}`);
-  Object.assign(champ, { value: String(defaut), min: String(min), max: String(max), step: '1' });
-}
-$('hasard-familles').replaceChildren(...Object.entries(FAMILLES).map(([cle, f]) => {
-  const c = h('input', { type: 'checkbox', value: cle });
-  return h('label', { className: 'ligne case' }, c, ` ${f.libelle}`);
-}));
-
-/** Le dernier donjon tiré : un nouveau tirage le remplace s'il n'a pas été retouché, plutôt que d'empiler les essais. */
-let dernierTirage = null;
-$('hasard-generer').addEventListener('click', () => {
-  const options = Object.fromEntries(Object.keys(BORNES).map((cle) => [cle, $(`hasard-${cle}`).value]));
-  options.familles = [...$('hasard-familles').querySelectorAll('input:checked')].map((c) => c.value);
-  options.boss = $('hasard-boss').checked;
-  options.formes = $('hasard-formes').checked;
-  options.graine = $('hasard-graine').value;
-  const { donjon: d, graine, resume } = genererDonjon(options);
-  const remplace = dernierTirage && etat.donjons[dernierTirage.id] && JSON.stringify(etat.donjons[dernierTirage.id]) === dernierTirage.signature;
-  if (remplace) {
-    delete etat.donjons[dernierTirage.id];
-    historique.oublierDonjon(dernierTirage.id);
-  }
-  dernierTirage = { id: d.id, signature: JSON.stringify(d) };
-  accueillirDonjon(d);
-  const message = $('hasard-message');
-  message.hidden = false;
-  message.textContent = `Tirage ${graine} : ${resume.salles} salle${resume.salles > 1 ? 's' : ''}, ${resume.monstres} monstre${resume.monstres > 1 ? 's' : ''}, ${resume.coffres} coffre${resume.coffres > 1 ? 's' : ''}, ${resume.pieges} piège${resume.pieges > 1 ? 's' : ''}. Tu peux tout retoucher ; un nouveau tirage remplace celui-ci tant que tu n'y touches pas.`;
-  annoncerCarte(`« ${d.nom} » : ${resume.salles} salles, ${resume.monstres} monstres, ${resume.coffres} coffres.`);
-});
-
-/** Ce que la confirmation annonce : le nom, le nombre de salles, et le sort d'une partie en cours. */
-function annonceSuppressionDonjon() {
-  const d = donjon();
-  const n = Object.keys(d.salles).length;
-  const partie = d.id in stockage.chargerPresentations();
-  return `Supprimer « ${d.nom} » et ${n > 1 ? `ses ${n} salles` : 'sa salle'} ? Clique sur Confirmer dans les 4 secondes.`
-    + (partie ? ' La partie en cours reste disponible dans la Présentation.' : '');
-}
-deuxTemps($('donjon-supprimer'), 'Supprimer ce donjon', 'Confirmer', () => {
-  historique.oublierDonjon(etat.actif);
-  delete etat.donjons[etat.actif];
-  if (!Object.keys(etat.donjons).length) {
-    const d = modele.creerDonjon({ echelle: r.echelle });
-    etat.donjons[d.id] = d;
-  }
-  etat.actif = Object.keys(etat.donjons)[0];
-  afficherSalleActive();
-}, { zone: $('donjon-confirmation'), texte: annonceSuppressionDonjon });
-
-// --- Copier pour signaler -----------------------------------------------------
-$('copier-rapport').addEventListener('click', async () => {
-  const texte = rapport({ texte: salle().texte, ...etat.retour, plan: salle().plan });
-  const message = $('message-copie');
-  message.hidden = false;
-  try {
-    await navigator.clipboard.writeText(texte);
-    message.textContent = 'Copié ! Colle-le dans ton message.';
-  } catch {
-    // Presse-papiers refusé (page non sécurisée…) : on montre le texte à copier à la main.
-    ouvrirMenu(true);
-    for (let d = $('json').closest('details'); d; d = d.parentElement?.closest('details')) d.open = true;
-    $('json').value = texte;
-    $('json').select();
-    message.textContent = 'Copie automatique impossible : le texte est sélectionné dans la zone JSON, fais Cmd+C.';
-  }
-  clearTimeout(message.minuterie);
-  message.minuterie = setTimeout(() => { message.hidden = true; }, 4000);
-});
 
 // --- Micro --------------------------------------------------------------------
 const messageMicro = $('message-micro');
@@ -1065,90 +908,6 @@ $('plein-ecran').addEventListener('click', () => $('scene').requestFullscreen?.(
 $('quitter-plein-ecran').addEventListener('click', () => document.exitFullscreen());
 document.addEventListener('fullscreenchange', () => { $('quitter-plein-ecran').hidden = !document.fullscreenElement; });
 
-// --- Fichiers -----------------------------------------------------------------
-$('exporter').addEventListener('click', () => stockage.exporterDonjon(donjon()));
-
-function messageFichier(texte, erreurs = []) {
-  const ok = $('message-fichier'), ko = $('erreurs-fichier');
-  ok.hidden = !texte;
-  ok.textContent = texte || '';
-  ko.hidden = erreurs.length === 0;
-  ko.textContent = erreurs.join(' · '); // textContent : le contenu du fichier n'est jamais interprété comme du HTML
-}
-
-/** Ajoute le donjon lu dans un fichier ou un texte collé. Renvoie true s'il a été ajouté. */
-function ajouterDonjonLu(brut) {
-  // Le donjon importé s'AJOUTE aux autres : il garde l'identifiant de son fichier, sauf s'il est déjà pris (alors il en reçoit un neuf) ; rien n'est écrasé.
-  const resultat = modele.convertirImport(brut, { echelle: r.echelle, idsPris: Object.keys(etat.donjons) });
-  if (!resultat.donjon) { messageFichier('', [`Import refusé : ${resultat.erreurs.join(' · ')}`]); return false; }
-  const d = resultat.donjon;
-  etat.donjons[d.id] = d;
-  etat.actif = d.id;
-  afficherSalleActive();
-  const n = Object.keys(d.salles).length;
-  messageFichier(`Donjon « ${d.nom} » importé (${n} salle${n > 1 ? 's' : ''}).${resultat.avertissements.length ? ` À noter : ${resultat.avertissements.join(' · ')}` : ''}`);
-  return true;
-}
-
-$('importer').addEventListener('change', async (e) => {
-  const fichier = fichierChoisi(e);
-  if (!fichier) return;
-  try {
-    ajouterDonjonLu(await stockage.lireFichierJson(fichier));
-  } catch (err) {
-    messageFichier('', [`Import refusé : ${err.message}`]);
-  }
-});
-
-$('donjon-copier').addEventListener('click', async () => {
-  const texte = stockage.texteDonjon(donjon());
-  try {
-    await navigator.clipboard.writeText(texte);
-    messageFichier('Donjon copié, notes et éléments cachés compris. Colle-le où tu veux.');
-  } catch {
-    // Presse-papiers refusé (page non sécurisée…) : on montre le texte à copier à la main.
-    const zone = $('donjon-colle');
-    zone.closest('details').open = true;
-    zone.value = texte;
-    zone.select();
-    messageFichier('Copie automatique impossible : le texte est sélectionné ci-dessous, fais Cmd+C. Notes et éléments cachés compris.');
-  }
-});
-
-$('donjon-coller').addEventListener('click', () => {
-  const zone = $('donjon-colle');
-  if (!zone.value.trim()) { messageFichier('', ['Colle d’abord le texte du donjon.']); return; }
-  try {
-    if (ajouterDonjonLu(stockage.lireTexteJson(zone.value))) zone.value = '';
-  } catch (err) {
-    messageFichier('', [`Import refusé : ${err.message}`]);
-  }
-});
-
-$('appliquer-json').addEventListener('click', () => {
-  try {
-    appliquerPlan(JSON.parse($('json').value), null);
-  } catch (err) {
-    afficherErreursJson([`JSON invalide : ${err.message}`]);
-  }
-});
-
-/** Remplace le plan de la salle affichée par un plan venu de l'éditeur JSON (ou d'un fichier de plan seul). */
-function appliquerPlan(brut, texte) {
-  const { ok, erreurs, plan } = validerPlan(brut);
-  afficherErreursJson(erreurs);
-  if (!plan) return;
-  // Le JSON modifié réécrit la description, qui régénère la carte : tout reste aligné.
-  modifierPlan(plan, { garderSelection: true, texte });
-  if (!ok) $('compris').prepend(h('li', { textContent: 'plan chargé, avec des éléments écartés' }));
-}
-
-function afficherErreursJson(erreurs) {
-  const zone = $('erreurs-json');
-  zone.hidden = erreurs.length === 0;
-  zone.textContent = erreurs.join(' · ');
-}
-
 // --- Écran étroit : onglets Texte / Carte ---------------------------------------------
 // La carte est redessinée (à la taille qui tient) quand on l'affiche ; quand la fenêtre change de taille ou de sens,
 // c'est l'observateur de la scène (plus haut) qui s'en charge.
@@ -1162,5 +921,5 @@ afficherSalleActive();
 if (charge.miseDeCote) { // dit après le premier dessin : le bandeau de la carte est prêt, et l'avertissement reste aussi dans le panneau des fichiers
   const phrase = stockage.phraseMiseDeCote(charge.miseDeCote);
   annoncerCarte(phrase, !charge.miseDeCote.ok, 15000);
-  if (charge.miseDeCote.ok) messageFichier(phrase); else messageFichier('', [phrase]);
+  if (charge.miseDeCote.ok) ctx.menu.messageFichier(phrase); else ctx.menu.messageFichier('', [phrase]);
 }
