@@ -34,19 +34,29 @@ export const ADJ_CACHE = new Set(['cache', 'cachee', 'caches', 'cachees', 'secre
 export const ADJ_GRAND = new Set(['grand', 'grande', 'grands', 'grandes', 'large', 'larges', 'immense', 'immenses', 'enorme', 'enormes']);
 
 /**
- * Mots sans information pour le parseur : ils ne sont pas signalés
- * comme « non compris ».
+ * Noms de pièces : « salle du trône » nomme la pièce (index.js), ces mots ne sont jamais des objets à poser.
+ * Les autres listes de pièces du parseur en sont tirées : PIECES_A_TAILLE ci-dessous, et les mots vides.
  */
-export const MOTS_VIDES = new Set((
+export const PIECES = [
+  'salle', 'chambre', 'crypte', 'piece', 'caverne', 'grotte', 'hall', 'cellule', 'prison', 'taverne', 'auberge', 'temple', 'chapelle', 'cuisine', 'cave',
+];
+
+/** Parmi PIECES, celles dont la taille se dit en un mot (« grande salle », « vaste crypte » : dimensions.js). */
+export const PIECES_A_TAILLE = ['salle', 'piece', 'chambre', 'caverne', 'grotte', 'crypte', 'hall'];
+
+/**
+ * Mots sans information pour le parseur : ils ne sont pas signalés
+ * comme « non compris ». Y figurent tous les noms de pièces (PIECES), leur pluriel et d'autres lieux.
+ */
+export const MOTS_VIDES = new Set([...PIECES, ...(
   'le la les l un une des de du d en au aux a et ou avec sur sous dans par pour il y ' +
   'qui que qu est sont se trouve trouvent fait font mesure mesurant ce cette ces son sa ses leur leurs ' +
-  'salle salles piece pieces chambre caverne grotte crypte hall couloir donjon ici on voit contre ' +
-  'taverne auberge temple chapelle cave cellier cuisine prison cellule bureau laboratoire armurerie tresor ' +
+  'salles pieces couloir donjon ici on voit contre cellier bureau laboratoire armurerie tresor ' +
   'pose posee poses posees place placee places placees situe situee situes situees range rangee ranges ' +
   'mur murs sol cote cotes pres proche juste bien tout toute tous toutes chaque meme aussi ' +
   'grand grande grands grandes petit petite petits petites moyen moyenne vaste immense enorme long longue ' +
   'large m metre metres case cases carreau carreaux environ'
-).split(' '));
+).split(' ')]);
 
 // Zone par défaut d'une créature selon son camp.
 const ZONE_CAMP = { pj: 'entree', pnj: 'centre', monstre: 'centre' };

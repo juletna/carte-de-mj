@@ -14,17 +14,25 @@ import { trouverObjet } from './lexique.js';
 import { lireCase, indexColonne } from '../coordonnees.js';
 import { MURS, REGARD_VERS } from '../murs.js';
 
-// Préposition relative → type de relation
+// Les tournures qui relient un élément à un autre, chacune avec le type de relation qu'elle exprime : [relation, motif].
+// Le motif de reconnaissance (RE_RELATION) en est la réunion, dans cet ordre. « le long du mur » n'en fait pas partie :
+// il n'a jamais été reconnu comme une relation, et l'ajouter ici l'étendrait.
+const DE = 'd(?:e|u|es)?';
 const RELATIONS = [
-  [/^devant$/, 'devant'],
-  [/^derriere$/, 'derriere'],
-  [/^(?:a cote|pres|contre|le long) d(?:e|u|es)?$/, 'cote'],
-  [/^contre$/, 'cote'],
-  [/^autour d(?:e|u|es)?$/, 'autour'],
-  [/^(?:de chaque cote|de part et d autre|des deux cotes|de part et d autre) d(?:e|u|es)?$/, 'flancs'],
-  [/^(?:en face d(?:e|u|es)?|face a(?:u|ux)?)$/, 'face'],
+  ['devant', 'devant'],
+  ['derriere', 'derriere'],
+  ['cote', `a cote ${DE}`],
+  ['cote', `pres ${DE}`],
+  ['autour', `autour ${DE}`],
+  ['flancs', `de chaque cote ${DE}`],
+  ['flancs', `des deux cotes ${DE}`],
+  ['flancs', `de part et d autre ${DE}`],
+  ['face', `en face ${DE}`],
+  ['face', 'face a(?:u|ux)?'],
+  ['cote', 'contre'],
 ];
-const RE_RELATION = /\b(devant|derriere|a cote d(?:e|u|es)?|pres d(?:e|u|es)?|autour d(?:e|u|es)?|de chaque cote d(?:e|u|es)?|des deux cotes d(?:e|u|es)?|de part et d autre d(?:e|u|es)?|en face d(?:e|u|es)?|face a(?:u|ux)?|contre)\b/;
+export const RE_RELATION = new RegExp(`\\b(${RELATIONS.map(([, motif]) => motif).join('|')})\\b`);
+const RELATIONS_EXACTES = RELATIONS.map(([relation, motif]) => [new RegExp(`^(?:${motif})$`), relation]);
 
 const ZONES = {
   coinPrecis: /\b(?:coins?|angles?)\s+(?:\w+\s+)?(nord|sud)\s+(est|ouest)\b/,
@@ -144,7 +152,7 @@ export function analyserPosition(prop) {
       const trouve = trouverObjet(mots[k]);
       if (trouve) {
         res.zone = 'relation';
-        res.relation = RELATIONS.find(([re]) => re.test(mr[1]))?.[1] || 'cote';
+        res.relation = RELATIONS_EXACTES.find(([re]) => re.test(mr[1]))?.[1] || 'cote';
         res.cible = { type: trouve.def.type, genre: trouve.def.genre, index: k };
         for (let j = idx[0]; j < k; j++) res.indices.push(j);
         if (trouve.def.genre === 'porte') {

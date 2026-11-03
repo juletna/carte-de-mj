@@ -15,7 +15,7 @@ import { normaliser } from './normaliser.js';
 import { convertirNombres } from './nombres.js';
 import { extraireDimensions, extraireSol, extraireForme } from './dimensions.js';
 import {
-  trouverObjet, definition, nomAffiche, souderExpressions,
+  trouverObjet, definition, nomAffiche, souderExpressions, PIECES,
   ADJ_GRAND, ADJ_CACHE, MOTS_VIDES, COULEURS, CAMPS, TAILLES_CREATURE,
 } from './lexique.js';
 import { analyserPosition } from './positions.js';
@@ -33,9 +33,8 @@ const QUANTITE_PLURIEL = { grille: 4, perimetre: 4, aleatoire: 5 };
  * de pièce que s'il est du lexique ET que le groupe ouvre la phrase : « une salle avec un garde »
  * et « deux gardes » créent toujours leurs pions, et « salle de 6 par 6 » n'est pas un nom.
  */
-const PIECES = 'salle|chambre|crypte|piece|caverne|grotte|hall|cellule|prison|taverne|auberge|temple|chapelle|cuisine|cave';
-const RE_NOM = new RegExp(`\\b(${PIECES})\\s+(du|des|de la|de l)\\s+([a-z]+)`);
-const RE_NOM_DE = new RegExp(`\\b(${PIECES})\\s+(de|d)\\s+([a-z]+)`, 'g');
+export const RE_NOM = new RegExp(`\\b(${PIECES.join('|')})\\s+(du|des|de la|de l)\\s+([a-z]+)`);
+const RE_NOM_DE = new RegExp(`\\b(${PIECES.join('|')})\\s+(de|d)\\s+([a-z]+)`, 'g');
 const DEBUT_DE_PHRASE = /^(?:(?:une?|la|cette|grande?|petite?|vaste)\s+)*$/;
 function extraireNom(texte) {
   let m = texte.match(RE_NOM);

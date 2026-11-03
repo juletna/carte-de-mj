@@ -4,7 +4,7 @@
  * (le passage reconnu est retiré pour ne pas être relu ensuite).
  */
 
-import { trouverObjet, PORTES } from './lexique.js';
+import { trouverObjet, PORTES, PIECES_A_TAILLE } from './lexique.js';
 import { CASES_MAX } from '../schema.js';
 import { DEFINITIONS_FORMES, FORMES, nomDesBras } from '../formes.js';
 
@@ -24,7 +24,7 @@ const TAILLES = {
   minuscule: [3, 3], petit: [4, 4], petite: [4, 4], moyen: [6, 6], moyenne: [6, 6],
   grand: [8, 10], grande: [8, 10], vaste: [10, 12], immense: [12, 16], enorme: [12, 16], gigantesque: [16, 20],
 };
-const RE_TAILLE = /\b(minuscule|petite?|moyenne?|grande?|vaste|immense|enorme|gigantesque)\s+(?:\w+\s+)?(?:salle|piece|chambre|caverne|grotte|crypte|hall)\b/;
+export const RE_TAILLE = new RegExp(`\\b(minuscule|petite?|moyenne?|grande?|vaste|immense|enorme|gigantesque)\\s+(?:\\w+\\s+)?(?:${PIECES_A_TAILLE.join('|')})\\b`);
 const TAILLE_DEFAUT = [6, 6];
 
 /** Convertit une mesure en nombre de cases (arrondi au plus proche, au moins 1). */
