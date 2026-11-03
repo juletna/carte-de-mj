@@ -4,7 +4,7 @@
  * Sans dépendance : marche sous Node et dans tests.html (même forme que les autres tests : { phrase, ecarts }).
  */
 import * as m from '../js/donjon.js';
-import { disposerPlan, pontsDe, PONT_DEMI_LONGUEUR, cheminCouloir, salleSous, ECART_LIAISON, ECART_MIN, ECART_PASSAGE, MARGE_PLAN, ETIQUETTE_ISOLEES } from '../js/plan-donjon.js';
+import { disposerPlan, pontsDe, PONT_DEMI_LONGUEUR, cheminCouloir, salleSous, ECART_LIAISON, ECART_MIN, ECART_MIN_NOM, ECART_PASSAGE, MARGE_PLAN, ETIQUETTE_ISOLEES } from '../js/plan-donjon.js';
 import { salleVoisine, disposerSalles } from '../js/minicarte.js';
 
 function verifier(condition, message) { if (!condition) throw new Error(message); }
@@ -30,7 +30,7 @@ function donjonVide() {
 }
 const porte = (id, mur, position) => ({ salle: id, mur, position });
 
-/** Vérifie qu'aucune paire de salles ne se touche (au moins ECART_MIN case entre deux), et que tout tient dans le plan. */
+/** Vérifie qu'aucune paire de salles ne se touche (ECART_MIN cases entre deux, ECART_MIN_NOM en hauteur), et que tout tient dans le plan. */
 function sansChevauchement(disp, d, quoi) {
   const ids = Object.keys(disp.positions);
   verifier(ids.length === Object.keys(d.salles).length, `${quoi} : chaque salle a une position`);
@@ -42,7 +42,7 @@ function sansChevauchement(disp, d, quoi) {
   }
   for (let i = 0; i < ids.length; i++) for (let j = i + 1; j < ids.length; j++) {
     const a = disp.positions[ids[i]], b = disp.positions[ids[j]];
-    const separes = a.x + a.largeur + ECART_MIN <= b.x || b.x + b.largeur + ECART_MIN <= a.x || a.y + a.longueur + ECART_MIN <= b.y || b.y + b.longueur + ECART_MIN <= a.y;
+    const separes = a.x + a.largeur + ECART_MIN <= b.x || b.x + b.largeur + ECART_MIN <= a.x || a.y + a.longueur + ECART_MIN_NOM <= b.y || b.y + b.longueur + ECART_MIN_NOM <= a.y;
     verifier(separes, `${quoi} : ${d.salles[ids[i]].nom} et ${d.salles[ids[j]].nom} se touchent ou se chevauchent`);
   }
 }
@@ -277,7 +277,7 @@ const TESTS = [
     egal(p[s1].x - (p[s6].x + p[s6].largeur), ECART_PASSAGE, 'même écart à droite de la salle 6');
     const droit = disp.couloirs.find((c) => [c.de.salle, c.vers.salle].sort().join() === [s1, s5].sort().join());
     egal(cheminCouloir(droit).length, 2, 'la 6 a glissé : le couloir 5 → 1 file tout droit sous elle');
-    egal(p[s6].y, p[s5].y - 2, 'la 6 monte juste assez pour laisser une case libre au-dessus du couloir');
+    egal(p[s6].y, p[s5].y - 3, 'la 6 monte juste assez pour laisser deux cases libres au-dessus du couloir');
     couloirsPropres(disp, 'cas signalé');
     egal(JSON.stringify(disposerPlan(d)), JSON.stringify(disp), 'même plan à chaque calcul');
     const mini = disposerSalles(d).positions;
@@ -290,9 +290,8 @@ const TESTS = [
     sansChevauchement(disp, d, 'trois portes à l’est');
     const p = disp.positions;
     verifier(p[s5].x < p[s6].x && p[s6].x < p[s7].x && p[s7].x < p[s1].x, 'de gauche à droite : 5, 6, 7, 1');
-    egal(p[s7].y, p[s5].y, 'les portes de la 5 et de la 7 se font face');
     const vers7 = disp.couloirs.find((c) => [c.de.salle, c.vers.salle].includes(s7));
-    egal(cheminCouloir(vers7).length, 2, 'le couloir 5 → 7 est une ligne droite');
+    verifier(cheminCouloir(vers7).length <= 4, 'le couloir 5 → 7 file sans détour, au pire avec un petit crochet');
     couloirsPropres(disp, 'trois portes à l’est');
     egal(casesPartagees(disp), 0, 'aucun croisement');
   }],
@@ -336,7 +335,7 @@ const TESTS = [
     m.relier(d, porte(s1, 'ouest', 5), porte(pres, 'est', 3));
     const disp = disposerPlan(d);
     const p = disp.positions;
-    verifier(p[pres].y >= p[s1].y + 3, 'la salle proche descend, une case libre sous le couloir');
+    verifier(p[pres].y >= p[s1].y + 5, 'la salle proche descend, trois cases libres au-dessus d’elle pour son nom');
     const droit = disp.couloirs.find((c) => [c.de.salle, c.vers.salle].includes(loin));
     egal(cheminCouloir(droit).length, 2, 'le couloir vers la salle lointaine est droit');
     verifier(p[loin].x < p[pres].x, 'la salle lointaine est bien derrière');

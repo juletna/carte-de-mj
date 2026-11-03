@@ -9,7 +9,7 @@
  *  - parcours en largeur depuis la première salle, en suivant les liaisons dans l'ordre où elles sont écrites ;
  *  - la salle reliée se place derrière le mur de la porte, avec 2 cases entre les deux murs, décalée pour que les deux
  *    portes se fassent face (quand la porte d'arrivée est sur le mur opposé ; sinon la salle est centrée sur la porte) ;
- *  - si la salle barrerait le couloir droit d'une autre porte du même mur, elle glisse de 3 cases au plus pour le laisser
+ *  - si la salle barrerait le couloir droit d'une autre porte du même mur, elle glisse de 5 cases au plus pour le laisser
  *    passer : ses propres portes ne se font alors plus face, et son couloir fait un petit crochet ;
  *  - si la place est prise, la salle ne change JAMAIS de côté : une porte à l'est mène toujours à une salle à l'est.
  *    C'est la salle de départ, avec tout ce qui se trouve de son côté, qui recule pour laisser la place. Les couloirs
@@ -30,7 +30,8 @@ const VECTEUR = { nord: [0, -1], sud: [0, 1], est: [1, 0], ouest: [-1, 0] };
 const OPPOSE = { nord: 'sud', sud: 'nord', est: 'ouest', ouest: 'est' };
 
 export const ECART_LIAISON = 3;   // cases entre les murs de deux salles reliées
-export const ECART_MIN = 2;       // cases libres minimum entre deux salles quelconques (le nom de la salle du dessous y tient)
+export const ECART_MIN = 2;       // cases libres minimum entre deux salles quelconques, côte à côte
+export const ECART_MIN_NOM = 3;   // la même chose l'une au-dessus de l'autre : le nom de celle du dessous s'écrit entre les deux
 export const ECART_PASSAGE = 5;   // cases de chaque côté d'une salle insérée : passage d'un couloir + deux cases libres de part et d'autre
 export const MARGE_PLAN = 2;      // cases autour de l'ensemble (noms au-dessus des salles du haut, murs, couloirs)
 export const ETIQUETTE_ISOLEES = 'Salles non reliées';
@@ -38,7 +39,11 @@ export const ETIQUETTE_ISOLEES = 'Salles non reliées';
 const MARGE_ROUTAGE = 8;          // cases où un couloir peut sortir de l'ensemble des salles : le plan s'agrandit d'autant
 const BOUCLES_PAR_SALLE_1 = 1 / 3; // à partir de ce nombre de boucles par salle, 1 case de plus entre les salles
 const BOUCLES_PAR_SALLE_2 = 2 / 3; // à partir de celui-ci, 2 cases de plus
-const GLISSEMENTS = [0, 1, -1, 2, -2, 3, -3]; // décalages essayés pour libérer le couloir droit d'une porte voisine
+const GLISSEMENT_MAX = 5;         // cases dont une salle peut glisser pour libérer le couloir droit d'une porte voisine
+const GLISSEMENTS = Array.from({ length: 2 * GLISSEMENT_MAX + 1 }, (_, i) => (i % 2 ? (i + 1) / 2 : -i / 2)); // 0, 1, -1, 2, -2…
+const LIBRE_COULOIR = 2;          // cases libres entre le couloir droit et la salle qui glisse
+const LIBRE_NOM = 3;              // cases libres si le couloir passe au-dessus de la salle : son nom s'écrit là
+const HAUTEUR_NOM = 1;            // rangées où s'écrit le nom d'une salle, au-dessus de celle qui touche son mur
 const ESSAIS_MAX = 8;             // dispositions essayées au plus : au-delà, on ne gagne presque plus rien
 const SALLES_ESSAIS = 240;        // au-delà de 30 salles, moins d'essais (salles × essais), pour ne pas faire attendre
 const ECART_BLOCS = 4;            // cases entre deux blocs de salles (et avant la rangée des non reliées)
@@ -50,8 +55,8 @@ const longueurMur = (dim, mur) => (mur === 'nord' || mur === 'sud' ? dim.l : dim
 const borner = (v, min, max) => Math.max(min, Math.min(max, v));
 
 /** Deux rectangles (x, y, l, h) sont-ils à moins de `ecart` cases l'un de l'autre (ou se chevauchent-ils) ? */
-function tropProches(a, b, ecart = ECART_MIN) {
-  return a.x < b.x + b.l + ecart && b.x < a.x + a.l + ecart && a.y < b.y + b.h + ecart && b.y < a.y + a.h + ecart;
+function tropProches(a, b) {
+  return a.x < b.x + b.l + ECART_MIN && b.x < a.x + a.l + ECART_MIN && a.y < b.y + b.h + ECART_MIN_NOM && b.y < a.y + a.h + ECART_MIN_NOM;
 }
 
 /** Salles voisines d'une salle, dans l'ordre des liaisons : { vers, ici, autre } (extrémités de la liaison). */
@@ -116,7 +121,10 @@ function placerDerriere(rects, A, ici, autre, dimB, espace = 0, autres = []) {
     const barre = devantA.some((o) => o !== cible && barreRang(o, rang) && entree(o) < entree(cible));
     return barre ? [] : [rang];
   });
-  const decalage0 = GLISSEMENTS.find((g) => !rangs.some((rang) => barreRang({ ...r, [cote]: r[cote] + g }, rang)));
+  const libreAvant = horizontal ? LIBRE_NOM : LIBRE_COULOIR; // `cote` croissant vers le bas : « avant » est au-dessus de la salle
+  const libere = (g) => !rangs.some((rang) => rang >= r[cote] + g - libreAvant && rang < r[cote] + g + r[tailleCote] + LIBRE_COULOIR);
+  const auLarge = (g) => !liste.some((o) => tropProches({ ...r, [cote]: r[cote] + g }, o));
+  const decalage0 = rangs.length ? GLISSEMENTS.find((g) => libere(g) && auLarge(g)) ?? GLISSEMENTS.find(libere) : 0;
   if (decalage0) { r[cote] += decalage0; ligne = null; }
   const enPlus = passage - ECART_MIN; // ce qu'il faut de plus que l'écart minimum, seulement devant la salle
   let ecartee = false;
@@ -340,7 +348,8 @@ function calculerPlan(d, ids, espace, alea) {
 
 const COUT_VIRAGE = 2;           // un couloir préfère les lignes droites
 const COUT_LONGE_SALLE = 6;      // et garde ses distances avec les murs : le mur, dessiné à l'extérieur, le toucherait
-const COUT_LONGE_COULOIR = 1;    // ni avec les autres couloirs
+const COUT_SOUS_NOM = 4;         // ni ne passe là où s'écrit le nom d'une salle
+const COUT_LONGE_COULOIR = 4;    // ni avec les autres couloirs
 const NOTE_CROISEMENT = 20;      // poids dans la note d'un plan : une case partagée par deux couloirs,
 const NOTE_FROTTEMENT = 3;       // une case de couloir contre une salle,
 const NOTE_VIRAGE = 1;           // un virage,
@@ -438,11 +447,15 @@ function sansPointsAlignes(pts) {
 function tracerCouloirs(couloirs, positions, largeur, longueur) {
   const grille = new Uint8Array(largeur * longueur);     // 1 : une salle occupe cette case
   const proche = new Uint8Array(largeur * longueur);     // 1 : case qui touche une salle
+  const sousNom = new Uint8Array(largeur * longueur);    // 1 : case où s'écrit le nom d'une salle, juste au-dessus d'elle
   const devantPorte = new Uint8Array(largeur * longueur);
   const pris = new Uint16Array(largeur * longueur);      // nombre de couloirs qui passent ici
   const indice = (x, y) => y * largeur + x;
   const dans = (x, y) => x >= 0 && y >= 0 && x < largeur && y < longueur;
   for (const r of Object.values(positions)) {
+    for (let y = r.y - 1 - HAUTEUR_NOM; y < r.y - 1; y++) {
+      for (let x = r.x; x < r.x + r.largeur; x++) if (dans(x, y)) sousNom[indice(x, y)] = 1;
+    }
     for (let y = r.y - 1; y <= r.y + r.longueur; y++) {
       for (let x = r.x - 1; x <= r.x + r.largeur; x++) {
         if (!dans(x, y)) continue;
@@ -466,7 +479,7 @@ function tracerCouloirs(couloirs, positions, largeur, longueur) {
       if (estExtremite(x, y)) return 0;
       const i = indice(x, y);
       const cole = DIRECTIONS.some(([dx, dy]) => dans(x + dx, y + dy) && pris[indice(x + dx, y + dy)]);
-      return (proche[i] ? COUT_LONGE_SALLE : 0) + (devantPorte[i] ? COUT_SORTIE_PORTE : 0)
+      return (proche[i] ? COUT_LONGE_SALLE : 0) + (sousNom[i] ? COUT_SOUS_NOM : 0) + (devantPorte[i] ? COUT_SORTIE_PORTE : 0)
         + (pris[i] ? COUT_CROISEMENT : 0) + (cole ? COUT_LONGE_COULOIR : 0);
     };
     const dirArrivee = INDICE_DIRECTION[OPPOSE[c.vers.mur]];
