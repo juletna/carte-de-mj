@@ -6,11 +6,7 @@
  * texte → analyser() → plan → carte et JSON. Aucune dépendance à un autre outil ni au réseau.
  */
 import { analyser } from './parseur/index.js';
-import { dessinerPlanDonjon } from './rendu/moteur.js';
-import { disposerPlan, salleSous, cleDisposition } from './plan-donjon.js';
-import {
-  PLAN_ZOOM_MIN, PLAN_ZOOM_MAX, zoomBorne, tailleAfficheePlan as tailleDuPlan,
-} from './mise-en-page.js';
+import { disposerPlan, cleDisposition } from './plan-donjon.js';
 import { creerHistorique } from './historique.js';
 import { creerRail, OUTILS_CATALOGUE } from './rail.js';
 import { creerMicro, voixDisponible } from './voix.js';
@@ -24,6 +20,7 @@ import { creerMenu } from './mj/menu-donjon.js';
 import { creerSalleForme } from './mj/salle-forme.js';
 import { creerBulle } from './mj/bulle.js';
 import { creerVueCarte } from './mj/vue-carte.js';
+import { creerVuePlan } from './mj/vue-plan.js';
 import { $, h } from './dom.js';
 import { libelleMicro } from './format.js';
 
@@ -78,13 +75,12 @@ function memoriser(idSalle = donjon().salleActive, liaisons = []) {
 // Contexte des modules mj/ (fabriques `creerX(ctx)`) : ils le lisent au moment de l'appel et ne s'importent pas entre eux.
 // Les fonctions (rendre, modifierPlan, activerSalle…) sont déclarées plus bas dans ce fichier ; les modules s'y ajoutent à mesure.
 const ctx = { etat, donjon, salle, rendre, modifierPlan, annoncerCarte, deselectionner, sauvegarder, historique, activerSalle, afficherSalleActive, dispositionDuDonjon };
-ctx.plan = { ouvrir: ouvrirPlan, dessiner: dessinerPlan, taille: tailleAfficheePlan, majZoom: majZoomPlan, zoomer: zoomerPlan }; // le module de la vue Plan le remplacera
 
 // --- Rendu --------------------------------------------------------------------
 function rendre() {
   const s = salle();
   ctx.carte.oublierZoomSiAutreCarte();
-  if (etat.plan) dessinerPlan(); // le plan est affiché : toute modification du donjon le redessine
+  if (etat.plan) ctx.plan.dessiner(); // le plan est affiché : toute modification du donjon le redessine
   else ctx.carte.redessiner(s.plan);
   ctx.carte.majCarteRef();
   $('annuler').hidden = $('annuler-carte').hidden = pile().length === 0;
@@ -190,7 +186,7 @@ function afficherSalleActive() {
 
 function activerSalle(id) {
   if (!(id in donjon().salles)) return;
-  if (etat.plan) ouvrirPlan(false); // ouvrir une salle (onglet, liste, plan) quitte la vue Plan
+  if (etat.plan) ctx.plan.ouvrir(false); // ouvrir une salle (onglet, liste, plan) quitte la vue Plan
   donjon().salleActive = id;
   afficherSalleActive();
 }
@@ -232,15 +228,8 @@ $('annuler-carte').addEventListener('click', annulerDeplacement); // même actio
 // --- Bulle d'actions de l'élément sélectionné (js/mj/bulle.js) ---
 ctx.bulle = creerBulle(ctx);
 
-// --- Vue Plan : tout le donjon d'un coup, les salles à leur vraie taille (js/plan-donjon.js, moteur.dessinerPlanDonjon) ---
-// Elle remplace la carte de la salle dans la scène (#support, donc les bandes de dimensions et la bulle, est masqué). Son zoom
-// est à part (`zoomPlan`) : la carte de la salle garde le sien. Cliquer une salle quitte le plan et l'ouvre.
-
-/** Côté de case du plan : le zoom choisi, sinon le plan remplit la scène (jamais sous 4 px : au-delà, la scène défile). */
-function tailleAfficheePlan() {
-  const scene = $('scene');
-  return tailleDuPlan({ zoom: etat.zoomPlan, dispo: etat.planDispo, largeur: scene.clientWidth, hauteur: scene.clientHeight });
-}
+// --- Vue Plan : tout le donjon d'un coup (js/mj/vue-plan.js) ---
+ctx.plan = creerVuePlan(ctx);
 
 /** Le calcul essaie plusieurs dispositions : on ne le refait que si les salles, leurs portes ou les liaisons ont changé. */
 function dispositionDuDonjon(d) {
@@ -248,111 +237,6 @@ function dispositionDuDonjon(d) {
   if (cle !== etat.cleDisposition) { etat.cleDisposition = cle; etat.planDispo = disposerPlan(d); }
   return etat.planDispo;
 }
-
-function dessinerPlan() {
-  if (!etat.plan) return;
-  const d = donjon();
-  if (d.id !== etat.clePlan) { etat.clePlan = d.id; etat.zoomPlan = null; }
-  dispositionDuDonjon(d);
-  const t = tailleAfficheePlan();
-  const res = dessinerPlanDonjon($('plan-donjon'), d, etat.planDispo, {
-    taille: t, actif: d.salleActive, survol: etat.planSurvol, grille: r.grille && t >= 24,
-  });
-  etat.planTaille = res.taille;
-  const n = Object.keys(d.salles).length;
-  $('plan-donjon').setAttribute('aria-label', `Plan du donjon « ${d.nom} » : ${n} salle${n > 1 ? 's' : ''}. Clique une salle pour l’ouvrir.`);
-  majListePlan();
-  majZoomPlan();
-}
-
-/** Liste de boutons cachés à l'œil : chaque salle est atteignable au clavier (Tab, Entrée) ; le focus la surligne sur le plan. */
-function majListePlan() {
-  const d = donjon();
-  const salles = modele.listerSalles(d);
-  const signature = JSON.stringify([d.id, d.salleActive, salles.map((s) => [s.id, s.nom])]);
-  if (signature === etat.signatureListePlan) return;
-  etat.signatureListePlan = signature;
-  $('plan-salles').replaceChildren(...salles.map((s) => {
-    const b = h('button', { type: 'button', textContent: `Ouvrir la salle ${s.nom}${s.id === d.salleActive ? ' (affichée)' : ''}` });
-    b.addEventListener('click', () => activerSalle(s.id));
-    b.addEventListener('focus', () => survolerPlan(s.id));
-    b.addEventListener('blur', () => survolerPlan(null));
-    return h('li', {}, b);
-  }));
-}
-
-function survolerPlan(id) {
-  if (etat.planSurvol === id) return;
-  etat.planSurvol = id;
-  $('plan-donjon').classList.toggle('sur-salle', !!id);
-  dessinerPlan();
-}
-
-function majZoomPlan() {
-  const t = etat.planTaille || tailleAfficheePlan();
-  $('zoom-pct').textContent = `${Math.round((t / r.taille) * 100)} %`;
-  for (const id of ['zoom-moins', 'zoom-plus', 'zoom-ajuster']) $(id).disabled = false; // le calibrage ne concerne que la salle
-  $('zoom').title = '';
-  $('zoom-ajuster').setAttribute('aria-pressed', String(!etat.zoomPlan));
-}
-
-/** Zoom du plan (côté de case en px) ; `ancre` ({x, y} en px écran) : la case qui s'y trouve y reste (molette). */
-function zoomerPlan(t, ancre) {
-  const avant = etat.planTaille || tailleAfficheePlan();
-  etat.zoomPlan = zoomBorne(t, PLAN_ZOOM_MIN, PLAN_ZOOM_MAX);
-  let sous = null;
-  if (ancre) {
-    const cv = $('plan-donjon').getBoundingClientRect();
-    sous = [(ancre.x - cv.left) / avant, (ancre.y - cv.top) / avant];
-  }
-  dessinerPlan();
-  if (sous) {
-    const apres = etat.planTaille, cv = $('plan-donjon').getBoundingClientRect();
-    $('scene').scrollLeft += cv.left + sous[0] * apres - ancre.x;
-    $('scene').scrollTop += cv.top + sous[1] * apres - ancre.y;
-  }
-}
-
-/** Affiche (ou quitte) la vue Plan. Quitter ramène à la salle active. Sur téléphone, passe d'abord à l'onglet Carte. */
-function ouvrirPlan(ouvert) {
-  if (etat.plan === ouvert) return;
-  etat.plan = ouvert;
-  $('plan-bouton').setAttribute('aria-pressed', String(ouvert));
-  document.body.classList.toggle('vue-plan', ouvert);
-  $('support').hidden = ouvert;
-  $('plan-donjon').hidden = !ouvert;
-  $('plan-salles').hidden = !ouvert;
-  $('zoom-reel').hidden = ouvert; // « Taille réelle » n'a pas de sens pour un plan entier
-  etat.planSurvol = null;
-  etat.signatureListePlan = '';
-  if (ouvert) {
-    ctx.carte.palette.desarmer(); // un élément armé ne doit pas rester pendant qu'on regarde le plan
-    ctx.carte.ouvrirTiroir(false);
-    if (etat.selection) { deselectionner(); ctx.bulle.maj(); }
-    $('message-carte').hidden = true;
-    etat.zoomPlan = null;
-    onglets?.afficher('carte'); // téléphone : le plan est dans l'onglet Carte (sans effet sur ordinateur)
-    dessinerPlan();
-  } else {
-    ctx.carte.redessiner(salle().plan);
-    ctx.carte.majCarteRef();
-  }
-}
-$('plan-bouton').addEventListener('click', () => ouvrirPlan(!etat.plan));
-$('plan-complet').addEventListener('click', () => ouvrirPlan(true));
-
-/** Salle sous un événement souris ou toucher, d'après la disposition et le côté de case du dernier dessin. */
-function salleDuPlan(e) {
-  if (!etat.planDispo || !etat.planTaille) return null;
-  const cv = $('plan-donjon').getBoundingClientRect();
-  return salleSous(etat.planDispo, (e.clientX - cv.left) / etat.planTaille, (e.clientY - cv.top) / etat.planTaille);
-}
-$('plan-donjon').addEventListener('pointermove', (e) => { if (e.pointerType !== 'touch') survolerPlan(salleDuPlan(e)); });
-$('plan-donjon').addEventListener('pointerleave', () => survolerPlan(null));
-$('plan-donjon').addEventListener('click', (e) => {
-  const id = salleDuPlan(e);
-  if (id) activerSalle(id);
-});
 
 // --- Personnages : les fiches associées au donjon, tirage au hasard (js/mj/personnages-ui.js) ---
 const personnages = creerPersonnages(ctx);
@@ -395,7 +279,7 @@ document.addEventListener('keydown', (e) => {
   if (ctx.carte.tiroirOuvert()) { ctx.carte.ouvrirTiroir(false); $('ajouter').focus(); return; }
   if (ctx.carte.palette.arme()) { ctx.carte.palette.desarmer(); return; }
   if (etat.selection) { deselectionner(); rendre(); return; }
-  if (etat.plan) { ouvrirPlan(false); $('plan-bouton').focus(); }
+  if (etat.plan) { ctx.plan.ouvrir(false); $('plan-bouton').focus(); }
 });
 
 // --- Salles : onglets, liste, liaisons orphelines, miniature du plan (js/mj/salles-liste.js) ---
@@ -444,7 +328,7 @@ document.addEventListener('fullscreenchange', () => { $('quitter-plein-ecran').h
 // --- Écran étroit : onglets Texte / Carte ---------------------------------------------
 // La carte est redessinée (à la taille qui tient) quand on l'affiche ; quand la fenêtre change de taille ou de sens,
 // c'est l'observateur de la scène (plus haut) qui s'en charge.
-const onglets = activerOnglets(document.querySelector('.onglets'), {
+ctx.onglets = activerOnglets(document.querySelector('.onglets'), {
   defaut: 'texte',
   onChange: (nom) => { if (nom === 'carte' && $('scene').clientWidth) { ctx.carte.redessiner(salle().plan); ctx.carte.majCarteRef(); } },
 });

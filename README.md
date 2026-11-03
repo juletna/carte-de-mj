@@ -336,6 +336,7 @@ js/mj/menu-donjon.js  Donjon : menu du donjon (choix, nouveau, modèles, au hasa
 js/mj/salle-forme.js  Donjon : forme, sol et dimensions de la salle (boutons, curseurs, bandes autour de la carte)
 js/mj/bulle.js    Donjon : bulle d'actions de l'élément sélectionné (relier, créer la salle derrière, cacher, supprimer) et sa position
 js/mj/vue-carte.js  Donjon : la carte de la salle (taille, dessin, déplacement, pose, zoom, palette et tiroir, carte bancaire du calibrage)
+js/mj/vue-plan.js  Donjon : la vue Plan (tout le donjon d'un coup : dessin, survol, liste clavier, zoom du plan)
 js/historique.js     historique d'annulation du Donjon : une pile par salle (pur, sans DOM)
 js/mise-en-page.js  calculs de mise en page du Donjon : position de la bulle, pas de zoom, taille du plan complet (pur, sans DOM)
 js/palette.js       palette du Donjon : vignettes de portes, de mobilier et de créatures, pose au clic ou au glisser
