@@ -5,7 +5,8 @@
 import * as m from '../js/donjon.js';
 import { genererFiches, normaliserOptions, decrireTirage, BORNES, CLASSES, RACES, GRAINE_MAX } from '../js/fiche-hasard.js';
 import { genererDonjon } from '../js/generateur.js';
-import { resumerFiche, ajouterPersonnage, STATS } from '../js/personnages.js';
+import { resumerFiche, ajouterPersonnage } from '../js/personnages.js';
+import { STATS } from '../js/fiche/regles.js';
 import { verifier, egal, executerSuite } from './mini-test.js';
 
 const mod = (v) => Math.floor((v - 10) / 2);

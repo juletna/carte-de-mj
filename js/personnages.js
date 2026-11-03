@@ -15,8 +15,9 @@
  * SÉCURITÉ : rien de tout cela ne part à la table : `vueTable` et `miniPlanTable` ne lisent ni `personnages` ni `joueurs`.
  */
 import { estObjet } from './format.js';
+import { STATS } from './fiche/regles.js';
+import { FORMAT_FICHE, VERSION_FICHE, estFiche } from './fiche/format.js';
 
-export const STATS = ['FOR', 'DEX', 'CON', 'INT', 'SAG', 'CHA'];
 const MAX_PERSONNAGES = 30;
 /** Nombre de joueurs qu'on peut indiquer en lançant une partie. */
 export const MAX_JOUEURS = 12;
@@ -32,7 +33,7 @@ const bonusEquipe = (sac) => liste(sac).reduce((total, o) => total + (o.type ===
 
 /** Résumé d'une fiche, par liste blanche. @returns {object|null}  null : ce n'est pas une fiche de personnage */
 export function resumerFiche(brut) {
-  if (!estObjet(brut) || !estObjet(brut.stats)) return null;
+  if (!estFiche(brut)) return null;
   return {
     nom: texte(brut.name ?? brut.nom).trim() || 'Personnage',
     race: texte(brut.race), classe: texte(brut.cls ?? brut.classe), niveau: nombre(brut.lvl ?? brut.niveau, 1),
@@ -47,7 +48,7 @@ export function resumerFiche(brut) {
 
 /** Une fiche lue dans un fichier exporté par l'outil Fiche (`{format:'fiche-partie', personnage}`) ou brute. */
 export function ficheDepuisFichier(brut) {
-  if (brut?.format === 'fiche-partie') return Number(brut.version) > 1 ? null : resumerFiche(brut.personnage);
+  if (brut?.format === FORMAT_FICHE) return Number(brut.version) > VERSION_FICHE ? null : resumerFiche(brut.personnage);
   return resumerFiche(brut);
 }
 

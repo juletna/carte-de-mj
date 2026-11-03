@@ -352,6 +352,7 @@ js/generateur.js    donjon au hasard : paramètres et numéro de tirage → un d
 js/fiche-hasard.js  fiche au hasard : paramètres et numéro de tirage → des fiches complètes au format de l'outil Fiche (pur, sans DOM)
 js/alea.js          tirages reproductibles, communs aux deux générateurs (pur, sans DOM)
 js/personnages.js   fiches associées au donjon : résumé, ajout, validation (pur, sans DOM)
+js/fiche/           ce que la Fiche et le Donjon ont en commun, sans dépendance : `format.js` (clé du navigateur, format du fichier exporté, `estFiche`), `regles.js` (les six caractéristiques) ; `fiche.html` en garde une copie, comparée par un test
 js/carte-personnage.js  une fiche à l'écran, la même dans le Donjon et la régie
 js/formes.js        formes de salle : cases retirées, portes en retrait, murs découpés (calcul pur)
 js/stockage.js      localStorage (donjons, réglages, migration de l'ancien format, mise de côté de ce qui ne se relit pas), export/import JSON

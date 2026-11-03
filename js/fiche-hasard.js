@@ -12,10 +12,10 @@
  *  - dans un groupe, les classes ne se répètent qu'une fois toutes tirées.
  */
 import { generateur, lireGraine, nouvelleGraine, melanger, GRAINE_MAX } from './alea.js';
+import { STATS } from './fiche/regles.js';
 
 export { GRAINE_MAX };
 
-const STATS = ['FOR', 'DEX', 'CON', 'INT', 'SAG', 'CHA'];
 const FLECHES = 'Flèches', CARREAUX = 'Carreaux';
 
 /** Une attaque : `car` est sa caractéristique (`fin` : la meilleure de FOR et DEX). Un sort ne rajoute pas sa caractéristique aux dégâts. */

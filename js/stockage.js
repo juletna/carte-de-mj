@@ -21,6 +21,7 @@
 import { validerDonjon, donjonDepuisAncien, creerDonjon, FORMAT, VERSION, FORMAT_ANCIEN } from './donjon.js';
 import { validerPresentation } from './presentation.js';
 import { fichesDuNavigateur } from './personnages.js';
+import { CLE_FICHES } from './fiche/format.js';
 import { TAILLE_PAR_DEFAUT, ECHELLE_PAR_DEFAUT, MODES_TABLE, tailleReglable } from './affichage.js';
 import { sansAccents, estObjet } from './format.js';
 
@@ -29,7 +30,7 @@ export const CLE_REGLAGES = 'carte-de-mj:reglages-v1';
 export const CLE_PRESENTATIONS = 'carte-de-mj:presentations-v1';
 export const CLE_PARTIE_OUVERTE = 'carte-de-mj:partie-ouverte-v1';
 export const CLE_MODELES = 'carte-de-mj:modeles-v1';
-export const CLE_FICHES = 'dd-fiche-personnages-v1';
+export { CLE_FICHES };
 export const CLE_RETRAIT = 'carte-de-mj:regie-retrait-v1';
 export const CLE_MIS_DE_COTE = 'carte-de-mj:mis-de-cote-v1';
 const CLE_ANCIENNE = `${FORMAT_ANCIEN}:v1`;
