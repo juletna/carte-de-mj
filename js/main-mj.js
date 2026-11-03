@@ -176,6 +176,29 @@ function changerTexte(texte) {
   generer();
 }
 
+/** Plus d'élément sélectionné : la bulle se ferme au prochain `majSelection()` ou `rendre()` (à la charge de l'appelant). */
+function deselectionner() {
+  etat.selection = null;
+  etat.message = '';
+}
+
+/**
+ * Toute modification du plan de la salle affichée passe par ici : `plan` est écrit dans la description (elle reste la seule
+ * référence), qui régénère la carte et le JSON. Dans l'ordre :
+ *  - mémorise la description actuelle pour « Annuler », sauf `memoire: false` (le curseur de forme en cours de glissement) ;
+ *    `liaisons` : liaisons retirées par la modification, rétablies si on annule ;
+ *  - `suivrePortes` : la liaison d'une porte déplacée ou décalée la suit ;
+ *  - désélectionne, sauf `garderSelection` ;
+ *  - `texte` : description à poser à la place de celle que `decrire(plan)` écrit (l'éditeur JSON).
+ */
+function modifierPlan(plan, { memoire = true, liaisons = [], suivrePortes = false, garderSelection = false, texte = null } = {}) {
+  const s = salle();
+  if (memoire) memoriser(s.id, liaisons);
+  if (suivrePortes) modele.suivrePortesDeplacees(donjon(), s.id, s.plan, plan);
+  if (!garderSelection) deselectionner();
+  changerTexte(texte || decrire(plan));
+}
+
 // Mise à jour pendant la frappe, avec un court délai pour rester fluide.
 let minuterie;
 function genererBientot() {
@@ -205,8 +228,7 @@ function majAide() {
 function afficherSalleActive() {
   const garderMini = $('minicarte').contains(document.activeElement); // le focus reste sur la miniature, si c'est là qu'il était
   clearTimeout(minuterie);
-  etat.selection = null;
-  etat.message = '';
+  deselectionner();
   $('description').value = salle().texte;
   $('notes').value = salle().notes;
   $('nom-salle-active').textContent = `· ${salle().nom}`;
@@ -267,17 +289,13 @@ activerDeplacement($('carte'), {
   portesLarges: true, // zone de clic des portes élargie vers l'intérieur ; un glissement sur un pion déplace toujours le pion
   commencer: () => { // un glissement commence : la bulle se ferme
     if (!etat.selection) return;
-    etat.selection = null;
-    etat.message = '';
+    deselectionner();
     majSelection();
   },
   deposer: (nouveau) => {
-    const s = salle();
-    const deplace = modele.elementDeplace(s.plan, nouveau);
-    memoriser();
-    modele.suivrePortesDeplacees(donjon(), s.id, s.plan, nouveau); // la liaison d'une porte déplacée la suit
+    const deplace = modele.elementDeplace(salle().plan, nouveau);
     if (deplace && modele.memeDescripteur(etat.selection, deplace.avant)) etat.selection = deplace.apres;
-    changerTexte(decrire(nouveau));
+    modifierPlan(nouveau, { suivrePortes: true, garderSelection: true }); // la liaison d'une porte déplacée la suit
   },
   cliquer: (touche) => {
     etat.selection = touche ? modele.descripteur(touche.genre, touche.element) : null;
@@ -304,10 +322,7 @@ function supprimerSelection() {
   const s = salle();
   const res = modele.supprimerElement(donjon(), s.id, etat.selection);
   if (!res) return;
-  memoriser(s.id, res.liaisonsRetirees);
-  etat.selection = null;
-  etat.message = '';
-  changerTexte(decrire(res.plan));
+  modifierPlan(res.plan, { liaisons: res.liaisonsRetirees });
 }
 
 function majSelection() {
@@ -323,7 +338,7 @@ function majSelection() {
   zone.hidden = false;
   const el = trouve.element;
   const contenu = [
-    bouton(LIBELLE_FERMER, () => { etat.selection = null; etat.message = ''; rendre(); }, 'discret petit fermer-selection'),
+    bouton(LIBELLE_FERMER, () => { deselectionner(); rendre(); }, 'discret petit fermer-selection'),
     h('p', { className: 'selection-titre', textContent: libelleSelection(trouve) }),
   ];
 
@@ -376,8 +391,7 @@ function majSelection() {
   const basculer = bouton(el.cache === true ? 'Rendre visible' : 'Marquer comme caché', () => {
     const nouveau = modele.basculerCache(s.plan, etat.selection);
     if (!nouveau) return;
-    memoriser();
-    changerTexte(decrire(nouveau));
+    modifierPlan(nouveau, { garderSelection: true });
   }, 'discret');
   let supprimer;
   if (lien) {
@@ -428,8 +442,7 @@ $('scene').addEventListener('scroll', placerBulle, { passive: true });
 $('scene').addEventListener('pointerdown', (e) => {
   if (tiroirOuvert() && (e.target === $('scene') || e.target === $('support'))) ouvrirTiroir(false); // un appui dans le vide ferme le tiroir
   if (!etat.selection ||(e.target !== $('scene') && e.target !== $('support'))) return;
-  etat.selection = null;
-  etat.message = '';
+  deselectionner();
   rendre();
 });
 
@@ -594,7 +607,7 @@ function ouvrirPlan(ouvert) {
   if (ouvert) {
     palette.desarmer(); // un élément armé ne doit pas rester pendant qu'on regarde le plan
     ouvrirTiroir(false);
-    if (etat.selection) { etat.selection = null; etat.message = ''; majSelection(); }
+    if (etat.selection) { deselectionner(); majSelection(); }
     $('message-carte').hidden = true;
     etat.zoomPlan = null;
     onglets?.afficher('carte'); // téléphone : le plan est dans l'onglet Carte (sans effet sur ordinateur)
@@ -740,10 +753,7 @@ function appliquerForme(champs, { sansMemoire = false } = {}) {
   const s = salle();
   const res = changerForme(s.plan, champs);
   if (res.erreur) { annoncerCarte(res.erreur, true); return; }
-  if (!sansMemoire) memoriser();
-  etat.selection = null;
-  etat.message = '';
-  changerTexte(decrire(res.plan));
+  modifierPlan(res.plan, { memoire: !sansMemoire });
   if (res.deplaces) annoncerCarte(`${res.deplaces} élément${res.deplaces > 1 ? 's poussés' : ' poussé'} sur le sol de la nouvelle forme.`);
 }
 
@@ -781,10 +791,7 @@ function majForme() {
 // Le sol : la description suit, comme si « sol en bois » y avait été écrit.
 $('salle-sol').replaceChildren(...SOLS.map((sol) => h('option', { value: sol, textContent: NOMS_SOLS[sol] })));
 $('salle-sol').addEventListener('change', (e) => {
-  memoriser();
-  etat.selection = null;
-  etat.message = '';
-  changerTexte(decrire({ ...salle().plan, sol: e.target.value }));
+  modifierPlan({ ...salle().plan, sol: e.target.value });
 });
 
 let enGlissementForme = false;
@@ -802,11 +809,7 @@ function appliquerDimensions(cote, delta) {
   const s = salle();
   const res = redimensionner(s.plan, cote, delta);
   if (res.erreur) { annoncerCarte(res.erreur, true); return; }
-  memoriser();
-  modele.suivrePortesDeplacees(donjon(), s.id, s.plan, res.plan);
-  etat.selection = null;
-  etat.message = '';
-  changerTexte(decrire(res.plan));
+  modifierPlan(res.plan, { suivrePortes: true });
   annoncerCarte(`Salle de ${res.plan.largeur} × ${res.plan.longueur} cases.`);
 }
 
@@ -882,10 +885,7 @@ function poserSurCarte(item, clientX, clientY) {
   const t = tailleAffichee(salle().plan);
   const res = ajouterElement(salle().plan, item, (clientX - cv.left) / t - MARGE, (clientY - cv.top) / t - MARGE);
   if (res.erreur) { annoncerCarte(res.erreur, true); return false; }
-  memoriser();
-  etat.selection = null;
-  etat.message = '';
-  changerTexte(decrire(res.plan));
+  modifierPlan(res.plan);
   annoncerCarte(res.message);
   return true;
 }
@@ -953,7 +953,7 @@ document.addEventListener('keydown', (e) => {
   if (!$('menu-donjon').hidden) { fermerMenu(); $('menu-donjon-bouton').focus(); return; }
   if (tiroirOuvert()) { ouvrirTiroir(false); $('ajouter').focus(); return; }
   if (palette.arme()) { palette.desarmer(); return; }
-  if (etat.selection) { etat.selection = null; etat.message = ''; rendre(); return; }
+  if (etat.selection) { deselectionner(); rendre(); return; }
   if (etat.plan) { ouvrirPlan(false); $('plan-bouton').focus(); }
 });
 
@@ -1302,8 +1302,7 @@ function appliquerPlan(brut, texte) {
   afficherErreursJson(erreurs);
   if (!plan) return;
   // Le JSON modifié réécrit la description, qui régénère la carte : tout reste aligné.
-  memoriser();
-  changerTexte(texte || decrire(plan));
+  modifierPlan(plan, { garderSelection: true, texte });
   if (!ok) $('compris').prepend(h('li', { textContent: 'plan chargé, avec des éléments écartés' }));
 }
 
