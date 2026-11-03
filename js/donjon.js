@@ -22,7 +22,7 @@
  * plans, format versionné.
  */
 import { validerPersonnages } from './personnages.js';
-import { validerPlan } from './schema.js';
+import { validerPlan, LISTES } from './schema.js';
 import { MURS, OPPOSE, longueurMur } from './murs.js';
 import { analyser } from './parseur/index.js';
 import { decrire } from './parseur/decrire.js';
@@ -64,7 +64,6 @@ export function planDepuisTexte(texte, idSalle, echelle = 1.5) {
 export function descripteur(genre, e) {
   return genre === 'porte' ? { genre, mur: e.mur, position: e.position } : { genre, type: e.type, x: e.x, y: e.y };
 }
-const LISTES = { porte: 'portes', objet: 'objets', creature: 'creatures' };
 const memeDescripteur = (a, b) => !!a && !!b && a.genre === b.genre && (a.genre === 'porte'
   ? a.mur === b.mur && a.position === b.position
   : a.type === b.type && a.x === b.x && a.y === b.y);

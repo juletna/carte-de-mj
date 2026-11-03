@@ -12,7 +12,7 @@ import { OBJETS, CREATURES, PORTES, definition, nomAffiche } from './parseur/lex
 import { nomCase } from './parseur/coordonnees.js';
 import { normaliserForme, surLeSol } from './formes.js';
 import { REGARD, REGARD_VERS, estHorizontal, longueurMur } from './murs.js';
-import { CASES_MAX } from './schema.js';
+import { CASES_MAX, LISTES } from './schema.js';
 
 /** Marge tolérée autour de la salle pour viser un mur avec une porte, en cases. */
 const MARGE_PORTE = 1;
@@ -175,8 +175,6 @@ export function ajouterElement(plan, item, cx, cy) {
 }
 
 // --- Retirer ---------------------------------------------------------------------------
-
-const LISTES = { porte: 'portes', objet: 'objets', creature: 'creatures' };
 
 /**
  * Copie du plan sans l'élément trouvé par `retrouverElement` ({ genre, liste, index }). Les numéros des autres pions ne

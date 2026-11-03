@@ -42,7 +42,7 @@
 import * as modele from './donjon.js';
 import { validerDonjon, liaisonDePorte } from './donjon.js';
 import { MURS, OPPOSE, longueurMur } from './murs.js';
-import { validerPlan, ETATS } from './schema.js';
+import { validerPlan, ETATS, LISTES } from './schema.js';
 import { definition } from './parseur/lexique.js';
 import { analyser } from './parseur/index.js';
 import { decrire } from './parseur/decrire.js';
@@ -61,7 +61,6 @@ export const CANAL = 'carte-de-mj-presentation';
 
 const dictionnaire = () => Object.create(null);
 const estObjet = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
-const LISTES = { porte: 'portes', objet: 'objets', creature: 'creatures' };
 /** Longueur maximale d'une note de partie (comme les notes de préparation). */
 const MAX_NOTE = 20000;
 /** Ce que le MJ peut retirer de la table. Les pions des joueurs restent : « monstres » veut dire tout pion qui n'est pas pj (PNJ compris). */

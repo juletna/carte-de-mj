@@ -25,6 +25,7 @@ import { MARGE } from './rendu/moteur.js';
 import { largeurDe, hauteurDe, murProche, positionSurMur, evaluerPose } from './pose.js';
 import { retraitPorte } from './formes.js';
 import { estHorizontal } from './murs.js';
+import { LISTES } from './schema.js';
 
 const SEUIL_GLISSEMENT = 4; // px : en dessous, c'est un clic
 export const BANDE_PORTE = 0.5; // cases : profondeur ajoutée à la zone de clic d'une porte (option `portesLarges`)
@@ -85,7 +86,7 @@ export function activerDeplacement(canvas, { plan, taille, apercu, deposer, cliq
   /** Copie du plan où l'élément attrapé est remplacé par sa version déplacée. */
   function planAvec(modifs) {
     const p = plan();
-    const liste = { creature: 'creatures', objet: 'objets', porte: 'portes' }[prise.genre];
+    const liste = LISTES[prise.genre];
     return { ...p, [liste]: p[liste].map((e) => (e === prise.element ? { ...e, ...modifs } : e)) };
   }
 

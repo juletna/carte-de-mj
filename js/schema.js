@@ -39,6 +39,9 @@ export const ETATS = ['blesse', 'mort'];
 /** Côté maximal d'une salle, en cases : la même limite pour le schéma, le parseur et la pose. */
 export const CASES_MAX = 60;
 
+/** Le genre d'un élément du plan (porte, objet, créature) → la liste du plan qui le contient. */
+export const LISTES = { porte: 'portes', objet: 'objets', creature: 'creatures' };
+
 const entier = (v) => Number.isInteger(v);
 /** `cache: true` conservé tel quel ; toute autre valeur est ignorée (le champ n'existe alors pas). */
 const marqueCache = (e) => (e?.cache === true ? { cache: true } : {});

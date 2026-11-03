@@ -23,6 +23,7 @@ import { activerDeplacement } from './deplacement.js';
 import { creerMiniPlan } from './miniplan.js';
 import { carteFiche, carteJoueur } from './carte-personnage.js';
 import { MAX_JOUEURS } from './personnages.js';
+import { LISTES } from './schema.js';
 import { nomCase, libelleSelection, libelleDePorte } from './parseur/coordonnees.js';
 import { nomAffiche } from './parseur/lexique.js';
 import { creerMicro } from './voix.js';
@@ -556,7 +557,6 @@ function demarrerRegie() {
   $('quitter').addEventListener('click', () => { if (!commande.retrait) stockage.oublierPartieOuverte(); afficherDepart(); });
 
   // --- Rendu de la régie ---------------------------------------------------------------------------
-  const LISTES = { porte: 'portes', objet: 'objets', creature: 'creatures' };
   const trouver = (plan, sel) => {
     const e = sel && (plan[LISTES[sel.genre]] || []).find((x) => x.id === sel.id);
     return e ? { genre: sel.genre, element: e } : null;
