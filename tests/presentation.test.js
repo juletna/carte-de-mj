@@ -335,6 +335,32 @@ const TESTS = [
     egal(p.miniPlanTable({ donjon: { salles: {} }, salleCourante: 'x' }), null, 'pas de salle courante : pas d’encart');
   }],
 
+  ['encart de la table : les portes pas encore ouvertes sont marquées, sans rien dire de ce qu’il y a derrière', () => {
+    const { d, a, b } = donjonDeTest();
+    const pres = p.creerPresentation(d, { salleDepart: a.id });
+    const portes = (mini) => mini.portesFermees.map((q) => [mini.plans[q.salle].largeur, q.mur, q.position]);
+    egal(portes(p.miniPlanTable(pres)), [[8, 'est', 2]], 'au départ : la porte est de A, pas la porte secrète');
+    p.afficherATable(pres, b.id);
+    egal(portes(p.miniPlanTable(pres)), [[6, 'sud', 2]], 'A et B sont reliées : leur porte est ouverte, reste celle vers C');
+    const sans = m.ajouterSalle(d, { nom: 'Vide', texte: 'Salle de 5 par 5 cases, une porte au mur est en 2.' });
+    const pres2 = p.creerPresentation(d, { salleDepart: sans.id });
+    const mini = p.miniPlanTable(pres2);
+    egal(portes(mini), [[5, 'est', 1]], 'une porte reliée à rien est marquée pareil');
+    verifier(!JSON.stringify(mini.portesFermees).includes(sans.id), 'aucun identifiant de salle');
+    const secrete = pres.donjon.salles[a.id].plan.portes.find((q) => q.cache);
+    p.revelerElement(pres, a.id, secrete.id);
+    p.afficherATable(pres, a.id);
+    verifier(portes(p.miniPlanTable(pres)).some(([l, mur]) => l === 8 && mur === secrete.mur), 'révélée : elle compte comme non ouverte');
+    egal(p.portesNonOuvertes(pres, disposerPlan(pres.donjon)).length, p.miniPlanTable(pres).portesFermees.length, 'la régie voit les mêmes');
+    const relue = p.recevoirMiniPlan(p.miniPlanTable(pres));
+    egal(relue.portesFermees, p.miniPlanTable(pres).portesFermees, 'la table les relit');
+    const base = p.miniPlanTable(pres);
+    for (const faux of [{ salle: 'autre', mur: 'est', position: 0 }, { salle: base.actif, mur: 'haut', position: 0 }, { salle: base.actif, mur: 'est', position: -1 }, { salle: 'constructor', mur: 'est', position: 0 }]) {
+      egal(p.recevoirMiniPlan({ ...base, portesFermees: [faux] }), null, `refusé : ${JSON.stringify(faux)}`);
+    }
+    verifier(!JSON.stringify(p.recevoirMiniPlan({ ...base, portesFermees: [{ salle: base.actif, mur: 'est', position: 0, nom: 'SECRET' }] })).includes('SECRET'), 'champ inconnu écarté');
+  }],
+
   ['encart de la table : un élément caché reste caché, révélé il apparaît', () => {
     const { d, a } = donjonDeTest();
     const pres = p.creerPresentation(d, { salleDepart: a.id });

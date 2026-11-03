@@ -459,6 +459,38 @@ export function vueTable(p) {
 }
 
 /**
+ * Ce que les joueurs connaissent du plan : les salles découvertes, les couloirs entre elles, et les portes pas encore ouvertes.
+ * Une porte non ouverte est une porte visible d'une salle découverte, sans couloir connu derrière elle. Elle mène à une salle
+ * non découverte, ou à rien : une porte non reliée est marquée pareil, le marquage ne dit donc pas ce qu'il y a derrière.
+ * @returns {{connues:Set<string>, couloirs:object[], fermees:Array<{salle:string,mur:string,position:number}>}}
+ */
+function ceQuiEstConnu(p, disposition) {
+  const d = p.donjon;
+  const connues = new Set((p.decouvertes || []).filter((id) => id in d.salles && disposition.positions[id]));
+  connues.add(p.salleCourante);
+  const visible = (salle, porte) => !estCache(porte) || estRevele(p, salle, porte.id);
+  const porteVisible = ({ salle, mur, position }) => {
+    const porte = d.salles[salle].plan.portes.find((q) => q.mur === mur && q.position === position);
+    return !!porte && visible(salle, porte);
+  };
+  const liaisons = new Map((d.liaisons || []).map((l) => [l.id, l]));
+  const montrable = (c) => {
+    const l = liaisons.get(c.liaison);
+    return !!l && !c.orpheline && connues.has(l.a.salle) && connues.has(l.b.salle) && porteVisible(l.a) && porteVisible(l.b);
+  };
+  const couloirs = disposition.couloirs.filter(montrable);
+  const cle = ({ salle, mur, position }) => `${salle}|${mur}|${position}`;
+  const ouvertes = new Set(couloirs.flatMap((c) => { const l = liaisons.get(c.liaison); return [cle(l.a), cle(l.b)]; }));
+  const fermees = [...connues].flatMap((salle) => d.salles[salle].plan.portes
+    .filter((q) => visible(salle, q) && !ouvertes.has(cle({ salle, mur: q.mur, position: q.position })))
+    .map((q) => ({ salle, mur: q.mur, position: q.position })));
+  return { connues, couloirs, fermees };
+}
+
+/** Portes pas encore ouvertes, pour la miniature de la régie. */
+export const portesNonOuvertes = (p, disposition) => ceQuiEstConnu(p, disposition).fermees;
+
+/**
  * L'encart de la table : le plan du donjon, dessiné comme partout (`dessinerPlanDonjon`), réduit à ce que les joueurs connaissent.
  * Seules les salles DÉCOUVERTES y sont, avec ce qu'on y voit à la table (planPublic : liste blanche, sans nom) mais sans pions :
  * ils ont pu bouger depuis. Un couloir n'y figure que si ses deux salles sont découvertes et ses deux portes visibles
@@ -467,39 +499,32 @@ export function vueTable(p) {
  * @param {object} p  la présentation
  * @param {object} [disposition]  résultat de disposerPlan(p.donjon), si l'appelant l'a déjà
  * @returns {{largeur:number, longueur:number, actif:string, plans:Object<string,object>, positions:Object<string,{x,y,largeur,longueur}>,
- *            couloirs:Array<{chemin:Array<{x,y}>}>, ponts:Array<{x,y,horizontal:boolean}>}|null}
+ *            couloirs:Array<{chemin:Array<{x,y}>}>, ponts:Array<{x,y,horizontal:boolean}>,
+ *            portesFermees:Array<{salle:string,mur:string,position:number}>}|null}
  */
 export function miniPlanTable(p, disposition = p?.donjon?.salles ? disposerPlan(p.donjon) : null) {
   const d = p?.donjon;
   if (!d?.salles?.[p.salleCourante] || !disposition) return null;
-  const connues = new Set((p.decouvertes || []).filter((id) => id in d.salles && disposition.positions[id]));
-  connues.add(p.salleCourante);
-  const porteVisible = ({ salle, mur, position }) => {
-    const porte = d.salles[salle].plan.portes.find((q) => q.mur === mur && q.position === position);
-    return !!porte && (!estCache(porte) || estRevele(p, salle, porte.id));
-  };
-  const liaisons = new Map((d.liaisons || []).map((l) => [l.id, l]));
-  const montrable = (c) => {
-    const l = liaisons.get(c.liaison);
-    return !!l && !c.orpheline && connues.has(l.a.salle) && connues.has(l.b.salle) && porteVisible(l.a) && porteVisible(l.b);
-  };
-  const couloirs = disposition.couloirs.filter(montrable).map((c) => ({ chemin: cheminCouloir(c).map((q) => ({ x: q.x, y: q.y })) }));
+  const { connues, couloirs: visibles, fermees } = ceQuiEstConnu(p, disposition);
+  const couloirs = visibles.map((c) => ({ chemin: cheminCouloir(c).map((q) => ({ x: q.x, y: q.y })) }));
   const rects = [...connues].map((id) => ({ id, ...disposition.positions[id] }));
-  const positions = {}, plans = {};
+  const positions = {}, plans = {}, cles = new Map();
   let actif = null;
   rects.forEach((r, i) => {
     const cle = `s${i}`; // jamais l'identifiant de la salle
+    cles.set(r.id, cle);
     positions[cle] = { x: r.x, y: r.y, largeur: r.largeur, longueur: r.longueur };
     const reveles = new Set(Array.isArray(p.reveles?.[r.id]) ? p.reveles[r.id] : []);
     plans[cle] = planPublic(d.salles[r.id].plan, { visible: (e) => !estCache(e) || reveles.has(e.id), garder: () => false });
     if (r.id === p.salleCourante) actif = cle;
   });
-  return { largeur: disposition.largeur, longueur: disposition.longueur, actif, plans, positions, couloirs, ponts: pontsDe(couloirs) };
+  const portesFermees = fermees.map((q) => ({ salle: cles.get(q.salle), mur: q.mur, position: q.position }));
+  return { largeur: disposition.largeur, longueur: disposition.longueur, actif, plans, positions, couloirs, ponts: pontsDe(couloirs), portesFermees };
 }
 
 /**
  * Côté fenêtre table : relit un encart reçu, champ par champ, et chaque salle comme une vue de table. Le moindre écart : pas d'encart.
- * @returns {object|null}  { donjon, disposition, actif }, prêts pour `dessinerPlanDonjon`
+ * @returns {object|null}  { donjon, disposition, actif, portesFermees }, prêts pour `dessinerPlanDonjon`
  */
 export function recevoirMiniPlan(brut) {
   const n = (v) => Number.isFinite(v) && v >= 0;
@@ -508,6 +533,8 @@ export function recevoirMiniPlan(brut) {
   if (typeof brut.actif !== 'string' || !(brut.actif in brut.positions)) return null;
   const point = (q) => objet(q) && n(q.x) && n(q.y);
   if (!brut.couloirs.every((c) => Array.isArray(c?.chemin) && c.chemin.every(point)) || !brut.ponts.every(point)) return null;
+  const fermeesBrutes = Array.isArray(brut.portesFermees) ? brut.portesFermees : [];
+  if (!fermeesBrutes.every((q) => objet(q) && Object.hasOwn(brut.positions, q.salle) && ['nord', 'sud', 'est', 'ouest'].includes(q.mur) && Number.isInteger(q.position) && q.position >= 0)) return null;
   const positions = {}, salles = {};
   for (const [cle, r] of Object.entries(brut.positions)) {
     if (!/^s\d+$/.test(cle) || !objet(r) || !n(r.x) || !n(r.y) || !n(r.largeur) || !n(r.longueur)) return null;
@@ -518,6 +545,7 @@ export function recevoirMiniPlan(brut) {
   }
   return {
     actif: brut.actif,
+    portesFermees: fermeesBrutes.map((q) => ({ salle: q.salle, mur: q.mur, position: q.position })),
     donjon: { salles },
     disposition: {
       largeur: brut.largeur, longueur: brut.longueur, positions, isolees: [], etiquetteIsolees: null,

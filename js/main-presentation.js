@@ -75,9 +75,9 @@ function rendreEcranTable() {
   mini.hidden = !ecran.plan || !ecran.mini;
   if (!ecran.plan) return;
   if (ecran.mini) {
-    const { donjon, disposition, actif } = ecran.mini;
+    const { donjon, disposition, actif, portesFermees } = ecran.mini;
     const taille = tailleQuiTientPlan(disposition, Math.min(window.innerWidth * 0.28, 400), Math.min(window.innerHeight * 0.36, 340));
-    dessinerPlanDonjon(mini, donjon, disposition, { taille, actif, noms: false, pions: false, surbrillance: true });
+    dessinerPlanDonjon(mini, donjon, disposition, { taille, actif, portesFermees, noms: false, pions: false, surbrillance: true });
   }
   const taille = tailleEcranTable();
   carte.dataset.taille = String(taille); // mesurable (tests, vérification) ; aucun secret
@@ -718,6 +718,7 @@ function demarrerRegie() {
     majMiniPlan({
       donjon: p.donjon, disposition: dispositionDePartie(), actif: etat.consultee, courante: p.salleCourante,
       inconnues: Object.keys(p.donjon.salles).filter((id) => !pres.estDecouverte(p, id)),
+      portesFermees: pres.portesNonOuvertes(p, dispositionDePartie()),
     });
   }
 

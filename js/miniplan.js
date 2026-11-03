@@ -14,7 +14,7 @@ const HAUTEUR_MAX = 320;     // px : un donjon tout en hauteur ne repousse pas l
 /**
  * @param {HTMLElement} conteneur
  * @param {{onChoisir:(id:string)=>void, libelle:(salle:object)=>string}} rappels  libelle : texte du bouton clavier d'une salle
- * @returns {(donnees:{donjon:object, disposition:object, actif?:string, courante?:string, inconnues?:string[]})=>void} mise à jour
+ * @returns {(donnees:{donjon:object, disposition:object, actif?:string, courante?:string, inconnues?:string[], portesFermees?:object[]})=>void} mise à jour
  */
 export function creerMiniPlan(conteneur, { onChoisir, libelle }) {
   const canvas = document.createElement('canvas');
@@ -28,10 +28,10 @@ export function creerMiniPlan(conteneur, { onChoisir, libelle }) {
 
   function dessiner() {
     if (!donnees) return;
-    const { donjon, disposition, actif, courante, inconnues } = donnees;
+    const { donjon, disposition, actif, courante, inconnues, portesFermees } = donnees;
     largeurVue = conteneur.clientWidth;
     taille = tailleQuiTientPlan(disposition, largeurVue || LARGEUR_DEFAUT, HAUTEUR_MAX);
-    const res = dessinerPlanDonjon(canvas, donjon, disposition, { taille, actif, survol, courante, inconnues, noms: false, pions: false, surbrillance: true });
+    const res = dessinerPlanDonjon(canvas, donjon, disposition, { taille, actif, survol, courante, inconnues, portesFermees, noms: false, pions: false, surbrillance: true });
     taille = res.taille;
   }
 

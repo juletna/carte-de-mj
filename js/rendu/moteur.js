@@ -126,11 +126,30 @@ const CANVAS_SURFACE_MAX = 16_000_000;
  *        actif = salle affichée (cadre et nom en couleur d'accent) ; survol = salle sous le curseur (surlignée)
  *        noms, pions = false pour une miniature ; surbrillance = la salle active est aussi teintée, pour se voir en tout petit
  *        courante = salle à la table (cadre vert) ; inconnues = salles pas encore découvertes (assombries) : régie
+ *        portesFermees = portes pas encore ouvertes [{salle, mur, position}] : un trait rouge cerné de blanc sur le mur
  * @returns {{taille:number, largeur:number, hauteur:number}} côté de case réellement utilisé et taille CSS du canvas
  */
 /** Côté de case pour qu'un plan tienne dans un cadre, sans jamais grossir au-delà de `plafond` px (miniatures). */
 export function tailleQuiTientPlan(disposition, largeurMax, hauteurMax, plafond = 16) {
   return Math.max(1, Math.min(largeurMax / disposition.largeur, hauteurMax / disposition.longueur, plafond));
+}
+
+/** Une porte pas encore ouverte : un trait rouge cerné de blanc, posé sur le mur, assez épais pour se voir en tout petit. */
+function dessinerPorteFermee(ctx, p, plan, { mur, position }, t) {
+  const horizontal = mur === 'nord' || mur === 'sud';
+  const d = retraitPorte(plan, mur, position);
+  const long = Math.max(10, t * 1.1), epais = Math.max(6, t * 0.4);
+  const le = (position + 0.5) * t;
+  const cx = p.x * t + (horizontal ? le : mur === 'ouest' ? d * t - EPAISSEUR_MUR * t / 2 : (p.largeur - d + EPAISSEUR_MUR / 2) * t);
+  const cy = p.y * t + (!horizontal ? le : mur === 'nord' ? d * t - EPAISSEUR_MUR * t / 2 : (p.longueur - d + EPAISSEUR_MUR / 2) * t);
+  const l = horizontal ? long : epais, h = horizontal ? epais : long;
+  ctx.save();
+  const contour = Math.max(1, t * 0.06); // à l'extérieur du rouge : le contour ne le ronge pas
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(cx - l / 2 - contour, cy - h / 2 - contour, l + 2 * contour, h + 2 * contour);
+  ctx.fillStyle = '#e5242a';
+  ctx.fillRect(cx - l / 2, cy - h / 2, l, h);
+  ctx.restore();
 }
 
 /** Un pont de planches là où deux couloirs se croisent : le couloir du dessus continue, celui du dessous passe sous lui. */
@@ -158,7 +177,7 @@ function dessinerPont(ctx, { x, y, horizontal }, t) {
   ctx.restore();
 }
 
-export function dessinerPlanDonjon(canvas, d, disposition, { taille = 16, actif = null, survol = null, grille = false, theme = vectoriel, noms = true, pions = true, surbrillance = false, courante = null, inconnues = [] } = {}) {
+export function dessinerPlanDonjon(canvas, d, disposition, { taille = 16, actif = null, survol = null, grille = false, theme = vectoriel, noms = true, pions = true, surbrillance = false, courante = null, inconnues = [], portesFermees = [] } = {}) {
   const casesL = disposition.largeur, casesH = disposition.longueur;
   let dpr = window.devicePixelRatio || 1;
   let t = Math.max(1, taille);
@@ -231,6 +250,10 @@ export function dessinerPlanDonjon(canvas, d, disposition, { taille = 16, actif 
   for (const id of inconnues) cadre(id, '#55525a', 1, 'rgba(10, 10, 14, 0.62)');
   if (courante && courante !== actif) cadre(courante, '#7cc47c', Math.max(2, t * 0.18), null);
   if (survol && survol !== actif) cadre(survol, '#f4efe4', Math.max(2, t * 0.12), 'rgba(255, 255, 255, 0.14)');
+  for (const q of portesFermees) {
+    const p = disposition.positions[q.salle], s = d.salles[q.salle];
+    if (p && s) dessinerPorteFermee(ctx, p, s.plan, q, t);
+  }
   if (actif) cadre(actif, '#d9a929', Math.max(surbrillance ? 2 : 3, t * 0.18), surbrillance ? 'rgba(240, 198, 74, 0.55)' : survol === actif ? 'rgba(255, 255, 255, 0.1)' : null);
 
   if (!noms) return { taille: t, largeur: largeurPx, hauteur: hauteurPx };
