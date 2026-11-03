@@ -10,6 +10,7 @@
  */
 import { OBJETS, CREATURES, PORTES, definition, nomAffiche } from './parseur/lexique.js';
 import { nomCase } from './parseur/coordonnees.js';
+import { normaliserForme, surLeSol } from './formes.js';
 
 /** Regard d'un objet au mur : dos au mur, vers l'intérieur. */
 export const REGARD = { nord: 180, sud: 0, ouest: 90, est: 270 };
@@ -44,7 +45,7 @@ export function positionSurMur(mur, cx, cy, plan) {
  * @returns {{ok:true, modifs:object}|{ok:false, raison:'hors'|'gene'}}
  */
 export function evaluerPose(plan, genre, el, x, y, ignorer = null) {
-  if (x < 0 || y < 0 || x + largeurDe(el) > plan.largeur || y + hauteurDe(el) > plan.longueur) return { ok: false, raison: 'hors' };
+  if (!surLeSol(plan, x, y, largeurDe(el), hauteurDe(el))) return { ok: false, raison: 'hors' };
   const creatures = plan.creatures || [];
   if (genre === 'creature') {
     return creatures.some((k) => k !== ignorer && seChevauchent(el, x, y, k)) ? { ok: false, raison: 'gene' } : { ok: true, modifs: { x, y } };
@@ -217,5 +218,43 @@ export function redimensionner(plan, cote, delta) {
   const portes = plan.portes.map((p) => ({ ...p, position: p.position + (p.mur === 'nord' || p.mur === 'sud' ? dx : dy) }));
   const porteDehors = portes.find((p) => p.position < 0 || p.position >= (p.mur === 'nord' || p.mur === 'sud' ? largeur : longueur));
   if (porteDehors) return { erreur: `Impossible de réduire : une ${porteDehors.type} au mur ${porteDehors.mur} serait hors de la salle.` };
-  return { plan: { ...plan, largeur, longueur, portes, objets: plan.objets.map(decale), creatures: creatures.map(decale) } };
+  return recaler({ ...plan, largeur, longueur, portes, objets: plan.objets.map(decale), creatures: creatures.map(decale) });
+}
+
+/**
+ * Remet sur le sol ce qui se retrouve sur une case retirée : à la case libre la plus proche où il peut se poser.
+ * @returns {{plan:object, deplaces:number}|{erreur:string}}
+ */
+function recaler(plan) {
+  let courant = plan, deplaces = 0;
+  for (const [genre, liste] of [['objet', 'objets'], ['creature', 'creatures']]) {
+    for (const e of plan[liste] || []) {
+      if (surLeSol(plan, e.x, e.y, largeurDe(e), hauteurDe(e))) continue;
+      const place = caseLaPlusProche(courant, genre, e);
+      if (!place) return { erreur: `Plus de place pour : ${nomAffiche(e.type)} en ${nomCase(e.x, e.y)}.` };
+      courant = { ...courant, [liste]: courant[liste].map((o) => (o === e || o.id === e.id ? { ...o, ...place } : o)) };
+      deplaces++;
+    }
+  }
+  return { plan: courant, deplaces };
+}
+
+function caseLaPlusProche(plan, genre, e) {
+  let meilleur = null, distance = Infinity;
+  for (let y = 0; y < plan.longueur; y++) for (let x = 0; x < plan.largeur; x++) {
+    const d = Math.hypot(x - e.x, y - e.y);
+    if (d >= distance) continue;
+    const pose = evaluerPose(plan, genre, e, x, y, e);
+    if (pose.ok) { meilleur = pose.modifs; distance = d; }
+  }
+  return meilleur;
+}
+
+/**
+ * Change la forme de la salle (champs : forme, bras, position). Ce qui tombe sur une case retirée se pousse à côté.
+ * @returns {{plan:object, deplaces:number}|{erreur:string}}
+ */
+export function changerForme(plan, champs) {
+  const { forme, bras, position, ...reste } = plan;
+  return recaler({ ...reste, ...normaliserForme(champs) });
 }

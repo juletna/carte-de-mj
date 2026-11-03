@@ -7,6 +7,7 @@
  *   marqueLiaison(ctx, rect, mur, t, p)   porte reliée : pastille « → N » (p.vers = numéro de la salle de destination)
  * Les tailles de trait sont proportionnelles à la case, avec un minimum en pixels (le canvas d'impression est à ~254 ppp).
  */
+import { casesRetirees, retraitPorte, tracerSol, dessinerMursDecoupes } from '../../formes.js';
 import { CREATURES } from '../../parseur/lexique.js';
 import { dessinerPortrait } from '../portraits.js';
 
@@ -62,11 +63,14 @@ export function roche(ctx, W, H) {
 /** Le sol reste blanc : c'est la grille qui compte pour les figurines. */
 export function sol(ctx, plan, t) {
   ctx.fillStyle = '#fff';
-  ctx.fillRect(0, 0, plan.largeur * t, plan.longueur * t);
+  tracerSol(ctx, plan, t);
+  ctx.fill();
 }
 
 export function grille(ctx, plan, t) {
   ctx.save();
+  tracerSol(ctx, plan, t);
+  ctx.clip();
   ctx.strokeStyle = GRIS;
   ctx.lineWidth = trait(t, 0.012);
   ctx.beginPath();
@@ -81,6 +85,7 @@ const epaisseur = (t) => t * 0.32;
 
 export function murs(ctx, plan, t) {
   const e = epaisseur(t);
+  if (casesRetirees(plan).size) { dessinerMursDecoupes(ctx, plan, t, e, { fond: CLAIR, trait: NOIR, epaisseurTrait: trait(t, 0.025), joints: false }); return; }
   const W = plan.largeur * t, L = plan.longueur * t;
   ctx.save();
   ctx.fillStyle = CLAIR;
@@ -98,7 +103,8 @@ export function porte(ctx, p, plan, t) {
   const e = epaisseur(t);
   const W = plan.largeur * t, L = plan.longueur * t;
   const pos = (p.position + 0.5) * t;
-  const place = { nord: [pos, 0, 0], sud: [pos, L, Math.PI], ouest: [0, pos, -Math.PI / 2], est: [W, pos, Math.PI / 2] }[p.mur];
+  const d = retraitPorte(plan, p.mur, p.position) * t;
+  const place = { nord: [pos, d, 0], sud: [pos, L - d, Math.PI], ouest: [d, pos, -Math.PI / 2], est: [W - d, pos, Math.PI / 2] }[p.mur];
   const ep = trait(t, 0.025);
   ctx.save();
   ctx.translate(place[0], place[1]);

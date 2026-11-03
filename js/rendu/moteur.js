@@ -9,6 +9,7 @@
 import * as vectoriel from './themes/vectoriel.js';
 import { lettreColonne } from '../parseur/coordonnees.js';
 import { cheminCouloir, PONT_DEMI_LONGUEUR, ETIQUETTE_ISOLEES } from '../plan-donjon.js';
+import { retraitPorte, tracerSol } from '../formes.js';
 
 export const MARGE = 1; // cases de roche autour de la pièce
 
@@ -20,12 +21,12 @@ export const EPAISSEUR_MUR = 0.32;
 
 /** Rectangle d'une porte dans le mur, en cases (origine : coin nord-ouest de la pièce). */
 export function rectPorte(plan, p) {
-  const e = EPAISSEUR_MUR;
+  const e = EPAISSEUR_MUR, d = retraitPorte(plan, p.mur, p.position);
   return {
-    nord: { x: p.position, y: -e, l: 1, h: e },
-    sud: { x: p.position, y: plan.longueur, l: 1, h: e },
-    ouest: { x: -e, y: p.position, l: e, h: 1 },
-    est: { x: plan.largeur, y: p.position, l: e, h: 1 },
+    nord: { x: p.position, y: d - e, l: 1, h: e },
+    sud: { x: p.position, y: plan.longueur - d, l: 1, h: e },
+    ouest: { x: d - e, y: p.position, l: e, h: 1 },
+    est: { x: plan.largeur - d, y: p.position, l: e, h: 1 },
   }[p.mur];
 }
 
@@ -149,9 +150,14 @@ export function dessinerMiniPlan(canvas, mini, { largeurMax = 240, hauteurMax = 
   }
   for (const s of mini.salles) {
     ctx.fillStyle = s.courante ? '#f0c64a' : '#8a8680';
-    ctx.fillRect(s.x * t, s.y * t, s.l * t, s.h * t);
     ctx.strokeStyle = s.courante ? '#fff3c4' : '#2a2724';
     ctx.lineWidth = s.courante ? Math.max(2, t * 0.3) : 1;
+    if (s.vides?.length) { // la forme, sans contour : les cases retirées suffisent à la montrer
+      const vides = new Set(s.vides.map(([x, y]) => `${x},${y}`));
+      for (let y = 0; y < s.h; y++) for (let x = 0; x < s.l; x++) if (!vides.has(`${x},${y}`)) ctx.fillRect((s.x + x) * t, (s.y + y) * t, t + 0.5, t + 0.5);
+      continue;
+    }
+    ctx.fillRect(s.x * t, s.y * t, s.l * t, s.h * t);
     ctx.strokeRect(s.x * t, s.y * t, s.l * t, s.h * t);
   }
 }
@@ -330,6 +336,8 @@ function dessinerReperes(ctx, plan, t) {
 /** Lignes de la grille, par-dessus le sol et sous les objets. */
 function dessinerGrille(ctx, plan, t) {
   ctx.save();
+  tracerSol(ctx, plan, t);
+  ctx.clip();
   ctx.strokeStyle = 'rgba(0, 0, 0, 0.45)';
   ctx.lineWidth = Math.max(1, t / 40);
   ctx.beginPath();

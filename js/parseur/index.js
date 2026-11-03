@@ -13,7 +13,7 @@
  */
 import { normaliser } from './normaliser.js';
 import { convertirNombres } from './nombres.js';
-import { extraireDimensions, extraireSol } from './dimensions.js';
+import { extraireDimensions, extraireSol, extraireForme } from './dimensions.js';
 import {
   trouverObjet, definition, nomAffiche, souderExpressions,
   ADJ_GRAND, ADJ_CACHE, MOTS_VIDES, COULEURS, CAMPS, TAILLES_CREATURE,
@@ -129,7 +129,8 @@ export function analyser(texte, options = {}) {
   const t = souderExpressions(convertirNombres(normaliser(texte)));
   const nom = extraireNom(t);
 
-  const dims = extraireDimensions(nom.reste, echelle);
+  const forme = extraireForme(nom.reste);
+  const dims = extraireDimensions(forme.reste, echelle);
   const sol = extraireSol(dims.reste);
 
   const intentions = [];
@@ -146,11 +147,11 @@ export function analyser(texte, options = {}) {
   }
 
   const { plan, journal } = construirePlan({
-    largeur: dims.largeur, longueur: dims.longueur, sol: sol.valeur, intentions, graine: hacher(t), entree: options.entree,
+    largeur: dims.largeur, longueur: dims.longueur, sol: sol.valeur, forme: forme.champs, intentions, graine: hacher(t), entree: options.entree,
   });
 
   if (nom.nom) plan.nom = nom.nom.charAt(0).toUpperCase() + nom.nom.slice(1);
-  const compris = [...(nom.nom ? [`nom : ${plan.nom}`] : []), ...dims.compris];
+  const compris = [...(nom.nom ? [`nom : ${plan.nom}`] : []), ...dims.compris, ...forme.compris];
   if (sol.valeur !== 'pierre') compris.push(`sol : ${sol.valeur}`);
   compris.push(...journal);
   return { plan, compris, ignores: [...new Set(ignores)] };

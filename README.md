@@ -78,6 +78,14 @@ ou en ligne de commande avec `node tests/node.mjs`.
 Les mots non reconnus sont listés sous « Mots non compris » au lieu d'être devinés.
 Pour les cas que le parseur ne sait pas traiter, le plan JSON se modifie à la main dans le panneau.
 
+## Formes de salle
+
+Une salle reste un rectangle (largeur × longueur) auquel on retire des cases : croix, L, T, U ou octogone (`js/formes.js`). Dans l'onglet Salle : un bouton par forme, l'épaisseur des bras, leur position, et le nombre de cases de sol. Les mêmes réglages s'écrivent en texte : « Salle en croix de 12 par 13 cases, bras de 2 cases, bras en haut », « en U ouverte au sud », « en L angle au nord-ouest », « en T barre au nord », « octogonale, pans de 2 cases ».
+
+- Les cases retirées se recalculent toujours : agrandir une salle agrandit sa forme, et rien n'est stocké en plus.
+- Une porte garde son écriture (mur + position) : elle se pose sur le premier mur rencontré de ce côté, au fond de l'entaille si le coin est retiré.
+- Changer de forme pousse ce qui tomberait dans le vide vers la case libre la plus proche ; s'il n'y a plus de place, le changement est refusé.
+
 ## Donjon : plusieurs salles
 
 Un **donjon** est un ensemble de salles, de liaisons entre leurs portes et d'un carnet de notes par salle.
@@ -280,6 +288,7 @@ js/telephone.js     sous 760 px : onglets Texte / Carte et Actions / Carte, tail
 js/donjon.js        modèle du donjon : salles, liaisons, orphelines, validation (pur, sans DOM)
 js/minicarte.js     mini-carte SVG des salles et de leurs liaisons
 js/schema.js        schéma du plan d'une salle et validation
+js/formes.js        formes de salle : cases retirées, portes en retrait, murs découpés (calcul pur)
 js/stockage.js      localStorage (donjons, réglages, migration), export/import JSON
 js/voix.js          dictée (Web Speech API)
 js/deplacement.js   glisser-déposer et clic sur la carte

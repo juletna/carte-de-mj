@@ -26,6 +26,8 @@
  *    un groupe de salles reliées entre elles, mais pas à la première, forme un bloc posé sous le premier.
  */
 
+import { casesRetirees, retraitPorte } from './formes.js';
+
 const VECTEUR = { nord: [0, -1], sud: [0, 1], est: [1, 0], ouest: [-1, 0] };
 const OPPOSE = { nord: 'sud', sud: 'nord', est: 'ouest', ouest: 'est' };
 
@@ -199,13 +201,15 @@ const englobant = (rs) => ({
  * Point d'une porte sur son mur, en cases : le centre de la porte, posé sur le bord de la salle.
  * La position est bornée au mur (une salle redimensionnée peut laisser une liaison orpheline hors du mur).
  */
-function pointPorte(r, ext) {
-  const p = borner(ext.position | 0, 0, longueurMur({ l: r.l, h: r.h }, ext.mur) - 1) + 0.5;
+function pointPorte(r, ext, plan) {
+  const position = borner(ext.position | 0, 0, longueurMur({ l: r.l, h: r.h }, ext.mur) - 1);
+  const p = position + 0.5;
   const mur = ext.mur;
+  const d = retraitPorte(plan, mur, position); // au fond d'une entaille, si le rectangle de la salle y est coupé
   return {
     salle: ext.salle, mur,
-    x: mur === 'nord' || mur === 'sud' ? r.x + p : (mur === 'est' ? r.x + r.l : r.x),
-    y: mur === 'est' || mur === 'ouest' ? r.y + p : (mur === 'sud' ? r.y + r.h : r.y),
+    x: mur === 'nord' || mur === 'sud' ? r.x + p : (mur === 'est' ? r.x + r.l - d : r.x + d),
+    y: mur === 'est' || mur === 'ouest' ? r.y + p : (mur === 'sud' ? r.y + r.h - d : r.y + d),
   };
 }
 
@@ -255,6 +259,12 @@ export function disposerPlan(d) {
   }
   const { note, defauts, ...plan } = meilleur;
   return { ...plan, ponts: pontsDe(plan.couloirs) };
+}
+
+/** Ce dont dépend la disposition : si cette clé ne change pas, le plan déjà calculé reste bon (il est coûteux à refaire). */
+export function cleDisposition(d) {
+  const salles = Object.values(d.salles).map((s) => [s.id, s.plan.largeur, s.plan.longueur, s.plan.forme, s.plan.bras, s.plan.position, s.plan.portes]);
+  return JSON.stringify([salles, d.liaisons]);
 }
 
 /** Un plan selon un ordre de pose (`alea` : null pour l'ordre des liaisons), avec sa note : plus elle est basse, mieux c'est. */
@@ -317,13 +327,13 @@ function calculerPlan(d, ids, espace, alea) {
     const ra = positions[l.a.salle], rb = positions[l.b.salle];
     couloirs.push({
       liaison: l.id,
-      de: pointPorte({ x: ra.x, y: ra.y, l: ra.largeur, h: ra.longueur }, l.a),
-      vers: pointPorte({ x: rb.x, y: rb.y, l: rb.largeur, h: rb.longueur }, l.b),
+      de: pointPorte({ x: ra.x, y: ra.y, l: ra.largeur, h: ra.longueur }, l.a, d.salles[l.a.salle].plan),
+      vers: pointPorte({ x: rb.x, y: rb.y, l: rb.largeur, h: rb.longueur }, l.b, d.salles[l.b.salle].plan),
       orpheline: orphelines.has(l.id),
     });
   }
 
-  const bilan = tracerCouloirs(couloirs, positions, droite + 2 * MARGE_ROUTAGE, bas + 2 * MARGE_ROUTAGE);
+  const bilan = tracerCouloirs(couloirs, positions, d, droite + 2 * MARGE_ROUTAGE, bas + 2 * MARGE_ROUTAGE);
 
   // Recadrage : une marge de MARGE_PLAN autour des salles ET des couloirs.
   const xs = [], ys = [];
@@ -444,7 +454,7 @@ function sansPointsAlignes(pts) {
  * Pas de chemin possible (porte murée par une salle voisine, plan immense) : le couloir garde son tracé simple.
  * Renvoie le bilan : { croisements, frottements, virages, longueur } (les cases devant les portes ne frottent pas).
  */
-function tracerCouloirs(couloirs, positions, largeur, longueur) {
+function tracerCouloirs(couloirs, positions, d, largeur, longueur) {
   const grille = new Uint8Array(largeur * longueur);     // 1 : une salle occupe cette case
   const proche = new Uint8Array(largeur * longueur);     // 1 : case qui touche une salle
   const sousNom = new Uint8Array(largeur * longueur);    // 1 : case où s'écrit le nom d'une salle, juste au-dessus d'elle
@@ -452,16 +462,18 @@ function tracerCouloirs(couloirs, positions, largeur, longueur) {
   const pris = new Uint16Array(largeur * longueur);      // nombre de couloirs qui passent ici
   const indice = (x, y) => y * largeur + x;
   const dans = (x, y) => x >= 0 && y >= 0 && x < largeur && y < longueur;
-  for (const r of Object.values(positions)) {
+  for (const [id, r] of Object.entries(positions)) {
     for (let y = r.y - 1 - HAUTEUR_NOM; y < r.y - 1; y++) {
       for (let x = r.x; x < r.x + r.largeur; x++) if (dans(x, y)) sousNom[indice(x, y)] = 1;
     }
-    for (let y = r.y - 1; y <= r.y + r.longueur; y++) {
-      for (let x = r.x - 1; x <= r.x + r.largeur; x++) {
-        if (!dans(x, y)) continue;
-        const dedans = x >= r.x && x < r.x + r.largeur && y >= r.y && y < r.y + r.longueur;
-        if (dedans) grille[indice(x, y)] = 1;
-        else proche[indice(x, y)] = 1;
+    // Seul le sol bloque un couloir : il peut entrer dans l'entaille d'une salle en croix pour atteindre sa porte.
+    const vides = casesRetirees(d.salles[id].plan);
+    for (let y = 0; y < r.longueur; y++) {
+      for (let x = 0; x < r.largeur; x++) {
+        if (vides.has(`${x},${y}`)) continue;
+        const X = r.x + x, Y = r.y + y;
+        if (dans(X, Y)) grille[indice(X, Y)] = 1;
+        for (let j = Y - 1; j <= Y + 1; j++) for (let i = X - 1; i <= X + 1; i++) if (dans(i, j)) proche[indice(i, j)] = 1;
       }
     }
   }

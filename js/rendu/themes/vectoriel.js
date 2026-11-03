@@ -17,6 +17,7 @@
  *   marqueLiaison(ctx, rect, mur, t)      porte reliée à une autre salle
  *   marqueSelection(ctx, rect, t)         élément sélectionné
  */
+import { casesRetirees, retraitPorte, dessinerMursDecoupes } from '../../formes.js';
 import { dessinerPortrait } from '../portraits.js';
 import { CREATURES, COULEURS } from '../../parseur/lexique.js';
 
@@ -83,7 +84,9 @@ export function roche(ctx, W, H, t) {
 
 export function sol(ctx, plan, t) {
   const teintes = SOLS[plan.sol] || SOLS.pierre;
+  const vides = casesRetirees(plan);
   for (let x = 0; x < plan.largeur; x++) for (let y = 0; y < plan.longueur; y++) {
+    if (vides.has(`${x},${y}`)) continue;
     ctx.fillStyle = teintes[Math.floor(hash(x, y) * teintes.length)];
     ctx.fillRect(x * t, y * t, t, t);
     if (plan.sol === 'bois') { // lames de parquet
@@ -101,6 +104,7 @@ const epaisseur = (t) => t * 0.32;
 
 export function murs(ctx, plan, t) {
   const e = epaisseur(t);
+  if (casesRetirees(plan).size) { dessinerMursDecoupes(ctx, plan, t, e, { fond: C.mur, trait: C.murFonce, epaisseurTrait: 1, joints: true }); return; }
   const W = plan.largeur * t, L = plan.longueur * t;
   ctx.save();
   ctx.fillStyle = C.mur;
@@ -124,8 +128,9 @@ export function porte(ctx, p, plan, t) {
   const W = plan.largeur * t, L = plan.longueur * t;
   // Repère local : origine au milieu de l'ouverture, côté pièce vers +y.
   const pos = (p.position + 0.5) * t;
+  const d = retraitPorte(plan, p.mur, p.position) * t;
   const place = {
-    nord: [pos, 0, 0], sud: [pos, L, Math.PI], ouest: [0, pos, -Math.PI / 2], est: [W, pos, Math.PI / 2],
+    nord: [pos, d, 0], sud: [pos, L - d, Math.PI], ouest: [d, pos, -Math.PI / 2], est: [W - d, pos, Math.PI / 2],
   }[p.mur];
   ctx.save();
   ctx.translate(place[0], place[1]);

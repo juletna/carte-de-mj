@@ -23,6 +23,7 @@
  */
 import { MARGE } from './rendu/moteur.js';
 import { largeurDe, hauteurDe, murProche, positionSurMur, evaluerPose } from './pose.js';
+import { retraitPorte } from './formes.js';
 
 const SEUIL_GLISSEMENT = 4; // px : en dessous, c'est un clic
 export const BANDE_PORTE = 0.5; // cases : profondeur ajoutée à la zone de clic d'une porte (option `portesLarges`)
@@ -32,11 +33,12 @@ const SOUS_LES_AUTRES = new Set(['fosse', 'debris']);
 /** La porte attrapée sous le pointeur, dans l'épaisseur du mur (et jusqu'à `profondeur` cases vers l'intérieur). */
 export function porteSous(cx, cy, plan, profondeur = EPAISSEUR_CLIC) {
   const W = plan.largeur, L = plan.longueur, d = profondeur;
-  const dansMur = { nord: cy >= -0.6 && cy < d, sud: cy > L - d && cy <= L + 0.6, ouest: cx >= -0.6 && cx < d, est: cx > W - d && cx <= W + 0.6 };
   return plan.portes.find((p) => {
     const horizontal = p.mur === 'nord' || p.mur === 'sud';
     const le = horizontal ? cx : cy;
-    return dansMur[p.mur] && le >= p.position && le < p.position + 1;
+    const r = retraitPorte(plan, p.mur, p.position); // au fond d'une entaille, le mur est plus loin que le bord
+    const dansMur = { nord: cy >= r - 0.6 && cy < r + d, sud: cy > L - r - d && cy <= L - r + 0.6, ouest: cx >= r - 0.6 && cx < r + d, est: cx > W - r - d && cx <= W - r + 0.6 }[p.mur];
+    return dansMur && le >= p.position && le < p.position + 1;
   }) || null;
 }
 

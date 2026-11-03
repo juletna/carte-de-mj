@@ -41,6 +41,7 @@ import { analyser } from './parseur/index.js';
 import { decrire } from './parseur/decrire.js';
 import { interpreterCommande } from './parseur/commandes.js';
 import { disposerPlan, cheminCouloir } from './plan-donjon.js';
+import { normaliserForme, surLeSol, retraitPorte, casesRetirees } from './formes.js';
 
 export { ETATS };
 
@@ -271,8 +272,8 @@ const seChevauchent = (a, b) => a.x < b.x + b.l && b.x < a.x + a.l && a.y < b.y 
 
 /** Point de la porte, au bord de la pièce, en cases. */
 function pointPorte(plan, arrivee) {
-  const c = arrivee.position + 0.5;
-  return { nord: [c, 0], sud: [c, plan.longueur], ouest: [0, c], est: [plan.largeur, c] }[arrivee.mur] || [plan.largeur / 2, plan.longueur / 2];
+  const c = arrivee.position + 0.5, d = retraitPorte(plan, arrivee.mur, arrivee.position);
+  return { nord: [c, d], sud: [c, plan.longueur - d], ouest: [d, c], est: [plan.largeur - d, c] }[arrivee.mur] || [plan.largeur / 2, plan.longueur / 2];
 }
 
 /** Ordre lexicographique : `a` passe avant `b` ? */
@@ -298,6 +299,7 @@ export function placerPions(plan, pions, arrivee) {
     for (let y = 0; y + s <= plan.longueur; y++) {
       for (let x = 0; x + s <= plan.largeur; x++) {
         const r = { x, y, l: s, h: s };
+        if (!surLeSol(plan, x, y, s, s)) continue;
         if (occupes.some((o) => seChevauchent(r, o))) continue;
         const dx = Math.max(x - ax, 0, ax - (x + s)), dy = Math.max(y - ay, 0, ay - (y + s));
         const cle = [bloquants.some((o) => seChevauchent(r, o)) ? 1 : 0, Math.hypot(dx, dy), Math.hypot(x + s / 2 - ax, y + s / 2 - ay), y, x];
@@ -432,7 +434,7 @@ export function planPublic(plan, { visible = (e) => !estCache(e), garder = () =>
     ...(avecEtat && ETATS.includes(k.etat) ? { etat: k.etat } : {}), // liste blanche : blessé ou mort, rien d'autre
   });
   return {
-    version: 1, id: 'table', nom: '', forme: 'rectangle',
+    version: 1, id: 'table', nom: '', ...normaliserForme(plan),
     largeur: plan.largeur, longueur: plan.longueur, sol: plan.sol, entree: 'sud',
     portes: (plan.portes || []).filter(visible).map((q) => ({ id: q.id, mur: q.mur, position: q.position, type: q.type })),
     objets: (plan.objets || []).filter(visible).map((o) => ({ id: o.id, type: o.type, x: o.x, y: o.y, l: o.l, h: o.h, rotation: o.rotation })),
@@ -489,7 +491,10 @@ export function miniPlanTable(p, disposition = p?.donjon?.salles ? disposerPlan(
   return {
     largeur: Math.max(...xs) + MARGE_MINI - x0,
     longueur: Math.max(...ys) + MARGE_MINI - y0,
-    salles: rects.map((r) => ({ x: r.x - x0, y: r.y - y0, l: r.largeur, h: r.longueur, courante: r.id === p.salleCourante })),
+    salles: rects.map((r) => {
+      const vides = [...casesRetirees(d.salles[r.id].plan)].map((k) => k.split(',').map(Number));
+      return { x: r.x - x0, y: r.y - y0, l: r.largeur, h: r.longueur, courante: r.id === p.salleCourante, ...(vides.length ? { vides } : {}) };
+    }),
     couloirs: couloirs.map((pts) => pts.map((q) => ({ x: q.x - x0, y: q.y - y0 }))),
   };
 }
@@ -498,13 +503,14 @@ export function miniPlanTable(p, disposition = p?.donjon?.salles ? disposerPlan(
 export function recevoirMiniPlan(brut) {
   const n = (v) => Number.isFinite(v) && v >= 0;
   if (!brut || !n(brut.largeur) || !n(brut.longueur) || !Array.isArray(brut.salles) || !Array.isArray(brut.couloirs)) return null;
-  const sallesOk = brut.salles.every((s) => s && n(s.x) && n(s.y) && n(s.l) && n(s.h));
+  const videsOk = (v) => v === undefined || (Array.isArray(v) && v.every((c) => Array.isArray(c) && c.length === 2 && n(c[0]) && n(c[1])));
+  const sallesOk = brut.salles.every((s) => s && n(s.x) && n(s.y) && n(s.l) && n(s.h) && videsOk(s.vides));
   const couloirsOk = brut.couloirs.every((c) => Array.isArray(c) && c.every((q) => q && n(q.x) && n(q.y)));
   if (!sallesOk || !couloirsOk) return null;
   return {
     largeur: brut.largeur,
     longueur: brut.longueur,
-    salles: brut.salles.map((s) => ({ x: s.x, y: s.y, l: s.l, h: s.h, courante: s.courante === true })),
+    salles: brut.salles.map((s) => ({ x: s.x, y: s.y, l: s.l, h: s.h, courante: s.courante === true, ...(s.vides?.length ? { vides: s.vides.map(([x, y]) => [x, y]) } : {}) })),
     couloirs: brut.couloirs.map((c) => c.map((q) => ({ x: q.x, y: q.y }))),
   };
 }

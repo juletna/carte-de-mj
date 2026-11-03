@@ -218,3 +218,11 @@ body.vue-plan #aide-carte { display: none; }
 @media (max-width: 759.98px) {
   body:not(.presentation)[data-onglet="carte"] #support { padding: var(--bande-salle); }
 }
+
+/* --- Forme de la salle (onglet Salle) --- */
+.forme-salle .formes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.forme-salle .formes button { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 2px; min-height: 44px; font-size: 12px; }
+.forme-salle .formes svg { width: 26px; height: 26px; }
+.forme-salle .formes button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+.forme-reglages { margin-top: 8px; display: grid; gap: 6px; }
+.forme-reglages [hidden] { display: none; }

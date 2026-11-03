@@ -4,7 +4,7 @@
  * {
  *   "version": 1,
  *   "id": "salle-1", "nom": "Salle aux piliers",
- *   "forme": "rectangle",
+ *   "forme": "rectangle",               // ou croix, L, T, U, octogone (avec "bras" et "position" facultatifs : voir formes.js)
  *   "largeur": 3, "longueur": 8,        // en cases ; x : ouest→est, y : nord→sud
  *   "sol": "pierre",                    // pierre, bois, terre, sable, herbe, marbre, glace
  *   "entree": "sud",                    // mur d'entrée ; « le fond » est le mur opposé
@@ -25,6 +25,7 @@
  * pour nord/sud, du nord vers le sud pour est/ouest).
  */
 import { OBJETS, PORTES, CREATURES, COULEURS } from './parseur/lexique.js';
+import { normaliserForme, surLeSol } from './formes.js';
 
 export const MURS = ['nord', 'sud', 'est', 'ouest'];
 export const SOLS = ['pierre', 'bois', 'terre', 'sable', 'herbe', 'marbre', 'glace'];
@@ -58,7 +59,7 @@ export function validerPlan(brut) {
     version: 1,
     id: String(brut.id || 'salle-1'),
     nom: String(brut.nom || 'Salle'),
-    forme: 'rectangle',
+    ...normaliserForme(brut),
     largeur: W, longueur: L,
     sol: SOLS.includes(brut.sol) ? brut.sol : 'pierre',
     entree: MURS.includes(brut.entree) ? brut.entree : 'sud',
@@ -76,7 +77,7 @@ export function validerPlan(brut) {
   (Array.isArray(brut.objets) ? brut.objets : []).forEach((o, i) => {
     if (!TYPES_OBJETS.has(o?.type)) return erreurs.push(`objet ${i + 1} : type inconnu « ${o?.type} »`);
     const l = entier(o.l) && o.l > 0 ? o.l : 1, h = entier(o.h) && o.h > 0 ? o.h : 1;
-    if (!entier(o.x) || !entier(o.y) || o.x < 0 || o.y < 0 || o.x + l > W || o.y + h > L) {
+    if (!entier(o.x) || !entier(o.y) || o.x < 0 || o.y < 0 || o.x + l > W || o.y + h > L || !surLeSol(plan, o.x, o.y, l, h)) {
       return erreurs.push(`objet ${i + 1} (${o.type}) : hors de la pièce`);
     }
     const rotation = ((Math.round((Number(o.rotation) || 0) / 90) * 90) % 360 + 360) % 360;
@@ -87,7 +88,7 @@ export function validerPlan(brut) {
   (Array.isArray(brut.creatures) ? brut.creatures : []).forEach((k, i) => {
     if (!TYPES_CREATURES.has(k?.type)) return erreurs.push(`créature ${i + 1} : type inconnu « ${k?.type} »`);
     const taille = entier(k.taille) && k.taille > 0 ? k.taille : 1;
-    if (!entier(k.x) || !entier(k.y) || k.x < 0 || k.y < 0 || k.x + taille > W || k.y + taille > L) {
+    if (!entier(k.x) || !entier(k.y) || k.x < 0 || k.y < 0 || k.x + taille > W || k.y + taille > L || !surLeSol(plan, k.x, k.y, taille, taille)) {
       return erreurs.push(`créature ${i + 1} (${k.type}) : hors de la pièce`);
     }
     numeros[k.type] = (numeros[k.type] || 0) + 1;

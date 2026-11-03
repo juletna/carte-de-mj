@@ -106,13 +106,23 @@ function decrireCreatures(creatures) {
   });
 }
 
+const QUALIF_POSITION = {
+  croix: (p) => `bras ${p === 'milieu' ? 'au' : 'en'} ${p}`,
+  T: (p) => `barre au ${p}`,
+  U: (p) => `ouverte au ${p}`,
+  L: (p) => `angle au ${p.replace('-', ' ')}`,
+};
+const decrireForme = (plan) => (plan.forme && plan.forme !== 'rectangle' ? ` en ${plan.forme}` : '');
+
 /**
  * @param {object} plan
  * @returns {string} description relisible par analyser()
  */
 export function decrire(plan) {
   const debut = plan.nom && plan.nom !== 'Salle' ? plan.nom : 'Salle';
-  const propositions = [`${debut} de ${plan.largeur} par ${plan.longueur} cases`];
+  const propositions = [`${debut}${decrireForme(plan)} de ${plan.largeur} par ${plan.longueur} cases`];
+  if (plan.bras && plan.forme && plan.forme !== 'rectangle') propositions.push(`${plan.forme === 'octogone' ? 'pans' : 'bras'} de ${plan.bras} case${plan.bras > 1 ? 's' : ''}`);
+  if (plan.position && QUALIF_POSITION[plan.forme]) propositions.push(QUALIF_POSITION[plan.forme](plan.position));
   if (plan.sol && plan.sol !== 'pierre') propositions.push(`sol en ${plan.sol}`);
 
   // La porte du mur d'entrée d'abord : c'est la première porte qui définit l'entrée.

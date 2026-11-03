@@ -8,9 +8,10 @@
 import { analyser } from './parseur/index.js';
 import { validerPlan } from './schema.js';
 import { dessiner, dessinerPlanDonjon, MARGE, rectPorte } from './rendu/moteur.js';
-import { disposerPlan, salleSous } from './plan-donjon.js';
+import { disposerPlan, salleSous, cleDisposition } from './plan-donjon.js';
 import { tailleRemplir } from './affichage.js';
-import { elementsPalette, GROUPES_PALETTE, SOUS_GROUPES, redimensionner } from './pose.js';
+import { elementsPalette, GROUPES_PALETTE, SOUS_GROUPES, redimensionner, changerForme } from './pose.js';
+import { FORMES, LIBELLES_FORMES, POSITIONS_FORMES, casesRetirees, brasDe, brasMax, nombreCases } from './formes.js';
 import { creerPalette } from './palette.js';
 import { creerRail, OUTILS_CATALOGUE } from './rail.js';
 import { creerMicro, voixDisponible } from './voix.js';
@@ -159,6 +160,7 @@ function rendre() {
   majOrphelines();
   majMiniCarte();
   majAide();
+  majForme();
   sauvegarder();
 }
 
@@ -562,7 +564,7 @@ function dessinerPlan() {
   const d = donjon();
   if (d.id !== etat.clePlan) { etat.clePlan = d.id; etat.zoomPlan = null; }
   // Le calcul essaie plusieurs dispositions : on ne le refait que si les salles, leurs portes ou les liaisons ont changé.
-  const clePlan = JSON.stringify([Object.values(d.salles).map((s) => [s.id, s.plan.largeur, s.plan.longueur, s.plan.portes]), d.liaisons]);
+  const clePlan = cleDisposition(d);
   if (clePlan !== etat.cleDisposition) { etat.cleDisposition = clePlan; etat.planDispo = disposerPlan(d); }
   const t = tailleAfficheePlan();
   const res = dessinerPlanDonjon($('plan-donjon'), d, etat.planDispo, {
@@ -663,6 +665,79 @@ $('plan-donjon').addEventListener('click', (e) => {
   const id = salleDuPlan(e);
   if (id) activerSalle(id);
 });
+
+// --- Forme de la salle : boutons, épaisseur et position (js/formes.js) ---
+const LIBELLES_POSITIONS = { croix: 'Hauteur des bras', T: 'Mur de la barre', U: 'Mur ouvert', L: 'Coin de l’angle' };
+const NOMS_POSITIONS = { milieu: 'Au milieu', haut: 'En haut', bas: 'En bas', nord: 'Nord', sud: 'Sud', est: 'Est', ouest: 'Ouest', 'sud-ouest': 'Sud-ouest', 'sud-est': 'Sud-est', 'nord-ouest': 'Nord-ouest', 'nord-est': 'Nord-est' };
+
+/** Petit dessin de la forme, tiré du même calcul que la vraie salle. */
+function iconeForme(forme) {
+  const plan = { largeur: 5, longueur: 5, forme, bras: forme === 'octogone' ? 1 : forme === 'rectangle' ? undefined : 1 };
+  const vides = casesRetirees(plan);
+  let cases = '';
+  for (let y = 0; y < 5; y++) for (let x = 0; x < 5; x++) if (!vides.has(`${x},${y}`)) cases += `<rect x="${x}" y="${y}" width="1.02" height="1.02"/>`;
+  return `<svg viewBox="-0.5 -0.5 6 6" aria-hidden="true" fill="currentColor">${cases}</svg>`;
+}
+
+for (const forme of FORMES) {
+  const b = h('button', { type: 'button', className: 'discret', title: LIBELLES_FORMES[forme] });
+  b.dataset.forme = forme;
+  b.innerHTML = iconeForme(forme); // uniquement nos propres rectangles
+  b.append(h('span', { textContent: LIBELLES_FORMES[forme] }));
+  b.addEventListener('click', () => appliquerForme({ forme }));
+  $('formes').append(b);
+}
+
+/** Applique une forme : la description suit. `sansMemoire` : le curseur en cours de glissement ne remplit pas « Annuler ». */
+function appliquerForme(champs, { sansMemoire = false } = {}) {
+  const s = salle();
+  const res = changerForme(s.plan, champs);
+  if (res.erreur) { annoncerCarte(res.erreur, true); return; }
+  if (!sansMemoire) memoriser();
+  etat.selection = null;
+  etat.message = '';
+  changerTexte(decrire(res.plan));
+  if (res.deplaces) annoncerCarte(`${res.deplaces} élément${res.deplaces > 1 ? 's poussés' : ' poussé'} sur le sol de la nouvelle forme.`);
+}
+
+function majForme() {
+  const plan = salle().plan;
+  const forme = plan.forme || 'rectangle';
+  for (const b of $('formes').children) b.setAttribute('aria-pressed', String(b.dataset.forme === forme));
+  const max = brasMax(plan);
+  const decoupable = forme !== 'rectangle';
+  $('forme-reglages').hidden = !decoupable;
+  $('forme-ligne-bras').hidden = !max;
+  if (max) {
+    $('forme-nom-bras').textContent = forme === 'octogone' ? 'Taille des pans coupés' : 'Épaisseur des bras';
+    $('forme-bras').max = String(max);
+    if (document.activeElement !== $('forme-bras') || !enGlissementForme) $('forme-bras').value = String(brasDe(plan));
+    $('forme-bras-val').textContent = `${brasDe(plan)} case${brasDe(plan) > 1 ? 's' : ''}`;
+  }
+  const positions = POSITIONS_FORMES[forme];
+  $('forme-ligne-position').hidden = !positions;
+  if (positions) {
+    $('forme-nom-position').textContent = LIBELLES_POSITIONS[forme];
+    if ($('forme-position').dataset.forme !== forme) {
+      $('forme-position').dataset.forme = forme;
+      $('forme-position').replaceChildren(...positions.map((p) => h('option', { value: p, textContent: NOMS_POSITIONS[p] })));
+    }
+    $('forme-position').value = positions.includes(plan.position) ? plan.position : positions[0];
+  }
+  const n = nombreCases(plan);
+  $('forme-compte').textContent = decoupable && !max
+    ? `Salle de ${plan.largeur} × ${plan.longueur} : trop petite pour cette forme, agrandis-la avec les bandes autour de la carte.`
+    : `${plan.largeur} × ${plan.longueur}, soit ${n} case${n > 1 ? 's' : ''} de sol.`;
+}
+
+let enGlissementForme = false;
+const champsForme = () => ({ forme: salle().plan.forme, bras: Number($('forme-bras').value), position: salle().plan.position });
+$('forme-bras').addEventListener('input', () => {
+  appliquerForme(champsForme(), { sansMemoire: enGlissementForme });
+  enGlissementForme = true;
+});
+$('forme-bras').addEventListener('change', () => { enGlissementForme = false; });
+$('forme-position').addEventListener('change', () => appliquerForme({ ...salle().plan, position: $('forme-position').value }));
 
 // --- Dimensions de la salle : bandes autour de la carte (glisser, ou boutons − et +) ---
 /** Applique de nouvelles dimensions : la description suit, et une liaison suit sa porte si elle s'est décalée. */

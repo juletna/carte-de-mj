@@ -6,8 +6,9 @@ import { executer as executerCommandes } from './commandes.test.js';
 import { executer as executerImpression } from './impression.test.js';
 import { executer as executerPose } from './pose.test.js';
 import { executer as executerPlan } from './plan-donjon.test.js';
+import { executer as executerFormes } from './formes.test.js';
 
-const resultats = [...executer(), ...executerAllerRetour(), ...executerDonjon(), ...executerPresentation(), ...executerCommandes(), ...executerImpression(), ...executerPose(), ...executerPlan()];
+const resultats = [...executer(), ...executerAllerRetour(), ...executerDonjon(), ...executerPresentation(), ...executerCommandes(), ...executerImpression(), ...executerPose(), ...executerPlan(), ...executerFormes()];
 let echecs = 0;
 for (const r of resultats) {
   const ok = r.ecarts.length === 0;

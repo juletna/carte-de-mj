@@ -10,6 +10,7 @@
  *  - l'entrée est le mur de la première porte (sud par défaut) ;
  *    « le fond » est le mur opposé.
  */
+import { normaliserForme, casesRetirees, surLeSol, retraitPorte } from '../formes.js';
 import { definition, nomAffiche } from './lexique.js';
 
 const OPPOSE = { nord: 'sud', sud: 'nord', est: 'ouest', ouest: 'est' };
@@ -96,7 +97,9 @@ function aleatoire(graine) {
 }
 
 /** Case intérieure juste devant une porte. */
-function devantPorte(p, W, L) {
+function devantPorte(p, W, L, plan) {
+  const d = retraitPorte(plan, p.mur, p.position);
+  if (d) return { nord: [p.position, d], sud: [p.position, L - 1 - d], ouest: [d, p.position], est: [W - 1 - d, p.position] }[p.mur];
   if (p.mur === 'nord') return [p.position, 0];
   if (p.mur === 'sud') return [p.position, L - 1];
   if (p.mur === 'ouest') return [0, p.position];
@@ -109,10 +112,11 @@ function devantPorte(p, W, L) {
  *        `entree` impose le mur d'entrée (sinon : mur de la première porte précisée, ou sud).
  * @returns {{plan:object, journal:string[]}}
  */
-export function construirePlan({ largeur: W, longueur: L, sol, intentions, graine = 1, entree: entreeImposee }) {
+export function construirePlan({ largeur: W, longueur: L, sol, forme, intentions, graine = 1, entree: entreeImposee }) {
   const g = new Grille(W, L);
   const journal = [];
-  const plan = { version: 1, id: 'salle-1', nom: 'Salle', forme: 'rectangle', largeur: W, longueur: L, sol, portes: [], objets: [], creatures: [], connexions: [] };
+  const plan = { version: 1, id: 'salle-1', nom: 'Salle', ...normaliserForme(forme), largeur: W, longueur: L, sol, portes: [], objets: [], creatures: [], connexions: [] };
+  for (const k of casesRetirees(plan)) g.occupe.add(k); // une case retirée n'est jamais libre
 
   // ---- 1. Portes --------------------------------------------------------
   const intPortes = intentions.filter((i) => i.genre === 'porte');
@@ -164,7 +168,7 @@ export function construirePlan({ largeur: W, longueur: L, sol, intentions, grain
     });
   }
   for (const p of plan.portes) {
-    const [x, y] = devantPorte(p, W, L);
+    const [x, y] = devantPorte(p, W, L, plan);
     g.reserve.add(`${x},${y}`);
   }
   if (plan.portes.length) {
@@ -229,7 +233,7 @@ export function construirePlan({ largeur: W, longueur: L, sol, intentions, grain
       const p = (cible.mur && (plan.portes.find((q) => q.mur === cible.mur && q.type === cible.type) || plan.portes.find((q) => q.mur === cible.mur)))
         || plan.portes.find((q) => q.type === cible.type) || plan.portes[0];
       if (!p) return null;
-      const [x, y] = devantPorte(p, W, L);
+      const [x, y] = devantPorte(p, W, L, plan);
       return { x, y, l: 1, h: 1, rotation: FACE[p.mur], porte: true };
     }
     const objet = plan.objets.find((o) => o.type === cible.type);
@@ -244,7 +248,7 @@ export function construirePlan({ largeur: W, longueur: L, sol, intentions, grain
       // Des créatures « à l'entrée » se regroupent autour de la porte, comme si elles venaient d'entrer.
       const porte = plan.portes.find((p) => p.mur === entree);
       if (def.genre !== 'creature' || !porte) return leLongDuMur(def, entree, n, l, h);
-      const [x, y] = devantPorte(porte, W, L);
+      const [x, y] = devantPorte(porte, W, L, plan);
       return Array.from({ length: n }, () => poser(def, x - (entree === 'est' ? l - 1 : 0), y - (entree === 'sud' ? h - 1 : 0), l, h, FACE[entree], true));
     },
     mur: (def, n, l, h, pos) => leLongDuMur(def, pos.mur, n, l, h),
@@ -485,6 +489,19 @@ export function construirePlan({ largeur: W, longueur: L, sol, intentions, grain
     let ligne = `${it.n} ${nom} — ${ou}`;
     if (poses.length < it.n) ligne += ` ⚠ ${it.n - poses.length} sans place`;
     journal.push(ligne);
+  }
+
+  // Ce qui est tombé sur une case retirée (case imposée, torche au mur) rejoint la case de sol libre la plus proche.
+  if (casesRetirees(plan).size) {
+    for (const [liste, largeur, hauteur] of [[plan.objets, (o) => o.l, (o) => o.h], [plan.creatures, (k) => k.taille, (k) => k.taille]]) {
+      for (const e of [...liste]) {
+        if (surLeSol(plan, e.x, e.y, largeur(e), hauteur(e))) continue;
+        const c = g.chercher(e.x, e.y, largeur(e), hauteur(e), true);
+        if (c) { [e.x, e.y] = c; g.occuper(c[0], c[1], largeur(e), hauteur(e)); continue; }
+        liste.splice(liste.indexOf(e), 1);
+        journal.push(`⚠ ${nomAffiche(e.type)} : aucune place sur le sol de cette forme`);
+      }
+    }
   }
 
   // Numérotation des pions dans l'ordre de lecture (haut → bas, gauche → droite),

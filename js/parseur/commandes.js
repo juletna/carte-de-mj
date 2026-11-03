@@ -20,6 +20,7 @@
  * @returns {{ok:false, message:string}
  *          |{ok:true, message:string, plan:object, ajoutes:string[], supprimes:string[], deplaces:string[]}}
  */
+import { estSol, surLeSol } from '../formes.js';
 import { normaliser } from './normaliser.js';
 import { convertirNombres } from './nombres.js';
 import { trouverObjet, definition, nomAffiche, souderExpressions, MOTS_VIDES, ADJ_CACHE } from './lexique.js';
@@ -76,7 +77,7 @@ function repereAbsent(plan, position, sauf) {
 function caseHorsSalle(plan, position) {
   if (position.zone !== 'cases') return null;
   const cases = position.etendue ? [[position.etendue[0], position.etendue[1]], [position.etendue[2], position.etendue[3]]] : position.cases;
-  const hors = cases.find(([x, y]) => x < 0 || y < 0 || x >= plan.largeur || y >= plan.longueur);
+  const hors = cases.find(([x, y]) => !estSol(plan, x, y) );
   return hors ? `La case ${nomCase(Math.max(0, hors[0]), Math.max(0, hors[1]))} est hors de la salle (elle va de A1 à ${nomCase(plan.largeur - 1, plan.longueur - 1)}).` : null;
 }
 
@@ -101,7 +102,7 @@ function rejouer(plan, sauf, nouvelles, graine) {
   const objets = plan.objets.filter((o) => o !== sauf).map((o) => intentionExistante('objet', o));
   const creatures = plan.creatures.filter((k) => k !== sauf).map((k) => intentionExistante('creature', k));
   const { plan: rejoue } = construirePlan({
-    largeur: plan.largeur, longueur: plan.longueur, sol: plan.sol, entree: plan.entree, graine,
+    largeur: plan.largeur, longueur: plan.longueur, sol: plan.sol, forme: plan, entree: plan.entree, graine,
     intentions: [...portes, ...objets, ...creatures, ...nouvelles],
   });
   // Les éléments existants sont posés en premier (positions exactes), les nouveaux viennent après.
@@ -122,7 +123,7 @@ function controlerPose(plan, sauf, nouveaux) {
   const gardes = [], refuses = [];
   for (const n of nouveaux) {
     const r = rectDe(n.e);
-    if (r.x < 0 || r.y < 0 || r.x + r.l > plan.largeur || r.y + r.h > plan.longueur) {
+    if (!surLeSol(plan, r.x, r.y, r.l, r.h)) {
       refuses.push({ n, raison: `${libelle(n.genre, n.e)} ne tient pas dans la salle à cet endroit.` });
       continue;
     }

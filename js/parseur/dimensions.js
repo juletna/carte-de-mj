@@ -86,6 +86,38 @@ export function extraireDimensions(texte, echelle) {
   return { largeur, longueur, unites, reste: t.replace(/\s+/g, ' ').trim(), compris };
 }
 
+// « en L » n'est une forme que suivi de la fin de la phrase ou des dimensions : « suspendu en l air » n'en est pas une.
+const RE_FORME = /\b(?:en forme de |en )(croix|octogone|(?:l|t|u)(?= *(?:$|[,.;]| de \d| par )))|\b(cruciforme|octogonale?)\b/;
+const NOMS_FORMES = { croix: 'croix', octogone: 'octogone', l: 'L', t: 'T', u: 'U', cruciforme: 'croix', octogonal: 'octogone', octogonale: 'octogone' };
+const RE_BRAS = /\b(?:bras|pans?) de (\d+)(?: cases?)?/;
+const RE_POSITION = {
+  croix: [/\bbras (?:en |au |vers le )?(haut|milieu|bas)\b/, (m) => m[1]],
+  T: [/\bbarre au (nord|sud|est|ouest)\b/, (m) => m[1]],
+  U: [/\bouverte? au (nord|sud|est|ouest)\b/, (m) => m[1]],
+  L: [/\bangle au (nord|sud) (est|ouest)\b/, (m) => `${m[1]}-${m[2]}`],
+};
+
+/**
+ * Forme de la salle : « en croix », « en U ouvert au sud », « bras de 2 cases »… (voir formes.js)
+ * @returns {{champs:object, reste:string, compris:string[]}}  champs : { forme, bras?, position? } ; vide pour un rectangle
+ */
+export function extraireForme(texte) {
+  const m = texte.match(RE_FORME);
+  if (!m) return { champs: {}, reste: texte, compris: [] };
+  const forme = NOMS_FORMES[m[1] || m[2]];
+  let t = texte.replace(m[0], ' ');
+  const champs = { forme };
+  const compris = [`forme : ${forme}`];
+  const bras = t.match(RE_BRAS);
+  if (bras) { champs.bras = Math.max(1, Number(bras[1])); t = t.replace(bras[0], ' '); compris.push(`${forme === 'octogone' ? 'pans' : 'bras'} de ${champs.bras} case${champs.bras > 1 ? 's' : ''}`); }
+  if (RE_POSITION[forme]) {
+    const [re, valeur] = RE_POSITION[forme];
+    const pos = t.match(re);
+    if (pos) { champs.position = valeur(pos); t = t.replace(pos[0], ' '); }
+  }
+  return { champs, reste: t.replace(/\s+/g, ' ').trim(), compris };
+}
+
 const SOLS = {
   pierre: 'pierre', dalle: 'pierre', dalles: 'pierre', dallage: 'pierre', roche: 'pierre',
   bois: 'bois', parquet: 'bois', plancher: 'bois', planches: 'bois',

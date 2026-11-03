@@ -141,6 +141,20 @@
         <p id="aide-debut" class="note" hidden></p>
       </section>
 
+      <section class="forme-salle" aria-labelledby="titre-forme">
+        <h2 id="titre-forme">Forme</h2>
+        <div id="formes" class="formes" role="group" aria-labelledby="titre-forme"></div>
+        <div id="forme-reglages" class="forme-reglages" hidden>
+          <label class="ligne" id="forme-ligne-bras"><span id="forme-nom-bras">Épaisseur des bras</span>
+            <span><input id="forme-bras" type="range" min="1" max="4" step="1" value="1"> <output id="forme-bras-val">1</output></span>
+          </label>
+          <label class="ligne" id="forme-ligne-position"><span id="forme-nom-position">Position</span>
+            <select id="forme-position"></select>
+          </label>
+        </div>
+        <p id="forme-compte" class="note"></p>
+      </section>
+
       <section class="retour">
         <h2>Compris</h2>
         <ul id="compris"></ul>

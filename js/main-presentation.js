@@ -15,7 +15,7 @@ import * as stockage from './stockage.js';
 import * as modele from './donjon.js';
 import * as pres from './presentation.js';
 import { dessiner, dessinerMiniPlan } from './rendu/moteur.js';
-import { disposerPlan } from './plan-donjon.js';
+import { disposerPlan, cleDisposition } from './plan-donjon.js';
 import { activerDeplacement } from './deplacement.js';
 import { dessinerMiniCarte } from './minicarte.js';
 import { nomCase, lettreColonne } from './parseur/coordonnees.js';
@@ -213,7 +213,7 @@ function demarrerRegie() {
   function miniTable() {
     if (!etat.p || r.miniTable === false) return null;
     const d = etat.p.donjon;
-    const cle = JSON.stringify([Object.values(d.salles).map((s) => [s.id, s.plan.largeur, s.plan.longueur, s.plan.portes]), d.liaisons]);
+    const cle = cleDisposition(d);
     if (cle !== dispositionPartie.cle) dispositionPartie = { cle, plan: disposerPlan(d) };
     return pres.miniPlanTable(etat.p, dispositionPartie.plan);
   }
