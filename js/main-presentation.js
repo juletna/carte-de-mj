@@ -14,10 +14,10 @@
 import * as stockage from './stockage.js';
 import * as modele from './donjon.js';
 import * as pres from './presentation.js';
-import { dessiner, dessinerMiniPlan } from './rendu/moteur.js';
+import { dessiner, dessinerPlanDonjon, tailleQuiTientPlan } from './rendu/moteur.js';
 import { disposerPlan, cleDisposition } from './plan-donjon.js';
 import { activerDeplacement } from './deplacement.js';
-import { dessinerMiniCarte } from './minicarte.js';
+import { creerMiniPlan } from './miniplan.js';
 import { nomCase, lettreColonne } from './parseur/coordonnees.js';
 import { nomAffiche } from './parseur/lexique.js';
 import { creerMicro, voixDisponible } from './voix.js';
@@ -74,7 +74,11 @@ function rendreEcranTable() {
   const mini = $('mini-table');
   mini.hidden = !ecran.plan || !ecran.mini;
   if (!ecran.plan) return;
-  if (ecran.mini) dessinerMiniPlan(mini, ecran.mini, { largeurMax: Math.min(window.innerWidth * 0.24, 300), hauteurMax: Math.min(window.innerHeight * 0.32, 240) });
+  if (ecran.mini) {
+    const { donjon, disposition, actif } = ecran.mini;
+    const taille = tailleQuiTientPlan(disposition, Math.min(window.innerWidth * 0.24, 300), Math.min(window.innerHeight * 0.32, 240));
+    dessinerPlanDonjon(mini, donjon, disposition, { taille, actif, noms: false, pions: false, surbrillance: true });
+  }
   const taille = tailleEcranTable();
   carte.dataset.taille = String(taille); // mesurable (tests, vérification) ; aucun secret
   const { grille, reperes } = ecran.affichage;
@@ -180,7 +184,6 @@ function demarrerRegie() {
     groupeSuit: true,    // case « Le groupe suit »
     ajuster: true,       // adapter la carte de la régie à la fenêtre (n'agit pas sur la table)
     fichier: null,       // { donjon, avertissements } : donjon ouvert depuis un fichier
-    focusMini: null,
     focusSelection: false, // le focus doit passer au panneau de sélection au prochain rendu
     pleinIci: false,
     enregistre: true,
@@ -210,12 +213,15 @@ function demarrerRegie() {
   const affichageTable = () => ({ taille: r.taille, grille: r.grille, reperes: r.reperes !== false, mode: modeTable(r) });
   // Le plan complet essaie plusieurs dispositions : on ne le refait que si les salles, leurs portes ou les liaisons ont changé.
   let dispositionPartie = { cle: null, plan: null };
-  function miniTable() {
-    if (!etat.p || r.miniTable === false) return null;
+  function dispositionDePartie() {
     const d = etat.p.donjon;
     const cle = cleDisposition(d);
     if (cle !== dispositionPartie.cle) dispositionPartie = { cle, plan: disposerPlan(d) };
-    return pres.miniPlanTable(etat.p, dispositionPartie.plan);
+    return dispositionPartie.plan;
+  }
+  function miniTable() {
+    if (!etat.p || r.miniTable === false) return null;
+    return pres.miniPlanTable(etat.p, dispositionDePartie());
   }
   /** Envoie à la table le plan de vueTable(), la mini-carte de miniPlanTable(), et rien d'autre. */
   function diffuser() {
@@ -699,13 +705,19 @@ function demarrerRegie() {
     modifie();
   });
 
+  const majMiniPlan = creerMiniPlan($('minicarte'), {
+    onChoisir: (id) => consulter(id),
+    libelle: (s) => {
+      const p = etat.p;
+      const statut = s.id === p.salleCourante ? ' (à la table)' : pres.estDecouverte(p, s.id) ? '' : ' (non découverte)';
+      return `Consulter la salle ${s.nom}${statut}`;
+    },
+  });
   function majMiniCarte() {
     const p = etat.p;
-    const focus = etat.focusMini;
-    etat.focusMini = null;
-    dessinerMiniCarte($('minicarte'), p.donjon, {
-      actif: etat.consultee, courante: p.salleCourante, decouvertes: p.decouvertes, focus: focus || undefined,
-      onChoisir: (id) => { etat.focusMini = id; consulter(id); },
+    majMiniPlan({
+      donjon: p.donjon, disposition: dispositionDePartie(), actif: etat.consultee, courante: p.salleCourante,
+      inconnues: Object.keys(p.donjon.salles).filter((id) => !pres.estDecouverte(p, id)),
     });
   }
 
@@ -737,7 +749,8 @@ function demarrerRegie() {
   function majEcranLocal() {
     if (!etat.pleinIci || !etat.p) return;
     ecran.plan = pres.vueTable(etat.p);
-    ecran.mini = miniTable();
+    const mini = miniTable();
+    ecran.mini = mini && pres.recevoirMiniPlan(mini);
     ecran.affichage = affichageTable();
     rendreEcranTable();
   }

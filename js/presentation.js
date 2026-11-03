@@ -31,7 +31,7 @@
  * Elle construit le plan à partir d'une liste blanche de champs : notes, noms, textes, éléments
  * cachés non révélés, liaisons et autres salles n'y entrent jamais. L'état d'un pion (blessé, mort) est une
  * information de jeu : il y entre, au même titre que sa position.
- * `miniPlanTable()` est la seule autre source : des rectangles et des traits, seulement pour les salles découvertes.
+ * `miniPlanTable()` est la seule autre source : le plan réduit aux salles découvertes, sans nom ni pion.
  */
 import * as modele from './donjon.js';
 import { validerDonjon, liaisonDePorte, OPPOSE, longueurMur } from './donjon.js';
@@ -40,8 +40,8 @@ import { definition } from './parseur/lexique.js';
 import { analyser } from './parseur/index.js';
 import { decrire } from './parseur/decrire.js';
 import { interpreterCommande } from './parseur/commandes.js';
-import { disposerPlan, cheminCouloir } from './plan-donjon.js';
-import { normaliserForme, surLeSol, retraitPorte, casesRetirees } from './formes.js';
+import { disposerPlan, cheminCouloir, pontsDe } from './plan-donjon.js';
+import { normaliserForme, surLeSol, retraitPorte } from './formes.js';
 
 export { ETATS };
 
@@ -461,13 +461,15 @@ export function vueTable(p) {
 const MARGE_MINI = 1; // cases autour des salles de la mini-carte
 
 /**
- * La mini-carte de la table : les salles DÉCOUVERTES seulement, et la salle en cours. Rien d'autre ne sort : ni identifiant,
- * ni nom, ni contenu. Un couloir n'y figure que si ses deux salles sont découvertes et si ses deux portes sont visibles
- * à la table (une porte secrète non révélée ne se devine pas). Le cadre suit les salles découvertes : sa taille ne dit
- * rien de celles qui restent. Les positions viennent du plan complet, pour qu'une salle ne bouge pas quand une autre se découvre.
+ * L'encart de la table : le plan du donjon, dessiné comme partout (`dessinerPlanDonjon`), réduit à ce que les joueurs connaissent.
+ * Seules les salles DÉCOUVERTES y sont, avec ce qu'on y voit à la table (planPublic : liste blanche, sans nom) mais sans pions :
+ * ils ont pu bouger depuis. Un couloir n'y figure que si ses deux salles sont découvertes et ses deux portes visibles
+ * (une porte secrète non révélée ne se devine pas). Ni identifiant, ni nom. Le cadre suit les salles découvertes : sa taille
+ * ne dit rien de celles qui restent. Les positions viennent du plan complet : une salle ne bouge pas quand une autre se découvre.
  * @param {object} p  la présentation
  * @param {object} [disposition]  résultat de disposerPlan(p.donjon), si l'appelant l'a déjà
- * @returns {{largeur:number, longueur:number, salles:Array<{x,y,l,h,courante:boolean}>, couloirs:Array<Array<{x,y}>>}|null}
+ * @returns {{largeur:number, longueur:number, actif:string, plans:Object<string,object>, positions:Object<string,{x,y,largeur,longueur}>,
+ *            couloirs:Array<{chemin:Array<{x,y}>}>, ponts:Array<{x,y,horizontal:boolean}>}|null}
  */
 export function miniPlanTable(p, disposition = p?.donjon?.salles ? disposerPlan(p.donjon) : null) {
   const d = p?.donjon;
@@ -483,35 +485,51 @@ export function miniPlanTable(p, disposition = p?.donjon?.salles ? disposerPlan(
     const l = liaisons.get(c.liaison);
     return !!l && !c.orpheline && connues.has(l.a.salle) && connues.has(l.b.salle) && porteVisible(l.a) && porteVisible(l.b);
   };
-  const couloirs = disposition.couloirs.filter(montrable).map(cheminCouloir);
+  const chemins = disposition.couloirs.filter(montrable).map(cheminCouloir);
   const rects = [...connues].map((id) => ({ id, ...disposition.positions[id] }));
-  const xs = [...rects.flatMap((r) => [r.x, r.x + r.largeur]), ...couloirs.flat().map((q) => q.x)];
-  const ys = [...rects.flatMap((r) => [r.y, r.y + r.longueur]), ...couloirs.flat().map((q) => q.y)];
+  const xs = [...rects.flatMap((r) => [r.x, r.x + r.largeur]), ...chemins.flat().map((q) => q.x)];
+  const ys = [...rects.flatMap((r) => [r.y, r.y + r.longueur]), ...chemins.flat().map((q) => q.y)];
   const x0 = Math.min(...xs) - MARGE_MINI, y0 = Math.min(...ys) - MARGE_MINI;
-  return {
-    largeur: Math.max(...xs) + MARGE_MINI - x0,
-    longueur: Math.max(...ys) + MARGE_MINI - y0,
-    salles: rects.map((r) => {
-      const vides = [...casesRetirees(d.salles[r.id].plan)].map((k) => k.split(',').map(Number));
-      return { x: r.x - x0, y: r.y - y0, l: r.largeur, h: r.longueur, courante: r.id === p.salleCourante, ...(vides.length ? { vides } : {}) };
-    }),
-    couloirs: couloirs.map((pts) => pts.map((q) => ({ x: q.x - x0, y: q.y - y0 }))),
-  };
+  const couloirs = chemins.map((pts) => ({ chemin: pts.map((q) => ({ x: q.x - x0, y: q.y - y0 })) }));
+  const positions = {}, plans = {};
+  let actif = null;
+  rects.forEach((r, i) => {
+    const cle = `s${i}`; // jamais l'identifiant de la salle
+    positions[cle] = { x: r.x - x0, y: r.y - y0, largeur: r.largeur, longueur: r.longueur };
+    const reveles = new Set(Array.isArray(p.reveles?.[r.id]) ? p.reveles[r.id] : []);
+    plans[cle] = planPublic(d.salles[r.id].plan, { visible: (e) => !estCache(e) || reveles.has(e.id), garder: () => false });
+    if (r.id === p.salleCourante) actif = cle;
+  });
+  return { largeur: Math.max(...xs) + MARGE_MINI - x0, longueur: Math.max(...ys) + MARGE_MINI - y0, actif, plans, positions, couloirs, ponts: pontsDe(couloirs) };
 }
 
-/** Côté fenêtre table : relit une mini-carte reçue, champ par champ. Le moindre écart : pas de mini-carte. */
+/**
+ * Côté fenêtre table : relit un encart reçu, champ par champ, et chaque salle comme une vue de table. Le moindre écart : pas d'encart.
+ * @returns {object|null}  { donjon, disposition, actif }, prêts pour `dessinerPlanDonjon`
+ */
 export function recevoirMiniPlan(brut) {
   const n = (v) => Number.isFinite(v) && v >= 0;
-  if (!brut || !n(brut.largeur) || !n(brut.longueur) || !Array.isArray(brut.salles) || !Array.isArray(brut.couloirs)) return null;
-  const videsOk = (v) => v === undefined || (Array.isArray(v) && v.every((c) => Array.isArray(c) && c.length === 2 && n(c[0]) && n(c[1])));
-  const sallesOk = brut.salles.every((s) => s && n(s.x) && n(s.y) && n(s.l) && n(s.h) && videsOk(s.vides));
-  const couloirsOk = brut.couloirs.every((c) => Array.isArray(c) && c.every((q) => q && n(q.x) && n(q.y)));
-  if (!sallesOk || !couloirsOk) return null;
+  const objet = (v) => !!v && typeof v === 'object';
+  if (!objet(brut) || !n(brut.largeur) || !n(brut.longueur) || !objet(brut.positions) || !objet(brut.plans) || !Array.isArray(brut.couloirs) || !Array.isArray(brut.ponts)) return null;
+  if (typeof brut.actif !== 'string' || !(brut.actif in brut.positions)) return null;
+  const point = (q) => objet(q) && n(q.x) && n(q.y);
+  if (!brut.couloirs.every((c) => Array.isArray(c?.chemin) && c.chemin.every(point)) || !brut.ponts.every(point)) return null;
+  const positions = {}, salles = {};
+  for (const [cle, r] of Object.entries(brut.positions)) {
+    if (!/^s\d+$/.test(cle) || !objet(r) || !n(r.x) || !n(r.y) || !n(r.largeur) || !n(r.longueur)) return null;
+    const plan = recevoirVueTable(brut.plans[cle]);
+    if (!plan) return null;
+    positions[cle] = { x: r.x, y: r.y, largeur: r.largeur, longueur: r.longueur };
+    salles[cle] = { nom: '', plan: { ...plan, creatures: [] } };
+  }
   return {
-    largeur: brut.largeur,
-    longueur: brut.longueur,
-    salles: brut.salles.map((s) => ({ x: s.x, y: s.y, l: s.l, h: s.h, courante: s.courante === true, ...(s.vides?.length ? { vides: s.vides.map(([x, y]) => [x, y]) } : {}) })),
-    couloirs: brut.couloirs.map((c) => c.map((q) => ({ x: q.x, y: q.y }))),
+    actif: brut.actif,
+    donjon: { salles },
+    disposition: {
+      largeur: brut.largeur, longueur: brut.longueur, positions, isolees: [], etiquetteIsolees: null,
+      couloirs: brut.couloirs.map((c) => ({ chemin: c.chemin.map((q) => ({ x: q.x, y: q.y })) })),
+      ponts: brut.ponts.map((q) => ({ x: q.x, y: q.y, horizontal: q.horizontal === true })),
+    },
   };
 }
 

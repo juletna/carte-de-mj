@@ -227,8 +227,7 @@ const TESTS = [
     egal([vue.forme, vue.bras, vue.position], ['croix', 2, 'haut'], 'vue table');
     egal([p.recevoirVueTable(vue).forme, p.recevoirVueTable(vue).bras], ['croix', 2], 'relue par la fenêtre table');
     const mini = p.recevoirMiniPlan(p.miniPlanTable(pres));
-    egal(mini.salles[0].vides.length, casesRetirees(d.salles[d.salleActive].plan).size, 'les cases retirées, sur la mini-carte');
-    egal(p.recevoirMiniPlan({ ...mini, salles: [{ ...mini.salles[0], vides: 'x' }] }), null, 'vides invalides : refus');
+    egal(casesRetirees(mini.donjon.salles[mini.actif].plan).size, casesRetirees(d.salles[d.salleActive].plan).size, 'la croix, sur l’encart');
     const { places } = p.placerPions(d.salles[d.salleActive].plan, [{ id: 'k', type: 'guerrier', taille: 1 }], { mur: 'nord', position: 0 });
     verifier(surLeSol(d.salles[d.salleActive].plan, places[0].x, places[0].y), 'un pion qui entre arrive sur le sol');
   }],

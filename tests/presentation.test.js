@@ -308,29 +308,42 @@ const TESTS = [
     verifier(!sortieB.includes('"pilier"'), 'rien de la première salle');
   }],
 
-  ['mini-carte : seulement les salles découvertes, sans nom ni identifiant', () => {
+  ['encart de la table : seulement les salles découvertes, sans nom, ni identifiant, ni pion', () => {
     const { d, a, b, c } = donjonDeTest();
     const pres = p.creerPresentation(d, { salleDepart: a.id });
     const debut = p.miniPlanTable(pres);
-    egal(debut.salles.length, 1, 'au départ : la salle de départ seule');
+    egal(Object.keys(debut.plans).length, 1, 'au départ : la salle de départ seule');
     egal(debut.couloirs, [], 'aucun couloir vers une salle non découverte');
     egal([debut.largeur, debut.longueur], [10, 10], 'le cadre suit la salle découverte, pas le donjon');
-    verifier(debut.salles[0].courante === true, 'elle est en surbrillance');
+    egal(debut.plans[debut.actif].largeur, 8, 'elle est la salle active');
     p.afficherATable(pres, b.id);
     const deux = p.miniPlanTable(pres);
-    egal(deux.salles.length, 2, 'deux salles découvertes');
+    egal(Object.keys(deux.plans).length, 2, 'deux salles découvertes');
     egal(deux.couloirs.length, 1, 'le couloir entre les deux');
-    egal(deux.salles.filter((s) => s.courante).length, 1, 'une seule salle en surbrillance');
-    egal(deux.salles.find((s) => s.courante).l, 6, 'la surbrillance suit la salle en cours');
+    egal(deux.plans[deux.actif].largeur, 6, 'la surbrillance suit la salle en cours');
     const sortie = JSON.stringify(deux);
-    for (const s of ['Crypte', 'Couloir', 'Trésor', a.id, b.id, c.id, 'liaison', 'plan', 'nom']) verifier(!sortie.includes(s), `« ${s} » est sorti dans la mini-carte`);
-    verifier(!deux.salles.some((s) => s.l === 4 && s.h === 4), 'rien de la salle non découverte');
+    for (const s of ['Crypte', 'Couloir', 'Trésor', a.id, b.id, c.id, 'liaison']) verifier(!sortie.includes(s), `« ${s} » est sorti dans l’encart`);
+    for (const plan of Object.values(deux.plans)) egal([plan.nom, plan.creatures], ['', []], 'ni nom, ni pion');
+    verifier(!Object.values(deux.plans).some((q) => q.largeur === 4), 'rien de la salle non découverte');
+    verifier(!sortie.includes('"cache"'), 'aucun champ cache');
     p.afficherATable(pres, a.id);
-    egal(p.miniPlanTable(pres).salles.length, 2, 'revenir en arrière n’oublie rien');
-    egal(p.miniPlanTable({ donjon: { salles: {} }, salleCourante: 'x' }), null, 'pas de salle courante : pas de mini-carte');
+    egal(Object.keys(p.miniPlanTable(pres).plans).length, 2, 'revenir en arrière n’oublie rien');
+    egal(p.miniPlanTable({ donjon: { salles: {} }, salleCourante: 'x' }), null, 'pas de salle courante : pas d’encart');
   }],
 
-  ['mini-carte : un couloir derrière une porte secrète non révélée ne se devine pas', () => {
+  ['encart de la table : un élément caché reste caché, révélé il apparaît', () => {
+    const { d, a } = donjonDeTest();
+    const pres = p.creerPresentation(d, { salleDepart: a.id });
+    const types = () => { const m0 = p.miniPlanTable(pres); return m0.plans[m0.actif].objets.map((o) => o.type); };
+    const coffre = pres.donjon.salles[a.id].plan.objets.find((o) => o.type === 'coffre');
+    verifier(!types().includes('coffre'), 'coffre caché : absent');
+    p.revelerElement(pres, a.id, coffre.id);
+    verifier(types().includes('coffre'), 'révélé : présent');
+    p.recacherElement(pres, a.id, coffre.id);
+    verifier(!types().includes('coffre'), 'recaché : absent');
+  }],
+
+  ['encart de la table : un couloir derrière une porte secrète non révélée ne se devine pas', () => {
     const { d, a } = donjonDeTest();
     const caveau = m.ajouterSalle(d, { nom: 'Caveau', texte: 'Salle de 5 par 5 cases, une porte au mur sud en C.' });
     const secrete = d.salles[a.id].plan.portes.find((q) => q.mur === 'nord');
@@ -345,15 +358,23 @@ const TESTS = [
     egal(p.miniPlanTable(pres).couloirs, [], 'recachée : il disparaît');
   }],
 
-  ['mini-carte : la fenêtre table relit ce qu’elle reçoit, champ par champ', () => {
-    const { d, a } = donjonDeTest();
-    const mini = p.miniPlanTable(p.creerPresentation(d, { salleDepart: a.id }));
-    egal(p.recevoirMiniPlan(mini), mini, 'une mini-carte valide passe telle quelle');
-    const piegee = { ...mini, nom: 'SECRET', salles: [{ ...mini.salles[0], nom: 'SECRET', courante: 'oui' }] };
-    const relue = p.recevoirMiniPlan(piegee);
-    verifier(!JSON.stringify(relue).includes('SECRET'), 'les champs inconnus sont écartés');
-    verifier(relue.salles[0].courante === false, 'courante : true ou rien');
-    for (const brut of [null, 'x', {}, { ...mini, largeur: 'grand' }, { ...mini, salles: [{ x: 1 }] }, { ...mini, couloirs: [[{ x: -1, y: 0 }]] }]) {
+  ['encart de la table : la fenêtre table relit ce qu’elle reçoit, champ par champ', () => {
+    const { d, a, b } = donjonDeTest();
+    const pres = p.creerPresentation(d, { salleDepart: a.id });
+    p.afficherATable(pres, b.id);
+    const mini = p.miniPlanTable(pres);
+    const relue = p.recevoirMiniPlan(mini);
+    egal(relue.actif, mini.actif, 'la salle active');
+    egal(relue.disposition.positions, mini.positions, 'les positions');
+    egal(relue.disposition.couloirs, mini.couloirs, 'les couloirs');
+    egal(Object.keys(relue.donjon.salles), Object.keys(mini.plans), 'les salles');
+    const piegee = { ...mini, nom: 'SECRET', couloirs: [{ chemin: [{ x: 1, y: 1, nom: 'SECRET' }], nom: 'SECRET' }] };
+    piegee.plans = { ...mini.plans, [mini.actif]: { ...mini.plans[mini.actif], nom: 'SECRET', notes: 'SECRET', creatures: [{ id: 'c', type: 'gobelin', camp: 'monstre', x: 0, y: 0, taille: 1, numero: 1 }], objets: [{ id: 'o', type: 'coffre', x: 0, y: 0, cache: true }] } };
+    const propre = p.recevoirMiniPlan(piegee);
+    verifier(!JSON.stringify(propre).includes('SECRET'), 'les champs inconnus sont écartés');
+    egal(propre.donjon.salles[mini.actif].plan.creatures, [], 'aucun pion');
+    egal(propre.donjon.salles[mini.actif].plan.objets, [], 'un objet marqué caché est écarté');
+    for (const brut of [null, 'x', {}, { ...mini, largeur: 'grand' }, { ...mini, actif: 'absente' }, { ...mini, positions: { autre: mini.positions[mini.actif] } }, { ...mini, couloirs: [{ chemin: [{ x: -1, y: 0 }] }] }, { ...mini, plans: {} }]) {
       egal(p.recevoirMiniPlan(brut), null, `refusé : ${JSON.stringify(brut)?.slice(0, 40)}`);
     }
   }],

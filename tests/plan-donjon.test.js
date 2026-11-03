@@ -5,7 +5,6 @@
  */
 import * as m from '../js/donjon.js';
 import { disposerPlan, pontsDe, PONT_DEMI_LONGUEUR, cheminCouloir, salleSous, ECART_LIAISON, ECART_MIN, ECART_MIN_NOM, ECART_PASSAGE, MARGE_PLAN, ETIQUETTE_ISOLEES } from '../js/plan-donjon.js';
-import { salleVoisine, disposerSalles } from '../js/minicarte.js';
 
 function verifier(condition, message) { if (!condition) throw new Error(message); }
 function egal(obtenu, attendu, quoi) {
@@ -259,14 +258,6 @@ const TESTS = [
     egal(salleSous(disp, p.x - 0.2, p.y + 1), a, 'sur le mur');
     egal(salleSous(disp, p.x - 1, p.y - 1), null, 'dans le vide');
   }],
-  ['mini-plan : les flèches mènent à la salle voisine', () => {
-    const pos = { a: { col: 1, ligne: 1 }, n: { col: 1, ligne: 0 }, e: { col: 3, ligne: 1 }, e2: { col: 2, ligne: 3 }, loin: { col: 0, ligne: 3 } };
-    egal(salleVoisine(pos, 'a', 'nord'), 'n', 'au nord');
-    egal(salleVoisine(pos, 'a', 'est'), 'e', 'à l’est, alignée');
-    egal(salleVoisine(pos, 'a', 'sud'), 'e2', 'au sud : la plus proche dans le cône, à côté');
-    egal(salleVoisine(pos, 'n', 'nord'), null, 'rien au nord');
-    egal(salleVoisine(pos, 'absente', 'nord'), null, 'salle inconnue');
-  }],
   ['placement : la salle reste du côté de sa porte, c’est sa voisine qui recule', () => {
     const { d, s1, s5, s6 } = casBarre();
     const disp = disposerPlan(d);
@@ -280,9 +271,6 @@ const TESTS = [
     egal(p[s6].y, p[s5].y - 3, 'la 6 monte juste assez pour laisser deux cases libres au-dessus du couloir');
     couloirsPropres(disp, 'cas signalé');
     egal(JSON.stringify(disposerPlan(d)), JSON.stringify(disp), 'même plan à chaque calcul');
-    const mini = disposerSalles(d).positions;
-    verifier(mini[s6].col === mini[s5].col + 1 && mini[s6].ligne === mini[s5].ligne, 'mini-plan : la 6 juste à droite de la 5');
-    verifier(mini[s1].col > mini[s6].col, 'mini-plan : la 1 reste à droite');
   }],
   ['placement : le couloir qui peut filer tout droit passe le long de la salle déjà là', () => {
     const { d, s1, s5, s6, s7 } = casBarre({ porte6: 0, avec7: true });

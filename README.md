@@ -110,14 +110,12 @@ Dans chaque salle, la description reste la seule référence (texte → plan →
   en deux clics). Supprimer un donjon se fait aussi en deux clics : un message donne son nom et son nombre de salles, le bouton
   garde sa largeur, et « Présenter » est sur une autre ligne. Sa partie en cours reste dans la Présentation
   (« Autres parties en cours »). Supprimer une salle retire ses liaisons ; supprimer la dernière en recrée une vide.
-- **Mini-carte** : schéma sans échelle des salles et de leurs liaisons. Une porte au nord place la salle voisine au-dessus,
-  etc. ; les salles non reliées sont à part, en dessous. Un clic, ou Tab puis Entrée, affiche la salle. Chaque case a une zone
-  cliquable d'au moins 44 px à l'écran.
+- **Miniature du plan** : le plan complet, le même dessin, réduit pour tenir dans le panneau (`js/miniplan.js`). Il n'y a qu'une façon de dessiner un plan (`dessinerPlanDonjon`) : plan complet, miniature, encart de la table. Un clic, ou Tab puis Entrée, affiche la salle ; son nom s'affiche au survol.
 - **Première utilisation** : tant qu'aucun donjon n'a plus d'une salle, les exemples sont dépliés au démarrage et le sous-titre
   dit « Décris une porte, puis clique dessus pour créer la salle suivante » ; il reprend son texte dès qu'une deuxième salle existe.
   Une salle sans porte l'indique dans la note de « Salles ».
 - **Changer de salle** : le panneau revient en haut ; une salle qui vient d'être créée donne le focus à sa description
-  (pas au doigt, ni quand le focus est sur la mini-carte).
+  (pas au doigt, ni quand le focus est sur la miniature).
 - **Relier** : un clic (sans glisser) sur une porte la sélectionne. Non reliée, elle propose « Nouvelle salle derrière cette
   porte » (6 × 6 cases, porte de retour sur le mur opposé, écrite dans sa description) ou « Relier à une salle existante »
   (une porte est ajoutée sur le mur opposé de cette salle : même position si elle est libre, sinon la première libre).
@@ -174,7 +172,7 @@ ni de la Fiche ni d'un réseau, et n'exige de décrire quoi que ce soit : elle o
   découvertes, salle courante) est enregistré dans `carte-de-mj:presentations-v1`, séparément. Le donjon préparé n'est jamais modifié et
   aucun texte n'est réécrit : un pion déplacé ne change que son x et son y. Une salle retrouve donc son état quand on y revient.
 - **Régie (vue MJ)** : la carte complète de la salle consultée, éléments cachés visibles (translucides, en pointillés), notes en lecture
-  seule, mini-carte avec salles découvertes (trait plein) et non découvertes (pointillés).
+  seule, miniature du plan : salles non découvertes assombries, salle à la table en vert, salle regardée en doré.
   - *Pions* : se déplacent à la souris ou au doigt. Objets et portes ne bougent pas (option `deplacables` de `deplacement.js` ; le
     Donjon ne l'utilise pas et garde son comportement).
   - *Porte et pion voisins* (option `portesLarges`, régie seule) : la zone de clic d'une porte s'étend d'une demi-case vers l'intérieur
@@ -193,7 +191,7 @@ ni de la Fiche ni d'un réseau, et n'exige de décrire quoi que ce soit : elle o
     la pièce (dans une salle pleine, un pion monte sur un objet, jamais sur un autre pion ; sans aucune place il reste en arrière, avec un message).
     Une porte non reliée propose de créer la salle d'à côté (voir Improvisation). Les portes sont aussi listées dans le panneau, au clavier.
   - *Révéler* : un clic sur un élément caché propose « Révéler » / « Recacher » ; « Révéler toute la salle » révèle tout.
-  - *Table ou consultation* : cliquer une salle de la mini-carte la **consulte** sans la montrer ni la marquer découverte. Un bandeau
+  - *Table ou consultation* : cliquer une salle de la miniature la **consulte** sans la montrer ni la marquer découverte. Un bandeau
     permanent dit si la salle regardée est « À LA TABLE » (vert) ou en « CONSULTATION » (jaune, cadre en pointillés) et rappelle laquelle
     est à la table ; « Afficher à la table » la rend courante et découverte.
 - **Vue table** : uniquement la carte, sans interface. Deux façons :
@@ -301,7 +299,7 @@ js/impression.js    découpage en pages A4, échelle, proposition de réduction,
 js/main-impression.js  page d'impression (DOM, aperçu, règle de contrôle, proposition de réduction, barre collante)
 js/telephone.js     sous 760 px : onglets Texte / Carte et Actions / Carte, taille de case qui tient dans la zone, défilement au doigt d'une grande carte
 js/donjon.js        modèle du donjon : salles, liaisons, orphelines, validation (pur, sans DOM)
-js/minicarte.js     mini-carte SVG des salles et de leurs liaisons
+js/miniplan.js      miniature cliquable du plan (sidebar, régie) : même dessin que le plan complet
 js/schema.js        schéma du plan d'une salle et validation
 js/modeles.js       modèles de donjon de l'outil, copie d'un donjon (pur, sans DOM)
 js/generateur.js    donjon au hasard : paramètres et numéro de tirage → un donjon complet (pur, sans DOM)

@@ -1,8 +1,8 @@
 /**
  * Plan du donjon : toutes les salles posées à leur VRAIE taille, en cases, reliées par des couloirs.
  *
- * Contrairement à `disposerSalles` (minicarte.js : schéma sans échelle, une salle = une case, qui sert aussi à la
- * Présentation), ici chaque salle garde ses dimensions. Module PUR (aucun DOM, aucun stockage), testable sous Node :
+ * Chaque salle garde ses dimensions. C'est la seule disposition de l'outil : plan complet, miniature, encart de la table.
+ * Module PUR (aucun DOM, aucun stockage), testable sous Node :
  * il ne modifie jamais le donjon qu'on lui donne et renvoie toujours le même plan pour les mêmes données.
  *
  * Règles de placement :

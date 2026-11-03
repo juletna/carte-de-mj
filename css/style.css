@@ -167,34 +167,17 @@ button.petit { padding: 4px 8px; font-size: 13px; min-height: max(var(--cible), 
 .orpheline p { margin: 0 0 6px; }
 #orphelines strong { color: var(--texte); }
 
-/* La mini-carte défile dans son cadre : jamais de défilement horizontal de la page. */
-.minicarte { margin-top: 10px; overflow: auto; max-width: 100%; border: 1px solid var(--bord); border-radius: var(--rayon); background: var(--champ); }
-.minicarte.glisse, .minicarte.glisse * { cursor: grabbing; user-select: none; -webkit-user-select: none; }
-.minicarte-svg { display: block; max-width: none; font: 15px system-ui, sans-serif; }
-.minicarte-svg .lien { stroke: var(--texte-doux); stroke-width: 3; }
-.minicarte-svg .lien.orpheline { stroke: var(--erreur); stroke-dasharray: 6 5; }
-.minicarte-svg .salle { cursor: pointer; }
-.minicarte-svg .salle rect { fill: #2a2830; stroke: var(--bord); stroke-width: 2; }
-.minicarte-svg .salle:hover rect { stroke: var(--texte-doux); }
-.minicarte-svg .salle.actif rect { fill: #4a3d12; stroke: var(--accent); stroke-width: 3; }
-.minicarte-svg .salle text { fill: var(--texte); pointer-events: none; }
-.minicarte-svg .salle:focus { outline: none; }
-.minicarte-svg .salle:focus-visible rect { stroke: #fff; stroke-width: 3; stroke-dasharray: 5 3; }
-.minicarte-svg .porte { fill: #2a6fdb; stroke: #f4efe4; stroke-width: 1.5; }
-.minicarte-svg .etiquette { fill: var(--texte-doux); font-size: 13px; }
+/* La miniature du plan (js/miniplan.js) tient dans son cadre. */
+.miniplan { display: block; margin: 0 auto; }
+.miniplan.sur-salle { cursor: pointer; }
+.minicarte .cache-visuel { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; margin: 0; padding: 0; }
+.minicarte { position: relative; margin-top: 10px; overflow: hidden; max-width: 100%; border: 1px solid var(--bord); border-radius: var(--rayon); background: var(--champ); }
 
 @media (max-width: 760px) {
   body { overflow-x: hidden; }
   #panneau { min-width: 0; }
 }
 
-/* --- Mini-carte en Présentation : découverte / non découverte, salle à la table --- */
-.minicarte-svg .salle.inconnue rect { fill: #1a191e; stroke-dasharray: 6 4; }
-.minicarte-svg .salle.inconnue text { fill: var(--texte-doux); }
-.minicarte-svg .salle text.statut { font-size: 11px; fill: var(--texte-doux); }
-.minicarte-svg .salle.table rect { stroke: #7cc47c; stroke-width: 3; }
-.minicarte-svg .salle.table.actif rect { stroke: var(--accent); }
-.minicarte-svg .salle text.etiquette-table { font-size: 11px; font-weight: 700; fill: #7cc47c; }
 
 .bouton { display: inline-flex; align-items: center; justify-content: center; }
 a.bouton { text-decoration: none; }

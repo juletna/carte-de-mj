@@ -1,5 +1,5 @@
 /**
- * Tests du modèle de donjon (donjon.js), du stockage (migration) et de la mini-carte
+ * Tests du modèle de donjon (donjon.js), et du stockage (migration)
  * (disposition). Sans dépendance : marche sous Node et dans tests.html.
  * Chaque test lève une Error au premier écart ; executer() renvoie la même forme
  * que les autres tests ({ phrase, ecarts }).
@@ -8,7 +8,6 @@ import * as m from '../js/donjon.js';
 import { analyser } from '../js/parseur/index.js';
 import { decrire } from '../js/parseur/decrire.js';
 import { validerPlan } from '../js/schema.js';
-import { disposerSalles } from '../js/minicarte.js';
 import { chargerTout, chargerDonjons, sauverDonjons, CLE_DONJONS, CLE_REGLAGES } from '../js/stockage.js';
 
 function verifier(condition, message) { if (!condition) throw new Error(message); }
@@ -303,55 +302,6 @@ const TESTS = [
       const x = m.convertirImport(entree);
       verifier(!x.ok && x.donjon === null && (!morceau || x.erreurs.join(' ').includes(morceau)), `refus attendu (${morceau || 'objet JSON'}) : ${JSON.stringify(x.erreurs)}`);
     }
-  }],
-
-  ['mini-carte : placement selon la direction des portes, décalage, salles à part', () => {
-    const d = m.creerDonjon({ texte: 'Salle de 6 par 6 cases, une porte au mur nord en C, une porte au mur est en 3, une porte au mur ouest en 3, une porte au mur sud en C.' });
-    const a = premiere(d);
-    const lier = (mur, texte = 'Salle de 6 par 6 cases, une porte au mur sud en C, une porte au mur nord en C, une porte au mur ouest en 3, une porte au mur est en 3.') => {
-      const s = m.ajouterSalle(d, { texte });
-      const retour = { nord: 'sud', sud: 'nord', est: 'ouest', ouest: 'est' }[mur];
-      m.relier(d, { salle: a.id, mur, position: mur === 'nord' || mur === 'sud' ? 2 : 2 }, { salle: s.id, mur: retour, position: 2 });
-      return s;
-    };
-    const n = lier('nord'), e = lier('est'), o = lier('ouest'), s = lier('sud');
-    const isolee = m.ajouterSalle(d, {});
-    const { positions, isolees, ligneIsolees } = disposerSalles(d);
-    const rel = (x, y) => [positions[x.id].col - positions[y.id].col, positions[x.id].ligne - positions[y.id].ligne];
-    egal(rel(n, a), [0, -1], 'porte nord → salle au-dessus');
-    egal(rel(s, a), [0, 1], 'porte sud → salle en dessous');
-    egal(rel(e, a), [1, 0], 'porte est → salle à droite');
-    egal(rel(o, a), [-1, 0], 'porte ouest → salle à gauche');
-    egal(isolees, [isolee.id], 'salle non reliée à part');
-    verifier(positions[isolee.id].ligne >= ligneIsolees && ligneIsolees > Math.max(...[a, n, e, o, s].map((x) => positions[x.id].ligne)), 'isolée sous le schéma');
-    // Deux salles derrière deux portes du même mur : la seconde est décalée, jamais superposée.
-    const d2 = m.creerDonjon({ texte: 'Salle de 6 par 6 cases, une porte au mur est en 2, une porte au mur est en 5.' });
-    const b = premiere(d2);
-    for (const pos of [1, 4]) {
-      const t = m.ajouterSalle(d2, { texte: 'Salle de 6 par 6 cases, une porte au mur ouest en 2.' });
-      m.relier(d2, { salle: b.id, mur: 'est', position: pos }, { salle: t.id, mur: 'ouest', position: 1 });
-    }
-    const p2 = disposerSalles(d2).positions;
-    verifier(new Set(Object.values(p2).map((p) => `${p.col},${p.ligne}`)).size === 3, 'positions toutes différentes');
-  }],
-
-  ['mini-carte : 15 salles reliées en arbre + 2 isolées, aucune superposition', () => {
-    const quatrePortes = 'Salle de 6 par 6 cases, une porte au mur nord en C, une porte au mur sud en C, une porte au mur est en 3, une porte au mur ouest en 3.';
-    const d = m.creerDonjon({ texte: quatrePortes });
-    const salles = [premiere(d)];
-    for (let i = 1; i < 15; i++) salles.push(m.ajouterSalle(d, { texte: quatrePortes }));
-    for (let i = 1; i < 15; i++) {
-      const parent = salles[(i - 1) >> 1];
-      const [mur, retour] = i % 2 ? ['est', 'ouest'] : ['sud', 'nord'];
-      m.relier(d, { salle: parent.id, mur, position: 2 }, { salle: salles[i].id, mur: retour, position: 2 });
-    }
-    verifier(d.liaisons.length === 14, 'quatorze liaisons');
-    m.ajouterSalle(d, {}); m.ajouterSalle(d, {});
-    const { positions, isolees } = disposerSalles(d);
-    const cases = Object.values(positions).map((p) => `${p.col},${p.ligne}`);
-    verifier(Object.keys(positions).length === 17 && new Set(cases).size === 17, 'dix-sept salles sur dix-sept cases distinctes');
-    verifier(isolees.length === 2, 'deux salles isolées à part');
-    verifier(Object.values(positions).every((p) => p.col >= 0 && p.ligne >= 0), 'aucune position négative');
   }],
 ];
 

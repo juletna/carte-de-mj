@@ -115,51 +115,22 @@ const CANVAS_SURFACE_MAX = 16_000_000;
  * Plan complet du donjon : toutes les salles à leur vraie taille, sur le fond de roche, reliées par des couloirs.
  * Chaque salle est peinte par `peindre` (comme dans la vue MJ : sol, objets, murs, portes, pions, secrets en translucide),
  * sans repères A1. Les couloirs passent dessous (ils débouchent sur les portes), les noms au-dessus des salles.
- * N'est utilisée que par la vue Plan du Donjon : `dessiner` n'est pas modifiée.
+ * C'est LA façon de dessiner un plan : vue Plan du Donjon, miniature de la sidebar et de la régie (miniplan.js), encart de la table.
  *
  * @param {HTMLCanvasElement} canvas
  * @param {object} d            donjon
  * @param {object} disposition  résultat de `disposerPlan(d)` (js/plan-donjon.js), en cases
- * @param {{taille?:number, actif?:string, survol?:string|null, grille?:boolean, theme?:object}} options
+ * @param {{taille?:number, actif?:string, survol?:string|null, grille?:boolean, theme?:object, noms?:boolean, pions?:boolean,
+ *          surbrillance?:boolean, courante?:string, inconnues?:string[]}} options
  *        taille = côté d'une case en pixels CSS (réduit si le canvas dépasserait les limites du navigateur)
  *        actif = salle affichée (cadre et nom en couleur d'accent) ; survol = salle sous le curseur (surlignée)
+ *        noms, pions = false pour une miniature ; surbrillance = la salle active est aussi teintée, pour se voir en tout petit
+ *        courante = salle à la table (cadre vert) ; inconnues = salles pas encore découvertes (assombries) : régie
  * @returns {{taille:number, largeur:number, hauteur:number}} côté de case réellement utilisé et taille CSS du canvas
  */
-/**
- * Mini-carte de la table (voir `miniPlanTable`) : des rectangles et des traits, la salle en cours en couleur d'accent.
- * Le canvas prend la taille qui tient dans `largeurMax` × `hauteurMax`, sans jamais grossir au-delà de 12 px par case.
- */
-export function dessinerMiniPlan(canvas, mini, { largeurMax = 240, hauteurMax = 200 } = {}) {
-  const t = Math.min(largeurMax / mini.largeur, hauteurMax / mini.longueur, 12);
-  const dpr = window.devicePixelRatio || 1;
-  const largeurPx = Math.round(mini.largeur * t), hauteurPx = Math.round(mini.longueur * t);
-  canvas.width = Math.round(largeurPx * dpr);
-  canvas.height = Math.round(hauteurPx * dpr);
-  canvas.style.width = `${largeurPx}px`;
-  canvas.style.height = `${hauteurPx}px`;
-  const ctx = canvas.getContext('2d');
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  ctx.clearRect(0, 0, largeurPx, hauteurPx);
-  ctx.strokeStyle = '#77736c';
-  ctx.lineWidth = Math.max(1.5, t * 0.6);
-  ctx.lineJoin = 'miter';
-  for (const chemin of mini.couloirs) {
-    ctx.beginPath();
-    chemin.forEach((q, i) => (i ? ctx.lineTo(q.x * t, q.y * t) : ctx.moveTo(q.x * t, q.y * t)));
-    ctx.stroke();
-  }
-  for (const s of mini.salles) {
-    ctx.fillStyle = s.courante ? '#f0c64a' : '#8a8680';
-    ctx.strokeStyle = s.courante ? '#fff3c4' : '#2a2724';
-    ctx.lineWidth = s.courante ? Math.max(2, t * 0.3) : 1;
-    if (s.vides?.length) { // la forme, sans contour : les cases retirées suffisent à la montrer
-      const vides = new Set(s.vides.map(([x, y]) => `${x},${y}`));
-      for (let y = 0; y < s.h; y++) for (let x = 0; x < s.l; x++) if (!vides.has(`${x},${y}`)) ctx.fillRect((s.x + x) * t, (s.y + y) * t, t + 0.5, t + 0.5);
-      continue;
-    }
-    ctx.fillRect(s.x * t, s.y * t, s.l * t, s.h * t);
-    ctx.strokeRect(s.x * t, s.y * t, s.l * t, s.h * t);
-  }
+/** Côté de case pour qu'un plan tienne dans un cadre, sans jamais grossir au-delà de `plafond` px (miniatures). */
+export function tailleQuiTientPlan(disposition, largeurMax, hauteurMax, plafond = 16) {
+  return Math.max(1, Math.min(largeurMax / disposition.largeur, hauteurMax / disposition.longueur, plafond));
 }
 
 /** Un pont de planches là où deux couloirs se croisent : le couloir du dessus continue, celui du dessous passe sous lui. */
@@ -187,7 +158,7 @@ function dessinerPont(ctx, { x, y, horizontal }, t) {
   ctx.restore();
 }
 
-export function dessinerPlanDonjon(canvas, d, disposition, { taille = 16, actif = null, survol = null, grille = false, theme = vectoriel } = {}) {
+export function dessinerPlanDonjon(canvas, d, disposition, { taille = 16, actif = null, survol = null, grille = false, theme = vectoriel, noms = true, pions = true, surbrillance = false, courante = null, inconnues = [] } = {}) {
   const casesL = disposition.largeur, casesH = disposition.longueur;
   let dpr = window.devicePixelRatio || 1;
   let t = Math.max(1, taille);
@@ -241,7 +212,7 @@ export function dessinerPlanDonjon(canvas, d, disposition, { taille = 16, actif 
     if (!p) continue;
     ctx.save();
     ctx.translate(p.x * t, p.y * t);
-    peindre(ctx, s.plan, t, { grille, reperes: false, theme, marques: {} });
+    peindre(ctx, pions ? s.plan : { ...s.plan, creatures: [] }, t, { grille, reperes: false, theme, marques: {} });
     ctx.restore();
   }
 
@@ -257,8 +228,12 @@ export function dessinerPlanDonjon(canvas, d, disposition, { taille = 16, actif 
     ctx.strokeRect(x - epais / 2, y - epais / 2, l + epais, h + epais);
     ctx.restore();
   };
+  for (const id of inconnues) cadre(id, '#55525a', 1, 'rgba(10, 10, 14, 0.62)');
+  if (courante && courante !== actif) cadre(courante, '#7cc47c', Math.max(2, t * 0.18), null);
   if (survol && survol !== actif) cadre(survol, '#f4efe4', Math.max(2, t * 0.12), 'rgba(255, 255, 255, 0.14)');
-  if (actif) cadre(actif, '#d9a929', Math.max(3, t * 0.18), survol === actif ? 'rgba(255, 255, 255, 0.1)' : null);
+  if (actif) cadre(actif, '#d9a929', Math.max(surbrillance ? 2 : 3, t * 0.18), surbrillance ? 'rgba(240, 198, 74, 0.55)' : survol === actif ? 'rgba(255, 255, 255, 0.1)' : null);
+
+  if (!noms) return { taille: t, largeur: largeurPx, hauteur: hauteurPx };
 
   // Noms : au-dessus de chaque salle, sur une pastille sombre pour rester lisibles sur la roche comme sur un couloir.
   const police = Math.max(12, Math.min(t * 0.7, 22));

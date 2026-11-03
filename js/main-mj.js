@@ -25,7 +25,7 @@ import { decrire } from './parseur/decrire.js';
 import { nomCase, lettreColonne } from './parseur/coordonnees.js';
 import { nomAffiche } from './parseur/lexique.js';
 import * as modele from './donjon.js';
-import { dessinerMiniCarte } from './minicarte.js';
+import { creerMiniPlan } from './miniplan.js';
 import { telephone, activerOnglets, marquerDefilement } from './telephone.js';
 
 const $ = (id) => document.getElementById(id);
@@ -63,7 +63,6 @@ const etat = {
   selection: null,   // descripteur { genre, mur, position } ou { genre, type, x, y } : jamais un id du plan (ils changent à chaque relecture)
   message: '',       // retour d'une action sur la sélection
   retour: { compris: [], ignores: [] }, // dernier « compris / non compris », pour le rapport
-  focusMini: null,   // salle à qui rendre le focus clavier après un redessin de la mini-carte
   neuves: new Set(), // salles créées et pas encore affichées : la première fois, le focus va à la description
   zoom: null,        // côté de case choisi au zoom (px), temporaire et jamais sauvegardé ; null = la salle remplit la scène
   cleAjuste: '',     // donjon / salle / dimensions de la carte affichée : quand elle change, le zoom manuel est oublié
@@ -219,7 +218,7 @@ function majAide() {
  * pour ne pas faire surgir le clavier, et sauf si le focus doit rester sur la mini-carte).
  */
 function afficherSalleActive() {
-  const garderMini = etat.focusMini; // le redessin de la mini-carte l'efface pendant generer()
+  const garderMini = $('minicarte').contains(document.activeElement); // le focus reste sur la miniature, si c'est là qu'il était
   clearTimeout(minuterie);
   etat.selection = null;
   etat.message = '';
@@ -562,13 +561,18 @@ function tailleAfficheePlan() {
   return Math.max(PLAN_AJUSTE_MIN, Math.min(PLAN_ZOOM_MAX, t));
 }
 
+/** Le calcul essaie plusieurs dispositions : on ne le refait que si les salles, leurs portes ou les liaisons ont changé. */
+function dispositionDuDonjon(d) {
+  const cle = cleDisposition(d);
+  if (cle !== etat.cleDisposition) { etat.cleDisposition = cle; etat.planDispo = disposerPlan(d); }
+  return etat.planDispo;
+}
+
 function dessinerPlan() {
   if (!etat.plan) return;
   const d = donjon();
   if (d.id !== etat.clePlan) { etat.clePlan = d.id; etat.zoomPlan = null; }
-  // Le calcul essaie plusieurs dispositions : on ne le refait que si les salles, leurs portes ou les liaisons ont changé.
-  const clePlan = cleDisposition(d);
-  if (clePlan !== etat.cleDisposition) { etat.cleDisposition = clePlan; etat.planDispo = disposerPlan(d); }
+  dispositionDuDonjon(d);
   const t = tailleAfficheePlan();
   const res = dessinerPlanDonjon($('plan-donjon'), d, etat.planDispo, {
     taille: t, actif: d.salleActive, survol: etat.planSurvol, grille: r.grille && t >= 24,
@@ -1002,15 +1006,13 @@ function majListe() {
   }));
 }
 
+const majMiniPlan = creerMiniPlan($('minicarte'), {
+  onChoisir: (id) => activerSalle(id),
+  libelle: (s) => `Afficher la salle ${s.nom}`,
+});
 function majMiniCarte() {
   const d = donjon();
-  const focus = etat.focusMini;
-  etat.focusMini = null;
-  dessinerMiniCarte($('minicarte'), d, {
-    actif: d.salleActive,
-    focus: focus || undefined,
-    onChoisir: (id) => { etat.focusMini = id; activerSalle(id); },
-  });
+  majMiniPlan({ donjon: d, disposition: dispositionDuDonjon(d), actif: d.salleActive });
 }
 
 $('salle-ajouter').addEventListener('click', () => {
