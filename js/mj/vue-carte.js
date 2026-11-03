@@ -2,15 +2,15 @@
  * La carte de la salle affichée : taille d'affichage, dessin, repères (portes reliées, élément sélectionné), déplacement et sélection
  * à la souris ou au doigt, pose d'un élément de la palette, zoom, carte bancaire du calibrage. La palette (panneau sur ordinateur,
  * tiroir sur téléphone) vit ici avec la pose. Fabrique `creerVueCarte(ctx)` ; `ctx` est celui de main-mj.js (`etat`, `donjon`, `salle`,
- * `rendre`, `modifierPlan`, `deselectionner`, `annoncerCarte`, `bulle`, `plan`), lu au moment de l'appel.
+ * `rendre`, `modifierPlan`, `deselectionner`, `annoncerCarte`, `bulle`, `plan`, `zoom`), lu au moment de l'appel.
  *
  * Renvoie : `taille(plan)`, `apercu(plan, taille?)` (dessin sans rien enregistrer), `redessiner(plan)`, `oublierZoomSiAutreCarte()`,
- * `majCarteRef()`, `palette`, `ouvrirTiroir(ouvert)` et `tiroirOuvert()`.
+ * `majCarteRef()`, `cibleZoom` (voir zoom.js), `palette`, `ouvrirTiroir(ouvert)` et `tiroirOuvert()`.
  */
 import { dessiner } from '../rendu/moteur.js';
 import { MARGE } from '../rendu/geometrie.js';
 import { tailleRemplir } from '../affichage.js';
-import { ZOOM_MIN, ZOOM_MAX, zoomBorne, pasDeZoom, facteurMolette } from '../mise-en-page.js';
+import { ZOOM_MIN, ZOOM_MAX, zoomBorne } from '../mise-en-page.js';
 import { ajouterElement, elementsPalette, GROUPES_PALETTE, SOUS_GROUPES } from '../pose.js';
 import { creerPalette } from '../palette.js';
 import { activerDeplacement } from '../deplacement.js';
@@ -66,7 +66,7 @@ export function creerVueCarte(ctx) {
   function dessinerCarte(plan) {
     dessiner($('carte'), plan, optionsDessin(plan));
     marquerDefilement($('carte'), $('scene'));
-    majZoom(plan);
+    ctx.zoom.afficher(plan);
     ctx.bulle.placer();
   }
 
@@ -168,10 +168,9 @@ export function creerVueCarte(ctx) {
     return true;
   }
 
-  // --- Zoom ------------------------------------------------------------------------------------
+  // --- Zoom : son affichage et sa cible (le calcul est dans zoom.js) ---------------------------------
   /** Affiche le zoom courant (pourcentage de la taille réelle : 100 % = une case à la taille calibrée). */
   function majZoom(plan) {
-    if (etat.plan) { ctx.plan.majZoom(); return; }
     const calibre = $('calibrage').checked;
     const t = tailleAffichee(plan || salle().plan);
     $('zoom-pct').textContent = `${Math.round((t / r.taille) * 100)} %`;
@@ -179,46 +178,16 @@ export function creerVueCarte(ctx) {
     $('zoom').title = calibre ? 'Calibrage en cours : la taille d’une case est celle du réglage. Décoche le calibrage pour zoomer.' : '';
     $('zoom-ajuster').setAttribute('aria-pressed', String(!calibre && !etat.zoom));
   }
-
-  /**
-   * Applique un zoom manuel (côté de case en px). Si `ancre` ({x, y} en px écran) est donné, la case qui s'y trouve y reste :
-   * le zoom à la molette se fait sous le curseur.
-   */
-  function zoomer(t, ancre) {
-    if (etat.plan) { ctx.plan.zoomer(t, ancre); return; }
-    if ($('calibrage').checked) return;
-    const plan = salle().plan;
-    const avant = tailleAffichee(plan);
-    etat.zoom = zoomBorne(t, ZOOM_MIN, ZOOM_MAX);
-    let sous = null;
-    if (ancre) {
-      const cv = $('carte').getBoundingClientRect();
-      sous = [(ancre.x - cv.left) / avant - MARGE, (ancre.y - cv.top) / avant - MARGE];
-    }
-    dessinerCarte(plan);
-    majCarteRef();
-    if (sous) {
-      const apres = tailleAffichee(plan), cv = $('carte').getBoundingClientRect();
-      $('scene').scrollLeft += cv.left + (sous[0] + MARGE) * apres - ancre.x;
-      $('scene').scrollTop += cv.top + (sous[1] + MARGE) * apres - ancre.y;
-      ctx.bulle.placer();
-    }
-  }
-  /** Un cran de zoom : ×1,25 ou ÷1,25, d'au moins 1 px. */
-  function pasZoom(sens) {
-    const t = etat.plan ? etat.planTaille || ctx.plan.taille() : tailleAffichee(salle().plan);
-    zoomer(pasDeZoom(t, sens));
-  }
-  $('zoom-plus').addEventListener('click', () => pasZoom(1));
-  $('zoom-moins').addEventListener('click', () => pasZoom(-1));
-  $('zoom-ajuster').addEventListener('click', () => zoomer(null));
-  $('zoom-reel').addEventListener('click', () => zoomer(r.taille));
-  // Ctrl ou Cmd + molette (et le pincement du pavé tactile) : zoom sous le curseur ; la molette seule fait défiler.
-  $('scene').addEventListener('wheel', (e) => {
-    if (!e.ctrlKey && !e.metaKey) return;
-    e.preventDefault();
-    zoomer((etat.plan ? etat.planTaille || ctx.plan.taille() : tailleAffichee(salle().plan)) * facteurMolette(e.deltaY), { x: e.clientX, y: e.clientY });
-  }, { passive: false });
+  const cibleZoom = {
+    marge: MARGE,
+    taille: () => tailleAffichee(salle().plan),
+    peut: () => !$('calibrage').checked,
+    definir: (t) => { etat.zoom = zoomBorne(t, ZOOM_MIN, ZOOM_MAX); },
+    canvas: () => $('carte'),
+    redessiner: () => { dessinerCarte(salle().plan); majCarteRef(); },
+    apres: () => ctx.bulle.placer(),
+    afficher: majZoom,
+  };
 
   // La carte se réajuste quand la scène change de taille (fenêtre, plein écran, passage à l'onglet Carte du téléphone).
   let derniereScene = '';
@@ -238,5 +207,5 @@ export function creerVueCarte(ctx) {
     if (tiroirOuvert() && (e.target === $('scene') || e.target === $('support'))) ouvrirTiroir(false);
   });
 
-  return { taille: tailleAffichee, apercu: apercuCarte, redessiner: dessinerCarte, oublierZoomSiAutreCarte, majCarteRef, palette, ouvrirTiroir, tiroirOuvert };
+  return { taille: tailleAffichee, apercu: apercuCarte, redessiner: dessinerCarte, oublierZoomSiAutreCarte, majCarteRef, cibleZoom, palette, ouvrirTiroir, tiroirOuvert };
 }

@@ -3,7 +3,7 @@
  * remplace la carte de la salle dans la scène ; son zoom est à part (`zoomPlan`). Survol à la souris ou au focus clavier d'une
  * liste de boutons cachés à l'œil ; cliquer une salle quitte le plan et l'ouvre. Fabrique `creerVuePlan(ctx)` ; `ctx` est celui de
  * main-mj.js (`etat`, `donjon`, `salle`, `deselectionner`, `activerSalle`, `dispositionDuDonjon`, `bulle`, `carte`, `onglets`), lu
- * au moment de l'appel. Renvoie `ouvrir(ouvert)`, `dessiner()`, `taille()`, `majZoom()` et `zoomer(t, ancre)`.
+ * au moment de l'appel. Renvoie `ouvrir(ouvert)`, `dessiner()` et `cibleZoom` (voir zoom.js).
  */
 import { dessinerPlanDonjon } from '../rendu/moteur.js';
 import { salleSous } from '../plan-donjon.js';
@@ -74,22 +74,16 @@ export function creerVuePlan(ctx) {
     $('zoom-ajuster').setAttribute('aria-pressed', String(!etat.zoomPlan));
   }
 
-  /** Zoom du plan (côté de case en px) ; `ancre` ({x, y} en px écran) : la case qui s'y trouve y reste (molette). */
-  function zoomerPlan(t, ancre) {
-    const avant = etat.planTaille || tailleAfficheePlan();
-    etat.zoomPlan = zoomBorne(t, PLAN_ZOOM_MIN, PLAN_ZOOM_MAX);
-    let sous = null;
-    if (ancre) {
-      const cv = $('plan-donjon').getBoundingClientRect();
-      sous = [(ancre.x - cv.left) / avant, (ancre.y - cv.top) / avant];
-    }
-    dessinerPlan();
-    if (sous) {
-      const apres = etat.planTaille, cv = $('plan-donjon').getBoundingClientRect();
-      $('scene').scrollLeft += cv.left + sous[0] * apres - ancre.x;
-      $('scene').scrollTop += cv.top + sous[1] * apres - ancre.y;
-    }
-  }
+  /** La cible du zoom (voir zoom.js) : le plan, sans marge de roche, avec ses bornes ; le calibrage ne le concerne pas. */
+  const cibleZoom = {
+    marge: 0,
+    taille: () => etat.planTaille || tailleAfficheePlan(),
+    peut: () => true,
+    definir: (t) => { etat.zoomPlan = zoomBorne(t, PLAN_ZOOM_MIN, PLAN_ZOOM_MAX); },
+    canvas: () => $('plan-donjon'),
+    redessiner: dessinerPlan,
+    afficher: majZoomPlan,
+  };
 
   /** Affiche (ou quitte) la vue Plan. Quitter ramène à la salle active. Sur téléphone, passe d'abord à l'onglet Carte. */
   function ouvrirPlan(ouvert) {
@@ -132,5 +126,5 @@ export function creerVuePlan(ctx) {
     if (id) ctx.activerSalle(id);
   });
 
-  return { ouvrir: ouvrirPlan, dessiner: dessinerPlan, taille: tailleAfficheePlan, majZoom: majZoomPlan, zoomer: zoomerPlan };
+  return { ouvrir: ouvrirPlan, dessiner: dessinerPlan, cibleZoom };
 }

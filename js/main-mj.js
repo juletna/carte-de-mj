@@ -19,6 +19,7 @@ import { creerSalles } from './mj/salles-liste.js';
 import { creerMenu } from './mj/menu-donjon.js';
 import { creerSalleForme } from './mj/salle-forme.js';
 import { creerBulle } from './mj/bulle.js';
+import { creerZoom } from './mj/zoom.js';
 import { creerVueCarte } from './mj/vue-carte.js';
 import { creerVuePlan } from './mj/vue-plan.js';
 import { $, h } from './dom.js';
@@ -227,6 +228,9 @@ $('annuler-carte').addEventListener('click', annulerDeplacement); // même actio
 
 // --- Bulle d'actions de l'élément sélectionné (js/mj/bulle.js) ---
 ctx.bulle = creerBulle(ctx);
+
+// --- Zoom de la scène : boutons et molette, pour la carte ou le plan (js/mj/zoom.js) ---
+ctx.zoom = creerZoom(ctx);
 
 // --- Vue Plan : tout le donjon d'un coup (js/mj/vue-plan.js) ---
 ctx.plan = creerVuePlan(ctx);
