@@ -26,11 +26,11 @@ import * as stockage from './stockage.js';
 import { rapport } from './rapport.js';
 import { activerDeplacement } from './deplacement.js';
 import { decrire } from './parseur/decrire.js';
-import { reperePorte, libelleSelection } from './coordonnees.js';
+import { libelleSelection } from './coordonnees.js';
 import * as modele from './donjon.js';
-import { creerMiniPlan } from './miniplan.js';
 import { telephone, activerOnglets, marquerDefilement, LARGEUR_TELEPHONE } from './telephone.js';
 import { creerPersonnages } from './mj/personnages-ui.js';
+import { creerSalles } from './mj/salles-liste.js';
 import { $, h, bouton, deuxTemps, fichierChoisi } from './dom.js';
 import { OPPOSE } from './murs.js';
 import { pluriel, LIBELLE_FERMER, libelleMicro } from './format.js';
@@ -74,10 +74,6 @@ const r = etat.reglages;
 const donjon = () => etat.donjons[etat.actif];
 const salle = () => donjon().salles[donjon().salleActive];
 
-// Contexte des modules mj/ (fabriques `creerX(ctx)`) : ils le lisent au moment de l'appel et ne s'importent pas entre eux.
-// Les fonctions ci-dessous sont déclarées plus bas dans ce fichier.
-const ctx = { etat, donjon, salle, rendre, modifierPlan, annoncerCarte };
-
 // --- Historique : propre à chaque salle (voir historique.js) --------------------
 // La pile d'une salle est vidée quand le MJ reprend la main sur son texte (frappe, exemple, effacer).
 const historique = creerHistorique();
@@ -86,6 +82,10 @@ const pile = (idSalle = donjon().salleActive) => historique.pile(donjon().id, id
 function memoriser(idSalle = donjon().salleActive, liaisons = []) {
   historique.memoriser(donjon().id, idSalle, { texte: donjon().salles[idSalle].texte, ancres: modele.ancresDeSalle(donjon(), idSalle), liaisons });
 }
+
+// Contexte des modules mj/ (fabriques `creerX(ctx)`) : ils le lisent au moment de l'appel et ne s'importent pas entre eux.
+// Les fonctions (rendre, modifierPlan, activerSalle…) sont déclarées plus bas dans ce fichier ; les modules s'y ajoutent à mesure.
+const ctx = { etat, donjon, salle, rendre, modifierPlan, annoncerCarte, historique, activerSalle, afficherSalleActive, dispositionDuDonjon };
 
 // --- Rendu --------------------------------------------------------------------
 /** Repères dessinés sur la carte : portes reliées et élément sélectionné. */
@@ -145,8 +145,8 @@ function rendre() {
   $('annuler').hidden = $('annuler-carte').hidden = pile().length === 0;
   if (document.activeElement !== $('json')) $('json').value = JSON.stringify(s.plan, null, 2);
   majSelection();
-  majOrphelines();
-  majMiniCarte();
+  ctx.salles.majOrphelines();
+  ctx.salles.majMiniCarte();
   majAide();
   majForme();
   personnages.maj();
@@ -235,7 +235,7 @@ function afficherSalleActive() {
   $('notes').value = salle().notes;
   $('nom-salle-active').textContent = `· ${salle().nom}`;
   majDonjons();
-  majListe();
+  ctx.salles.majListe();
   generer();
   $('panneau').scrollTo({ top: 0 });
   fermerMenu();
@@ -362,7 +362,7 @@ function majSelection() {
           const { salle: nouvelle } = modele.creerSalleDerriere(d, { depuis, echelle: r.echelle });
           etat.neuves.add(nouvelle.id);
           etat.message = `Salle « ${nouvelle.nom} » créée derrière cette porte (6 × 6 cases). Tu restes ici.`;
-          majListe();
+          ctx.salles.majListe();
         } catch (err) { etat.message = err.message; }
         rendre();
       })));
@@ -867,81 +867,8 @@ document.addEventListener('keydown', (e) => {
   if (etat.plan) { ouvrirPlan(false); $('plan-bouton').focus(); }
 });
 
-// --- Liaisons orphelines --------------------------------------------------------
-function majOrphelines() {
-  const zone = $('orphelines');
-  const d = donjon(), s = salle();
-  const orphelines = modele.liaisonsOrphelines(d).filter((o) => o.salle === s.id);
-  zone.hidden = orphelines.length === 0;
-  zone.replaceChildren(...orphelines.map((o) => {
-    const autreExt = o.liaison[o.cote === 'a' ? 'b' : 'a'];
-    const autre = d.salles[autreExt.salle];
-    const b = h('button', { type: 'button', className: 'discret', textContent: 'Retirer la liaison' });
-    b.addEventListener('click', () => { modele.delier(d, o.liaison.id); rendre(); });
-    return h('div', { className: 'orpheline' },
-      h('p', { className: 'note erreur' },
-        `Liaison orpheline : il n’y a plus de porte au mur ${o.mur} (repère ${reperePorte(o.mur, o.position)}), `
-        + 'qui menait à « ', h('strong', { textContent: autre?.nom ?? '?' }), ' ». Rétablis la porte dans le texte, ou retire la liaison.'),
-      b);
-  }));
-}
-
-// --- Liste des salles et mini-carte ----------------------------------------------
-/** Onglets des salles, au-dessus de la description : un clic affiche la salle. */
-function majOnglets() {
-  const d = donjon();
-  $('salles-onglets').replaceChildren(...modele.listerSalles(d).map((s) => {
-    const actif = s.id === d.salleActive;
-    const b = h('button', { type: 'button', className: `onglet-salle${actif ? ' actif' : ''}`, textContent: s.nom, title: s.nom, role: 'tab', 'aria-selected': String(actif) });
-    b.addEventListener('click', () => { if (!actif || etat.plan) activerSalle(s.id); }); // cliquer un onglet quitte aussi le plan
-    return h('li', { role: 'presentation' }, b);
-  }));
-  $('salles-onglets').querySelector('.actif')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-}
-
-function majListe() {
-  const d = donjon();
-  majOnglets();
-  $('salles-liste').replaceChildren(...modele.listerSalles(d).map((s) => {
-    const actif = s.id === d.salleActive;
-    const nom = h('input', { type: 'text', value: s.nom, maxLength: 80, spellcheck: false, 'aria-label': `Nom de la salle ${s.nom}` });
-    nom.addEventListener('change', () => {
-      modele.renommerSalle(d, s.id, nom.value);
-      nom.value = s.nom;
-      if (actif) $('nom-salle-active').textContent = `· ${s.nom}`;
-      majOnglets();
-      rendre();
-    });
-    const aller = h('button', { type: 'button', className: 'discret', textContent: actif ? 'Affichée' : 'Afficher', disabled: actif });
-    aller.addEventListener('click', () => activerSalle(s.id));
-    const suppr = h('button', { type: 'button', className: 'discret' });
-    deuxTemps(suppr, 'Supprimer', 'Confirmer ?', () => {
-      const etaitActive = actif;
-      modele.supprimerSalle(d, s.id, { echelle: r.echelle });
-      historique.oublierSalle(donjon().id, s.id);
-      if (etaitActive) afficherSalleActive();
-      else { majListe(); rendre(); }
-    });
-    suppr.title = 'Supprime la salle et ses liaisons';
-    return h('li', { className: actif ? 'actif' : '' }, nom, aller, suppr);
-  }));
-}
-
-const majMiniPlan = creerMiniPlan($('minicarte'), {
-  onChoisir: (id) => activerSalle(id),
-  libelle: (s) => `Afficher la salle ${s.nom}`,
-});
-function majMiniCarte() {
-  const d = donjon();
-  majMiniPlan({ donjon: d, disposition: dispositionDuDonjon(d), actif: d.salleActive });
-}
-
-$('salle-ajouter').addEventListener('click', () => {
-  const d = donjon();
-  const nouvelle = modele.ajouterSalle(d, { echelle: r.echelle });
-  etat.neuves.add(nouvelle.id);
-  activerSalle(nouvelle.id); // la salle isolée s'affiche, prête à être décrite
-});
+// --- Salles : onglets, liste, liaisons orphelines, miniature du plan (js/mj/salles-liste.js) ---
+ctx.salles = creerSalles(ctx); // la bulle appelle majListe
 
 // --- Donjons : changer, nouveau, renommer, supprimer ------------------------------
 function majDonjons() {
