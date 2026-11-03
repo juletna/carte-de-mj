@@ -89,6 +89,14 @@ const TESTS = [
     egal(analyser('Salle de 6 par 6 cases, un coffre en C4').plan.forme, 'rectangle', 'en C4');
     const { plan: q, ignores } = analyser('Salle de 6 par 6 cases, un coffre en L4');
     egal([q.forme, ignores], ['rectangle', []], 'colonne L');
+    for (const [c, position] of [['L', 11], ['T', 19], ['U', 20]]) {
+      const porte = analyser(`Salle de 30 par 30 cases, une porte au mur nord en ${c}, un coffre`).plan;
+      egal([porte.forme, porte.portes[0].position], ['rectangle', position], `porte en colonne ${c}`);
+      const dansLaForme = analyser(`Salle en croix de 30 par 30 cases, une porte au mur nord en ${c}`).plan;
+      egal([dansLaForme.forme, dansLaForme.portes[0].position], ['croix', position], `porte en colonne ${c} d’une croix`);
+      egal(analyser(`Salle de 30 par 30 cases, une porte en ${c}`).plan.forme, 'rectangle', `autre phrase en ${c}`);
+    }
+    egal(analyser('Salle de 8 par 8 cases en L').plan.forme, 'L', 'après les dimensions, dans la première phrase');
   }],
   ['texte : l’aller-retour garde la forme, la porte et le mobilier', () => {
     for (const texte of [
