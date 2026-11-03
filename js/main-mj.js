@@ -29,19 +29,8 @@ import { nomAffiche } from './parseur/lexique.js';
 import * as modele from './donjon.js';
 import { creerMiniPlan } from './miniplan.js';
 import { telephone, activerOnglets, marquerDefilement, LARGEUR_TELEPHONE } from './telephone.js';
-
-const $ = (id) => document.getElementById(id);
-
-/** Crée un élément ; tout texte passe par textContent (jamais de HTML venu d'un fichier). */
-function h(tag, props = {}, ...enfants) {
-  const e = document.createElement(tag);
-  for (const [cle, valeur] of Object.entries(props)) {
-    if (cle.startsWith('aria-')) e.setAttribute(cle, valeur);
-    else e[cle] = valeur;
-  }
-  e.append(...enfants);
-  return e;
-}
+import { $, h, bouton, deuxTemps, fichierChoisi } from './dom.js';
+import { pluriel } from './format.js';
 
 const EXEMPLES = [
   'Grande pièce de 4 m par 12, quatre piliers, deux coffres au fond de la salle, une statue immobile devant une porte',
@@ -349,11 +338,6 @@ function majSelection() {
   }
   zone.hidden = false;
   const el = trouve.element;
-  const bouton = (texte, onClick, classe = '') => {
-    const b = h('button', { type: 'button', textContent: texte, className: classe });
-    b.addEventListener('click', onClick);
-    return b;
-  };
   const contenu = [
     bouton('✕ Fermer', () => { etat.selection = null; etat.message = ''; rendre(); }, 'discret petit fermer-selection'),
     h('p', { className: 'selection-titre', textContent: libelleSelection(trouve) }),
@@ -714,8 +698,7 @@ $('personnages-actualiser').addEventListener('click', () => {
   rendre();
 });
 $('personnages-fichier').addEventListener('change', async (e) => {
-  const fichier = e.target.files[0];
-  e.target.value = '';
+  const fichier = fichierChoisi(e);
   if (!fichier) return;
   try {
     const fiche = ficheDepuisFichier(await stockage.lireFichierJson(fichier));
@@ -1037,34 +1020,6 @@ function majOrphelines() {
 }
 
 // --- Liste des salles et mini-carte ----------------------------------------------
-/**
- * Bouton qui demande confirmation au second clic, dans les 4 secondes.
- * `annonce` (facultatif) : { zone, texte() } affiche, dans une zone à part, ce qui va être supprimé.
- * Le bouton garde sa largeur (rien ne bouge autour) ; la zone, placée après les autres actions, ne les déplace pas.
- */
-function deuxTemps(bouton, libelle, confirmation, action, annonce) {
-  let attente;
-  const reinitialiser = () => {
-    clearTimeout(attente);
-    bouton.dataset.confirme = '';
-    bouton.textContent = libelle;
-    bouton.classList.remove('danger');
-    bouton.style.minWidth = '';
-    if (annonce) { annonce.zone.hidden = true; annonce.zone.textContent = ''; }
-  };
-  reinitialiser();
-  bouton.addEventListener('click', () => {
-    if (bouton.dataset.confirme === '1') { reinitialiser(); action(); return; }
-    bouton.dataset.confirme = '1';
-    if (annonce) bouton.style.minWidth = `${bouton.offsetWidth}px`;
-    bouton.textContent = confirmation;
-    bouton.classList.add('danger');
-    if (annonce) { annonce.zone.textContent = annonce.texte(); annonce.zone.hidden = false; }
-    attente = setTimeout(reinitialiser, 4000);
-  });
-  bouton.addEventListener('blur', reinitialiser);
-}
-
 /** Onglets des salles, au-dessus de la description : un clic affiche la salle. */
 function majOnglets() {
   const d = donjon();
@@ -1177,7 +1132,6 @@ function ligneModele(nom, description, partir, supprimer) {
 /** La liste des modèles : ceux de l'outil, puis ceux gardés par le MJ dans ce navigateur. */
 function majModeles() {
   const gardes = stockage.chargerModeles();
-  const pluriel = (n) => `${n} salle${n > 1 ? 's' : ''}`;
   $('modeles-liste').replaceChildren(
     ...MODELES.map((m) => ligneModele(m.nom, m.description, () => accueillirDonjon(donjonDepuisModele(m)))),
     ...gardes.map((g) => {
@@ -1186,7 +1140,7 @@ function majModeles() {
         stockage.sauverModeles(stockage.chargerModeles().filter((x) => x.id !== g.id));
         majModeles();
       });
-      return ligneModele(g.nom, `Ton modèle · ${pluriel(Object.keys(g.salles).length)}`,
+      return ligneModele(g.nom, `Ton modèle · ${pluriel(Object.keys(g.salles).length, 'salle', 'salles')}`,
         () => accueillirDonjon(copieDonjon(g, { idsPris: Object.keys(etat.donjons) })), retirer);
     }),
   );
@@ -1344,8 +1298,7 @@ function ajouterDonjonLu(brut) {
 }
 
 $('importer').addEventListener('change', async (e) => {
-  const fichier = e.target.files[0];
-  e.target.value = '';
+  const fichier = fichierChoisi(e);
   if (!fichier) return;
   try {
     ajouterDonjonLu(await stockage.lireFichierJson(fichier));

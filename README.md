@@ -322,6 +322,8 @@ css/style.css       styles communs au Donjon, à la Présentation et à l'Impres
 css/donjon.css      mise en page du Donjon : barre, rail d'outils, panneau, bande des salles, bulle d'actions, zoom
 css/presentation.css  écran de départ, régie et vue table
 css/impression.css  pages A4 et réglages de l'impression
+js/dom.js           outils DOM communs aux pages : `$`, `h`, bouton, confirmation en deux temps, choix d'un fichier à importer
+js/format.js        pluriel et virgule française (pur, sans DOM)
 js/main-mj.js       branchement de l'interface du Donjon (donjons, salles, sélection)
 js/palette.js       palette du Donjon : vignettes de portes, de mobilier et de créatures, pose au clic ou au glisser
 js/vignettes.js     une vignette (petit canvas) par élément de la palette, dessinée avec le thème vectoriel

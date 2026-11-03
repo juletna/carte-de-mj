@@ -3,13 +3,8 @@
  * Tout texte passe par textContent : une fiche vient d'un fichier, jamais de HTML.
  */
 import { STATS } from './personnages.js';
+import { h } from './dom.js';
 
-function h(tag, props = {}, ...enfants) {
-  const e = document.createElement(tag);
-  Object.assign(e, props);
-  e.append(...enfants);
-  return e;
-}
 const noteSi = (texte) => (texte ? [h('p', { className: 'note', textContent: texte })] : []);
 const signe = (n) => (n >= 0 ? `+${n}` : String(n));
 const modificateur = (v) => signe(Math.floor((v - 10) / 2));

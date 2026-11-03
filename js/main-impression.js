@@ -11,25 +11,13 @@ import { CLE_DONJONS, chargerDonjons } from './stockage.js';
 import { dessinerFenetre, EPAISSEUR_MUR } from './rendu/moteur.js';
 import * as papier from './rendu/themes/papier.js';
 import { preparerImpression, messageEchelle, resolutionCanvas, REGLE_MM, MESSAGE_REGLE } from './impression.js';
+import { $, h } from './dom.js';
+import { pluriel, virgule } from './format.js';
 
-const $ = (id) => document.getElementById(id);
 const SVG = 'http://www.w3.org/2000/svg';
 const DEBORD_PX = 2;
 
-/** Crée un élément ; tout texte passe par textContent. */
-function h(tag, props = {}, ...enfants) {
-  const e = document.createElement(tag);
-  for (const [cle, valeur] of Object.entries(props)) {
-    if (cle === 'style') e.style.cssText = valeur;
-    else if (cle.startsWith('aria-')) e.setAttribute(cle, valeur);
-    else e[cle] = valeur;
-  }
-  e.append(...enfants);
-  return e;
-}
 const mm = (v) => `${v}mm`;
-const virgule = (v) => String(Math.round(v * 10) / 10).replace('.', ',');
-const pluriel = (n, un, plusieurs) => `${n} ${n > 1 ? plusieurs : un}`;
 
 // --- Lecture des donjons (lecture seule) ----------------------------------------------
 

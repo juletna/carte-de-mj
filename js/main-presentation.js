@@ -28,38 +28,10 @@ import { nomAffiche } from './parseur/lexique.js';
 import { creerMicro } from './voix.js';
 import { MODES_TABLE, modeTable, tailleTable } from './affichage.js';
 import { telephone, activerOnglets, marquerDefilement, tailleQuiTient } from './telephone.js';
-
-const $ = (id) => document.getElementById(id);
-
-/** Crée un élément ; tout texte passe par textContent (jamais de HTML venu d'un fichier). */
-function h(tag, props = {}, ...enfants) {
-  const e = document.createElement(tag);
-  for (const [cle, valeur] of Object.entries(props)) {
-    if (cle.startsWith('aria-')) e.setAttribute(cle, valeur);
-    else e[cle] = valeur;
-  }
-  e.append(...enfants);
-  return e;
-}
-
-/** Bouton qui demande confirmation au second clic, dans les 4 secondes. */
-function deuxTemps(bouton, libelle, confirmation, action) {
-  let attente;
-  const reinitialiser = () => { clearTimeout(attente); bouton.dataset.confirme = ''; bouton.textContent = libelle; bouton.classList.remove('danger'); };
-  reinitialiser();
-  bouton.addEventListener('click', () => {
-    if (bouton.dataset.confirme === '1') { reinitialiser(); action(); return; }
-    bouton.dataset.confirme = '1';
-    bouton.textContent = confirmation;
-    bouton.classList.add('danger');
-    attente = setTimeout(reinitialiser, 4000);
-  });
-  bouton.addEventListener('blur', reinitialiser);
-  return reinitialiser;
-}
+import { $, h, bouton, deuxTemps, fichierChoisi } from './dom.js';
+import { pluriel } from './format.js';
 
 const ouvrirCanal = () => { try { return new BroadcastChannel(pres.CANAL); } catch { return null; } };
-const pluriel = (n, un, plusieurs) => `${n} ${n > 1 ? plusieurs : un}`;
 
 // =============================================================================
 // Écran de table (partagé : fenêtre ?vue=table et « Plein écran ici »)
@@ -447,8 +419,7 @@ function demarrerRegie() {
   }
 
   $('fichier').addEventListener('change', async (e) => {
-    const fichier = e.target.files[0];
-    e.target.value = '';
+    const fichier = fichierChoisi(e);
     if (!fichier) return;
     const erreur = $('erreur-fichier');
     erreur.hidden = true;
@@ -723,12 +694,6 @@ function demarrerRegie() {
     if (trouve.genre === 'creature') return `${nomPion(e)} · ${nomCase(e.x, e.y)}`;
     return `${nomAffiche(e.type)} · ${nomCase(e.x, e.y)}`;
   }
-
-  const bouton = (texte, onClick, classe = '') => {
-    const b = h('button', { type: 'button', textContent: texte, className: classe });
-    b.addEventListener('click', onClick);
-    return b;
-  };
 
   /** Phrases communes à tout passage de porte : le groupe qui suit, les pions restés faute de place. */
   function phrasesGroupe(res, depart) {

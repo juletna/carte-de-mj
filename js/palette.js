@@ -14,6 +14,7 @@
  */
 import { filtrerElements } from './pose.js';
 import { creerVignette, copierVignette } from './vignettes.js';
+import { h as el } from './dom.js';
 
 const SEUIL_GLISSEMENT = 5; // px : en dessous, c'est un clic
 
@@ -38,13 +39,6 @@ export function creerPalette(racine, { elements, groupes, sousGroupes = {}, past
   let glisse = null;        // { item, fantome } pendant un glisser-déposer
   let apresGlisser = false; // le clic qui suit un glisser ne doit pas armer
   const dessines = new Set(); // groupes dont les vignettes sont déjà dessinées (au premier affichage, une seule fois)
-
-  const el = (tag, props = {}, ...enfants) => {
-    const e = document.createElement(tag);
-    for (const [k, v] of Object.entries(props)) { if (k.startsWith('aria-') || k.startsWith('data-')) e.setAttribute(k, v); else e[k] = v; }
-    e.append(...enfants);
-    return e;
-  };
 
   // --- Structure ---
   const fermer = el('button', { type: 'button', className: 'discret palette-fermer', textContent: '✕ Fermer', title: 'Fermer la palette' });

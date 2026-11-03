@@ -26,6 +26,7 @@ import { planPublic } from './presentation.js';
 import { lettreColonne, nomCase } from './parseur/coordonnees.js';
 import { nomAffiche } from './parseur/lexique.js';
 import { EPAISSEUR_MUR } from './rendu/moteur.js';
+import { virgule } from './format.js';
 
 export const CASE_MM = 25;           // échelle par défaut : 25 mm par case (figurines de 25 mm)
 export const MARGE_PAGE_MM = 10;     // marge de @page
@@ -49,7 +50,6 @@ export const VERSIONS = ['mj', 'joueurs'];
 const EPS = 1e-9;
 const arrondi = (v, n = 2) => Math.round(v * 10 ** n) / 10 ** n;
 const entierBas = (v) => Math.floor(v + EPS);
-const virgule = (v) => String(arrondi(v, 1)).replace('.', ',');
 const orientationDe = (largeur, longueur) => (largeur > longueur ? 'paysage' : 'portrait');
 
 // --- Découpage ---------------------------------------------------------------------
