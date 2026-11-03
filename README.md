@@ -344,7 +344,8 @@ js/palette.js       palette du Donjon : vignettes de portes, de mobilier et de c
 js/vignettes.js     une vignette (petit canvas) par élément de la palette, dessinée avec le thème vectoriel
 js/rail.js          rail d'outils du Donjon et panneau contextuel ; la table `OUTILS` (identifiant, titre, catalogue) dont dérivent les titres et les outils du catalogue
 js/pose.js          règle unique de « où poser un élément » (et élément qui gêne), chevauchement : ajouter, retirer, redimensionner, changer de forme (pur, sans DOM)
-js/plan-donjon.js   plan du donjon : salles posées à leur vraie taille, reliées par des couloirs (pur, sans DOM)
+js/plan-donjon.js   plan du donjon : salles posées à leur vraie taille, reliées par des couloirs (pur, sans DOM) ; façade : `disposerPlan` assemble, et tout ce qui s'importait de ce fichier s'y importe encore
+js/plan-donjon/     le détail du plan : pose-salles (où va chaque salle, blocs, salles isolées), couloirs (points des portes, tracé simple, ponts), routage (tracé des couloirs autour des salles et note d'un plan)
 js/rapport.js       rapport texte à copier pour signaler une erreur de lecture
 js/affichage.js     réglages d'affichage : taille par défaut et bornes, échelle par défaut, taille de la carte à la table (modes « remplir » / « échelle réelle »), validation de ce que reçoit la table, case qui tient un plan, limites de canvas (pur, sans DOM)
 js/presentation.js  façade : réexporte partie.js, passage.js et vue-publique.js (point d'entrée des écrans et des tests)
