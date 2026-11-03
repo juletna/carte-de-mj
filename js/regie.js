@@ -548,11 +548,11 @@ export function demarrerRegie() {
   reinitialiserRetour = deuxTemps($('retour-regie'), '← Retour à la régie', 'Appuie encore pour revenir', quitterPleinIci);
   document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && etat.pleinIci) quitterPleinIci(); });
 
-  // Échap : UN SEUL écouteur, dans cet ordre de priorité (avant, trois écouteurs en faisaient chacun une part, sans stopPropagation :
-  // celui de la sélection appelait preventDefault, et les deux autres le respectaient ou s'excluaient par leurs conditions).
-  //  1. « Plein écran ici » : revient à la régie (même si un autre écouteur a déjà pris l'événement) ;
-  //  2. un plein écran qui n'est pas le nôtre : Échap lui sert à en sortir, rien à faire ;
-  //  3. une sélection ouverte : la ferme, sauf dans un champ de texte, de liste ou de saisie (Échap y sert déjà) ;
+  // Échap : UN SEUL écouteur, dans l'ordre de priorité qu'avaient les trois d'avant (enregistrés dans cet ordre, sans stopPropagation :
+  // la sélection appelait preventDefault et les autres s'effaçaient devant lui ou par leurs propres conditions).
+  //  1. « Plein écran ici » : retour à la régie, quoi qu'il arrive à l'événement ;
+  //  2. un plein écran en cours : Échap sert déjà à en sortir, rien à faire ;
+  //  3. une sélection ouverte : la ferme, sauf dans un champ de saisie ou de liste (Échap y sert déjà) ;
   //  4. sinon la case montrée : l'enlève, sauf dans n'importe quel champ (cases à cocher comprises).
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
