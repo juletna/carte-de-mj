@@ -27,7 +27,15 @@ export async function executer({ lire }) {
   verifier(!/<script>/.test(html), 'fiche.html : plus de script en ligne');
   verifier(page.length > 1000, 'js/fiche/main.js : page introuvable');
 
+  const feuillesCss = (await lire('css/base.css')) + (await lire('css/fiche.css'));
+
   const TESTS = [
+    ['jetons : chaque var(--x) de la Fiche est défini, dans le socle commun, dans css/fiche.css ou en ligne', () => {
+      const code = [feuillesCss, ...Object.values(sources)].join('\n');
+      const definis = new Set([...code.matchAll(/(--[\w-]+)\s*:/g)].map((m) => m[1]));
+      const inconnus = [...code.matchAll(/var\((--[\w-]+)/g)].map((m) => m[1]).filter((j) => !definis.has(j));
+      egal([...new Set(inconnus)], [], 'jetons utilisés sans définition (la propriété CSS est alors ignorée en silence)');
+    }],
     ['la Fiche prend sa clé, son format de fichier et ses caractéristiques de js/fiche/, sans en garder de copie', () => {
       for (const [fichier, source] of Object.entries(sources)) {
         verifier(!source.includes(CLE_FICHES) && !source.includes(CLE_FICHE_ANCIENNE), `${fichier} : recopie une clé du navigateur`);

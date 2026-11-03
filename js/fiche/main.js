@@ -105,7 +105,7 @@ function vMine(){
  const linked=S.ammo.filter(am=>S.attacks.some(a=>a.ammo===am.n));
  return`<section class="card focus">
   <div class="acts">${b('action','Action')}${b('bonus','Bonus')}${b('react','Réaction')}${b('obj','Objet')}${hasHaste(S)?b('haste','Hâte','haste'):''}</div>
-  <div class="move"><div class="mv"><span class="lbl">Mouvement · ${m15(left)} / ${m15(sp)} m${T.dash?' · Foncer':''}</span><span class="bar"><i style="width:${sp?left/sp*100:0}%;background:var(--ink)"></i></span></div>
+  <div class="move"><div class="mv"><span class="lbl">Mouvement · ${m15(left)} / ${m15(sp)} m${T.dash?' · Foncer':''}</span><span class="bar"><i style="width:${sp?left/sp*100:0}%;background:var(--texte)"></i></span></div>
    <button data-a="mv" data-v="1.5" ${left>=1.5?'':'disabled'}>−1,5</button><button data-a="mv" data-v="-1.5" ${T.move>0?'':'disabled'}>+1,5</button><button data-a="dash" ${T.dash?'disabled':''}>Foncer</button></div>
  </section>
  <section class="card"><h2>Attaques <small>${S.crit?'critique : dégâts ×2':'toucher · dégâts'}</small></h2>
