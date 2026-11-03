@@ -5,7 +5,8 @@
 import * as m from '../js/donjon.js';
 import { genererDonjon, normaliserOptions, BORNES, FAMILLES } from '../js/generateur.js';
 import { analyser } from '../js/parseur/index.js';
-import { CREATURES, nomAffiche } from '../js/parseur/lexique.js';
+import { nomAffiche } from '../js/parseur/lexique.js';
+import { CREATURES } from '../js/catalogue.js';
 import { disposerPlan } from '../js/plan-donjon.js';
 import { surLeSol, retraitPorte } from '../js/formes.js';
 import { vueTable, creerPresentation } from '../js/presentation.js';

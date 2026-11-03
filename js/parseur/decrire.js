@@ -6,26 +6,21 @@
  * coordonnées de cases : « deux coffres en A1 C1 », « un lit de A2 à B2 ».
  */
 import { definition, nomAffiche } from './lexique.js';
+import { estFeminin, estSymetrique } from '../catalogue.js';
 import { nomCase, reperePorte } from './coordonnees.js';
 import { REGARD_VERS, portesEntreeDabord, murEntree } from '../murs.js';
 
-const FEMININS = new Set([
-  'colonne', 'statue', 'table', 'chaise', 'caisse', 'fosse', 'bibliotheque', 'torche', 'fontaine',
-  'porte', 'herse', 'arche', 'goule', 'liche', 'araignee', 'harpie', 'manticore', 'wyverne', 'hydre',
-]);
-// Objets identiques quelle que soit leur orientation : inutile de la préciser.
-const SYMETRIQUES = new Set(['pilier', 'colonne', 'tonneau', 'caisse', 'fosse', 'debris', 'puits', 'fontaine']);
 const NOMBRES = ['', 'un', 'deux', 'trois', 'quatre', 'cinq', 'six', 'sept', 'huit', 'neuf', 'dix', 'onze', 'douze'];
 const DIRECTIONS = { 0: 'le nord', 90: 'l’est', 180: 'le sud', 270: 'l’ouest' };
 
 function quantite(type, n) {
-  const f = FEMININS.has(type);
+  const f = estFeminin(type);
   if (n === 1) return f ? 'une' : 'un';
   return NOMBRES[n] || String(n);
 }
 
 function accord(mot, type, n) {
-  return `${mot}${FEMININS.has(type) ? 'e' : ''}${n > 1 ? 's' : ''}`;
+  return `${mot}${estFeminin(type) ? 'e' : ''}${n > 1 ? 's' : ''}`;
 }
 
 /** Un élément secret : « caché », « cachés »… accordé comme le nom (voir ADJ_CACHE dans lexique.js). */
@@ -48,7 +43,8 @@ function decrireObjets(objets, regardDefaut) {
   const seuls = [];
   for (const o of objets) {
     const def = definition(o.type);
-    const rotation = SYMETRIQUES.has(o.type) || o.rotation === regardDefaut ? null : o.rotation;
+    // Un objet identique quelle que soit son orientation : inutile de la préciser.
+    const rotation = estSymetrique(o.type) || o.rotation === regardDefaut ? null : o.rotation;
     const etendue = emplacement(o, o.l, o.h, def);
     const cache = o.cache === true;
     const suite = rotation === null ? '' : (n) => ` ${accord('tourné', o.type, n)} vers ${DIRECTIONS[rotation]}`;

@@ -12,6 +12,7 @@
  */
 import { normaliserForme, casesRetirees, surLeSol, retraitPorte } from '../formes.js';
 import { definition, nomAffiche } from './lexique.js';
+import { estAuLarge } from '../catalogue.js';
 import { VERSION_PLAN } from '../schema.js';
 import { OPPOSE, REGARD, REGARD_VERS, estHorizontal, longueurMur } from '../murs.js';
 
@@ -19,8 +20,6 @@ import { OPPOSE, REGARD, REGARD_VERS, estHorizontal, longueurMur } from '../murs
 const GAUCHE = { sud: 'ouest', nord: 'est', est: 'sud', ouest: 'nord' };
 const DROITE = { sud: 'est', nord: 'ouest', est: 'nord', ouest: 'sud' };
 const VECTEUR = { 0: [0, -1], 90: [1, 0], 180: [0, 1], 270: [-1, 0] };
-// Types qu'on écarte d'une case du mur quand la pièce est assez large.
-const AU_LARGE = new Set(['pilier', 'colonne', 'statue']);
 
 /**
  * Répartit n éléments de façon symétrique sur une ligne de `long` cases.
@@ -310,7 +309,7 @@ export function construirePlan({ largeur: W, longueur: L, sol, forme, intentions
     // Symétrique sur les deux murs latéraux (vu depuis l'entrée).
     cotes(def, n, l, h) {
       const murG = GAUCHE[entree], murD = DROITE[entree];
-      const retrait = AU_LARGE.has(def.type) && Math.min(W, L) >= 5 ? 1 : 0;
+      const retrait = estAuLarge(def.type) && Math.min(W, L) >= 5 ? 1 : 0;
       const k = Math.ceil(n / 2);
       return [...leLongDuMur(def, murG, k, l, h, retrait), ...leLongDuMur(def, murD, n - k, l, h, retrait)];
     },

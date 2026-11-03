@@ -4,13 +4,8 @@
  * et la carte dessinée en caractères.
  */
 import { nomAffiche } from './parseur/lexique.js';
+import { lettreDe, coucheDe, COUCHE_PAR_DEFAUT } from './catalogue.js';
 
-// Une lettre par type d'objet pour la carte texte.
-const LETTRES = {
-  pilier: 'P', colonne: 'C', coffre: 'K', statue: 'S', table: 'T', chaise: 'h', autel: 'A',
-  trone: 'R', tonneau: 'O', caisse: 'X', escalier: 'E', fosse: 'F', lit: 'L', bibliotheque: 'B',
-  torche: '*', debris: '%', puits: 'U', fontaine: 'W', sarcophage: 'Z',
-};
 
 /** Dessine le plan en caractères ; les portes sont des « D » dans les murs. */
 export function carteTexte(plan) {
@@ -18,11 +13,11 @@ export function carteTexte(plan) {
   const grille = Array.from({ length: L }, () => Array(W).fill('.'));
   const vus = new Set();
   for (const o of plan.objets) {
-    const c = LETTRES[o.type] || '?';
+    const c = lettreDe(o.type) || '?';
     vus.add(o.type);
     for (let x = o.x; x < o.x + o.l; x++) for (let y = o.y; y < o.y + o.h; y++) {
-      // Une torche est accrochée au mur : elle ne masque pas ce qui est au sol.
-      if (grille[y]?.[x] !== undefined && (o.type !== 'torche' || grille[y][x] === '.')) grille[y][x] = c;
+      // Ce qui est accroché au mur (une torche) ne masque pas ce qui est au sol.
+      if (grille[y]?.[x] !== undefined && (coucheDe(o.type) <= COUCHE_PAR_DEFAUT || grille[y][x] === '.')) grille[y][x] = c;
     }
   }
   // Créatures : chiffre de leur numéro pour les PJ (1, 2…), initiale en minuscule pour les autres.
@@ -39,7 +34,7 @@ export function carteTexte(plan) {
   const lignes = [`┌${nord.join('')}┐`];
   grille.forEach((rang, y) => lignes.push(`${ouest[y]}${rang.join('')}${est[y]}`));
   lignes.push(`└${sud.join('')}┘`);
-  const legende = [...vus].map((t) => `${LETTRES[t] || '?'}=${nomAffiche(t)}`);
+  const legende = [...vus].map((t) => `${lettreDe(t) || '?'}=${nomAffiche(t)}`);
   legende.push(...legendeCreatures.keys());
   if (plan.portes.length) legende.push('D=porte');
   return `${lignes.join('\n')}\n${legende.join('  ')}`;

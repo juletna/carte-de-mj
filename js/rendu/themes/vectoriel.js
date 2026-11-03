@@ -22,7 +22,8 @@ import { dessinerMursDecoupes } from '../trace.js';
 import { rect, rectArrondi, rond } from './commun.js';
 import { EPAISSEUR_MUR, ancragePorte } from '../geometrie.js';
 import { dessinerPortrait } from '../portraits.js';
-import { CREATURES, COULEURS } from '../../parseur/lexique.js';
+import { COULEURS } from '../../parseur/lexique.js';
+import { CREATURES } from '../../catalogue.js';
 
 const C = {
   roche: '#23211f', rocheClair: '#2e2b28',

@@ -25,12 +25,13 @@ import { MARGE } from './rendu/geometrie.js';
 import { largeurDe, hauteurDe, murProche, positionSurMur, evaluerPose } from './pose.js';
 import { retraitPorte } from './formes.js';
 import { estHorizontal } from './murs.js';
+import { coucheDe, COUCHE_PAR_DEFAUT } from './catalogue.js';
 import { LISTES } from './schema.js';
 
 const SEUIL_GLISSEMENT_CARTE = 4; // px : en dessous, c'est un clic (le seuil de la palette, SEUIL_GLISSEMENT_PALETTE, est un autre réglage)
 export const BANDE_PORTE = 0.5; // cases : profondeur ajoutée à la zone de clic d'une porte (option `portesLarges`)
 const EPAISSEUR_CLIC = 0.2;     // cases : profondeur de la zone de clic d'une porte sans l'option
-const SOUS_LES_AUTRES = new Set(['fosse', 'debris']);
+const estSousLesAutres = (type) => coucheDe(type) < COUCHE_PAR_DEFAUT; // fosse, débris : au sol, attrapés en dernier
 
 /** La porte attrapée sous le pointeur, dans l'épaisseur du mur (et jusqu'à `profondeur` cases vers l'intérieur). */
 export function porteSous(cx, cy, plan, profondeur = EPAISSEUR_CLIC) {
@@ -79,7 +80,7 @@ export function activerDeplacement(canvas, { plan, taille, apercu, deposer, cliq
     const porte = porteSous(cx, cy, p);
     if (porte) return { genre: 'porte', element: porte };
     const objets = [...p.objets].reverse();
-    const objet = objets.find((o) => dessus(o) && !SOUS_LES_AUTRES.has(o.type)) || objets.find(dessus);
+    const objet = objets.find((o) => dessus(o) && !estSousLesAutres(o.type)) || objets.find(dessus);
     return objet ? { genre: 'objet', element: objet } : null;
   }
 

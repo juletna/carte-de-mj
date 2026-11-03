@@ -14,9 +14,9 @@ import { tracerSol } from './trace.js';
 import { estHorizontal } from '../murs.js';
 import { MARGE, EPAISSEUR_MUR, rectPorte, rectDe } from './geometrie.js';
 import { TAILLE_PAR_DEFAUT, tailleCanvasBornee } from '../affichage.js';
+import { coucheDe, COUCHE_PAR_DEFAUT } from '../catalogue.js';
 
-// Ordre de dessin : ce qui est au sol d'abord, ce qui est accroché aux murs en dernier.
-const COUCHE = { fosse: 0, debris: 1, torche: 9 };
+// Ordre de dessin : ce qui est au sol d'abord, ce qui est accroché aux murs en dernier (la couche de chaque type est dans catalogue.js).
 
 /**
  * @param {HTMLCanvasElement} canvas
@@ -260,9 +260,9 @@ export function dessinerPlanDonjon(canvas, d, disposition, { taille = 16, actif 
 function peindre(ctx, plan, t, { grille, reperes, theme, marques }) {
   theme.sol(ctx, plan, t);
 
-  const objets = [...plan.objets].sort((a, b) => (COUCHE[a.type] ?? 5) - (COUCHE[b.type] ?? 5));
-  const auSol = objets.filter((o) => (COUCHE[o.type] ?? 5) < 5);
-  const autres = objets.filter((o) => (COUCHE[o.type] ?? 5) >= 5);
+  const objets = [...plan.objets].sort((a, b) => coucheDe(a.type) - coucheDe(b.type));
+  const auSol = objets.filter((o) => coucheDe(o.type) < COUCHE_PAR_DEFAUT);
+  const autres = objets.filter((o) => coucheDe(o.type) >= COUCHE_PAR_DEFAUT);
 
   auSol.forEach((o) => dessinerObjet(ctx, o, t, theme));
   if (grille) (theme.grille || dessinerGrille)(ctx, plan, t);

@@ -25,7 +25,8 @@
  * position d'une porte : index de case le long du mur (de l'ouest vers l'est
  * pour nord/sud, du nord vers le sud pour est/ouest).
  */
-import { OBJETS, PORTES, CREATURES, COULEURS } from './parseur/lexique.js';
+import { PORTES, COULEURS } from './parseur/lexique.js';
+import { OBJETS, CREATURES } from './catalogue.js';
 import { normaliserForme, surLeSol } from './formes.js';
 import { MURS, longueurMur } from './murs.js';
 

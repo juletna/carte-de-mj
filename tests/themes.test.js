@@ -8,7 +8,7 @@ import * as papier from '../js/rendu/themes/papier.js';
 import * as commun from '../js/rendu/themes/commun.js';
 import { tracerSol, dessinerMursDecoupes } from '../js/rendu/trace.js';
 import { nombreCases } from '../js/formes.js';
-import { OBJETS, CREATURES } from '../js/parseur/lexique.js';
+import { OBJETS, CREATURES } from '../js/catalogue.js';
 import { verifier, egal, executerSuite } from './mini-test.js';
 
 const THEMES = { vectoriel, papier };

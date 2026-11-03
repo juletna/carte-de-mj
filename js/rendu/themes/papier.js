@@ -11,7 +11,7 @@ import { casesRetirees } from '../../formes.js';
 import { tracerSol, dessinerMursDecoupes } from '../trace.js';
 import { rect, rectArrondi, rond } from './commun.js';
 import { EPAISSEUR_MUR, ancragePorte } from '../geometrie.js';
-import { CREATURES } from '../../parseur/lexique.js';
+import { CREATURES } from '../../catalogue.js';
 import { dessinerPortrait } from '../portraits.js';
 
 const NOIR = '#111', GRIS = '#8c8c8c', CLAIR = '#e4e4e4', TRES_CLAIR = '#f3f3f3';

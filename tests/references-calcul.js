@@ -12,7 +12,7 @@ import * as m from '../js/donjon.js';
 import { genererDonjon } from '../js/generateur.js';
 import { MODELES, donjonDepuisModele } from '../js/modeles.js';
 import { analyser } from '../js/parseur/index.js';
-import { OBJETS, CREATURES } from '../js/parseur/lexique.js';
+import { OBJETS, CREATURES } from '../js/catalogue.js';
 import { disposerPlan } from '../js/plan-donjon.js';
 import { dessiner, dessinerFenetre, dessinerPlanDonjon } from '../js/rendu/moteur.js';
 import * as vectoriel from '../js/rendu/themes/vectoriel.js';

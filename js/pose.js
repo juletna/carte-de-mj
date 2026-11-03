@@ -10,7 +10,8 @@
  *
  * Coordonnées : en cases, x de l'ouest vers l'est, y du nord vers le sud (voir schema.js).
  */
-import { OBJETS, CREATURES, PORTES, definition, nomAffiche } from './parseur/lexique.js';
+import { PORTES, definition, nomAffiche } from './parseur/lexique.js';
+import { OBJETS, CREATURES } from './catalogue.js';
 import { nomCase } from './parseur/coordonnees.js';
 import { normaliserForme, surLeSol } from './formes.js';
 import { REGARD, REGARD_VERS, estHorizontal, longueurMur, murEntree } from './murs.js';
@@ -73,7 +74,7 @@ const LIBELLES_PORTES = { porte: 'Porte', herse: 'Herse', arche: 'Arche' };
 
 /**
  * Tout ce que la palette propose, tiré du lexique : { groupe, genre, type, libelle }.
- * Groupes : 'portes', 'mobilier', 'creatures'. Ajouter un mot au lexique l'ajoute ici.
+ * Groupes : 'portes', 'mobilier', 'creatures'. Ajouter un type au catalogue (catalogue.js) l'ajoute ici.
  */
 export function elementsPalette() {
   const motsDePorte = (type) => Object.entries(PORTES).filter(([, t]) => t === type).map(([m]) => m);

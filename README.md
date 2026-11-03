@@ -56,7 +56,8 @@ pour prouver qu'une refactorisation ne les change pas. Après un changement voul
 - **Quantités** : en chiffres ou en lettres (« dix-sept », « une paire de », « des torches »).
 - **Objets** : pilier, colonne, coffre, statue, table, chaise, autel, trône, tonneau, caisse, escalier, fosse, lit,
   bibliothèque, torche, débris, puits, fontaine, sarcophage, ainsi que les portes, herses et arches.
-  Pour en ajouter un, éditez la table de `js/parseur/lexique.js`.
+  Pour en ajouter un, ajoutez son entrée dans `js/catalogue.js` (mots, taille, nom, genre…), puis son dessin dans chacun des deux
+  thèmes (`js/rendu/themes/vectoriel.js` et `papier.js`) : un test vérifie qu'aucun n'en manque.
 - **Créatures** (pions numérotés) : les personnages / joueurs / aventuriers (bleu), les peuples et PNJ
   (or : humain, elfe, nain, halfelin, gnome, garde, mage, roi…) et les monstres (rouge : gobelin, orque, kobold,
   squelette, zombie, goule, ogre, troll, minotaure, géant, dragon…). La taille du pion suit la catégorie
@@ -358,7 +359,8 @@ js/formes.js        formes de salle : cases retirées, portes en retrait, murs d
 js/stockage.js      localStorage (donjons, réglages, migration de l'ancien format, mise de côté de ce qui ne se relit pas), export/import JSON
 js/voix.js          dictée (Web Speech API)
 js/deplacement.js   glisser-déposer et clic sur la carte
-js/parseur/         index (chaîne d'analyse), normalisation, nombres, lexique, dimensions, positions, placement, coordonnées (A1…, repère d'une porte, libellé d'une sélection),
+js/catalogue.js     les types d'objets, de créatures et d'ouvertures : mots, taille, nom, genre, couche de dessin (données pures : on y ajoute un objet)
+js/parseur/         index (chaîne d'analyse), normalisation, nombres, lexique (vocabulaire et index des mots), dimensions, positions, placement, coordonnées (A1…, repère d'une porte, libellé d'une sélection),
                     decrire (plan → texte), commandes (« ajoute trois gobelins » en cours de partie : pur, sans DOM)
 js/rendu/           moteur Canvas, géométrie (marge, épaisseur des murs, rectangle d'un élément, ancrage d'une porte : pur), trace.js (tracé Canvas du sol et des murs découpés), portraits de monstres, thème vectoriel et thème papier (impression) avec leurs primitives communes (themes/commun.js)
 tests/              un fichier de test par module (*.test.js), tous.js (la liste unique des suites, lue par node.mjs et tests.html),

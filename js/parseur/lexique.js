@@ -1,92 +1,9 @@
 /**
- * Lexique du parseur : c'est ICI qu'on ajoute un nouvel objet.
- *
- * Chaque entrée :
- *   type     identifiant utilisé dans le JSON et par le thème graphique
- *   mots     formes reconnues, sans accents, au singulier
- *            (le pluriel en -s / -x est reconnu automatiquement)
- *   l, h     taille en cases (l = ouest→est, h = nord→sud) quand l'objet
- *            est adossé au mur nord ; il pivote tout seul sur les autres murs
- *   zone     placement par défaut si la phrase ne précise rien
- *            (grille, centre, fond, coins, cotes, perimetre, aleatoire…)
- *   bloquant false si l'objet ne gêne pas le passage (torche murale)
+ * Lexique du parseur : le vocabulaire (mots reconnus, adjectifs, mots vides, noms de pièces) et l'index qui retrouve un type
+ * par un de ses mots. Les types eux-mêmes (leurs mots, leur taille, leur nom, leur genre…) sont décrits dans catalogue.js :
+ * c'est là qu'on ajoute un nouvel objet.
  */
-export const OBJETS = [
-  { type: 'pilier',       mots: ['pilier'],                                   l: 1, h: 1, zone: 'grille' },
-  { type: 'colonne',      mots: ['colonne'],                                  l: 1, h: 1, zone: 'grille' },
-  { type: 'coffre',       mots: ['coffre', 'malle'],                          l: 1, h: 1, zone: 'fond' },
-  { type: 'statue',       mots: ['statue', 'gargouille', 'idole'],   l: 1, h: 1, zone: 'centre' },
-  { type: 'table',        mots: ['table'],                                    l: 2, h: 1, zone: 'centre' },
-  { type: 'chaise',       mots: ['chaise', 'tabouret', 'banc'],               l: 1, h: 1, zone: 'centre' },
-  { type: 'autel',        mots: ['autel'],                                    l: 2, h: 1, zone: 'fond' },
-  { type: 'trone',        mots: ['trone'],                                    l: 1, h: 1, zone: 'fond' },
-  { type: 'tonneau',      mots: ['tonneau', 'baril', 'barrique', 'fut'],      l: 1, h: 1, zone: 'coins' },
-  { type: 'caisse',       mots: ['caisse', 'caisson', 'cageot'],              l: 1, h: 1, zone: 'coins' },
-  { type: 'escalier',     mots: ['escalier', 'marche'],                       l: 1, h: 2, zone: 'coins' },
-  { type: 'fosse',        mots: ['fosse', 'trou', 'gouffre', 'piege', 'trappe'], l: 1, h: 1, zone: 'centre' },
-  { type: 'lit',          mots: ['lit', 'couchette', 'paillasse'],            l: 1, h: 2, zone: 'cotes' },
-  { type: 'bibliotheque', mots: ['bibliotheque', 'etagere', 'rayonnage'],     l: 2, h: 1, zone: 'fond' },
-  { type: 'torche',       mots: ['torche', 'flambeau', 'brasero', 'chandelier'], l: 1, h: 1, zone: 'perimetre', bloquant: false },
-  { type: 'debris',       mots: ['debris', 'gravat', 'eboulis', 'decombre', 'ruine'], l: 1, h: 1, zone: 'aleatoire' },
-  { type: 'puits',        mots: ['puits'],                                    l: 1, h: 1, zone: 'centre' },
-  { type: 'fontaine',     mots: ['fontaine', 'bassin'],                       l: 1, h: 1, zone: 'centre' },
-  { type: 'sarcophage',   mots: ['sarcophage', 'tombeau', 'cercueil'],        l: 1, h: 2, zone: 'centre' },
-];
-
-/**
- * Créatures : elles deviennent des PIONS (plan.creatures), pas des objets.
- *   camp   pj (personnages des joueurs), pnj (neutres), monstre
- *   taille côté du pion en cases, selon la catégorie de taille :
- *          P/M = 1, G = 2, TG = 3, Gig = 4
- *   abr    abréviation affichée sur le pion (3 lettres max conseillé)
- * Uniquement des créatures génériques de fantasy (pas de monstres propres
- * à une gamme commerciale) pour éviter tout souci de droits.
- */
-export const CREATURES = [
-  // Personnages des joueurs
-  { type: 'pj', mots: ['personnage', 'joueur', 'aventurier', 'heros', 'pj'], camp: 'pj', taille: 1, abr: 'PJ' },
-  // Peuples (neutres par défaut)
-  { type: 'humain', mots: ['humain', 'villageois', 'paysan', 'marchand', 'aubergiste'], camp: 'pnj', taille: 1, abr: 'Hum' },
-  { type: 'elfe', mots: ['elfe'], camp: 'pnj', taille: 1, abr: 'Elf' },
-  { type: 'nain', mots: ['nain'], camp: 'pnj', taille: 1, abr: 'Nai' },
-  { type: 'halfelin', mots: ['halfelin', 'hobbit'], camp: 'pnj', taille: 1, abr: 'Hal' },
-  { type: 'gnome', mots: ['gnome'], camp: 'pnj', taille: 1, abr: 'Gno' },
-  { type: 'garde', mots: ['garde', 'soldat', 'sentinelle', 'chevalier'], camp: 'pnj', taille: 1, abr: 'Gar' },
-  { type: 'mage', mots: ['mage', 'magicien', 'sorcier', 'sorciere', 'pretre', 'pretresse', 'druide'], camp: 'pnj', taille: 1, abr: 'Mag' },
-  { type: 'roi', mots: ['roi', 'reine', 'seigneur', 'prince', 'princesse'], camp: 'pnj', taille: 1, abr: 'Roi' },
-  // Monstres
-  { type: 'gobelin', mots: ['gobelin'], camp: 'monstre', taille: 1, abr: 'Gob' },
-  { type: 'hobgobelin', mots: ['hobgobelin'], camp: 'monstre', taille: 1, abr: 'Hob' },
-  { type: 'kobold', mots: ['kobold'], camp: 'monstre', taille: 1, abr: 'Kob' },
-  { type: 'orque', mots: ['orque', 'orc'], camp: 'monstre', taille: 1, abr: 'Orq' },
-  { type: 'gnoll', mots: ['gnoll'], camp: 'monstre', taille: 1, abr: 'Gnl' },
-  { type: 'bandit', mots: ['bandit', 'brigand', 'voleur', 'assassin', 'pirate'], camp: 'monstre', taille: 1, abr: 'Ban' },
-  { type: 'cultiste', mots: ['cultiste', 'fanatique', 'necromancien'], camp: 'monstre', taille: 1, abr: 'Cul' },
-  { type: 'squelette', mots: ['squelette'], camp: 'monstre', taille: 1, abr: 'Squ' },
-  { type: 'zombie', mots: ['zombie', 'mort vivant'], camp: 'monstre', taille: 1, abr: 'Zom' },
-  { type: 'goule', mots: ['goule'], camp: 'monstre', taille: 1, abr: 'Gou' },
-  { type: 'spectre', mots: ['spectre', 'fantome', 'ame en peine', 'banshee'], camp: 'monstre', taille: 1, abr: 'Spe' },
-  { type: 'vampire', mots: ['vampire'], camp: 'monstre', taille: 1, abr: 'Vam' },
-  { type: 'liche', mots: ['liche'], camp: 'monstre', taille: 1, abr: 'Lic' },
-  { type: 'rat', mots: ['rat'], camp: 'monstre', taille: 1, abr: 'Rat' },
-  { type: 'loup', mots: ['loup'], camp: 'monstre', taille: 1, abr: 'Lou' },
-  { type: 'loup-garou', mots: ['loup garou', 'lycanthrope'], camp: 'monstre', taille: 1, abr: 'LGa' },
-  { type: 'araignee', mots: ['araignee'], camp: 'monstre', taille: 2, abr: 'Ara' },
-  { type: 'harpie', mots: ['harpie'], camp: 'monstre', taille: 1, abr: 'Har' },
-  { type: 'ogre', mots: ['ogre'], camp: 'monstre', taille: 2, abr: 'Ogr' },
-  { type: 'troll', mots: ['troll'], camp: 'monstre', taille: 2, abr: 'Trl' },
-  { type: 'minotaure', mots: ['minotaure'], camp: 'monstre', taille: 2, abr: 'Min' },
-  { type: 'golem', mots: ['golem'], camp: 'monstre', taille: 2, abr: 'Gol' },
-  { type: 'ours', mots: ['ours'], camp: 'monstre', taille: 2, abr: 'Our' },
-  { type: 'elementaire', mots: ['elementaire'], camp: 'monstre', taille: 2, abr: 'Elé' },
-  { type: 'manticore', mots: ['manticore', 'chimere', 'griffon'], camp: 'monstre', taille: 2, abr: 'Man' },
-  { type: 'wyverne', mots: ['wyverne', 'vouivre'], camp: 'monstre', taille: 2, abr: 'Wyv' },
-  { type: 'basilic', mots: ['basilic'], camp: 'monstre', taille: 1, abr: 'Bas' },
-  { type: 'geant', mots: ['geant', 'cyclope'], camp: 'monstre', taille: 3, abr: 'Géa' },
-  { type: 'hydre', mots: ['hydre'], camp: 'monstre', taille: 3, abr: 'Hyd' },
-  { type: 'dragon', mots: ['dragon'], camp: 'monstre', taille: 3, abr: 'Dra' },
-  { type: 'dragonnet', mots: ['dragonnet'], camp: 'monstre', taille: 1, abr: 'Dnt' },
-];
+import { OBJETS, CREATURES, OUVERTURES, nomDe } from '../catalogue.js';
 
 /** Couleurs reconnues après une créature (« un dragon rouge »). */
 export const COULEURS = {
@@ -104,12 +21,8 @@ export const CAMPS = {
 /** Préfixes de taille pour les créatures (« un jeune dragon », « un rat géant »). */
 export const TAILLES_CREATURE = { jeune: -1, petit: -1, petite: -1, bebe: -2, ancien: 1, ancienne: 1, vieux: 0, geant: 1, geante: 1, gigantesque: 1 };
 
-/** Les portes ne sont pas des objets : elles vont dans plan.portes. */
-export const PORTES = {
-  porte: 'porte', portail: 'porte', sortie: 'porte',
-  herse: 'herse',
-  arche: 'arche', passage: 'arche', ouverture: 'arche', arcade: 'arche',
-};
+/** Les portes ne sont pas des objets : elles vont dans plan.portes. Mot reconnu → type (voir OUVERTURES dans catalogue.js). */
+export const PORTES = Object.fromEntries(OUVERTURES.flatMap((d) => d.mots.map((mot) => [mot, d.type])));
 
 /**
  * Adjectifs qui rendent un élément secret (« un coffre caché », « une porte secrète »),
@@ -188,13 +101,12 @@ export function definition(type) {
   return null;
 }
 
-/** Nom lisible d'un type, pour les messages (« bibliotheque » → « bibliothèque »). */
-const NOMS = {
-  trone: 'trône', bibliotheque: 'bibliothèque', debris: 'débris', fut: 'fût', pj: 'personnage',
-  araignee: 'araignée', elementaire: 'élémentaire', geant: 'géant', 'loup-garou': 'loup-garou',
-};
+/** Mots du lexique qui ne sont pas un type mais s'écrivent avec un accent (« salle du fut » → « fût »). */
+const MOTS_ACCENTES = new Map([['fut', 'fût']]);
+
+/** Nom lisible d'un type ou d'un mot, pour les messages (« bibliotheque » → « bibliothèque »), au pluriel si n > 1. */
 export function nomAffiche(type, n = 1) {
-  const nom = NOMS[type] || type;
+  const nom = MOTS_ACCENTES.get(type) ?? nomDe(type);
   if (n <= 1 || /[sx]$/.test(nom)) return nom;
   return nom.endsWith('eau') ? nom + 'x' : nom + 's';
 }

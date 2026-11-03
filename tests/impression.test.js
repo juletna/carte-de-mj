@@ -9,7 +9,7 @@ import * as imp from '../js/impression.js';
 import { vueTable, planPublic } from '../js/presentation.js';
 import { dessinerFenetre } from '../js/rendu/moteur.js';
 import * as papier from '../js/rendu/themes/papier.js';
-import { CREATURES } from '../js/parseur/lexique.js';
+import { CREATURES } from '../js/catalogue.js';
 import { aPortrait } from '../js/rendu/portraits.js';
 import { verifier, egal, executerSuite } from './mini-test.js';
 

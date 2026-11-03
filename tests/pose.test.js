@@ -10,7 +10,7 @@ import { sansAccents } from '../js/format.js';
 import { etatDepuis, outilAffiche } from '../js/rail.js';
 import { analyser } from '../js/parseur/index.js';
 import { decrire } from '../js/parseur/decrire.js';
-import { OBJETS, CREATURES } from '../js/parseur/lexique.js';
+import { OBJETS, CREATURES } from '../js/catalogue.js';
 import { verifier, egal, executerSuite } from './mini-test.js';
 
 const BASE = 'Salle de 6 par 6 cases, une porte au mur sud en B, deux coffres en A1 C1, un gobelin en D4';

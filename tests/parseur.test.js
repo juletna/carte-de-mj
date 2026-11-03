@@ -3,7 +3,7 @@ import { analyser } from '../js/parseur/index.js';
 import { comparer } from './mini-test.js';
 import { PHRASES } from './phrases.js';
 import { decrire } from '../js/parseur/decrire.js';
-import { OBJETS, CREATURES } from '../js/parseur/lexique.js';
+import { OBJETS, CREATURES } from '../js/catalogue.js';
 
 const SYMETRIQUES = new Set(['pilier', 'colonne', 'tonneau', 'caisse', 'fosse', 'debris', 'puits', 'fontaine']);
 
