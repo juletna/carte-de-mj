@@ -309,6 +309,22 @@ const TESTS = [
     verifier(!sortieB.includes('"pilier"'), 'rien de la première salle');
   }],
 
+  ['Présenter : ouvre le donjon demandé, pas la dernière partie', () => {
+    const { d, a } = donjonDeTest();
+    const autre = donjonDeTest().d;
+    const partieAutre = p.creerPresentation(autre);
+    const presentations = { [autre.id]: partieAutre };
+    const donjons = { [d.id]: d, [autre.id]: autre };
+    const neuve = p.partieDemandee(d.id, donjons, presentations);
+    egal([neuve.partie.donjon.id, neuve.reprise, neuve.partie.salleCourante], [d.id, false, a.id], 'pas de partie : une nouvelle, sur ce donjon');
+    const reprise = p.partieDemandee(autre.id, donjons, presentations);
+    verifier(reprise.partie === partieAutre && reprise.reprise, 'une partie en cours : on la reprend');
+    egal(p.partieDemandee('inconnu', donjons, presentations), null, 'donjon absent');
+    egal(p.partieDemandee('constructor', donjons, presentations), null, 'nom piégé');
+    egal(p.partieDemandee(null, donjons, presentations), null, 'sans demande');
+    egal(p.partieDemandee(d.id, undefined, presentations), null, 'aucun donjon dans ce navigateur');
+  }],
+
   ['encart de la table : seulement les salles découvertes, sans nom, ni identifiant, ni pion', () => {
     const { d, a, b, c } = donjonDeTest();
     const pres = p.creerPresentation(d, { salleDepart: a.id });

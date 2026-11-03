@@ -459,6 +459,17 @@ export function vueTable(p) {
 }
 
 /**
+ * La partie à ouvrir quand on arrive du bouton « Présenter » d'un donjon : celle de ce donjon, sinon une nouvelle.
+ * @returns {{partie:object, reprise:boolean}|null}  null : ce donjon n'est pas (ou plus) dans ce navigateur
+ */
+export function partieDemandee(idDonjon, donjons, presentations) {
+  const a = (objet, cle) => !!objet && Object.prototype.hasOwnProperty.call(objet, cle);
+  if (!idDonjon || !a(donjons, idDonjon)) return null;
+  if (a(presentations, idDonjon)) return { partie: presentations[idDonjon], reprise: true };
+  return { partie: creerPresentation(donjons[idDonjon]), reprise: false };
+}
+
+/**
  * Ce que les joueurs connaissent du plan : les salles découvertes, les couloirs entre elles, et les portes pas encore ouvertes.
  * Une porte non ouverte est une porte visible d'une salle découverte, sans couloir connu derrière elle. Elle mène à une salle
  * non découverte, ou à rien : une porte non reliée est marquée pareil, le marquage ne dit donc pas ce qu'il y a derrière.

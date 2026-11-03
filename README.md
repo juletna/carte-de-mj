@@ -167,7 +167,7 @@ ni de la Fiche ni d'un réseau, et n'exige de décrire quoi que ce soit : elle o
   - *Commencer par* : un choix de salle au lancement (et pour « Recommencer »). Présélection : la **première salle du donjon**, pas
     la dernière modifiée dans le Donjon (le modèle ne marque pas de salle « entrée »). Elle devient la salle à la table et la première découverte.
   - *Reprise* : la régie mémorise la partie ouverte (`carte-de-mj:partie-ouverte-v1`, seulement l'identifiant du donjon). Un rechargement
-    la rouvre telle quelle, sans rien écrire ni relancer ; « ← Liste des donjons » ramène à l'écran de départ et l'oublie.
+    la rouvre telle quelle, sans rien écrire ni relancer ; « ← Liste des donjons » ramène à l'écran de départ et l'oublie. Le bouton « Présenter » du Donjon ouvre toujours le donjon affiché : sa partie en cours s'il en a une, sinon une nouvelle.
 - **Une copie, jamais l'original** : démarrer copie le donjon. Tout ce qui se passe en jeu (pions déplacés, éléments révélés, salles
   découvertes, salle courante) est enregistré dans `carte-de-mj:presentations-v1`, séparément. Le donjon préparé n'est jamais modifié et
   aucun texte n'est réécrit : un pion déplacé ne change que son x et son y. Une salle retrouve donc son état quand on y revient.

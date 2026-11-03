@@ -1029,6 +1029,7 @@ function majDonjons() {
   choix.value = etat.actif;
   $('donjon-nom').value = donjon().nom;
   $('menu-donjon-nom').textContent = donjon().nom;
+  $('presenter').href = `presentation.html?donjon=${encodeURIComponent(etat.actif)}`;
 }
 
 $('donjon-choix').addEventListener('change', (e) => {

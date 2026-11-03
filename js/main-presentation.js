@@ -817,11 +817,16 @@ function demarrerRegie() {
   // Écran étroit : onglets Carte / Actions ; la carte est redessinée à la taille qui tient quand on l'affiche.
   activerOnglets(document.querySelector('#regie .onglets'), { defaut: 'carte', onChange: (nom) => { if (nom === 'carte' && etat.p) rendre(); } });
 
-  // Démarrage : la partie ouverte au dernier passage est rouverte telle quelle (rien n'est relancé ni écrasé) ;
-  // « ← Liste des donjons » ramène à l'écran de départ, et l'oublie.
+  // Démarrage : le bouton « Présenter » d'un donjon ouvre CE donjon. Sinon, la partie ouverte au dernier passage est
+  // rouverte telle quelle (rien n'est relancé ni écrasé) ; « ← Liste des donjons » ramène à l'écran de départ, et l'oublie.
   etat.presentations = stockage.chargerPresentations();
+  const parametres = new URLSearchParams(location.search);
+  const demande = pres.partieDemandee(parametres.get('donjon'), stockage.chargerDonjons()?.donjons, etat.presentations);
+  // L'adresse perd sa demande : recharger la page ou revenir à la liste ne doit pas rouvrir ce donjon de force.
+  if (parametres.has('donjon')) history.replaceState(null, '', 'presentation.html');
   const aReprendre = stockage.partieAReprendre(etat.presentations);
-  if (aReprendre) entrer(aReprendre, { reprise: true });
+  if (demande) entrer(demande.partie, { reprise: demande.reprise });
+  else if (aReprendre) entrer(aReprendre, { reprise: true });
   else afficherDepart();
 }
 
