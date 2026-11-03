@@ -5,6 +5,7 @@
  */
 
 import { trouverObjet, PORTES } from './lexique.js';
+import { CASES_MAX } from '../schema.js';
 
 const NB = '(\\d+(?:\\.\\d+)?)';
 const UNITE = '(?:\\s+(m|metres?|cases?|carreaux?))?';
@@ -24,13 +25,12 @@ const TAILLES = {
 };
 const RE_TAILLE = /\b(minuscule|petite?|moyenne?|grande?|vaste|immense|enorme|gigantesque)\s+(?:\w+\s+)?(?:salle|piece|chambre|caverne|grotte|crypte|hall)\b/;
 const TAILLE_DEFAUT = [6, 6];
-const MAX_CASES = 60;
 
 /** Convertit une mesure en nombre de cases (arrondi au plus proche, au moins 1). */
 function enCases(valeur, unite, echelle) {
   const v = parseFloat(valeur);
   const cases = unite && /^c/.test(unite) ? v : v / echelle;
-  return Math.min(MAX_CASES, Math.max(1, Math.round(cases)));
+  return Math.min(CASES_MAX, Math.max(1, Math.round(cases)));
 }
 
 const fmt = (n) => String(Math.round(n * 100) / 100).replace('.', ',');

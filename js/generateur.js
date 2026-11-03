@@ -16,6 +16,7 @@ import { analyser } from './parseur/index.js';
 import { debutDescription } from './parseur/decrire.js';
 import { nomAffiche, CREATURES } from './parseur/lexique.js';
 import { lettreColonne } from './parseur/coordonnees.js';
+import { OPPOSE, VECTEUR, estHorizontal, longueurMur } from './murs.js';
 import { POSITIONS_FORMES, brasMax, retraitPorte } from './formes.js';
 import { generateur, lireGraine, nouvelleGraine, melanger, GRAINE_MAX } from './alea.js';
 
@@ -57,8 +58,6 @@ const ROLES = [
 const ENTREE = { nom: 'Hall d’entrée', contenu: ['2 torches'] };
 const BOSS = { nom: 'Salle du trône', sol: 'marbre', contenu: ['un trone', '4 colonnes', '2 torches'] };
 
-const DIRECTIONS = { nord: [0, -1], sud: [0, 1], est: [1, 0], ouest: [-1, 0] };
-const OPPOSE = { nord: 'sud', sud: 'nord', est: 'ouest', ouest: 'est' };
 const FORMES_TIRABLES = ['croix', 'L', 'T', 'U', 'octogone'];
 const CHANCE_FORME = 0.3;       // part des salles assez grandes qui ne sont pas rectangulaires
 const COTE_FORME_MIN = 7;       // en dessous, une forme laisse trop peu de sol
@@ -90,7 +89,7 @@ function pousser(n, alea) {
   const cases = [{ x: 0, y: 0 }];
   const prises = new Set(['0,0']);
   const arbre = [];
-  const libres = ({ x, y }) => Object.entries(DIRECTIONS).filter(([, [dx, dy]]) => !prises.has(`${x + dx},${y + dy}`));
+  const libres = ({ x, y }) => Object.entries(VECTEUR).filter(([, [dx, dy]]) => !prises.has(`${x + dx},${y + dy}`));
   for (let i = 1; i < n; i++) {
     // Plus souvent depuis la dernière salle : on obtient des enfilades, pas une pelote autour de l'entrée.
     const derniere = i - 1;
@@ -113,7 +112,7 @@ function bouclesPossibles(cases, arbre) {
   const res = [];
   cases.forEach((c, a) => {
     for (const mur of ['est', 'sud']) {
-      const [dx, dy] = DIRECTIONS[mur];
+      const [dx, dy] = VECTEUR[mur];
       const b = index.get(`${c.x + dx},${c.y + dy}`);
       if (b !== undefined && !reliees.has(`${a},${b}`)) res.push({ a, b, mur });
     }
@@ -137,7 +136,7 @@ function repartir(total, salles, alea) {
 
 /** Position d'une porte sur un mur : pas dans un coin, et sur le bord de la forme tant que c'est possible. */
 function positionPorte(forme, mur, alea) {
-  const long = mur === 'nord' || mur === 'sud' ? forme.largeur : forme.longueur;
+  const long = longueurMur(mur, forme.largeur, forme.longueur);
   const toutes = Array.from({ length: long }, (_, i) => i);
   const interieures = long > 2 ? toutes.slice(1, -1) : toutes;
   const auBord = interieures.filter((p) => retraitPorte(forme, mur, p) === 0);
@@ -146,7 +145,7 @@ function positionPorte(forme, mur, alea) {
 }
 
 const quantite = (n, mot) => `${n} ${mot}`;
-const repere = (mur, p) => (mur === 'nord' || mur === 'sud' ? lettreColonne(p) : p + 1);
+const repere = (mur, p) => (estHorizontal(mur) ? lettreColonne(p) : p + 1);
 
 /** Le texte d'une salle, avec des portes déjà placées. */
 function texteSalle(forme, spec, portes) {
@@ -263,7 +262,7 @@ export function genererDonjon(brut = {}) {
     murs[l.a].push({ mur: l.mur, secrete, liaison: n });
     murs[l.b].push({ mur: OPPOSE[l.mur], secrete, liaison: n });
   });
-  const murLibre = Object.keys(DIRECTIONS).filter((m) => !murs[0].some((q) => q.mur === m));
+  const murLibre = Object.keys(VECTEUR).filter((m) => !murs[0].some((q) => q.mur === m));
   if (murLibre.length) murs[0].unshift({ mur: murLibre.includes('sud') ? 'sud' : murLibre[0], type: 'arche' });
 
   // La première porte du texte est le mur d'entrée de la salle : celle par où on arrive, plutôt qu'une secrète.

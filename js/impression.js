@@ -27,6 +27,7 @@ import { lettreColonne, nomCase } from './parseur/coordonnees.js';
 import { nomAffiche } from './parseur/lexique.js';
 import { EPAISSEUR_MUR } from './rendu/moteur.js';
 import { virgule } from './format.js';
+import { estHorizontal } from './murs.js';
 
 export const CASE_MM = 25;           // échelle par défaut : 25 mm par case (figurines de 25 mm)
 export const MARGE_PAGE_MM = 10;     // marge de @page
@@ -227,7 +228,7 @@ export function resolutionCanvas(largeurMm, hauteurMm, { ppp = PPP, maxCote = 40
 // --- Contenu des salles --------------------------------------------------------------
 
 /** « mur sud en D » : le mur et la case de la porte, comme dans la description d'une salle. */
-export const libellePorte = (mur, position) => `mur ${mur} en ${mur === 'nord' || mur === 'sud' ? lettreColonne(position) : position + 1}`;
+export const libellePorte = (mur, position) => `mur ${mur} en ${estHorizontal(mur) ? lettreColonne(position) : position + 1}`;
 
 const copie = (v) => JSON.parse(JSON.stringify(v));
 const majuscule = (s) => s.charAt(0).toUpperCase() + s.slice(1);

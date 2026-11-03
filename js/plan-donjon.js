@@ -27,8 +27,7 @@
  */
 
 import { casesRetirees, retraitPorte } from './formes.js';
-
-const OPPOSE = { nord: 'sud', sud: 'nord', est: 'ouest', ouest: 'est' };
+import { OPPOSE, VECTEUR, estHorizontal, longueurMur } from './murs.js';
 
 export const ECART_LIAISON = 3;   // cases entre les murs de deux salles reliées
 export const ECART_MIN = 2;       // cases libres minimum entre deux salles quelconques, côte à côte
@@ -52,7 +51,6 @@ const ECART_RANGEE = 2;           // cases entre deux salles de la rangée des n
 const LARGEUR_RANGEE_MIN = 24;    // la rangée des non reliées passe à la ligne au-delà de cette largeur (ou celle du plan)
 
 const dimensions = (s) => ({ l: Math.max(1, s?.plan?.largeur | 0 || 1), h: Math.max(1, s?.plan?.longueur | 0 || 1) });
-const longueurMur = (dim, mur) => (mur === 'nord' || mur === 'sud' ? dim.l : dim.h);
 const borner = (v, min, max) => Math.max(min, Math.min(max, v));
 
 /** Deux rectangles (x, y, l, h) sont-ils à moins de `ecart` cases l'un de l'autre (ou se chevauchent-ils) ? */
@@ -77,8 +75,8 @@ function voisins(d, id) {
 function positionIdeale(A, dimA, ici, autre, dimB, espace = 0) {
   const ecart = ECART_LIAISON + espace;
   const mur = ici.mur;
-  const p = borner(ici.position | 0, 0, longueurMur(dimA, mur) - 1);
-  const q = borner(autre.position | 0, 0, longueurMur(dimB, autre.mur) - 1);
+  const p = borner(ici.position | 0, 0, longueurMur(mur, dimA.l, dimA.h) - 1);
+  const q = borner(autre.position | 0, 0, longueurMur(autre.mur, dimB.l, dimB.h) - 1);
   const face = autre.mur === OPPOSE[mur];
   if (mur === 'est' || mur === 'ouest') {
     const y = face ? A.y + p - q : Math.round(A.y + p + 0.5 - dimB.h / 2);
@@ -109,7 +107,7 @@ function placerDerriere(rects, A, ici, autre, dimB, espace = 0, autres = []) {
   const ideal = positionIdeale(A, { l: A.l, h: A.h }, ici, autre, dimB, espace);
   const r = { x: ideal.x, y: ideal.y, l: dimB.l, h: dimB.h };
   // La ligne droite n'existe que si les portes se font face. Elle passe si une case libre la sépare du mur de la salle.
-  let ligne = autre.mur === OPPOSE[mur] ? A[cote] + borner(ici.position | 0, 0, longueurMur(A, mur) - 1) : null;
+  let ligne = autre.mur === OPPOSE[mur] ? A[cote] + borner(ici.position | 0, 0, longueurMur(mur, A.l, A.h) - 1) : null;
   const barreRang = (o, rang) => rang > o[cote] - 2 && rang <= o[cote] + o[tailleCote];
   const barreLigne = (o) => ligne === null || barreRang(o, ligne);
   const devantA = liste.filter((o) => o !== A && sortie(o) > sortie(A));
@@ -118,7 +116,7 @@ function placerDerriere(rects, A, ici, autre, dimB, espace = 0, autres = []) {
   const rangs = autres.flatMap(({ vers, ici: porte }) => {
     const cible = rects[vers];
     if (!cible || sortie(cible) <= entree(r)) return [];
-    const rang = A[cote] + borner(porte.position | 0, 0, longueurMur(A, mur) - 1);
+    const rang = A[cote] + borner(porte.position | 0, 0, longueurMur(mur, A.l, A.h) - 1);
     const barre = devantA.some((o) => o !== cible && barreRang(o, rang) && entree(o) < entree(cible));
     return barre ? [] : [rang];
   });
@@ -201,13 +199,13 @@ const englobant = (rs) => ({
  * La position est bornée au mur (une salle redimensionnée peut laisser une liaison orpheline hors du mur).
  */
 function pointPorte(r, ext, plan) {
-  const position = borner(ext.position | 0, 0, longueurMur({ l: r.l, h: r.h }, ext.mur) - 1);
+  const position = borner(ext.position | 0, 0, longueurMur(ext.mur, r.l, r.h) - 1);
   const p = position + 0.5;
   const mur = ext.mur;
   const d = retraitPorte(plan, mur, position); // au fond d'une entaille, si le rectangle de la salle y est coupé
   return {
     salle: ext.salle, mur,
-    x: mur === 'nord' || mur === 'sud' ? r.x + p : (mur === 'est' ? r.x + r.l - d : r.x + d),
+    x: estHorizontal(mur) ? r.x + p : (mur === 'est' ? r.x + r.l - d : r.x + d),
     y: mur === 'est' || mur === 'ouest' ? r.y + p : (mur === 'sud' ? r.y + r.h - d : r.y + d),
   };
 }
@@ -367,7 +365,8 @@ const COUT_SORTIE_PORTE = 6;     // évite de passer devant une autre porte
 const COUT_CROISEMENT = 40;      // un croisement ne se justifie que si le détour est vraiment très long
 const PASSES_MAX = 3;            // retracés quand des couloirs se croisent encore : chacun réessaie, les autres étant posés
 const ETATS_MAX = 400000;        // au-delà (plan immense), on garde le tracé simple plutôt que de figer la page
-const DIRECTIONS = [[0, -1], [1, 0], [0, 1], [-1, 0]];
+const ORDRE_DIRECTIONS = ['nord', 'est', 'sud', 'ouest'];
+const DIRECTIONS = ORDRE_DIRECTIONS.map((mur) => VECTEUR[mur]);
 const INDICE_DIRECTION = { nord: 0, est: 1, sud: 2, ouest: 3 };
 
 /** Case juste devant une porte, côté extérieur de la salle (les points de porte tombent au milieu d'une case). */

@@ -40,7 +40,8 @@
  * `miniPlanTable()` est la seule autre source : le plan réduit aux salles découvertes, sans nom ni pion.
  */
 import * as modele from './donjon.js';
-import { validerDonjon, liaisonDePorte, OPPOSE, longueurMur } from './donjon.js';
+import { validerDonjon, liaisonDePorte } from './donjon.js';
+import { MURS, OPPOSE, longueurMur } from './murs.js';
 import { validerPlan, ETATS } from './schema.js';
 import { definition } from './parseur/lexique.js';
 import { analyser } from './parseur/index.js';
@@ -441,7 +442,7 @@ export function creerSalleApresPorte(p, idSalle, idPorte, description = '', { no
   const plan = { ...analyse.plan, portes: [...analyse.plan.portes] };
   let retour = plan.portes.find((q) => q.mur === mur && !q.cache);
   if (!retour) {
-    const long = longueurMur(plan, mur);
+    const long = longueurMur(mur, plan.largeur, plan.longueur);
     const prises = new Set(plan.portes.filter((q) => q.mur === mur).map((q) => q.position));
     const voulue = Math.min(porte.position, long - 1);
     const position = prises.has(voulue) ? Array.from({ length: long }, (_, i) => i).find((i) => !prises.has(i)) : voulue;
@@ -725,7 +726,7 @@ export function recevoirMiniPlan(brut) {
   const point = (q) => objet(q) && n(q.x) && n(q.y);
   if (!brut.couloirs.every((c) => Array.isArray(c?.chemin) && c.chemin.every(point)) || !brut.ponts.every(point)) return null;
   const fermeesBrutes = Array.isArray(brut.portesFermees) ? brut.portesFermees : [];
-  if (!fermeesBrutes.every((q) => objet(q) && Object.hasOwn(brut.positions, q.salle) && ['nord', 'sud', 'est', 'ouest'].includes(q.mur) && Number.isInteger(q.position) && q.position >= 0)) return null;
+  if (!fermeesBrutes.every((q) => objet(q) && Object.hasOwn(brut.positions, q.salle) && MURS.includes(q.mur) && Number.isInteger(q.position) && q.position >= 0)) return null;
   const positions = {}, salles = {};
   for (const [cle, r] of Object.entries(brut.positions)) {
     if (!/^s\d+$/.test(cle) || !objet(r) || !n(r.x) || !n(r.y) || !n(r.largeur) || !n(r.longueur)) return null;

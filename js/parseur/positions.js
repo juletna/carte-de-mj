@@ -12,6 +12,7 @@
  */
 import { trouverObjet } from './lexique.js';
 import { lireCase, indexColonne } from './coordonnees.js';
+import { MURS, REGARD_VERS } from '../murs.js';
 
 // Préposition relative → type de relation
 const RELATIONS = [
@@ -48,7 +49,6 @@ function indicesMots(prop, debut, longueur) {
   return Array.from({ length: n }, (_, k) => avant + k);
 }
 
-const DIRECTIONS = { nord: 0, est: 90, sud: 180, ouest: 270 };
 const RE_REGARD = /\btourne(?:e|es|ees|s)?\s+vers\s+(?:le|l)\s+(nord|sud|est|ouest)\b/;
 const RE_PORTE_PRECISE = /\bmur\s+(nord|sud|est|ouest)\s+en\s+([a-z]{1,2}|\d{1,2})\b/;
 
@@ -81,14 +81,12 @@ function analyserCases(prop, mots) {
   if (res) {
     const m = prop.match(RE_REGARD);
     if (m) {
-      res.rotation = DIRECTIONS[m[1]];
+      res.rotation = REGARD_VERS[m[1]];
       res.indices.push(...indicesMots(prop, m.index, m[0].length));
     }
   }
   return res;
 }
-
-const MURS = new Set(['nord', 'sud', 'est', 'ouest']);
 
 /**
  * Mur désigné juste après le mot « porte » (à l'indice k) : « la porte est », « la porte nord »,
@@ -111,7 +109,7 @@ function murDeLaPorte(mots, k) {
     if (mots[j] === 'de' && mots[j + 1] === 'l') j += 2;
   }
   const mur = mots[j];
-  if (!MURS.has(mur) || MURS.has(mots[j + 1])) return null;
+  if (!MURS.includes(mur) || MURS.includes(mots[j + 1])) return null;
   if (!explicite && mur === 'est' && j + 1 < mots.length) return null; // « est » verbe
   return { mur, indices: Array.from({ length: j - k }, (_, i) => k + 1 + i) };
 }

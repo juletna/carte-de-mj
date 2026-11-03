@@ -27,8 +27,8 @@
  */
 import { OBJETS, PORTES, CREATURES, COULEURS } from './parseur/lexique.js';
 import { normaliserForme, surLeSol } from './formes.js';
+import { MURS, longueurMur } from './murs.js';
 
-export const MURS = ['nord', 'sud', 'est', 'ouest'];
 export const SOLS = ['pierre', 'bois', 'terre', 'sable', 'herbe', 'marbre', 'glace'];
 const TYPES_OBJETS = new Set(OBJETS.map((o) => o.type));
 const TYPES_PORTES = new Set(Object.values(PORTES));
@@ -36,7 +36,8 @@ const TYPES_CREATURES = new Set(CREATURES.map((c) => c.type));
 const CAMPS = ['pj', 'pnj', 'monstre'];
 /** États d'un pion en jeu (absence de champ = normal). */
 export const ETATS = ['blesse', 'mort'];
-const MAX = 60;
+/** Côté maximal d'une salle, en cases : la même limite pour le schéma, le parseur et la pose. */
+export const CASES_MAX = 60;
 
 const entier = (v) => Number.isInteger(v);
 /** `cache: true` conservé tel quel ; toute autre valeur est ignorée (le champ n'existe alors pas). */
@@ -52,8 +53,8 @@ export function validerPlan(brut) {
   if (!brut || typeof brut !== 'object') return { ok: false, erreurs: ['le plan doit être un objet JSON'], plan: null };
 
   const W = brut.largeur, L = brut.longueur;
-  if (!entier(W) || W < 1 || W > MAX) erreurs.push(`largeur invalide (entier de 1 à ${MAX})`);
-  if (!entier(L) || L < 1 || L > MAX) erreurs.push(`longueur invalide (entier de 1 à ${MAX})`);
+  if (!entier(W) || W < 1 || W > CASES_MAX) erreurs.push(`largeur invalide (entier de 1 à ${CASES_MAX})`);
+  if (!entier(L) || L < 1 || L > CASES_MAX) erreurs.push(`longueur invalide (entier de 1 à ${CASES_MAX})`);
   if (erreurs.length) return { ok: false, erreurs, plan: null };
 
   const plan = {
@@ -69,7 +70,7 @@ export function validerPlan(brut) {
   };
 
   (Array.isArray(brut.portes) ? brut.portes : []).forEach((p, i) => {
-    const long = p?.mur === 'nord' || p?.mur === 'sud' ? W : L;
+    const long = longueurMur(p?.mur, W, L);
     if (!MURS.includes(p?.mur)) return erreurs.push(`porte ${i + 1} : mur inconnu « ${p?.mur} »`);
     if (!entier(p.position) || p.position < 0 || p.position >= long) return erreurs.push(`porte ${i + 1} : position hors du mur`);
     plan.portes.push({ id: String(p.id || `p${i + 1}`), mur: p.mur, position: p.position, type: TYPES_PORTES.has(p.type) ? p.type : 'porte', ...marqueCache(p) });

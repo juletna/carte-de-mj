@@ -11,11 +11,9 @@
 import { OBJETS, CREATURES, PORTES, definition, nomAffiche } from './parseur/lexique.js';
 import { nomCase } from './parseur/coordonnees.js';
 import { normaliserForme, surLeSol } from './formes.js';
+import { REGARD, REGARD_VERS, estHorizontal, longueurMur } from './murs.js';
+import { CASES_MAX } from './schema.js';
 
-/** Regard d'un objet au mur : dos au mur, vers l'intérieur. */
-export const REGARD = { nord: 180, sud: 0, ouest: 90, est: 270 };
-/** Regard tourné vers le mur d'entrée (c'est l'orientation que decrire() n'écrit pas : la valeur « par défaut »). */
-const FACE_ENTREE = { nord: 0, sud: 180, est: 90, ouest: 270 };
 /** Marge tolérée autour de la salle pour viser un mur avec une porte, en cases. */
 const MARGE_PORTE = 1;
 
@@ -32,8 +30,8 @@ export function murProche(cx, cy, plan) {
 
 /** Position sur un mur la plus proche d'un point, sans sortir du mur. */
 export function positionSurMur(mur, cx, cy, plan) {
-  const horizontal = mur === 'nord' || mur === 'sud';
-  const long = horizontal ? plan.largeur : plan.longueur;
+  const horizontal = estHorizontal(mur);
+  const long = longueurMur(mur, plan.largeur, plan.longueur);
   return Math.max(0, Math.min(long - 1, Math.floor(horizontal ? cx : cy)));
 }
 
@@ -171,7 +169,7 @@ export function ajouterElement(plan, item, cx, cy) {
   const modele = { type: def.type, l, h };
   const pose = evaluerPose(plan, 'objet', modele, x, y);
   if (!pose.ok) return { erreur: MESSAGES[pose.raison] };
-  const rotation = pose.modifs.rotation ?? FACE_ENTREE[murEntree(plan)];
+  const rotation = pose.modifs.rotation ?? REGARD_VERS[murEntree(plan)];
   const element = { id: idLibre(plan.objets, 'o'), type: def.type, x, y, l, h, rotation };
   return { plan: { ...plan, objets: [...plan.objets, element] }, element, genre: 'objet', message: `${libelle(def.type)} posé en ${nomCase(x, y)}.` };
 }
@@ -192,8 +190,6 @@ export function retirerElement(plan, trouve) {
 
 // --- Dimensions de la salle ---------------------------------------------------------
 
-const CASES_MAX = 60; // même limite que le parseur et schema.js
-
 /**
  * Agrandit (delta > 0) ou réduit (delta < 0) la salle du côté demandé, de `delta` rangées de cases.
  * Le mur bouge, tout le reste garde sa place dans la salle : au nord et à l'ouest, les éléments sont donc décalés.
@@ -201,7 +197,7 @@ const CASES_MAX = 60; // même limite que le parseur et schema.js
  * @returns {{plan:object}|{erreur:string}}
  */
 export function redimensionner(plan, cote, delta) {
-  const horizontal = cote === 'nord' || cote === 'sud'; // ces côtés changent la longueur
+  const horizontal = estHorizontal(cote); // ces côtés changent la longueur
   const dimension = horizontal ? plan.longueur : plan.largeur;
   const cible = dimension + delta;
   if (cible < 1) return { erreur: 'La salle ne peut pas être plus petite.' };
@@ -214,8 +210,8 @@ export function redimensionner(plan, cote, delta) {
   const gene = [...plan.objets, ...creatures].find((e) => dehors(decale(e)));
   if (gene) return { erreur: `Impossible de réduire : ${nomAffiche(gene.type)} en ${nomCase(gene.x, gene.y)}.` };
   // Le long de son mur, une porte se décale comme le reste ; le mur où elle se trouve ne change pas.
-  const portes = plan.portes.map((p) => ({ ...p, position: p.position + (p.mur === 'nord' || p.mur === 'sud' ? dx : dy) }));
-  const porteDehors = portes.find((p) => p.position < 0 || p.position >= (p.mur === 'nord' || p.mur === 'sud' ? largeur : longueur));
+  const portes = plan.portes.map((p) => ({ ...p, position: p.position + (estHorizontal(p.mur) ? dx : dy) }));
+  const porteDehors = portes.find((p) => p.position < 0 || p.position >= longueurMur(p.mur, largeur, longueur));
   if (porteDehors) return { erreur: `Impossible de réduire : une ${porteDehors.type} au mur ${porteDehors.mur} serait hors de la salle.` };
   return recaler({ ...plan, largeur, longueur, portes, objets: plan.objets.map(decale), creatures: creatures.map(decale) });
 }

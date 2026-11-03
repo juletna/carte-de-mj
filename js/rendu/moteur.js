@@ -10,6 +10,7 @@ import * as vectoriel from './themes/vectoriel.js';
 import { lettreColonne } from '../parseur/coordonnees.js';
 import { cheminCouloir, PONT_DEMI_LONGUEUR, ETIQUETTE_ISOLEES } from '../plan-donjon.js';
 import { retraitPorte, tracerSol, contourSol } from '../formes.js';
+import { estHorizontal } from '../murs.js';
 
 export const MARGE = 1; // cases de roche autour de la pièce
 
@@ -119,7 +120,7 @@ export function tailleQuiTientPlan(disposition, largeurMax, hauteurMax, plafond 
 
 /** Une porte pas encore ouverte : un trait rouge cerné de blanc, posé sur le mur, assez épais pour se voir en tout petit. */
 function dessinerPorteFermee(ctx, p, plan, { mur, position }, t) {
-  const horizontal = mur === 'nord' || mur === 'sud';
+  const horizontal = estHorizontal(mur);
   const d = retraitPorte(plan, mur, position);
   const long = Math.max(10, t * 1.1), epais = Math.max(6, t * 0.4);
   const le = (position + 0.5) * t;

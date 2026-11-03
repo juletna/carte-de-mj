@@ -22,7 +22,8 @@
  * plans, format versionné.
  */
 import { validerPersonnages } from './personnages.js';
-import { validerPlan, MURS } from './schema.js';
+import { validerPlan } from './schema.js';
+import { MURS, OPPOSE, longueurMur } from './murs.js';
 import { analyser } from './parseur/index.js';
 import { decrire } from './parseur/decrire.js';
 import { retirerElement } from './pose.js';
@@ -33,7 +34,6 @@ export const VERSION = 1;
 export const TEXTE_SALLE_VIDE = 'Salle de 8 par 8 cases.';
 export const COTE_NOUVELLE_SALLE = 6;
 
-export const OPPOSE = { nord: 'sud', sud: 'nord', est: 'ouest', ouest: 'est' };
 export const MAX_SALLES = 200;
 const MAX_LIAISONS = 1000;
 const LIMITES = { nom: 80, texte: 20000, notes: 20000 };
@@ -43,9 +43,6 @@ const RE_ID = /^[A-Za-z0-9_-]{1,64}$/;
 const dictionnaire = () => Object.create(null);
 const coupe = (v, max) => String(v ?? '').slice(0, max);
 const estObjet = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
-
-/** Longueur d'un mur de la salle, en cases. */
-export const longueurMur = (plan, mur) => (mur === 'nord' || mur === 'sud' ? plan.largeur : plan.longueur);
 
 /** Identifiant unique (stable ensuite) : préfixe + 6 caractères au hasard, absent de `existants`. */
 export function idUnique(prefixe, existants = []) {
@@ -342,7 +339,7 @@ export function relierASalle(d, depuis, versSalle, { echelle } = {}) {
   if (liaisonDePorte(d, depuis.salle, depuis)) throw new Error('cette porte est déjà reliée');
 
   const mur = OPPOSE[depuis.mur];
-  const long = longueurMur(cible.plan, mur);
+  const long = longueurMur(mur, cible.plan.largeur, cible.plan.longueur);
   const prises = new Set(cible.plan.portes.filter((p) => p.mur === mur).map((p) => p.position));
   let position = Math.min(depuis.position, long - 1);
   if (prises.has(position)) {
@@ -400,7 +397,7 @@ function validerExtremite(e, salles) {
   if (!estObjet(e)) return 'extrémité invalide';
   if (typeof e.salle !== 'string' || !(e.salle in salles)) return 'salle inconnue';
   if (!MURS.includes(e.mur)) return 'mur inconnu';
-  if (!Number.isInteger(e.position) || e.position < 0 || e.position >= longueurMur(salles[e.salle].plan, e.mur)) return 'position hors du mur';
+  if (!Number.isInteger(e.position) || e.position < 0 || e.position >= longueurMur(e.mur, salles[e.salle].plan.largeur, salles[e.salle].plan.longueur)) return 'position hors du mur';
   return null;
 }
 

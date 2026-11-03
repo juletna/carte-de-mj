@@ -29,6 +29,7 @@ import { creerMicro } from './voix.js';
 import { MODES_TABLE, modeTable, tailleTable } from './affichage.js';
 import { telephone, activerOnglets, marquerDefilement, tailleQuiTient } from './telephone.js';
 import { $, h, bouton, deuxTemps, fichierChoisi } from './dom.js';
+import { estHorizontal } from './murs.js';
 import { pluriel } from './format.js';
 
 const ouvrirCanal = () => { try { return new BroadcastChannel(pres.CANAL); } catch { return null; } };
@@ -561,7 +562,7 @@ function demarrerRegie() {
     const e = sel && (plan[LISTES[sel.genre]] || []).find((x) => x.id === sel.id);
     return e ? { genre: sel.genre, element: e } : null;
   };
-  const reperePorte = (q) => (q.mur === 'nord' || q.mur === 'sud' ? lettreColonne(q.position) : String(q.position + 1));
+  const reperePorte = (q) => (estHorizontal(q.mur) ? lettreColonne(q.position) : String(q.position + 1));
 
   /** Côté de case de la régie : réduit pour que la salle tienne dans la zone (réglage `r.taille` jamais modifié). Sous 760 px, marge plus étroite. */
   function tailleRegie(plan) {

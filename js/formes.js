@@ -11,11 +11,12 @@
  * « Mur nord en A » tombe donc au fond de l'entaille si le coin est retiré.
  */
 
+import { MURS, estHorizontal } from './murs.js';
+
 export const FORMES = ['rectangle', 'croix', 'octogone', 'L', 'T', 'U', '8', 'E', 'F', 'H', 'O', 'S'];
 export const LIBELLES_FORMES = { rectangle: 'Rectangle', croix: 'Croix', octogone: 'Octogone', L: 'L', T: 'T', U: 'U', 8: '8', E: 'E', F: 'F', H: 'H', O: 'O', S: 'S' };
 /** Formes à trois barres : leurs bras sont plus fins par défaut, pour laisser voir les vides entre les barres. */
 const TROIS_BARRES = ['8', 'E', 'F', 'S'];
-const MURS = ['nord', 'sud', 'est', 'ouest'];
 /** Choix de `position` par forme ; le premier est la valeur par défaut. */
 export const POSITIONS_FORMES = {
   croix: ['milieu', 'haut', 'bas'],
@@ -39,7 +40,7 @@ const positionDe = (plan) => (POSITIONS_FORMES[plan.forme]?.includes(plan.positi
 /** Épaisseur la plus grande qui laisse encore une forme (0 : la salle est trop petite pour cette forme). */
 export function brasMax(plan) {
   const W = plan.largeur, L = plan.longueur, position = positionDe(plan);
-  const debout = position === 'nord' || position === 'sud';
+  const debout = estHorizontal(position);
   switch (plan.forme) {
     case 'croix': return Math.max(0, Math.min(W, L) - 2);
     case 'L': return Math.max(0, Math.min(W, L) - 1);
@@ -124,7 +125,7 @@ export const nombreCases = (plan) => plan.largeur * plan.longueur - casesRetiree
 
 /** De combien de cases une porte s'enfonce depuis le bord du rectangle, pour atteindre le premier mur. */
 export function retraitPorte(plan, mur, position) {
-  const horizontal = mur === 'nord' || mur === 'sud';
+  const horizontal = estHorizontal(mur);
   const profondeur = horizontal ? plan.longueur : plan.largeur;
   if (!casesRetirees(plan).size) return 0;
   for (let d = 0; d < profondeur; d++) {
@@ -166,7 +167,7 @@ export function contourSol(plan, t, d) {
   // Bout d'un segment : la case voisine le long du mur, et la case en face de celle-ci, du côté du vide.
   const bout = (voisine, enFace) => (!voisine ? d : enFace ? -d : 0);
   return troncons(plan).map(({ x, y, mur }) => {
-    const horizontal = mur === 'nord' || mur === 'sud';
+    const horizontal = estHorizontal(mur);
     const dehors = mur === 'nord' || mur === 'ouest' ? -1 : 1;
     if (horizontal) {
       const Y = (mur === 'nord' ? y : y + 1) * t + dehors * d;
@@ -183,7 +184,7 @@ export function contourSol(plan, t, d) {
  */
 export function dessinerMursDecoupes(ctx, plan, t, e, { fond, trait, epaisseurTrait, joints }) {
   const liste = troncons(plan).map((c) => {
-    const horizontal = c.mur === 'nord' || c.mur === 'sud';
+    const horizontal = estHorizontal(c.mur);
     const a = c.avant ? e : 0, b = c.apres ? e : 0;
     if (horizontal) {
       const y = c.mur === 'nord' ? c.y * t - e : (c.y + 1) * t;

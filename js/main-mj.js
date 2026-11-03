@@ -30,6 +30,7 @@ import * as modele from './donjon.js';
 import { creerMiniPlan } from './miniplan.js';
 import { telephone, activerOnglets, marquerDefilement, LARGEUR_TELEPHONE } from './telephone.js';
 import { $, h, bouton, deuxTemps, fichierChoisi } from './dom.js';
+import { OPPOSE, estHorizontal } from './murs.js';
 import { pluriel } from './format.js';
 
 const EXEMPLES = [
@@ -306,7 +307,7 @@ $('annuler-carte').addEventListener('click', annulerDeplacement); // même actio
 // --- Bulle d'actions de l'élément sélectionné -------------------------------------------------
 // Sur ordinateur, `#selection` est une bulle posée à côté de l'élément, dans `#support` (elle défile avec la carte) ;
 // sous 760 px, c'est le bandeau fixe en bas de l'écran (CSS). Le contenu est le même.
-const reperePorte = (p) => (p.mur === 'nord' || p.mur === 'sud' ? lettreColonne(p.position) : String(p.position + 1));
+const reperePorte = (p) => (estHorizontal(p.mur) ? lettreColonne(p.position) : String(p.position + 1));
 
 function libelleSelection(trouve) {
   const e = trouve.element;
@@ -377,7 +378,7 @@ function majSelection() {
           try {
             modele.relierASalle(d, depuis, cible.id, { echelle: r.echelle });
             pile(cible.id).push({ texte: texteAvant, ancres, liaisons: [] }); // annulable depuis la salle d'arrivée
-            etat.message = `Reliée à « ${cible.nom} » : une porte a été ajoutée sur son mur ${modele.OPPOSE[el.mur]}.`;
+            etat.message = `Reliée à « ${cible.nom} » : une porte a été ajoutée sur son mur ${OPPOSE[el.mur]}.`;
           } catch (err) { etat.message = err.message; }
           rendre();
         }, 'discret');
@@ -1013,7 +1014,7 @@ function majOrphelines() {
     b.addEventListener('click', () => { modele.delier(d, o.liaison.id); rendre(); });
     return h('div', { className: 'orpheline' },
       h('p', { className: 'note erreur' },
-        `Liaison orpheline : il n’y a plus de porte au mur ${o.mur} (repère ${o.mur === 'nord' || o.mur === 'sud' ? lettreColonne(o.position) : o.position + 1}), `
+        `Liaison orpheline : il n’y a plus de porte au mur ${o.mur} (repère ${estHorizontal(o.mur) ? lettreColonne(o.position) : o.position + 1}), `
         + 'qui menait à « ', h('strong', { textContent: autre?.nom ?? '?' }), ' ». Rétablis la porte dans le texte, ou retire la liaison.'),
       b);
   }));

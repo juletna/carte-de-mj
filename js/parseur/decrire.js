@@ -7,6 +7,7 @@
  */
 import { definition, nomAffiche } from './lexique.js';
 import { lettreColonne, nomCase } from './coordonnees.js';
+import { REGARD_VERS, estHorizontal } from '../murs.js';
 
 const FEMININS = new Set([
   'colonne', 'statue', 'table', 'chaise', 'caisse', 'fosse', 'bibliotheque', 'torche', 'fontaine',
@@ -16,7 +17,6 @@ const FEMININS = new Set([
 const SYMETRIQUES = new Set(['pilier', 'colonne', 'tonneau', 'caisse', 'fosse', 'debris', 'puits', 'fontaine']);
 const NOMBRES = ['', 'un', 'deux', 'trois', 'quatre', 'cinq', 'six', 'sept', 'huit', 'neuf', 'dix', 'onze', 'douze'];
 const DIRECTIONS = { 0: 'le nord', 90: 'l’est', 180: 'le sud', 270: 'l’ouest' };
-const FACE_ENTREE = { nord: 0, sud: 180, est: 90, ouest: 270 }; // regard tourné vers le mur d'entrée
 
 function quantite(type, n) {
   const f = FEMININS.has(type);
@@ -33,7 +33,7 @@ const motCache = (type, n) => ` ${accord('caché', type, n)}`;
 
 /** Une porte : « une porte au mur sud en D », « une herse au mur est en 4 », « une porte secrète au mur nord en B ». */
 function decrirePorte(p) {
-  const repere = p.mur === 'nord' || p.mur === 'sud' ? lettreColonne(p.position) : p.position + 1;
+  const repere = estHorizontal(p.mur) ? lettreColonne(p.position) : p.position + 1;
   return `${quantite(p.type, 1)} ${p.type}${p.cache ? ' secrète' : ''} au mur ${p.mur} en ${repere}`;
 }
 
@@ -136,7 +136,7 @@ export function decrire(plan) {
   propositions.push(...portes.map(decrirePorte));
 
   const entree = portes[0]?.mur || 'sud';
-  propositions.push(...decrireObjets(plan.objets, FACE_ENTREE[entree]));
+  propositions.push(...decrireObjets(plan.objets, REGARD_VERS[entree]));
   propositions.push(...decrireCreatures(plan.creatures || []));
   return `${propositions.join(', ')}.`;
 }

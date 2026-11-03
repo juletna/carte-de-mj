@@ -12,13 +12,11 @@
  */
 import { normaliserForme, casesRetirees, surLeSol, retraitPorte } from '../formes.js';
 import { definition, nomAffiche } from './lexique.js';
+import { OPPOSE, REGARD, REGARD_VERS, estHorizontal, longueurMur } from '../murs.js';
 
-const OPPOSE = { nord: 'sud', sud: 'nord', est: 'ouest', ouest: 'est' };
 // Vu depuis l'entrée en regardant le fond.
 const GAUCHE = { sud: 'ouest', nord: 'est', est: 'sud', ouest: 'nord' };
 const DROITE = { sud: 'est', nord: 'ouest', est: 'nord', ouest: 'sud' };
-// Orientation d'un objet adossé à un mur : il regarde vers l'intérieur.
-const FACE = { nord: 180, sud: 0, est: 270, ouest: 90 };
 const VECTEUR = { 0: [0, -1], 90: [1, 0], 180: [0, 1], 270: [-1, 0] };
 // Types qu'on écarte d'une case du mur quand la pièce est assez large.
 const AU_LARGE = new Set(['pilier', 'colonne', 'statue']);
@@ -146,7 +144,7 @@ export function construirePlan({ largeur: W, longueur: L, sol, forme, intentions
     }
   }
   for (const [mur, liste] of Object.entries(parMur)) {
-    const long = mur === 'nord' || mur === 'sud' ? W : L;
+    const long = longueurMur(mur, W, L);
     const ajouter = (position, type, cache) => plan.portes.push({ id: `p${plan.portes.length + 1}`, mur, position, type, ...(cache ? { cache: true } : {}) });
     const prises = new Set();
     for (const d of liste.filter((e) => e.position !== undefined)) {
@@ -175,7 +173,7 @@ export function construirePlan({ largeur: W, longueur: L, sol, forme, intentions
   // ---- 2. Objets --------------------------------------------------------
   const rnd = aleatoire(graine);
   const fixes = new Set(); // créatures à la case imposée : elles gardent leur numéro
-  const versEntree = (FACE[entree] + 180) % 360;
+  const versEntree = REGARD_VERS[entree];
 
   /** Pose un objet au plus près de (x, y). Renvoie l'objet posé ou null. */
   function poser(def, x, y, l, h, rotation, ignorerReserve = false) {
@@ -213,7 +211,7 @@ export function construirePlan({ largeur: W, longueur: L, sol, forme, intentions
     return repartir(n, Math.max(1, span)).map((k) => {
       const x = mur === 'ouest' ? retrait : mur === 'est' ? W - ll - retrait : k;
       const y = mur === 'nord' ? retrait : mur === 'sud' ? L - hh - retrait : k;
-      return poser(def, x, y, ll, hh, FACE[mur]);
+      return poser(def, x, y, ll, hh, REGARD[mur]);
     });
   }
 
@@ -230,7 +228,7 @@ export function construirePlan({ largeur: W, longueur: L, sol, forme, intentions
         || plan.portes.find((q) => q.type === cible.type) || plan.portes[0];
       if (!p) return null;
       const [x, y] = devantPorte(p, W, L, plan);
-      return { x, y, l: 1, h: 1, rotation: FACE[p.mur], porte: true };
+      return { x, y, l: 1, h: 1, rotation: REGARD[p.mur], porte: true };
     }
     const objet = plan.objets.find((o) => o.type === cible.type);
     if (objet) return objet;
@@ -245,7 +243,7 @@ export function construirePlan({ largeur: W, longueur: L, sol, forme, intentions
       const porte = plan.portes.find((p) => p.mur === entree);
       if (def.genre !== 'creature' || !porte) return leLongDuMur(def, entree, n, l, h);
       const [x, y] = devantPorte(porte, W, L, plan);
-      return Array.from({ length: n }, () => poser(def, x - (entree === 'est' ? l - 1 : 0), y - (entree === 'sud' ? h - 1 : 0), l, h, FACE[entree], true));
+      return Array.from({ length: n }, () => poser(def, x - (entree === 'est' ? l - 1 : 0), y - (entree === 'sud' ? h - 1 : 0), l, h, REGARD[entree], true));
     },
     mur: (def, n, l, h, pos) => leLongDuMur(def, pos.mur, n, l, h),
     lateral: (def, n, l, h, pos) => leLongDuMur(def, (pos.cote === 'gauche' ? GAUCHE : DROITE)[entree], n, l, h),
@@ -335,7 +333,7 @@ export function construirePlan({ largeur: W, longueur: L, sol, forme, intentions
 
     'coin-relatif'(def, n, l, h, pos) {
       const murs = [pos.mur === 'fond' ? fond : entree, (pos.cote === 'gauche' ? GAUCHE : DROITE)[entree]];
-      const ns = murs.find((m) => m === 'nord' || m === 'sud');
+      const ns = murs.find(estHorizontal);
       const eo = murs.find((m) => m === 'est' || m === 'ouest');
       return placeurs.coin(def, n, l, h, { coin: [ns, eo] });
     },
@@ -350,13 +348,13 @@ export function construirePlan({ largeur: W, longueur: L, sol, forme, intentions
       const pNS = paires - pLat;
       const res = [];
       const surMur = (mur, k) => {
-        const long = mur === 'nord' || mur === 'sud' ? W : L;
+        const long = longueurMur(mur, W, L);
         const portes = plan.portes.filter((p) => p.mur === mur).map((p) => p.position);
         for (let pos of repartirInterieur(k, long)) {
           if (portes.includes(pos)) pos = Math.min(long - 1, pos + 1); // pas sur une porte
           const x = mur === 'ouest' ? 0 : mur === 'est' ? W - 1 : pos;
           const y = mur === 'nord' ? 0 : mur === 'sud' ? L - 1 : pos;
-          res.push(poser(def, x, y, l, h, FACE[mur]));
+          res.push(poser(def, x, y, l, h, REGARD[mur]));
         }
       };
       surMur(GAUCHE[entree], pLat); surMur(DROITE[entree], pLat);
