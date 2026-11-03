@@ -458,14 +458,12 @@ export function vueTable(p) {
   return planPublic(plan, { visible: (e) => !estCache(e) || rev.has(e.id) });
 }
 
-const MARGE_MINI = 1; // cases autour des salles de la mini-carte
-
 /**
  * L'encart de la table : le plan du donjon, dessiné comme partout (`dessinerPlanDonjon`), réduit à ce que les joueurs connaissent.
  * Seules les salles DÉCOUVERTES y sont, avec ce qu'on y voit à la table (planPublic : liste blanche, sans nom) mais sans pions :
  * ils ont pu bouger depuis. Un couloir n'y figure que si ses deux salles sont découvertes et ses deux portes visibles
- * (une porte secrète non révélée ne se devine pas). Ni identifiant, ni nom. Le cadre suit les salles découvertes : sa taille
- * ne dit rien de celles qui restent. Les positions viennent du plan complet : une salle ne bouge pas quand une autre se découvre.
+ * (une porte secrète non révélée ne se devine pas). Ni identifiant, ni nom. Le cadre et les positions sont ceux du plan complet :
+ * la carte se dévoile sans jamais bouger ni changer d'échelle. Les joueurs voient donc la taille totale du donjon, rien de plus.
  * @param {object} p  la présentation
  * @param {object} [disposition]  résultat de disposerPlan(p.donjon), si l'appelant l'a déjà
  * @returns {{largeur:number, longueur:number, actif:string, plans:Object<string,object>, positions:Object<string,{x,y,largeur,longueur}>,
@@ -485,22 +483,18 @@ export function miniPlanTable(p, disposition = p?.donjon?.salles ? disposerPlan(
     const l = liaisons.get(c.liaison);
     return !!l && !c.orpheline && connues.has(l.a.salle) && connues.has(l.b.salle) && porteVisible(l.a) && porteVisible(l.b);
   };
-  const chemins = disposition.couloirs.filter(montrable).map(cheminCouloir);
+  const couloirs = disposition.couloirs.filter(montrable).map((c) => ({ chemin: cheminCouloir(c).map((q) => ({ x: q.x, y: q.y })) }));
   const rects = [...connues].map((id) => ({ id, ...disposition.positions[id] }));
-  const xs = [...rects.flatMap((r) => [r.x, r.x + r.largeur]), ...chemins.flat().map((q) => q.x)];
-  const ys = [...rects.flatMap((r) => [r.y, r.y + r.longueur]), ...chemins.flat().map((q) => q.y)];
-  const x0 = Math.min(...xs) - MARGE_MINI, y0 = Math.min(...ys) - MARGE_MINI;
-  const couloirs = chemins.map((pts) => ({ chemin: pts.map((q) => ({ x: q.x - x0, y: q.y - y0 })) }));
   const positions = {}, plans = {};
   let actif = null;
   rects.forEach((r, i) => {
     const cle = `s${i}`; // jamais l'identifiant de la salle
-    positions[cle] = { x: r.x - x0, y: r.y - y0, largeur: r.largeur, longueur: r.longueur };
+    positions[cle] = { x: r.x, y: r.y, largeur: r.largeur, longueur: r.longueur };
     const reveles = new Set(Array.isArray(p.reveles?.[r.id]) ? p.reveles[r.id] : []);
     plans[cle] = planPublic(d.salles[r.id].plan, { visible: (e) => !estCache(e) || reveles.has(e.id), garder: () => false });
     if (r.id === p.salleCourante) actif = cle;
   });
-  return { largeur: Math.max(...xs) + MARGE_MINI - x0, longueur: Math.max(...ys) + MARGE_MINI - y0, actif, plans, positions, couloirs, ponts: pontsDe(couloirs) };
+  return { largeur: disposition.largeur, longueur: disposition.longueur, actif, plans, positions, couloirs, ponts: pontsDe(couloirs) };
 }
 
 /**

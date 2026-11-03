@@ -5,6 +5,7 @@
  */
 import * as m from '../js/donjon.js';
 import * as p from '../js/presentation.js';
+import { disposerPlan } from '../js/plan-donjon.js';
 import { activerDeplacement, porteSous, BANDE_PORTE } from '../js/deplacement.js';
 import { modeTableDefaut, modeTable, tailleRemplir, tailleTable, TAILLE_MIN, TAILLE_MAX_REMPLIR } from '../js/affichage.js';
 import { decrire } from '../js/parseur/decrire.js';
@@ -314,13 +315,16 @@ const TESTS = [
     const debut = p.miniPlanTable(pres);
     egal(Object.keys(debut.plans).length, 1, 'au départ : la salle de départ seule');
     egal(debut.couloirs, [], 'aucun couloir vers une salle non découverte');
-    egal([debut.largeur, debut.longueur], [10, 10], 'le cadre suit la salle découverte, pas le donjon');
+    const complet = disposerPlan(d);
+    egal([debut.largeur, debut.longueur], [complet.largeur, complet.longueur], 'le cadre est celui du plan complet');
     egal(debut.plans[debut.actif].largeur, 8, 'elle est la salle active');
     p.afficherATable(pres, b.id);
     const deux = p.miniPlanTable(pres);
     egal(Object.keys(deux.plans).length, 2, 'deux salles découvertes');
     egal(deux.couloirs.length, 1, 'le couloir entre les deux');
     egal(deux.plans[deux.actif].largeur, 6, 'la surbrillance suit la salle en cours');
+    egal(deux.positions.s0, debut.positions.s0, 'une salle ne bouge pas quand une autre se découvre');
+    egal([deux.largeur, deux.longueur], [debut.largeur, debut.longueur], 'le cadre ne change pas non plus');
     const sortie = JSON.stringify(deux);
     for (const s of ['Crypte', 'Couloir', 'Trésor', a.id, b.id, c.id, 'liaison']) verifier(!sortie.includes(s), `« ${s} » est sorti dans l’encart`);
     for (const plan of Object.values(deux.plans)) egal([plan.nom, plan.creatures], ['', []], 'ni nom, ni pion');

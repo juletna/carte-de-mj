@@ -76,7 +76,7 @@ function rendreEcranTable() {
   if (!ecran.plan) return;
   if (ecran.mini) {
     const { donjon, disposition, actif } = ecran.mini;
-    const taille = tailleQuiTientPlan(disposition, Math.min(window.innerWidth * 0.24, 300), Math.min(window.innerHeight * 0.32, 240));
+    const taille = tailleQuiTientPlan(disposition, Math.min(window.innerWidth * 0.28, 400), Math.min(window.innerHeight * 0.36, 340));
     dessinerPlanDonjon(mini, donjon, disposition, { taille, actif, noms: false, pions: false, surbrillance: true });
   }
   const taille = tailleEcranTable();
