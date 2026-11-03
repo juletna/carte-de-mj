@@ -11,6 +11,7 @@ import { dessiner, dessinerPlanDonjon, MARGE, rectPorte } from './rendu/moteur.j
 import { disposerPlan, salleSous, cleDisposition } from './plan-donjon.js';
 import { tailleRemplir } from './affichage.js';
 import { elementsPalette, GROUPES_PALETTE, SOUS_GROUPES, redimensionner, changerForme } from './pose.js';
+import { SOLS } from './schema.js';
 import { genererDonjon, BORNES, FAMILLES } from './generateur.js';
 import { MODELES, donjonDepuisModele, copieDonjon } from './modeles.js';
 import { FORMES, LIBELLES_FORMES, POSITIONS_FORMES, casesRetirees, brasDe, brasMax, nombreCases } from './formes.js';
@@ -704,6 +705,7 @@ function appliquerForme(champs, { sansMemoire = false } = {}) {
 
 function majForme() {
   const plan = salle().plan;
+  $('salle-sol').value = plan.sol;
   const forme = plan.forme || 'rectangle';
   for (const b of $('formes').children) b.setAttribute('aria-pressed', String(b.dataset.forme === forme));
   const max = brasMax(plan);
@@ -731,6 +733,16 @@ function majForme() {
     ? `Salle de ${plan.largeur} × ${plan.longueur} : trop petite pour cette forme, agrandis-la avec les bandes autour de la carte.`
     : `${plan.largeur} × ${plan.longueur}, soit ${n} case${n > 1 ? 's' : ''} de sol.`;
 }
+
+// Le sol : la description suit, comme si « sol en bois » y avait été écrit.
+const NOMS_SOLS = { pierre: 'Pierre', bois: 'Bois', terre: 'Terre', sable: 'Sable', herbe: 'Herbe', marbre: 'Marbre', glace: 'Glace' };
+$('salle-sol').replaceChildren(...SOLS.map((sol) => h('option', { value: sol, textContent: NOMS_SOLS[sol] })));
+$('salle-sol').addEventListener('change', (e) => {
+  memoriser();
+  etat.selection = null;
+  etat.message = '';
+  changerTexte(decrire({ ...salle().plan, sol: e.target.value }));
+});
 
 let enGlissementForme = false;
 const champsForme = () => ({ forme: salle().plan.forme, bras: Number($('forme-bras').value), position: salle().plan.position });

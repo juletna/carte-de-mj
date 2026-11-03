@@ -6,7 +6,7 @@ import * as m from '../js/donjon.js';
 import { FORMES, POSITIONS_FORMES, casesRetirees, estSol, nombreCases, retraitPorte, brasDe, brasMax, surLeSol } from '../js/formes.js';
 import { analyser } from '../js/parseur/index.js';
 import { decrire } from '../js/parseur/decrire.js';
-import { validerPlan } from '../js/schema.js';
+import { validerPlan, SOLS } from '../js/schema.js';
 import { changerForme, evaluerPose, redimensionner } from '../js/pose.js';
 import { disposerPlan, cheminCouloir } from '../js/plan-donjon.js';
 import { porteSous } from '../js/deplacement.js';
@@ -144,6 +144,15 @@ const TESTS = [
       const utile = ({ forme, bras, position, largeur, longueur, sol, portes, objets, creatures }) => ({ forme, bras, position, largeur, longueur, sol, portes, objets, creatures });
       egal(utile(deux), utile(un), `aller-retour de « ${texte} »`);
       egal(validerPlan(un).ok, true, `plan valide pour « ${texte} » : ${validerPlan(un).erreurs}`);
+    }
+  }],
+  ['le sol : chaque matière se réécrit et se relit, sans toucher au reste', () => {
+    const q = analyser('Salle en croix de 12 par 13 cases, bras de 2 cases, une porte au mur nord en G, un coffre en G7, un gobelin en F6').plan;
+    for (const sol of SOLS) {
+      const relu = analyser(decrire({ ...q, sol })).plan;
+      egal(relu.sol, sol, `sol en ${sol}`);
+      egal([relu.forme, relu.portes, relu.objets, relu.creatures], [q.forme, q.portes, q.objets, q.creatures], `le reste de la salle, sol en ${sol}`);
+      egal(analyser(decrire({ ...q, sol })).ignores, [], `mots non compris, sol en ${sol}`);
     }
   }],
   ['placement : rien ne tombe sur une case retirée', () => {
