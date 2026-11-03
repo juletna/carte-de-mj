@@ -10,7 +10,7 @@ import { validerPlan, SOLS } from './schema.js';
 import { dessiner, dessinerPlanDonjon } from './rendu/moteur.js';
 import { MARGE, rectDe } from './rendu/geometrie.js';
 import { disposerPlan, salleSous, cleDisposition } from './plan-donjon.js';
-import { tailleRemplir } from './affichage.js';
+import { tailleRemplir, TAILLE_MAX_REMPLIR } from './affichage.js';
 import { ajouterElement, elementsPalette, GROUPES_PALETTE, SOUS_GROUPES, redimensionner, changerForme } from './pose.js';
 import { genererDonjon, BORNES, FAMILLES } from './generateur.js';
 import { ajouterPersonnage, retirerPersonnage, actualiserPersonnages, ficheDepuisFichier, resumerFiche } from './personnages.js';
@@ -107,7 +107,7 @@ function marques(planAffiche) {
 }
 
 // --- Taille de la carte : ajustement automatique et zoom -------------------------------------
-const ZOOM_MIN = 8, ZOOM_MAX = 300;
+const ZOOM_MIN = 8, ZOOM_MAX = TAILLE_MAX_REMPLIR; // le zoom ne dépasse pas la plus grande case que « remplir » atteint
 
 /**
  * Côté de case affiché :

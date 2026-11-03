@@ -16,6 +16,7 @@
 import { validerDonjon, donjonDepuisAncien, creerDonjon } from './donjon.js';
 import { validerPresentation } from './presentation.js';
 import { fichesDuNavigateur } from './personnages.js';
+import { TAILLE_PAR_DEFAUT, ECHELLE_PAR_DEFAUT, MODES_TABLE, tailleReglable } from './affichage.js';
 
 export const CLE_DONJONS = 'carte-de-mj:donjons-v1';
 export const CLE_REGLAGES = 'carte-de-mj:reglages-v1';
@@ -26,7 +27,7 @@ export const CLE_FICHES = 'dd-fiche-personnages-v1';
 export const CLE_RETRAIT = 'carte-de-mj:regie-retrait-v1';
 const CLE = 'jdr-carte:v1';
 const TAILLE_MAX_FICHIER = 5 * 1024 * 1024;
-const REGLAGES_DEFAUT = { echelle: 1.5, taille: 48, grille: true };
+const REGLAGES_DEFAUT = { echelle: ECHELLE_PAR_DEFAUT, taille: TAILLE_PAR_DEFAUT, grille: true };
 
 const stockParDefaut = () => { try { return globalThis.localStorage || null; } catch { return null; } };
 const stockOnglet = () => { try { return globalThis.sessionStorage || null; } catch { return null; } };
@@ -52,14 +53,14 @@ export function chargerReglages(stock = stockParDefaut()) {
   const r = lireJson(stock, CLE_REGLAGES) || {};
   return {
     echelle: Number(r.echelle) > 0 ? Number(r.echelle) : REGLAGES_DEFAUT.echelle,
-    taille: Number(r.taille) >= 16 && Number(r.taille) <= 160 ? Number(r.taille) : REGLAGES_DEFAUT.taille,
+    taille: tailleReglable(Number(r.taille)) ? Number(r.taille) : REGLAGES_DEFAUT.taille,
     grille: typeof r.grille === 'boolean' ? r.grille : REGLAGES_DEFAUT.grille,
     // Facultatif (écran de table) : absent tant que personne ne l'a réglé, donc le Donjon n'en tient pas compte.
     ...(typeof r.reperes === 'boolean' ? { reperes: r.reperes } : {}),
     // Facultatifs aussi : `calibre` (posé par le Donjon quand la taille est réglée avec la carte bancaire) et
     // `modeTable` (« remplir » ou « reel », choisi dans la régie de la Présentation). Absents tant que personne n'y a touché.
     ...(r.calibre === true ? { calibre: true } : {}),
-    ...(r.modeTable === 'remplir' || r.modeTable === 'reel' ? { modeTable: r.modeTable } : {}),
+    ...(MODES_TABLE.includes(r.modeTable) ? { modeTable: r.modeTable } : {}),
     // `miniTable` : seulement si le MJ l'a éteinte (par défaut, la table a sa mini-carte).
     ...(r.miniTable === false ? { miniTable: false } : {}),
   };

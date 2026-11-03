@@ -27,6 +27,7 @@ import { MURS, OPPOSE, longueurMur } from './murs.js';
 import { analyser } from './parseur/index.js';
 import { decrire } from './parseur/decrire.js';
 import { retirerElement } from './pose.js';
+import { ECHELLE_PAR_DEFAUT } from './affichage.js';
 
 export const FORMAT = 'carte-de-mj-donjon';
 export const FORMAT_ANCIEN = 'jdr-carte';
@@ -55,7 +56,7 @@ export function idUnique(prefixe, existants = []) {
 // --- Plans -------------------------------------------------------------------
 
 /** Lit un texte en plan, en donnant au plan l'identifiant de la salle. */
-export function planDepuisTexte(texte, idSalle, echelle = 1.5) {
+export function planDepuisTexte(texte, idSalle, echelle = ECHELLE_PAR_DEFAUT) {
   const { plan } = analyser(texte, { echelle });
   return { ...plan, id: idSalle };
 }

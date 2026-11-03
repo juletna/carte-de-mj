@@ -12,6 +12,7 @@ import { cheminCouloir, PONT_DEMI_LONGUEUR, ETIQUETTE_ISOLEES } from '../plan-do
 import { retraitPorte, tracerSol, contourSol } from '../formes.js';
 import { estHorizontal } from '../murs.js';
 import { MARGE, EPAISSEUR_MUR, rectPorte, rectDe } from './geometrie.js';
+import { TAILLE_PAR_DEFAUT } from '../affichage.js';
 
 // Ordre de dessin : ce qui est au sol d'abord, ce qui est accroché aux murs en dernier.
 const COUCHE = { fosse: 0, debris: 1, torche: 9 };
@@ -30,7 +31,7 @@ const COUCHE = { fosse: 0, debris: 1, torche: 9 };
  *        Les éléments `cache: true` (secrets) restent visibles dans la vue MJ : dessinés en
  *        translucide avec un repère en pointillés.
  */
-export function dessiner(canvas, plan, { taille = 48, grille = true, theme = vectoriel, marques = {}, reperes = grille } = {}) {
+export function dessiner(canvas, plan, { taille = TAILLE_PAR_DEFAUT, grille = true, theme = vectoriel, marques = {}, reperes = grille } = {}) {
   const t = taille;
   const largeurPx = (plan.largeur + 2 * MARGE) * t;
   const hauteurPx = (plan.longueur + 2 * MARGE) * t;

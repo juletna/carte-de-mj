@@ -20,6 +20,7 @@ import {
 } from './lexique.js';
 import { analyserPosition } from './positions.js';
 import { construirePlan } from './placement.js';
+import { ECHELLE_PAR_DEFAUT } from '../affichage.js';
 
 // Quantité retenue pour un pluriel sans nombre (« des torches »), selon la zone par défaut.
 const QUANTITE_PLURIEL = { grille: 4, perimetre: 4, aleatoire: 5 };
@@ -121,11 +122,11 @@ export function analyserProposition(prop, intentions, ignores) {
 
 /**
  * @param {string} texte description du MJ
- * @param {{echelle?: number, entree?: string}} options echelle = mètres par case (1,5 par défaut) ; entree = mur d'entrée imposé
+ * @param {{echelle?: number, entree?: string}} options echelle = mètres par case (1,5 par défaut : ECHELLE_PAR_DEFAUT) ; entree = mur d'entrée imposé
  * @returns {{plan: object, compris: string[], ignores: string[]}}
  */
 export function analyser(texte, options = {}) {
-  const echelle = options.echelle || 1.5;
+  const echelle = options.echelle || ECHELLE_PAR_DEFAUT;
   const t = souderExpressions(convertirNombres(normaliser(texte)));
   const nom = extraireNom(t);
 

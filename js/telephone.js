@@ -6,6 +6,8 @@
  * Ne touche jamais aux réglages enregistrés : la carte est réduite par la taille de case, au moment de dessiner.
  */
 
+import { TAILLE_MIN } from './affichage.js';
+
 export const LARGEUR_TELEPHONE = 760;
 export const telephone = () => matchMedia(`(max-width: ${LARGEUR_TELEPHONE}px)`).matches;
 
@@ -49,11 +51,11 @@ export function marquerDefilement(canvas, zone) {
 
 /**
  * Taille de case pour que la salle (`largeur` × `longueur` cases, plus une case de roche autour) tienne dans `zone`,
- * moins `marge` px de chaque côté, sans jamais dépasser `taille` (le réglage) ni descendre sous 16 px.
+ * moins `marge` px de chaque côté, sans jamais dépasser `taille` (le réglage) ni descendre sous TAILLE_MIN.
  * Zone masquée (onglet non affiché) : le réglage tel quel, un redessin suivra à l'affichage.
  */
 export function tailleQuiTient(zone, largeur, longueur, taille, marge) {
   const l = zone.clientWidth - 2 * marge, ha = zone.clientHeight - 2 * marge;
   if (l <= 0 || ha <= 0) return taille;
-  return Math.max(16, Math.min(taille, Math.floor(Math.min(l / (largeur + 2), ha / (longueur + 2)))));
+  return Math.max(TAILLE_MIN, Math.min(taille, Math.floor(Math.min(l / (largeur + 2), ha / (longueur + 2)))));
 }

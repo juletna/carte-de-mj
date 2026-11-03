@@ -27,7 +27,7 @@ import { LISTES } from './schema.js';
 import { nomCase, libelleSelection, libelleDePorte } from './parseur/coordonnees.js';
 import { nomAffiche } from './parseur/lexique.js';
 import { creerMicro } from './voix.js';
-import { MODES_TABLE, modeTable, tailleTable } from './affichage.js';
+import { AFFICHAGE_PAR_DEFAUT, modeTable, tailleTable, affichageDeReglages, validerAffichage } from './affichage.js';
 import { telephone, activerOnglets, marquerDefilement, tailleQuiTient } from './telephone.js';
 import { $, h, bouton, deuxTemps, fichierChoisi } from './dom.js';
 import { pluriel } from './format.js';
@@ -37,7 +37,7 @@ const ouvrirCanal = () => { try { return new BroadcastChannel(pres.CANAL); } cat
 // =============================================================================
 // Écran de table (partagé : fenêtre ?vue=table et « Plein écran ici »)
 // =============================================================================
-const ecran = { plan: null, mini: null, caseVisee: null, affichage: { taille: 48, grille: true, reperes: true, mode: 'remplir' } };
+const ecran = { plan: null, mini: null, caseVisee: null, affichage: { ...AFFICHAGE_PAR_DEFAUT } };
 
 /** Côté de case à la table : « échelle réelle » = la taille calibrée, exacte ; « remplir » = calculé sur la fenêtre. */
 function tailleEcranTable() {
@@ -125,12 +125,6 @@ document.addEventListener('fullscreenchange', () => {
 });
 
 const entierSigne = (v) => (v === -1 || v === 0 || v === 1 ? v : 0);
-const affichageValide = (a, defaut) => ({
-  mode: MODES_TABLE.includes(a?.mode) ? a.mode : defaut.mode,
-  taille: Number.isFinite(a?.taille) && a.taille >= 16 && a.taille <= 160 ? a.taille : defaut.taille,
-  grille: typeof a?.grille === 'boolean' ? a.grille : defaut.grille,
-  reperes: typeof a?.reperes === 'boolean' ? a.reperes : defaut.reperes,
-});
 
 // =============================================================================
 // Mode VUE TABLE
@@ -140,7 +134,7 @@ function demarrerTable() {
   document.title = 'Table · Carte de MJ';
   $('ecran-table').hidden = false;
   const reglages = stockage.chargerReglages(); // seuls les réglages d'affichage : jamais les présentations
-  ecran.affichage = { taille: reglages.taille, grille: reglages.grille, reperes: reglages.reperes !== false, mode: modeTable(reglages) };
+  ecran.affichage = affichageDeReglages(reglages);
   const attendre = (texte) => { ecran.plan = null; $('attente').textContent = texte; rendreEcranTable(); };
 
   const canal = ouvrirCanal();
@@ -151,7 +145,7 @@ function demarrerTable() {
     if (!m || typeof m !== 'object') return;
     if (m.type === 'etat') {
       recu = true;
-      ecran.affichage = affichageValide(m.affichage, ecran.affichage);
+      ecran.affichage = validerAffichage(m.affichage, ecran.affichage);
       const plan = m.plan ? pres.recevoirVueTable(m.plan) : null;
       ecran.mini = m.mini ? pres.recevoirMiniPlan(m.mini) : null;
       ecran.caseVisee = pres.recevoirCaseVisee(m.caseVisee, plan);
@@ -224,7 +218,7 @@ function demarrerRegie() {
   const idsReveles = (idSalle) => etat.p.reveles[idSalle] || [];
 
   // --- Communication avec la fenêtre table -------------------------------------------------------
-  const affichageTable = () => ({ taille: r.taille, grille: r.grille, reperes: r.reperes !== false, mode: modeTable(r) });
+  const affichageTable = () => affichageDeReglages(r);
   // Le plan complet essaie plusieurs dispositions : on ne le refait que si les salles, leurs portes ou les liaisons ont changé.
   let dispositionPartie = { cle: null, plan: null };
   function dispositionDePartie() {

@@ -26,6 +26,7 @@ import { executer as executerMurs } from './murs.test.js';
 import { executer as executerCoordonnees } from './coordonnees.test.js';
 import { executer as executerSchema } from './schema.test.js';
 import { executer as executerGeometrie } from './geometrie.test.js';
+import { executer as executerAffichage } from './affichage.test.js';
 
 /** Les suites, dans l'ordre d'exécution : chacune reçoit `{ lire }` et rend (ou promet) une liste de résultats. */
 export const SUITES = [
@@ -33,7 +34,7 @@ export const SUITES = [
   executerPose, executerPlan, executerFormes, executerGenerateur, executerModeles, executerPersonnages,
   executerFicheHasard, executerCommandeTable, executerNavigation,
   executerThemes, executerReferences, executerOutils, executerMurs, executerCoordonnees, executerSchema,
-  executerGeometrie,
+  executerGeometrie, executerAffichage,
 ];
 
 /** Joue toutes les suites ; renvoie les résultats { phrase, ecarts, resultat? } à la suite les uns des autres. */
