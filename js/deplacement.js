@@ -21,7 +21,7 @@
  *
  * Ce module ne modifie rien : il propose un nouveau plan à `deposer`.
  */
-import { MARGE } from './rendu/moteur.js';
+import { MARGE } from './rendu/geometrie.js';
 import { largeurDe, hauteurDe, murProche, positionSurMur, evaluerPose } from './pose.js';
 import { retraitPorte } from './formes.js';
 import { estHorizontal } from './murs.js';

@@ -17,7 +17,8 @@
  *   marqueLiaison(ctx, rect, mur, t)      porte reliée à une autre salle
  *   marqueSelection(ctx, rect, t)         élément sélectionné
  */
-import { casesRetirees, retraitPorte, dessinerMursDecoupes } from '../../formes.js';
+import { casesRetirees, dessinerMursDecoupes } from '../../formes.js';
+import { EPAISSEUR_MUR, ancragePorte } from '../geometrie.js';
 import { dessinerPortrait } from '../portraits.js';
 import { CREATURES, COULEURS } from '../../parseur/lexique.js';
 
@@ -100,7 +101,7 @@ export function sol(ctx, plan, t) {
 }
 
 /** Épaisseur du mur : dessiné à l'extérieur de la pièce, sur la marge. */
-const epaisseur = (t) => t * 0.32;
+const epaisseur = (t) => t * EPAISSEUR_MUR;
 
 export function murs(ctx, plan, t) {
   const e = epaisseur(t);
@@ -125,16 +126,11 @@ export function murs(ctx, plan, t) {
 
 export function porte(ctx, p, plan, t) {
   const e = epaisseur(t);
-  const W = plan.largeur * t, L = plan.longueur * t;
   // Repère local : origine au milieu de l'ouverture, côté pièce vers +y.
-  const pos = (p.position + 0.5) * t;
-  const d = retraitPorte(plan, p.mur, p.position) * t;
-  const place = {
-    nord: [pos, d, 0], sud: [pos, L - d, Math.PI], ouest: [d, pos, -Math.PI / 2], est: [W - d, pos, Math.PI / 2],
-  }[p.mur];
+  const place = ancragePorte(plan, p.mur, p.position, t);
   ctx.save();
-  ctx.translate(place[0], place[1]);
-  ctx.rotate(place[2]);
+  ctx.translate(place.x, place.y);
+  ctx.rotate(place.angle);
   const o = t * 0.9; // largeur de l'ouverture
   // Ouverture : on efface le mur et on prolonge le sol.
   rect(ctx, -o / 2, -e - 1, o, e + 1, '#6f6b65');

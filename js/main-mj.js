@@ -7,7 +7,8 @@
  */
 import { analyser } from './parseur/index.js';
 import { validerPlan, SOLS } from './schema.js';
-import { dessiner, dessinerPlanDonjon, MARGE, rectPorte } from './rendu/moteur.js';
+import { dessiner, dessinerPlanDonjon } from './rendu/moteur.js';
+import { MARGE, rectDe } from './rendu/geometrie.js';
 import { disposerPlan, salleSous, cleDisposition } from './plan-donjon.js';
 import { tailleRemplir } from './affichage.js';
 import { ajouterElement, elementsPalette, GROUPES_PALETTE, SOUS_GROUPES, redimensionner, changerForme } from './pose.js';
@@ -401,13 +402,6 @@ function majSelection() {
   placerBulle();
 }
 
-/** Rectangle d'un élément, en cases (origine : coin nord-ouest de la salle). */
-function rectElement(genre, e, plan) {
-  if (genre === 'porte') return rectPorte(plan, e);
-  if (genre === 'creature') return { x: e.x, y: e.y, l: e.taille, h: e.taille };
-  return { x: e.x, y: e.y, l: e.l, h: e.h };
-}
-
 /**
  * Pose la bulle à côté de l'élément sélectionné : à droite, sinon à gauche, sinon dessous, sinon dessus, puis recalée pour ne
  * jamais dépasser de la zone visible de la scène (même si la carte zoomée la déborde). Rappelée à chaque redessin, zoom,
@@ -422,7 +416,7 @@ function placerBulle() {
   const scene = $('scene');
   if (!trouve || !scene.clientWidth) return;
   const t = tailleAffichee(plan);
-  const rc = rectElement(trouve.genre, trouve.element, plan);
+  const rc = rectDe(trouve.genre, trouve.element, plan);
   const cv = $('carte').getBoundingClientRect(), sc = scene.getBoundingClientRect();
   const ancre = { g: cv.left + (MARGE + rc.x) * t, h: cv.top + (MARGE + rc.y) * t };
   ancre.d = ancre.g + rc.l * t;

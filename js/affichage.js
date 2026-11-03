@@ -7,7 +7,7 @@
  *
  * Le mode ne contient aucun secret : c'est un mot, joint aux réglages d'affichage envoyés à la table.
  */
-import { MARGE } from './rendu/moteur.js';
+import { MARGE } from './rendu/geometrie.js';
 
 export const MODES_TABLE = ['remplir', 'reel'];
 export const TAILLE_PAR_DEFAUT = 48;

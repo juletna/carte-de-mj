@@ -7,7 +7,8 @@
  *   marqueLiaison(ctx, rect, mur, t, p)   porte reliée : pastille « → N » (p.vers = numéro de la salle de destination)
  * Les tailles de trait sont proportionnelles à la case, avec un minimum en pixels (le canvas d'impression est à ~254 ppp).
  */
-import { casesRetirees, retraitPorte, tracerSol, dessinerMursDecoupes } from '../../formes.js';
+import { casesRetirees, tracerSol, dessinerMursDecoupes } from '../../formes.js';
+import { EPAISSEUR_MUR, ancragePorte } from '../geometrie.js';
 import { CREATURES } from '../../parseur/lexique.js';
 import { dessinerPortrait } from '../portraits.js';
 
@@ -81,7 +82,7 @@ export function grille(ctx, plan, t) {
 }
 
 /** Épaisseur du mur : à l'extérieur de la pièce (comme le thème vectoriel), gris clair cerné de noir. */
-const epaisseur = (t) => t * 0.32;
+const epaisseur = (t) => t * EPAISSEUR_MUR;
 
 export function murs(ctx, plan, t) {
   const e = epaisseur(t);
@@ -101,14 +102,11 @@ export function murs(ctx, plan, t) {
 
 export function porte(ctx, p, plan, t) {
   const e = epaisseur(t);
-  const W = plan.largeur * t, L = plan.longueur * t;
-  const pos = (p.position + 0.5) * t;
-  const d = retraitPorte(plan, p.mur, p.position) * t;
-  const place = { nord: [pos, d, 0], sud: [pos, L - d, Math.PI], ouest: [d, pos, -Math.PI / 2], est: [W - d, pos, Math.PI / 2] }[p.mur];
+  const place = ancragePorte(plan, p.mur, p.position, t);
   const ep = trait(t, 0.025);
   ctx.save();
-  ctx.translate(place[0], place[1]);
-  ctx.rotate(place[2]);
+  ctx.translate(place.x, place.y);
+  ctx.rotate(place.angle);
   const o = t * 0.9; // largeur de l'ouverture
   rect(ctx, -o / 2, -e - 1, o, e + 2, '#fff'); // l'ouverture efface le mur
   if (p.type === 'arche') {

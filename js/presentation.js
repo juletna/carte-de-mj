@@ -48,7 +48,8 @@ import { analyser } from './parseur/index.js';
 import { decrire } from './parseur/decrire.js';
 import { interpreterCommande } from './parseur/commandes.js';
 import { disposerPlan, cheminCouloir, pontsDe } from './plan-donjon.js';
-import { normaliserForme, surLeSol, retraitPorte, estSol } from './formes.js';
+import { normaliserForme, surLeSol, estSol } from './formes.js';
+import { ancragePorte } from './rendu/geometrie.js';
 import { evaluerPose } from './pose.js';
 import { validerJoueurs } from './personnages.js';
 
@@ -322,8 +323,8 @@ const seChevauchent = (a, b) => a.x < b.x + b.l && b.x < a.x + a.l && a.y < b.y 
 
 /** Point de la porte, au bord de la pièce, en cases. */
 function pointPorte(plan, arrivee) {
-  const c = arrivee.position + 0.5, d = retraitPorte(plan, arrivee.mur, arrivee.position);
-  return { nord: [c, d], sud: [c, plan.longueur - d], ouest: [d, c], est: [plan.largeur - d, c] }[arrivee.mur] || [plan.largeur / 2, plan.longueur / 2];
+  const a = ancragePorte(plan, arrivee.mur, arrivee.position);
+  return a ? [a.x, a.y] : [plan.largeur / 2, plan.longueur / 2];
 }
 
 /** Ordre lexicographique : `a` passe avant `b` ? */

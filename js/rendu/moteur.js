@@ -1,8 +1,8 @@
 /**
  * Moteur de rendu : dessine un plan de salle sur un <canvas>.
  *
- * Le moteur s'occupe de la géométrie (taille du canvas, grille, murs,
- * portes, ordre de dessin) ; l'apparence de chaque élément est déléguée
+ * Le moteur s'occupe de la mise en page (taille du canvas, grille, murs,
+ * portes, ordre de dessin ; les mesures partagées sont dans geometrie.js) ; l'apparence de chaque élément est déléguée
  * à un « thème » (voir themes/vectoriel.js), ce qui permettra d'ajouter
  * un thème pixel art ou des sprites sans toucher à ce fichier.
  */
@@ -11,32 +11,10 @@ import { lettreColonne } from '../parseur/coordonnees.js';
 import { cheminCouloir, PONT_DEMI_LONGUEUR, ETIQUETTE_ISOLEES } from '../plan-donjon.js';
 import { retraitPorte, tracerSol, contourSol } from '../formes.js';
 import { estHorizontal } from '../murs.js';
-
-export const MARGE = 1; // cases de roche autour de la pièce
+import { MARGE, EPAISSEUR_MUR, rectPorte, rectDe } from './geometrie.js';
 
 // Ordre de dessin : ce qui est au sol d'abord, ce qui est accroché aux murs en dernier.
 const COUCHE = { fosse: 0, debris: 1, torche: 9 };
-
-// Épaisseur des murs en cases (celle du thème vectoriel) : sert à situer une porte pour les repères.
-export const EPAISSEUR_MUR = 0.32;
-
-/** Rectangle d'une porte dans le mur, en cases (origine : coin nord-ouest de la pièce). */
-export function rectPorte(plan, p) {
-  const e = EPAISSEUR_MUR, d = retraitPorte(plan, p.mur, p.position);
-  return {
-    nord: { x: p.position, y: d - e, l: 1, h: e },
-    sud: { x: p.position, y: plan.longueur - d, l: 1, h: e },
-    ouest: { x: d - e, y: p.position, l: e, h: 1 },
-    est: { x: plan.largeur - d, y: p.position, l: e, h: 1 },
-  }[p.mur];
-}
-
-/** Rectangle occupé par un élément, en cases. */
-function rectDe(genre, e, plan) {
-  if (genre === 'porte') return rectPorte(plan, e);
-  if (genre === 'creature') return { x: e.x, y: e.y, l: e.taille, h: e.taille };
-  return { x: e.x, y: e.y, l: e.l, h: e.h };
-}
 
 /**
  * @param {HTMLCanvasElement} canvas

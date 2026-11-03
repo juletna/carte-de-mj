@@ -25,7 +25,7 @@
 import { planPublic } from './presentation.js';
 import { lettreColonne, nomCase, reperePorte } from './parseur/coordonnees.js';
 import { nomAffiche } from './parseur/lexique.js';
-import { EPAISSEUR_MUR } from './rendu/moteur.js';
+import { EPAISSEUR_MUR } from './rendu/geometrie.js';
 import { virgule } from './format.js';
 
 export const CASE_MM = 25;           // échelle par défaut : 25 mm par case (figurines de 25 mm)

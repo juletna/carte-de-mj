@@ -8,7 +8,8 @@
  * Les noms et notes du donjon ne passent QUE par textContent (jamais de HTML).
  */
 import { CLE_DONJONS, chargerDonjons } from './stockage.js';
-import { dessinerFenetre, EPAISSEUR_MUR } from './rendu/moteur.js';
+import { dessinerFenetre } from './rendu/moteur.js';
+import { EPAISSEUR_MUR } from './rendu/geometrie.js';
 import * as papier from './rendu/themes/papier.js';
 import { preparerImpression, messageEchelle, resolutionCanvas, REGLE_MM, MESSAGE_REGLE } from './impression.js';
 import { $, h } from './dom.js';
