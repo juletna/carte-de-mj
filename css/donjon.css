@@ -126,7 +126,7 @@ body.vue-plan #aide-carte { display: none; }
 
 
 /* --- Ordinateur (au-dessus de 760 px) : barre, rail 64 px, panneau 300 px, puis bande des salles et carte --- */
-@media (min-width: 761px) { /* complément de (max-width: 760px) pour les largeurs entières */
+@media not all and (max-width: 760px) { /* complément exact de (max-width: 760px), largeurs fractionnaires comprises */
   body { grid-template-columns: 64px 300px minmax(0, 1fr); grid-template-rows: auto auto minmax(0, 1fr); height: 100vh; height: 100dvh; overflow: hidden; }
   /* Panneau replié : la colonne disparaît et la carte récupère la place (l'ajustement passe par le ResizeObserver de la scène). */
   body.panneau-replie { grid-template-columns: 64px 0 minmax(0, 1fr); }

@@ -99,6 +99,8 @@ export function creerSalleForme(ctx) {
     annoncerCarte(`Salle de ${res.plan.largeur} × ${res.plan.longueur} cases.`);
   }
 
+  let annulerBord = null; // abandonne le glissement de bord en cours, s'il y en a un
+
   const NOMS_COTES = { nord: 'au nord', sud: 'au sud', ouest: 'à l’ouest', est: 'à l’est' };
   for (const bande of document.querySelectorAll('.bord-salle')) {
     const cote = bande.dataset.cote;
@@ -127,6 +129,14 @@ export function creerSalleForme(ctx) {
       bande.setPointerCapture(e.pointerId);
       bande.classList.add('tiree');
       prise = { depart: [e.clientX, e.clientY], taille: ctx.carte.taille(salle().plan), delta: 0, plan: salle().plan };
+      annulerBord = () => {
+        prise = null;
+        annulerBord = null;
+        bande.classList.remove('tiree');
+        if (bande.hasPointerCapture(e.pointerId)) bande.releasePointerCapture(e.pointerId);
+        ctx.carte.redessiner(salle().plan);
+        annoncerCarte(`Salle de ${salle().plan.largeur} × ${salle().plan.longueur} cases.`);
+      };
     });
     bande.addEventListener('pointermove', (e) => {
       if (!prise) return;
@@ -143,6 +153,7 @@ export function creerSalleForme(ctx) {
       if (!prise) return;
       const { delta } = prise;
       prise = null;
+      annulerBord = null;
       bande.classList.remove('tiree');
       if (delta && e.type === 'pointerup') appliquerDimensions(cote, delta);
       else ctx.carte.redessiner(salle().plan);
@@ -151,5 +162,12 @@ export function creerSalleForme(ctx) {
     bande.addEventListener('pointercancel', lacher);
   }
 
-  return { majForme };
+  /** Échap pendant le glissement d'un bord : la salle reste telle quelle. Renvoie vrai s'il y en avait un. */
+  function annulerGlisserBord() {
+    if (!annulerBord) return false;
+    annulerBord();
+    return true;
+  }
+
+  return { majForme, annulerGlisserBord };
 }

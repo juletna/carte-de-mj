@@ -333,6 +333,23 @@ const TESTS = [
   }],
 ];
 
+TESTS.push(['validerDonjon signale ce qu’il perd : liaisons, personnages, textes trop longs', () => {
+  const bon = () => JSON.parse(JSON.stringify(m.creerDonjon({ texte: 'Salle de 5 par 4 cases.' })));
+  egal(validerDonjon(bon()).avertissements, [], 'un donjon normal : rien à dire');
+  egal(validerDonjon({ ...bon(), liaisons: 'aucune' }).avertissements, ['liaisons ignorées : ce n’est pas une liste'], 'liaisons qui ne sont pas une liste');
+  const sale = bon();
+  sale.liaisons = Array.from({ length: 1002 }, () => null);
+  verifier(validerDonjon(sale).avertissements.includes('2 liaison(s) ignorée(s) au-delà de 1000'), 'liaisons au-delà de la limite');
+  egal(validerDonjon({ ...bon(), personnages: 'tous' }).avertissements, ['personnages ignorés : ce n’est pas une liste'], 'personnages qui ne sont pas une liste');
+  egal(validerDonjon({ ...bon(), personnages: [{ id: 'x' }] }).avertissements, ['1 personnage(s) écarté(s)'], 'personnage illisible');
+  const long = bon();
+  const salle = Object.values(long.salles)[0];
+  salle.notes = 'n'.repeat(m.LIMITES.notes + 1);
+  salle.texte = 't'.repeat(m.LIMITES.texte + 1);
+  const av = validerDonjon(long).avertissements;
+  verifier(av.some((a) => a.includes('notes coupées')) && av.some((a) => a.includes('description coupée')), 'textes coupés');
+}]);
+
 /** Plan relu depuis un texte, avec l'identifiant de salle (comme le fait l'application). */
 function planDepuis(texte, id) { return m.planDepuisTexte(texte, id); }
 

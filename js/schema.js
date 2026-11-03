@@ -65,6 +65,11 @@ export function validerPlan(brut) {
   if (!entier(L) || L < 1 || L > CASES_MAX) erreurs.push(`longueur invalide (entier de 1 à ${CASES_MAX})`);
   if (erreurs.length) return { ok: false, erreurs, plan: null };
 
+  /** Une valeur présente mais inconnue est remplacée ou retirée : on le dit, comme pour un élément écarté. */
+  const signaler = (quoi, valeur, suite) => { if (valeur !== undefined && valeur !== null) erreurs.push(`${quoi} inconnu « ${valeur} », ${suite}`); };
+  if (!SOLS.includes(brut.sol)) signaler('sol', brut.sol, 'remplacé par la pierre');
+  if (!MURS.includes(brut.entree)) signaler('mur d’entrée', brut.entree, 'remplacé par le sud');
+
   const plan = {
     version: VERSION_PLAN,
     id: String(brut.id || 'salle-1'),
@@ -81,6 +86,7 @@ export function validerPlan(brut) {
     const long = longueurMur(p?.mur, W, L);
     if (!MURS.includes(p?.mur)) return erreurs.push(`porte ${i + 1} : mur inconnu « ${p?.mur} »`);
     if (!entier(p.position) || p.position < 0 || p.position >= long) return erreurs.push(`porte ${i + 1} : position hors du mur`);
+    if (!TYPES_PORTES.has(p.type)) signaler(`porte ${i + 1} : type`, p.type, 'remplacé par une porte');
     plan.portes.push({ id: String(p.id || `p${i + 1}`), mur: p.mur, position: p.position, type: TYPES_PORTES.has(p.type) ? p.type : 'porte', ...marqueCache(p) });
   });
 
@@ -107,8 +113,9 @@ export function validerPlan(brut) {
       camp: CAMPS.includes(k.camp) ? k.camp : CREATURES.find((d) => d.type === k.type).camp,
       x: k.x, y: k.y, taille, numero: entier(k.numero) ? k.numero : numeros[k.type],
     };
-    if (COULEURS[k.couleur]) c.couleur = k.couleur;
-    if (ETATS.includes(k.etat)) c.etat = k.etat;
+    if (!CAMPS.includes(k.camp)) signaler(`créature ${i + 1} : camp`, k.camp, 'remplacé par celui de son type');
+    if (COULEURS[k.couleur]) c.couleur = k.couleur; else signaler(`créature ${i + 1} : couleur`, k.couleur, 'retirée');
+    if (ETATS.includes(k.etat)) c.etat = k.etat; else signaler(`créature ${i + 1} : état`, k.etat, 'retiré');
     if (typeof k.fiche === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(k.fiche)) c.fiche = k.fiche;
     Object.assign(c, marqueCache(k));
     plan.creatures.push(c);

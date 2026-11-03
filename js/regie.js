@@ -375,7 +375,7 @@ export function demarrerRegie() {
     $('liste-portes').replaceChildren(...s.plan.portes.map((q) => {
       const lien = modele.liaisonDePorte(p.donjon, s.id, q);
       const vers = lien && p.donjon.salles[lien.autre.salle];
-      return boutonListe('porte', q, `${libelleDePorte(q)} · ${vers ? `→ ${vers.nom}` : 'non reliée'}${q.cache ? ' · cachée' : ''}`, q.cache);
+      return boutonListe('porte', q, `${libelleDePorte(q)} · ${vers ? `→ ${vers.nom}` : 'non reliée'}${!q.cache ? '' : pres.estRevele(p, s.id, q.id) ? ' · cachée, révélée' : ' · cachée'}`, !pres.estDevoile(p, s.id, q));
     }));
     // Éléments de la salle : pions puis objets, cachés repérés (comme sur la carte du MJ). Liste repliable.
     const marque = (e) => (!e.cache ? '' : pres.estRevele(p, s.id, e.id) ? ' · caché, révélé' : ' · caché');

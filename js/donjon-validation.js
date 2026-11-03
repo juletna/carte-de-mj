@@ -3,8 +3,8 @@
  * Module PUR, sans DOM. Il lit donjon.js (constantes, `creerDonjon`) ; donjon.js ne l'importe jamais, donc pas de cycle :
  * ceux qui ont besoin de `validerDonjon` ou de `convertirImport` l'importent d'ici directement.
  *
- * `validerDonjon` refuse ce qui n'est pas exploitable et écarte avec un avertissement ce qui peut l'être (liaisons invalides,
- * éléments d'un plan). Il ne signale pas toutes les pertes : un défaut connu, conservé tel quel.
+ * `validerDonjon` refuse ce qui n'est pas exploitable et écarte avec un avertissement ce qui peut l'être (liaisons, personnages,
+ * éléments et valeurs inconnues d'un plan, textes trop longs). Seul le choix de la salle active se corrige sans rien dire : rien n'y est perdu.
  */
 import { validerPersonnages } from './personnages.js';
 import { validerPlan } from './schema.js';
@@ -31,6 +31,8 @@ function validerSalle(brut, id, echelle) {
   const etiquette = `salle « ${coupe(brut.nom || id, 40)} »`;
   let plan = null;
   let texte = typeof brut.texte === 'string' ? coupe(brut.texte, LIMITES.texte) : null;
+  if (typeof brut.texte === 'string' && brut.texte.length > LIMITES.texte) avertissements.push(`${etiquette} : description coupée à ${LIMITES.texte} caractères`);
+  if (typeof brut.notes === 'string' && brut.notes.length > LIMITES.notes) avertissements.push(`${etiquette} : notes coupées à ${LIMITES.notes} caractères`);
   if (brut.plan !== undefined) {
     const v = validerPlan(brut.plan);
     if (!v.plan) erreurs.push(`${etiquette} : plan invalide (${v.erreurs.join(', ')})`);
@@ -91,6 +93,8 @@ export function validerDonjon(brut, { echelle } = {}) {
   const vues = new Set();
   const ids = new Set();
   const brutes = Array.isArray(brut.liaisons) ? brut.liaisons.slice(0, MAX_LIAISONS) : [];
+  if (brut.liaisons !== undefined && brut.liaisons !== null && !Array.isArray(brut.liaisons)) avertissements.push('liaisons ignorées : ce n’est pas une liste');
+  else if (brut.liaisons?.length > MAX_LIAISONS) avertissements.push(`${brut.liaisons.length - MAX_LIAISONS} liaison(s) ignorée(s) au-delà de ${MAX_LIAISONS}`);
   for (const [i, l] of brutes.entries()) {
     const probleme = !estObjet(l) ? 'liaison invalide' : validerExtremite(l.a, salles) || validerExtremite(l.b, salles)
       || (l.a.salle === l.b.salle ? 'liaison d’une salle avec elle-même' : null);
@@ -119,6 +123,8 @@ export function validerDonjon(brut, { echelle } = {}) {
   };
   const personnages = validerPersonnages(brut.personnages);
   if (personnages.length) donjon.personnages = personnages;
+  if (brut.personnages !== undefined && brut.personnages !== null && !Array.isArray(brut.personnages)) avertissements.push('personnages ignorés : ce n’est pas une liste');
+  else if (brut.personnages?.length > personnages.length) avertissements.push(`${brut.personnages.length - personnages.length} personnage(s) écarté(s)`);
   return { ok: true, erreurs: [], avertissements, donjon };
 }
 

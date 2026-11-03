@@ -25,8 +25,8 @@ export function convertirNombres(texte) {
   for (let i = 0; i < mots.length; i++) {
     const mot = mots[i];
 
-    if (mot in APPROX) { sortie.push(String(APPROX[mot])); continue; }
-    if (!(mot in VALEURS)) { sortie.push(mot); continue; }
+    if (Object.hasOwn(APPROX, mot)) { sortie.push(String(APPROX[mot])); continue; }
+    if (!Object.hasOwn(VALEURS, mot)) { sortie.push(mot); continue; }
 
     let total = VALEURS[mot];
     let j = i + 1;
@@ -36,12 +36,12 @@ export function convertirNombres(texte) {
       if (suivant === 'et' && total >= 20 && total % 10 === 0 && (mots[j + 1] === 'un' || mots[j + 1] === 'une')) {
         total += 1; j += 2; continue;
       }
-      if (suivant in VALEURS && VALEURS[suivant] < 10 && total >= 10 && total % 10 === 0) {
+      if (Object.hasOwn(VALEURS, suivant) && VALEURS[suivant] < 10 && total >= 10 && total % 10 === 0) {
         total += VALEURS[suivant]; j++; continue;
       }
       break;
     }
-    if (total === 1 && mots[j] in MULTIPLES) { total = MULTIPLES[mots[j]]; j++; }
+    if (total === 1 && Object.hasOwn(MULTIPLES, mots[j])) { total = MULTIPLES[mots[j]]; j++; }
 
     sortie.push(String(total));
     i = j - 1;

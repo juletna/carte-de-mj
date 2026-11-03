@@ -59,8 +59,12 @@ function ecrireJson(stock, cle, valeur) {
 
 /** Réglages d'affichage (valeurs par défaut pour ce qui manque ou est invalide). */
 export function chargerReglages(stock = stockParDefaut()) {
-  const r = lireJson(stock, CLE_REGLAGES) || {};
+  const lu = lireJson(stock, CLE_REGLAGES);
+  const r = estObjet(lu) ? lu : {};
+  // Ce que cette version ne connaît pas (écrit par une version plus récente) est gardé tel quel : `sauverReglages` le réécrira.
+  const { echelle: _e, taille: _t, grille: _g, reperes: _r, calibre: _c, modeTable: _m, miniTable: _n, ...inconnus } = r;
   return {
+    ...inconnus,
     echelle: Number(r.echelle) > 0 ? Number(r.echelle) : REGLAGES_DEFAUT.echelle,
     taille: tailleReglable(Number(r.taille)) ? Number(r.taille) : REGLAGES_DEFAUT.taille,
     grille: typeof r.grille === 'boolean' ? r.grille : REGLAGES_DEFAUT.grille,
@@ -129,7 +133,7 @@ const verrouillee = (stock, cle) => !!stock && !!verrous.get(stock)?.has(cle);
 /**
  * Relit une clé qui contient des donjons, un par entrée, sans rien écrire.
  * `entrees(brut)` : les donjons du JSON lu (liste ou dictionnaire), ou null si sa forme n'est pas celle attendue.
- * @returns {{ brut:*, valides: {donjon:object, brut:*}[], ecartes: {valeur:*, raison:string}[] }}  `ecartes` : tout ce qui ne se relit pas
+ * @returns {{ brut:*, valides: {donjon:object, brut:*}[], ecartes: {valeur:*, raison:string}[] }}  `ecartes` : tout ce qui ne se relit pas, ou pas en entier
  */
 function relireDonjons(stock, cle, entrees) {
   const { texte, brut } = lireBrut(stock, cle);
@@ -140,8 +144,11 @@ function relireDonjons(stock, cle, entrees) {
   const valides = [], ecartes = [];
   for (const d of liste) {
     const v = validerDonjon(migrer(d));
-    if (v.donjon) valides.push({ donjon: v.donjon, brut: d });
-    else ecartes.push({ valeur: d, raison: v.erreurs.join(' · ') });
+    if (v.donjon) {
+      valides.push({ donjon: v.donjon, brut: d });
+      // Relu, mais pas en entier : la prochaine sauvegarde réécrira la version nettoyée, donc l'original est copié d'abord.
+      if (v.avertissements.length) ecartes.push({ valeur: d, raison: v.avertissements.join(' · ') });
+    } else ecartes.push({ valeur: d, raison: v.erreurs.join(' · ') });
   }
   return { brut, valides, ecartes };
 }

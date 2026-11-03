@@ -25,7 +25,7 @@ const RELATIONS = [
   ['cote', `pres ${DE}`],
   ['autour', `autour ${DE}`],
   ['flancs', `de chaque cote ${DE}`],
-  ['flancs', `des deux cotes ${DE}`],
+  ['flancs', `des (?:deux|2) cotes ${DE}`],
   ['flancs', `de part et d autre ${DE}`],
   ['face', `en face ${DE}`],
   ['face', 'face a(?:u|ux)?'],
@@ -37,7 +37,7 @@ const RELATIONS_EXACTES = RELATIONS.map(([relation, motif]) => [new RegExp(`^(?:
 const ZONES = {
   coinPrecis: /\b(?:coins?|angles?)\s+(?:\w+\s+)?(nord|sud)\s+(est|ouest)\b/,
   coins: /\b(?:coins?|angles?)\b/,
-  cotes: /\b(?:de chaque cote|de part et d autre|des deux cotes|sur les cotes|murs lateraux)\b/,
+  cotes: /\b(?:de chaque cote|de part et d autre|des (?:deux|2) cotes|sur les cotes|murs lateraux)\b/,
   cercle: /\ben (?:cercle|rond|couronne)\b|\bcirculairement\b/,
   ligne: /\ben (?:ligne|rang|file)\b|\balignee?s?\b/,
   rangees: /\brangees?\b/,

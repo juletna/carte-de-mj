@@ -21,16 +21,20 @@ const TESTS = [
     egal(preparer('Salle de 12x8 avec un coffre'), preparer(normaliser('Salle de 12x8 avec un coffre')), 'la normalisation vient en premier');
   }],
   ['les tournures de relation : le motif composé depuis RELATIONS est l’ancien, chaque tournure donne sa relation, et « le long de » n’en est pas une', () => {
-    egal(RE_RELATION.source, String.raw`\b(devant|derriere|a cote d(?:e|u|es)?|pres d(?:e|u|es)?|autour d(?:e|u|es)?|de chaque cote d(?:e|u|es)?|des deux cotes d(?:e|u|es)?|de part et d autre d(?:e|u|es)?|en face d(?:e|u|es)?|face a(?:u|ux)?|contre)\b`, 'motif');
+    egal(RE_RELATION.source, String.raw`\b(devant|derriere|a cote d(?:e|u|es)?|pres d(?:e|u|es)?|autour d(?:e|u|es)?|de chaque cote d(?:e|u|es)?|des (?:deux|2) cotes d(?:e|u|es)?|de part et d autre d(?:e|u|es)?|en face d(?:e|u|es)?|face a(?:u|ux)?|contre)\b`, 'motif');
     const ou = (tournure) => analyser(`salle de 9 par 9, une table, un coffre ${tournure} la table`).compris.find((c) => c.includes('coffre'));
-    // « des deux côtés de » manque : « deux » devient « 2 » avant que le motif ne le voie, il n'est donc jamais reconnu (constaté, non corrigé).
     egal([
-      'devant', 'derriere', 'a cote de', 'pres de', 'contre', 'autour de', 'de chaque cote de', 'de part et d autre de', 'en face de', 'face a',
+      'devant', 'derriere', 'a cote de', 'pres de', 'contre', 'autour de', 'de chaque cote de', 'des deux cotes de', 'de part et d autre de', 'en face de', 'face a',
     ].map(ou), [
       '1 coffre — devant table', '1 coffre — derrière table', '1 coffre — à côté de table', '1 coffre — à côté de table', '1 coffre — à côté de table',
-      '1 coffre — autour de table', '1 coffre — de chaque côté de table', '1 coffre — de chaque côté de table', '1 coffre — en face de table', '1 coffre — en face de table',
+      '1 coffre — autour de table', '1 coffre — de chaque côté de table', '1 coffre — de chaque côté de table', '1 coffre — de chaque côté de table', '1 coffre — en face de table', '1 coffre — en face de table',
     ], 'relation lue');
     egal(ou('le long de'), '1 coffre — au fond (par défaut)', '« le long de » n’est pas une relation : le coffre reste à sa place par défaut');
+  }],
+  ['un mot qui porte le nom d’une propriété de JavaScript n’est pas un nombre', () => {
+    egal(preparer('Salle du constructor'), 'salle du constructor', 'mot gardé');
+    egal(analyser('Salle du constructor').plan.nom, 'Salle du constructor', 'nom de la salle');
+    egal(preparer('deux coffres et une dizaine de rats'), '2 coffres et 10 de rats', 'les nombres restent convertis');
   }],
   ['les noms de pièces : une seule liste, dont la taille et les mots vides sont tirés', () => {
     verifier(PIECES_A_TAILLE.every((p) => PIECES.includes(p)), 'les pièces qui portent une taille sont des pièces');

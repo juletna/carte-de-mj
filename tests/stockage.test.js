@@ -7,7 +7,7 @@
  */
 import * as m from '../js/donjon.js';
 import * as p from '../js/presentation.js';
-import { chargerTout, chargerDonjons, sauverDonjons, chargerModeles, sauverModeles, enregistrerPartie, chargerPresentations, sauverPresentations, chargerReglages, CLE_PARTIE_OUVERTE, memoriserPartieOuverte, oublierPartieOuverte, partieAReprendre, migrer, misDeCote, phraseMiseDeCote, CLE_DONJONS, CLE_MODELES, CLE_PRESENTATIONS, CLE_MIS_DE_COTE, CLE_REGLAGES } from '../js/stockage.js';
+import { chargerTout, chargerDonjons, sauverDonjons, chargerModeles, sauverModeles, enregistrerPartie, chargerPresentations, sauverPresentations, chargerReglages, sauverReglages, CLE_PARTIE_OUVERTE, memoriserPartieOuverte, oublierPartieOuverte, partieAReprendre, migrer, misDeCote, phraseMiseDeCote, CLE_DONJONS, CLE_MODELES, CLE_PRESENTATIONS, CLE_MIS_DE_COTE, CLE_REGLAGES } from '../js/stockage.js';
 import { donjonDeTest } from './aides-partie.js';
 import { verifier, egal, fauxStock, executerSuite } from './mini-test.js';
 
@@ -31,6 +31,31 @@ function demarrer(stock) {
 }
 
 const TESTS = [
+  ['un donjon relu en partie : l’original est copié avant que la version nettoyée le remplace, et la copie ne se répète pas', () => {
+    const d = donjon('Abîmé');
+    d.liaisons = 'aucune';
+    const stock = fauxStock({ [CLE_DONJONS]: enregistre(d) });
+    const r = chargerTout({ stock });
+    egal(r.miseDeCote, { nombre: 1, ok: true }, 'annoncé au chargement');
+    egal(Object.keys(r.donjons), [d.id], 'le donjon reste utilisable');
+    const copies = misDeCote(stock);
+    egal(copies.length, 1, 'une copie');
+    egal(copies[0].valeur, d, 'la copie est l’original');
+    verifier(copies[0].raison.includes('liaisons ignorées'), 'la raison dit ce qui manque');
+    chargerTout({ stock });
+    egal(misDeCote(stock).length, 1, 'recharger n’ajoute rien');
+    egal(chargerTout({ stock: fauxStock({ [CLE_DONJONS]: enregistre(donjon('Sain')) }) }).miseDeCote, null, 'un donjon complet : rien à dire');
+  }],
+  ['les réglages gardent ce que cette version ne connaît pas, et écartent toujours une valeur invalide', () => {
+    const stock = fauxStock({ [CLE_REGLAGES]: JSON.stringify({ taille: 60, nouveaute: { a: 1 }, reperes: 'oui', miniTable: 'non' }) });
+    const r = chargerReglages(stock);
+    egal(r.nouveaute, { a: 1 }, 'champ inconnu gardé');
+    verifier(!('reperes' in r) && !('miniTable' in r), 'valeurs invalides toujours écartées');
+    sauverReglages({ ...r, grille: false }, stock);
+    const relu = chargerReglages(stock);
+    egal([relu.nouveaute, relu.grille], [{ a: 1 }, false], 'le champ survit à une sauvegarde');
+    egal(chargerReglages(fauxStock({ [CLE_REGLAGES]: '[1,2]' })), { echelle: 1.5, taille: chargerReglages(fauxStock({})).taille, grille: true }, 'une liste n’est pas des réglages');
+  }],
   ['un donjon de version plus récente est mis de côté, le valide est gardé, et la clé réécrite ne le détruit pas', () => {
     const bon = donjon('Crypte'), recent = futur('Futur');
     const stock = fauxStock({ [CLE_DONJONS]: enregistre(bon, recent) });

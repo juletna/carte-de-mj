@@ -7,6 +7,17 @@ import { analyser } from '../js/parseur/index.js';
 import { verifier, egal, executerSuite } from './mini-test.js';
 
 const TESTS = [
+  ['une valeur inconnue remplacée ou retirée est signalée, une valeur absente non', () => {
+    const v = validerPlan({
+      largeur: 6, longueur: 6, sol: 'lave', entree: 'haut',
+      portes: [{ mur: 'nord', position: 1, type: 'vitrail' }],
+      creatures: [{ type: 'gobelin', x: 1, y: 1, camp: 'neutre', couleur: 'fuchsia', etat: 'fatigue' }],
+    });
+    verifier(!v.ok, 'le plan n’est plus annoncé comme complet');
+    egal([v.plan.sol, v.plan.entree, v.plan.portes[0].type], ['pierre', 'sud', 'porte'], 'valeurs par défaut');
+    for (const mot of ['lave', 'haut', 'vitrail', 'neutre', 'fuchsia', 'fatigue']) verifier(v.erreurs.some((e) => e.includes(`« ${mot} »`)), `« ${mot} » est signalé`);
+    egal(validerPlan({ largeur: 6, longueur: 6, portes: [{ mur: 'nord', position: 1 }], creatures: [{ type: 'gobelin', x: 1, y: 1 }] }).erreurs, [], 'rien d’inconnu, rien à dire');
+  }],
   ['LISTES : chaque genre désigne une liste du plan validé, dans l’ordre porte, objet, créature', () => {
     egal(LISTES, { porte: 'portes', objet: 'objets', creature: 'creatures' }, 'table');
     egal(Object.keys(LISTES), ['porte', 'objet', 'creature'], 'ordre (il décide de l’ordre des éléments parcourus)');

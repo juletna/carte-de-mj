@@ -278,7 +278,7 @@ ctx.menu = creerMenu(ctx);
 // Échap, du plus proche au plus lointain : glisser en cours, menu ouvert, tiroir ouvert, élément armé, bulle ouverte.
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape' || e.defaultPrevented) return;
-  if (ctx.carte.palette.annulerGlisser()) return;
+  if (ctx.carte.palette.annulerGlisser() || salleForme.annulerGlisserBord()) return;
   if (ctx.menu.ouvert()) { ctx.menu.fermer(); $('menu-donjon-bouton').focus(); return; }
   if (ctx.carte.tiroirOuvert()) { ctx.carte.ouvrirTiroir(false); $('ajouter').focus(); return; }
   if (ctx.carte.palette.arme()) { ctx.carte.palette.desarmer(); return; }
