@@ -86,6 +86,17 @@ Une salle reste un rectangle (largeur × longueur) auquel on retire des cases : 
 - Une porte garde son écriture (mur + position) : elle se pose sur le premier mur rencontré de ce côté, au fond de l'entaille si le coin est retiré.
 - Changer de forme pousse ce qui tomberait dans le vide vers la case libre la plus proche ; s'il n'y a plus de place, le changement est refusé.
 
+## Donjon au hasard
+
+Dans le menu du donjon, « 🎲 Donjon au hasard » : nombre de salles, de monstres, de coffres, de pièges cachés, de portes secrètes, de chemins en plus, types de monstres, boss, formes de salles (`js/generateur.js`, pur).
+
+- Chaque salle est décrite par un texte relu par le parseur : tout se retouche ensuite comme un donjon écrit à la main.
+- Les nombres demandés sont tenus exactement : une salle trop petite est agrandie jusqu'à ce que tout y tienne.
+- Les salles poussent sur une grille invisible et une liaison ne relie que deux voisines : le plan reste lisible, boucles comprises.
+- L'entrée n'a ni monstre, ni coffre, ni piège ; le boss attend dans la salle la plus éloignée, et il compte dans le total des monstres.
+- Une porte secrète ne coupe jamais le chemin vers le reste du donjon : elle ferme une boucle, sinon une salle au bout d'un chemin.
+- Le numéro de tirage redonne le même donjon, à paramètres égaux. Un nouveau tirage remplace le précédent tant qu'il n'a pas été retouché.
+
 ## Donjon : plusieurs salles
 
 Un **donjon** est un ensemble de salles, de liaisons entre leurs portes et d'un carnet de notes par salle.
@@ -288,6 +299,7 @@ js/telephone.js     sous 760 px : onglets Texte / Carte et Actions / Carte, tail
 js/donjon.js        modèle du donjon : salles, liaisons, orphelines, validation (pur, sans DOM)
 js/minicarte.js     mini-carte SVG des salles et de leurs liaisons
 js/schema.js        schéma du plan d'une salle et validation
+js/generateur.js    donjon au hasard : paramètres et numéro de tirage → un donjon complet (pur, sans DOM)
 js/formes.js        formes de salle : cases retirées, portes en retrait, murs découpés (calcul pur)
 js/stockage.js      localStorage (donjons, réglages, migration), export/import JSON
 js/voix.js          dictée (Web Speech API)

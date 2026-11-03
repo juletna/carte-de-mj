@@ -114,15 +114,21 @@ const QUALIF_POSITION = {
 };
 const decrireForme = (plan) => (plan.forme && plan.forme !== 'rectangle' ? ` en ${plan.forme}` : '');
 
+/** Le début d'une description : nom, forme et dimensions, épaisseur des bras, position. */
+export function debutDescription(plan) {
+  const debut = plan.nom && plan.nom !== 'Salle' ? plan.nom : 'Salle';
+  const propositions = [`${debut}${decrireForme(plan)} de ${plan.largeur} par ${plan.longueur} cases`];
+  if (plan.bras && plan.forme && plan.forme !== 'rectangle') propositions.push(`${plan.forme === 'octogone' ? 'pans' : 'bras'} de ${plan.bras} case${plan.bras > 1 ? 's' : ''}`);
+  if (plan.position && QUALIF_POSITION[plan.forme]) propositions.push(QUALIF_POSITION[plan.forme](plan.position));
+  return propositions;
+}
+
 /**
  * @param {object} plan
  * @returns {string} description relisible par analyser()
  */
 export function decrire(plan) {
-  const debut = plan.nom && plan.nom !== 'Salle' ? plan.nom : 'Salle';
-  const propositions = [`${debut}${decrireForme(plan)} de ${plan.largeur} par ${plan.longueur} cases`];
-  if (plan.bras && plan.forme && plan.forme !== 'rectangle') propositions.push(`${plan.forme === 'octogone' ? 'pans' : 'bras'} de ${plan.bras} case${plan.bras > 1 ? 's' : ''}`);
-  if (plan.position && QUALIF_POSITION[plan.forme]) propositions.push(QUALIF_POSITION[plan.forme](plan.position));
+  const propositions = debutDescription(plan);
   if (plan.sol && plan.sol !== 'pierre') propositions.push(`sol en ${plan.sol}`);
 
   // La porte du mur d'entrée d'abord : c'est la première porte qui définit l'entrée.

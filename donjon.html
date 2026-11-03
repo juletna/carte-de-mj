@@ -52,6 +52,26 @@
           <label class="bouton">Importer <input id="importer" type="file" accept=".json,application/json" hidden></label>
           <button id="donjon-copier" type="button" class="discret" title="Copie le donjon entier, à coller dans un message. Attention : les notes et les éléments cachés sont dedans.">Copier</button>
         </div>
+        <details id="hasard" class="plan-json hasard">
+          <summary>🎲 Donjon au hasard</summary>
+          <div class="hasard-nombres">
+            <label>Salles <input id="hasard-salles" type="number"></label>
+            <label>Monstres en tout <input id="hasard-monstres" type="number"></label>
+            <label>Coffres <input id="hasard-coffres" type="number"></label>
+            <label>Pièges cachés <input id="hasard-pieges" type="number"></label>
+            <label>Portes secrètes <input id="hasard-secretes" type="number"></label>
+            <label>Chemins en plus <input id="hasard-boucles" type="number" title="Des liaisons qui s'ajoutent à celles qui suffisent à tout relier : plusieurs chemins mènent au même endroit"></label>
+          </div>
+          <fieldset class="hasard-familles">
+            <legend>Types de monstres <span class="doux">(rien de coché : deux au hasard)</span></legend>
+            <div id="hasard-familles"></div>
+          </fieldset>
+          <label class="ligne case"><input id="hasard-boss" type="checkbox" checked> Un boss dans la salle la plus éloignée</label>
+          <label class="ligne case"><input id="hasard-formes" type="checkbox" checked> Des salles en croix, en L, en T…</label>
+          <label class="hasard-tirage">Numéro de tirage <span class="doux">(vide : un nouveau à chaque fois)</span> <input id="hasard-graine" type="number" min="1" max="999999" step="1"></label>
+          <div class="actions"><button id="hasard-generer" type="button">Générer</button></div>
+          <p id="hasard-message" class="note" role="status" hidden></p>
+        </details>
         <details class="plan-json">
           <summary>Coller un donjon</summary>
           <textarea id="donjon-colle" rows="5" spellcheck="false" aria-label="Texte du donjon à coller" placeholder="Colle ici le texte copié avec « Copier »"></textarea>

@@ -11,6 +11,7 @@ import { dessiner, dessinerPlanDonjon, MARGE, rectPorte } from './rendu/moteur.j
 import { disposerPlan, salleSous, cleDisposition } from './plan-donjon.js';
 import { tailleRemplir } from './affichage.js';
 import { elementsPalette, GROUPES_PALETTE, SOUS_GROUPES, redimensionner, changerForme } from './pose.js';
+import { genererDonjon, BORNES, FAMILLES } from './generateur.js';
 import { FORMES, LIBELLES_FORMES, POSITIONS_FORMES, casesRetirees, brasDe, brasMax, nombreCases } from './formes.js';
 import { creerPalette } from './palette.js';
 import { creerRail, OUTILS_CATALOGUE } from './rail.js';
@@ -1032,6 +1033,42 @@ $('donjon-nouveau').addEventListener('click', () => {
   etat.neuves.add(d.salleActive);
   afficherSalleActive();
 });
+// --- Donjon au hasard (js/generateur.js) ---
+for (const [cle, [defaut, min, max]] of Object.entries(BORNES)) {
+  const champ = $(`hasard-${cle}`);
+  Object.assign(champ, { value: String(defaut), min: String(min), max: String(max), step: '1' });
+}
+$('hasard-familles').replaceChildren(...Object.entries(FAMILLES).map(([cle, f]) => {
+  const c = h('input', { type: 'checkbox', value: cle });
+  return h('label', { className: 'ligne case' }, c, ` ${f.libelle}`);
+}));
+
+/** Le dernier donjon tiré : un nouveau tirage le remplace s'il n'a pas été retouché, plutôt que d'empiler les essais. */
+let dernierTirage = null;
+$('hasard-generer').addEventListener('click', () => {
+  const options = Object.fromEntries(Object.keys(BORNES).map((cle) => [cle, $(`hasard-${cle}`).value]));
+  options.familles = [...$('hasard-familles').querySelectorAll('input:checked')].map((c) => c.value);
+  options.boss = $('hasard-boss').checked;
+  options.formes = $('hasard-formes').checked;
+  options.graine = $('hasard-graine').value;
+  const { donjon: d, graine, resume } = genererDonjon(options);
+  const remplace = dernierTirage && etat.donjons[dernierTirage.id] && JSON.stringify(etat.donjons[dernierTirage.id]) === dernierTirage.signature;
+  if (remplace) {
+    delete etat.donjons[dernierTirage.id];
+    for (const cle of [...historiques.keys()]) if (cle.startsWith(`${dernierTirage.id}/`)) historiques.delete(cle);
+  }
+  etat.donjons[d.id] = d;
+  etat.actif = d.id;
+  dernierTirage = { id: d.id, signature: JSON.stringify(d) };
+  afficherSalleActive();
+  ouvrirPlan(true);
+  const message = $('hasard-message');
+  message.hidden = false;
+  message.textContent = `Tirage ${graine} : ${resume.salles} salle${resume.salles > 1 ? 's' : ''}, ${resume.monstres} monstre${resume.monstres > 1 ? 's' : ''}, ${resume.coffres} coffre${resume.coffres > 1 ? 's' : ''}, ${resume.pieges} piège${resume.pieges > 1 ? 's' : ''}. Tu peux tout retoucher ; un nouveau tirage remplace celui-ci tant que tu n'y touches pas.`;
+  fermerMenu();
+  annoncerCarte(`« ${d.nom} » : ${resume.salles} salles, ${resume.monstres} monstres, ${resume.coffres} coffres.`);
+});
+
 /** Ce que la confirmation annonce : le nom, le nombre de salles, et le sort d'une partie en cours. */
 function annonceSuppressionDonjon() {
   const d = donjon();
