@@ -8,6 +8,7 @@
 import * as m from '../js/donjon.js';
 import * as p from '../js/presentation.js';
 import { chargerTout, chargerDonjons, sauverDonjons, chargerModeles, sauverModeles, enregistrerPartie, chargerPresentations, sauverPresentations, chargerReglages, sauverReglages, CLE_PARTIE_OUVERTE, memoriserPartieOuverte, oublierPartieOuverte, partieAReprendre, migrer, misDeCote, phraseMiseDeCote, CLE_DONJONS, CLE_MODELES, CLE_PRESENTATIONS, CLE_MIS_DE_COTE, CLE_REGLAGES } from '../js/stockage.js';
+import * as miseDeCote from '../js/mise-de-cote.js';
 import { donjonDeTest } from './aides-partie.js';
 import { verifier, egal, fauxStock, executerSuite } from './mini-test.js';
 
@@ -119,6 +120,13 @@ const TESTS = [
     egal(Object.keys(vide.donnees), [CLE_DONJONS], 'seule la clé des donjons est écrite');
     const nul = fauxStock({ [CLE_DONJONS]: 'null' });
     egal(demarrer(nul).miseDeCote, null, '« null » ne contient rien à perdre');
+  }],
+
+  ['la mise de côté est celle de js/mise-de-cote.js, partagée avec la Fiche : même clé, mêmes copies', () => {
+    egal(CLE_MIS_DE_COTE, miseDeCote.CLE_MIS_DE_COTE, 'même clé');
+    const stock = fauxStock();
+    egal(miseDeCote.mettreDeCote(stock, 'autre-cle', [{ valeur: { n: 1 }, raison: 'x' }]), true, 'copiée depuis le module commun');
+    egal(misDeCote(stock).map((c) => [c.cle, c.valeur]), [['autre-cle', { n: 1 }]], 'misDeCote la relit');
   }],
 
   ['un identifiant en double : le dernier est gardé (comme avant), l’autre est mis de côté', () => {

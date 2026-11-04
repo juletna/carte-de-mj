@@ -2,10 +2,11 @@
  * Tests des données de la Fiche (js/fiche/base.js) : listes, types d'objet, remise à niveau d'une fiche, empreinte, chargement de la base du navigateur.
  * Sans dépendance : marche sous Node et dans tests.html.
  */
-import { SKILLS, CONDS, COND_ADV, PRESETS, presetDispo, SCOPES, TYPES_OBJET, ITYPES, ACT_L, ETAT_INTERFACE, snapP, sample, blank, complete, chargerBase, slots, freshTurn } from '../js/fiche/base.js';
+import { SKILLS, CONDS, COND_ADV, PRESETS, presetDispo, SCOPES, TYPES_OBJET, ITYPES, ACT_L, ETAT_INTERFACE, snapP, sample, blank, complete, chargerBase, relireBase, slots, freshTurn } from '../js/fiche/base.js';
 import { CLE_FICHES, CLE_FICHE_ANCIENNE } from '../js/fiche/format.js';
 import { STATS } from '../js/fiche/regles.js';
-import { verifier, egal, executerSuite } from './mini-test.js';
+import { CLE_MIS_DE_COTE, lireBrut, mettreDeCote } from '../js/mise-de-cote.js';
+import { verifier, egal, fauxStock, executerSuite } from './mini-test.js';
 
 /** Un rangement simulé : lire(cle) rend le JSON rangé sous cette clé (comme main.js sur localStorage), ou rien. */
 const rangement = (contenu) => (cle) => (cle in contenu ? JSON.parse(JSON.stringify(contenu[cle])) : undefined);
@@ -82,15 +83,85 @@ const TESTS = [
     const sansStats = chargerBase(rangement({ [CLE_FICHE_ANCIENNE]: { name: 'Sans stats' } }));
     egal(Object.values(sansStats.persos).map((p) => p.name), ['Elwyn Brisevent'], 'ancienne fiche sans caractéristiques : l’exemple');
   }],
-  ['chargerBase : PERTE CONNUE, conservée telle quelle — un personnage sans caractéristiques en objet disparaît de la base, en silence', () => {
+  ['relireBase : un personnage sans caractéristiques en objet est écarté et rendu tel quel, avec sa raison ; les autres restent', () => {
     const base = { actif: 'a', persos: { a: { name: 'Sans stats' }, b: { name: 'Stats nulles', stats: null }, c: { name: 'Gardé', stats: { FOR: 12 } }, d: 'texte', e: null, f: { name: 'Stats en liste', stats: [] } } };
-    const lue = chargerBase(rangement({ [CLE_FICHES]: base }));
+    const { base: lue, ecartes } = relireBase(rangement({ [CLE_FICHES]: base }));
     egal(Object.keys(lue.persos), ['c', 'f'], 'seuls restent ceux dont `stats` est un objet (une liste en est un pour ce test-ci, pas pour estFiche)');
     egal(lue.actif, 'c', 'l’actif écarté : la première fiche restante');
-    // Si plus aucun personnage ne tient, la base est refaite depuis l'ancienne clé ou l'exemple : les fiches écartées ne sont gardées nulle part.
-    const tout = chargerBase(rangement({ [CLE_FICHES]: { actif: 'a', persos: { a: { name: 'Perdu' } } } }));
-    egal(Object.values(tout.persos).map((p) => p.name), ['Elwyn Brisevent'], 'remplacée par l’exemple');
-    // À corriger plus tard (mise de côté, comme stockage.js pour les donjons) ; ce test change alors avec elle.
+    egal(ecartes.map((e) => e.valeur), [{ name: 'Sans stats' }, { name: 'Stats nulles', stats: null }, 'texte', null], 'rendus tels quels, dans l’ordre');
+    verifier(ecartes.every((e) => /sans caractéristiques/.test(e.raison)) && /« a »/.test(ecartes[0].raison), `raison : ${ecartes[0].raison}`);
+    egal(chargerBase(rangement({ [CLE_FICHES]: base })).actif, 'c', 'chargerBase rend la même base, sans les écartés');
+  }],
+  ['relireBase : cas nominal, clé vide, ancienne clé, base sans personnage : rien d’écarté', () => {
+    const base = { actif: 'a', persos: { a: { name: 'A', stats: { FOR: 10 } } } };
+    egal(relireBase(rangement({ [CLE_FICHES]: base })).ecartes, [], 'base saine');
+    egal(relireBase(rangement({})).ecartes, [], 'rien de rangé');
+    egal(relireBase(rangement({ [CLE_FICHES]: null })).ecartes, [], '« null »');
+    egal(relireBase(rangement({ [CLE_FICHES]: { actif: 'a', persos: {} } })).ecartes, [], 'aucun personnage : rien à perdre');
+    egal(relireBase(rangement({ [CLE_FICHE_ANCIENNE]: { name: 'Ancien', stats: { FOR: 9 } } })).ecartes, [], 'ancienne clé seule');
+    egal(relireBase(rangement({}), () => null).ecartes, [], 'pas de texte illisible');
+  }],
+  ['relireBase : plus aucun personnage valide, ou forme inconnue : tout est écarté avant que la base soit remplacée', () => {
+    const tout = relireBase(rangement({ [CLE_FICHES]: { actif: 'a', persos: { a: { name: 'Perdu' } } } }));
+    egal(Object.values(tout.base.persos).map((p) => p.name), ['Elwyn Brisevent'], 'remplacée par l’exemple');
+    egal(tout.ecartes.map((e) => e.valeur), [{ name: 'Perdu' }], 'mais la fiche perdue est rendue');
+    const avecAncien = relireBase(rangement({ [CLE_FICHES]: { actif: 'a', persos: { a: { name: 'Perdu' } } }, [CLE_FICHE_ANCIENNE]: { name: 'Ancien', stats: { FOR: 9 } } }));
+    egal([Object.values(avecAncien.base.persos).map((p) => p.name), avecAncien.ecartes.length], [['Ancien'], 1], 'remplacée par l’ancienne clé, le perdu est quand même rendu');
+    for (const [quoi, brut] of [['persos en texte', { actif: 'a', persos: 'x' }], ['texte', 'bonjour'], ['nombre', 3], ['objet sans persos', { version: 2, fiches: [] }], ['persos manquant', { actif: 'a' }]]) {
+      const r = relireBase(rangement({ [CLE_FICHES]: brut }));
+      egal(r.ecartes, [{ valeur: brut, raison: 'forme inconnue' }], `${quoi} : écarté en entier`);
+      egal(Object.keys(r.base.persos).length, 1, `${quoi} : une base neuve pour travailler`);
+    }
+  }],
+  ['relireBase : un texte illisible est écarté tel quel, une clé vide ne l’est pas', () => {
+    const texte = '{"actif":"a","persos":{"a":{';
+    const r = relireBase(() => undefined, (cle) => (cle === CLE_FICHES ? texte : null));
+    egal(r.ecartes, [{ valeur: texte, raison: 'texte illisible' }], 'le texte est gardé');
+    egal(Object.keys(r.base.persos).length, 1, 'une base neuve');
+    egal(relireBase(() => undefined, () => null).ecartes, [], 'rien d’enregistré');
+    egal(relireBase(() => undefined).ecartes, [], 'sans lecteur de texte : comme avant');
+  }],
+  ['démarrage de la Fiche : copie AVANT la réécriture, sans double copie au rechargement, et rien d’écrasé si la copie échoue', () => {
+    // Ce que fait js/fiche/main.js : relireBase, puis mettreDeCote ; `verrou` (copie ratée) interdit d'écrire la clé des fiches.
+    const demarrer = (stock) => {
+      const lu = relireBase((cle) => lireBrut(stock, cle).brut ?? undefined, (cle) => lireBrut(stock, cle).texte);
+      const copie = mettreDeCote(stock, CLE_FICHES, lu.ecartes);
+      if (copie) stock.setItem(CLE_FICHES, JSON.stringify(lu.base)); // le premier rendu enregistre
+      return { lu, copie };
+    };
+    const origine = JSON.stringify({ actif: 'a', persos: { a: { name: 'Perdue' }, b: { name: 'Gardée', stats: { FOR: 12 } } } });
+    const stock = fauxStock({ [CLE_FICHES]: origine });
+    const d1 = demarrer(stock);
+    egal([d1.copie, d1.lu.ecartes.length], [true, 1], 'copiée');
+    const copies = JSON.parse(stock.donnees[CLE_MIS_DE_COTE]).entrees;
+    egal([copies.length, copies[0].cle, copies[0].valeur], [1, CLE_FICHES, { name: 'Perdue' }], 'la fiche est dans la clé de secours');
+    verifier(!('a' in JSON.parse(stock.donnees[CLE_FICHES]).persos), 'la clé des fiches a été réécrite sans elle');
+    const apres1 = stock.donnees[CLE_MIS_DE_COTE];
+    for (let i = 0; i < 3; i++) { const d = demarrer(stock); egal(d.lu.ecartes, [], `rechargement ${i + 2} : plus rien à écarter`); }
+    verifier(stock.donnees[CLE_MIS_DE_COTE] === apres1, 'la copie est restée la même, au caractère près');
+    // Même fiche écartée une seconde fois (la page fermée avant le premier enregistrement) : pas de double copie.
+    const stock2 = fauxStock({ [CLE_FICHES]: origine });
+    const plein = { ...stock2, setItem: (k, v) => { if (k === CLE_FICHES) return; stock2.setItem(k, v); } }; // l'enregistrement n'a pas eu lieu
+    demarrer(plein); demarrer(plein);
+    egal(JSON.parse(stock2.donnees[CLE_MIS_DE_COTE]).entrees.length, 1, 'une seule copie');
+    // Base entièrement illisible : copiée, puis remplacée.
+    const abimee = fauxStock({ [CLE_FICHES]: '{"actif":"a","persos":{' });
+    const d2 = demarrer(abimee);
+    egal([d2.copie, JSON.parse(abimee.donnees[CLE_MIS_DE_COTE]).entrees[0].valeur], [true, '{"actif":"a","persos":{'], 'le texte abîmé est gardé tel quel');
+    // La copie échoue (plus de place) : rien n'est écrit, la clé d'origine est intacte.
+    const manque = fauxStock({ [CLE_FICHES]: origine });
+    const ecrire = manque.setItem;
+    manque.setItem = (k, v) => { if (k === CLE_MIS_DE_COTE) throw new Error('QuotaExceededError'); ecrire(k, v); };
+    const d3 = demarrer(manque);
+    egal([d3.copie, manque.donnees[CLE_FICHES] === origine, CLE_MIS_DE_COTE in manque.donnees], [false, true, false], 'copie ratée : la clé des fiches n’est pas réécrite');
+    // La clé de secours est elle-même abîmée : on n'y touche pas, donc on n'écrase pas non plus.
+    const secours = fauxStock({ [CLE_FICHES]: origine, [CLE_MIS_DE_COTE]: '{pas du json' });
+    egal([demarrer(secours).copie, secours.donnees[CLE_FICHES] === origine, secours.donnees[CLE_MIS_DE_COTE]], [false, true, '{pas du json'], 'secours abîmé');
+    // Cas nominal : rien à mettre de côté, aucune clé de plus.
+    const sain = fauxStock({ [CLE_FICHES]: JSON.stringify({ actif: 'b', persos: { b: { name: 'Gardée', stats: { FOR: 12 } } } }) });
+    egal([demarrer(sain).copie, CLE_MIS_DE_COTE in sain.donnees], [true, false], 'cas nominal');
+    const neuf = fauxStock();
+    egal([demarrer(neuf).copie, CLE_MIS_DE_COTE in neuf.donnees], [true, false], 'navigateur vierge');
   }],
 ];
 

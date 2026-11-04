@@ -92,11 +92,11 @@ export async function executer({ lire }) {
       for (const non of [null, undefined, 'x', 3, [], {}, { stats: null }, { stats: [] }, { stats: 3 }]) verifier(!estFiche(non), JSON.stringify(non));
     }],
 
-    ['la Fiche n’importe pas stockage.js, et js/fiche/format.js et regles.js ne dépendent de rien d’autre que du test d’objet', () => {
+    ['la Fiche n’importe pas stockage.js (seulement mise-de-cote.js), et js/fiche/format.js et regles.js ne dépendent de rien d’autre que du test d’objet', () => {
       verifier(!/stockage\.js/.test(html), 'fiche.html ne doit pas parler de stockage.js');
       for (const [fichier, source] of Object.entries(sources)) {
         const imports = [...source.matchAll(/^\s*import\b[^;]*from\s+'([^']+)'/gm)].map((m) => m[1]);
-        verifier(imports.every((i) => /^\.\/(format|regles|base|des|jeu)\.js$|^\.\.\/fiche-hasard\.js$/.test(i)), `${fichier} : importe ${imports.join(', ')}`);
+        verifier(imports.every((i) => /^\.\/(format|regles|base|des|jeu)\.js$|^\.\.\/(fiche-hasard|mise-de-cote)\.js$/.test(i)), `${fichier} : importe ${imports.join(', ')}`);
         verifier(!/stockage/.test(source.replace(/\/\*[\s\S]*?\*\//g, '')), `${fichier} : ne doit pas toucher à stockage.js`);
       }
       for (const [fichier, source] of Object.entries(feuilles)) {

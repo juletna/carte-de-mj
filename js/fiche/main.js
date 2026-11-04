@@ -2,27 +2,35 @@
  * Page de la Fiche (fiche.html) : le rendu des écrans (Jeu, Jets, Sac, Journal, Fiche), les feuilles (PV, personnages, « Sur moi »),
  * les clics et les saisies, la sauvegarde dans ce navigateur. Module : la page ne s'ouvre plus en file://, il faut la servir.
  * Les règles sont dans ./jeu.js et ./des.js, les données dans ./base.js, la clé et le format du fichier dans ./format.js
- * (le Donjon les lit au même endroit). La Fiche n'importe jamais stockage.js.
+ * (le Donjon les lit au même endroit). La Fiche n'importe jamais stockage.js : pour mettre de côté ce qui ne se relit pas, elle prend
+ * ../mise-de-cote.js, que le Donjon partage (il ne tire rien d'autre).
  *
  * Une fonction appelée depuis le HTML devrait être globale : il n'y en a aucune, tout passe par les attributs data-a / data-tab
  * et les écouteurs de document ci-dessous.
  */
 import { CLE_FICHES, FORMAT_FICHE, VERSION_FICHE } from './format.js';
 import { STATS } from './regles.js';
+import { lireBrut, mettreDeCote } from '../mise-de-cote.js';
 import { EDITIONS, reglesDe } from './regles.js';
 import { rnd, mod, sg, profFor, rollExpr } from './des.js';
 import { SKILLS, CONDS, SCOPES, KINDS_FX, PRESETS, presetDispo, TYPES_OBJET, ITYPES, IACTS, ACT_L, KINDS, freshTurn, uid, sample, blank, complete,
-  ETAT_INTERFACE, snapP, chargerBase } from './base.js';
+  ETAT_INTERFACE, snapP, relireBase } from './base.js';
 import { skB, svB, hdLeft, hasHaste, fxOf, negFx, acTotal, speedNow, hpMaxNow, effetsEpuisement, soinDV, dvRendus, changerEdition, note, fxVal, manualFx, dropFx, d20, push, spend,
   damage, heal, startTurn, addFx } from './jeu.js';
 
 /* Plusieurs personnages : { actif:id, persos:{id:fiche} } (js/fiche/base.js). */
 const lireJson=cle=>{try{return JSON.parse(localStorage.getItem(cle))}catch(e){}};
-let armed=false,DB=chargerBase(lireJson),S=DB.persos[DB.actif];
+const stock=()=>{try{return localStorage}catch(e){return null}};
+/* Ce qui ne se relit pas est copié AVANT la première sauvegarde, qui réécrit la clé des fiches. Si la copie échoue, `verrou` : on n'écrit plus rien
+   (la clé d'origine reste intacte) et le joueur est prévenu qu'il doit exporter ses fiches. */
+const lu=relireBase(lireJson,cle=>lireBrut(stock(),cle).texte);
+const copie=mettreDeCote(stock(),CLE_FICHES,lu.ecartes);
+const verrou=!copie;
+let armed=false,DB=lu.base,S=DB.persos[DB.actif];
 /* Change de personnage en remettant à zéro l'état d'interface (feuilles, pavé, objet ouvert…) */
 function setActive(id,tab){const t=tab||S.tab;DB.actif=id;S=DB.persos[id];Object.assign(S,{tab:t},ETAT_INTERFACE);armed=false}
 function addP(p,tab){const id=uid();DB.persos[id]=p;setActive(id,tab)}
-const save=()=>{DB.persos[DB.actif]=S;try{localStorage.setItem(CLE_FICHES,JSON.stringify(DB))}catch(e){}};
+const save=()=>{DB.persos[DB.actif]=S;if(verrou)return;try{localStorage.setItem(CLE_FICHES,JSON.stringify(DB))}catch(e){}};
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const m15=n=>String(n).replace('.',',');
 const hhmm=t=>new Date(t).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
@@ -31,6 +39,12 @@ let tt,undo=null,shownSheet=null;
 function toast(m,act){const e=document.getElementById('toast');e.textContent=m;e.hidden=false;clearTimeout(tt);if(!act)undo=null;
  if(act){const b=document.createElement('button');b.dataset.a='undo';b.textContent=act;e.appendChild(b)}
  tt=setTimeout(()=>{e.hidden=true;undo=null},act?7000:2200)}
+
+/* L'avis du haut de page (fiche.html #avis) : reste affiché jusqu'au clic sur « Compris » */
+function avertir(n,ok){const e=document.getElementById('avis'),au=n>1?'Certaines':'Une';
+ e.textContent=ok?`${au} de tes fiches enregistrées dans ce navigateur ${n>1?'n’ont':'n’a'} pas pu être relue${n>1?'s':''} (abîmée${n>1?'s':''}, ou écrite${n>1?'s':''} par une autre version). Rien n’est perdu : une copie est gardée à part.`
+  :`${au} de tes fiches enregistrées dans ce navigateur ${n>1?'n’ont':'n’a'} pas pu être relue${n>1?'s':''}, et la copie de sécurité n’a pas pu être faite (plus de place, ou accès bloqué). Pour ne rien écraser, tes modifications ne seront pas enregistrées ici : exporte tes fiches.`;
+ const b=document.createElement('button');b.dataset.a='avisok';b.textContent='Compris';e.appendChild(b);e.hidden=false}
 
 /* ---------- Rendu ---------- */
 function vHeader(){
@@ -359,6 +373,7 @@ document.addEventListener('click',e=>{
  const t=e.target.closest('[data-a],[data-tab]');if(!t)return;
  if(t.dataset.tab){S.tab=t.dataset.tab;S.sheet=null;armed=false;render();window.scrollTo(0,0);return}
  const a=t.dataset.a;
+ if(a==='avisok'){document.getElementById('avis').hidden=true;return}
  const i=+t.dataset.i,v=+t.dataset.v,id=t.dataset.id;
  if(a!=='pdel')armed=false;
  switch(a){
@@ -530,3 +545,5 @@ document.addEventListener('change',e=>{
  document.getElementById('hdr').innerHTML=vHeader();save();
 });
 render();
+/* Dit après le premier rendu, dans un avis qui reste jusqu'à ce qu'on le ferme : un toast de deux secondes passerait inaperçu pour une fiche qui ne se relit pas */
+if(lu.ecartes.length)avertir(lu.ecartes.length,copie);

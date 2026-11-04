@@ -25,6 +25,7 @@ import { fichesDuNavigateur } from './personnages.js';
 import { CLE_FICHES } from './fiche/format.js';
 import { TAILLE_PAR_DEFAUT, ECHELLE_PAR_DEFAUT, MODES_TABLE, tailleReglable, ROTATIONS_TABLE, caseMmValide } from './affichage.js';
 import { sansAccents, estObjet } from './format.js';
+import { CLE_MIS_DE_COTE, lireBrut, ecrireJson, mettreDeCote } from './mise-de-cote.js';
 
 export const CLE_DONJONS = 'carte-de-mj:donjons-v1';
 export const CLE_REGLAGES = 'carte-de-mj:reglages-v1';
@@ -33,29 +34,14 @@ export const CLE_PARTIE_OUVERTE = 'carte-de-mj:partie-ouverte-v1';
 export const CLE_MODELES = 'carte-de-mj:modeles-v1';
 export { CLE_FICHES };
 export const CLE_RETRAIT = 'carte-de-mj:regie-retrait-v1';
-export const CLE_MIS_DE_COTE = 'carte-de-mj:mis-de-cote-v1';
+export { CLE_MIS_DE_COTE };
 const CLE_ANCIENNE = `${FORMAT_ANCIEN}:v1`;
 const TAILLE_MAX_FICHIER = 5 * 1024 * 1024;
 const REGLAGES_DEFAUT = { echelle: ECHELLE_PAR_DEFAUT, taille: TAILLE_PAR_DEFAUT, grille: true };
 
 const stockParDefaut = () => { try { return globalThis.localStorage || null; } catch { return null; } };
 const stockOnglet = () => { try { return globalThis.sessionStorage || null; } catch { return null; } };
-/** Le texte enregistré sous `cle` et ce qu'il donne : `brut` vaut null si la clé est vide, undefined si le texte n'est pas du JSON. */
-function lireBrut(stock, cle) {
-  let texte = null;
-  try { texte = stock?.getItem(cle) || null; } catch { /* stockage bloqué : comme s'il était vide */ }
-  if (!texte) return { texte: null, brut: null };
-  try { return { texte, brut: JSON.parse(texte) }; } catch { return { texte, brut: undefined }; }
-}
 const lireJson = (stock, cle) => lireBrut(stock, cle).brut ?? null;
-function ecrireJson(stock, cle, valeur) {
-  try {
-    stock?.setItem(cle, JSON.stringify(valeur));
-    return true;
-  } catch {
-    return false; // Stockage indisponible ou plein : l'outil marche quand même, sans mémoire.
-  }
-}
 
 /** Réglages d'affichage (valeurs par défaut pour ce qui manque ou est invalide). */
 export function chargerReglages(stock = stockParDefaut()) {
@@ -100,28 +86,7 @@ export function migrer(brut, etapes = ETAPES, version = VERSION) {
   return d;
 }
 
-/**
- * Mise de côté : ce qui ne se relit pas est copié, tel quel, dans CLE_MIS_DE_COTE avant que la clé d'origine soit réécrite.
- * Une copie déjà là (même clé d'origine, même contenu) n'est pas refaite : recharger dix fois la page n'ajoute rien.
- */
-const MAX_RAISON = 200;
-const empreinte = (cle, valeur) => `${cle}\n${JSON.stringify(valeur)}`;
-
-/** @returns {boolean} true : chaque élément est en sécurité (déjà copié, ou copié à l'instant) ; false : la copie a échoué, rien n'est à réécrire. */
-function mettreDeCote(stock, cle, ecartes) {
-  if (!ecartes.length) return true;
-  const { texte, brut } = lireBrut(stock, CLE_MIS_DE_COTE);
-  if (texte && !(estObjet(brut) && Array.isArray(brut.entrees))) return false; // la clé de secours est elle-même abîmée : on n'y touche pas
-  const entrees = brut?.entrees ?? [];
-  const connues = new Set(entrees.map((e) => empreinte(e.cle, e.valeur)));
-  const neuves = [];
-  for (const e of ecartes) {
-    if (connues.has(empreinte(cle, e.valeur))) continue;
-    connues.add(empreinte(cle, e.valeur));
-    neuves.push({ cle, le: new Date().toISOString(), raison: String(e.raison).slice(0, MAX_RAISON), valeur: e.valeur });
-  }
-  return !neuves.length || ecrireJson(stock, CLE_MIS_DE_COTE, { entrees: [...entrees, ...neuves] });
-}
+// Mise de côté (mettreDeCote) : js/mise-de-cote.js, partagée avec la Fiche. Ce qui ne se relit pas est copié AVANT que la clé d'origine soit réécrite.
 
 /** Les copies mises de côté dans ce navigateur : [{ cle, le, raison, valeur }]. */
 export function misDeCote(stock = stockParDefaut()) {

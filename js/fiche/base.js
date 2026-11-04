@@ -1,7 +1,7 @@
 /**
  * Données de la Fiche : les listes de la règle (compétences, états, effets, types d'objets), le personnage d'exemple et le personnage vierge,
  * la remise à niveau d'une fiche plus ancienne, et la base des personnages du navigateur ({ actif, persos }).
- * Module PUR (sans DOM) : le stockage est passé en paramètre (`chargerBase(lire)`), la Fiche n'importe jamais stockage.js.
+ * Module PUR (sans DOM) : le stockage est passé en paramètre (`relireBase(lire)`, `chargerBase(lire)`), la Fiche n'importe jamais stockage.js.
  * La clé du navigateur et le format viennent de ./format.js, les caractéristiques de ./regles.js : le Donjon les lit au même endroit.
  */
 import { CLE_FICHES, CLE_FICHE_ANCIENNE } from './format.js';
@@ -79,17 +79,25 @@ export const ETAT_INTERFACE=Object.freeze({sheet:null,pad:'',openItem:-1,showCus
 export const snapP=p=>JSON.stringify(Object.assign({},p,{tab:''},ETAT_INTERFACE));
 
 /* Plusieurs personnages : { actif:id, persos:{id:fiche} }. `lire(cle)` rend le JSON rangé sous cette clé, ou rien s'il est absent ou illisible.
+   `lireTexte(cle)` (facultatif) rend le texte brut : il sert à reconnaître un texte illisible, qu'il faut garder, d'une clé vide.
    Reprend l'ancienne clé si la nouvelle est absente.
-   ATTENTION, perte connue et conservée : un personnage sans `stats` en objet est écarté ici, en silence, et la Fiche réécrit alors la base
-   au premier rendu (save). À traiter à part (mise de côté, comme stockage.js pour les donjons), pas dans ce déplacement. */
-export function chargerBase(lire){
- let DB=lire(CLE_FICHES);
- if(!DB||!DB.persos||typeof DB.persos!=='object')DB=null;
- else{for(const id in DB.persos){const p=DB.persos[id];if(!p||typeof p!=='object'||!p.stats||typeof p.stats!=='object')delete DB.persos[id]}
+   Rien ne se perd en silence : `relireBase` rend aussi la liste des `ecartes` ([{valeur, raison}]), tout ce qui ne se relit pas
+   (un personnage sans `stats` en objet, ou toute la base si sa forme est inconnue, avant qu'elle soit remplacée). La Fiche réécrit la clé
+   au premier rendu : c'est à l'appelant de mettre ces écartés de côté (js/mise-de-cote.js) AVANT, et de ne rien écrire si la copie échoue.
+   `chargerBase` n'est que la base, sans les écartés. */
+export function relireBase(lire,lireTexte){
+ let DB=lire(CLE_FICHES);const ecartes=[];
+ if(DB===undefined){const t=lireTexte&&lireTexte(CLE_FICHES);if(t)ecartes.push({valeur:t,raison:'texte illisible'})}
+ if(!DB||!DB.persos||typeof DB.persos!=='object'){
+  if(DB!=null)ecartes.push({valeur:DB,raison:'forme inconnue'});
+  DB=null}
+ else{for(const id in DB.persos){const p=DB.persos[id];if(!p||typeof p!=='object'||!p.stats||typeof p.stats!=='object'){
+   ecartes.push({valeur:p,raison:`fiche « ${id} » sans caractéristiques`});delete DB.persos[id]}}
   if(!Object.keys(DB.persos).length)DB=null}
  if(!DB){const o=lire(CLE_FICHE_ANCIENNE);
   DB={actif:uid(),persos:{}};DB.persos[DB.actif]=o&&o.stats&&typeof o.stats==='object'?o:sample()}
  if(!DB.persos[DB.actif])DB.actif=Object.keys(DB.persos)[0];
  Object.values(DB.persos).forEach(complete);
- return DB;
+ return {base:DB,ecartes};
 }
+export const chargerBase=(lire,lireTexte)=>relireBase(lire,lireTexte).base;

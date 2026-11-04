@@ -243,5 +243,7 @@ nav.tabs button.on{color:var(--accent-texte);background:var(--accent)}
   padding:10px 16px;border-radius:var(--rayon);font-size:.9rem;z-index:30;width:max-content;max-width:calc(100% - 32px)}
 .toast button{vertical-align:middle;margin-left:10px;background:transparent;color:inherit;border-color:currentColor}
 .confirm{color:var(--erreur);font-weight:700}
+.avis{margin-top:10px;padding:10px 16px;border-radius:var(--rayon);background:var(--panneau);color:var(--texte);box-shadow:inset 0 0 0 1px var(--erreur);font-size:.9rem}
+.avis button{display:block;margin-top:8px;background:transparent;color:inherit;border-color:currentColor}
 @media (max-width:380px){.tests{grid-template-columns:1fr 1fr}.vt{min-width:52px}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}button:active{transform:none}}
