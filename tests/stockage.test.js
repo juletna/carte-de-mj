@@ -7,7 +7,7 @@
  */
 import * as m from '../js/donjon.js';
 import * as p from '../js/presentation.js';
-import { chargerTout, chargerDonjons, sauverDonjons, chargerModeles, sauverModeles, enregistrerPartie, chargerPresentations, sauverPresentations, chargerReglages, sauverReglages, CLE_PARTIE_OUVERTE, memoriserPartieOuverte, oublierPartieOuverte, partieAReprendre, migrer, misDeCote, phraseMiseDeCote, CLE_DONJONS, CLE_MODELES, CLE_PRESENTATIONS, CLE_MIS_DE_COTE, CLE_REGLAGES } from '../js/stockage.js';
+import { chargerTout, chargerDonjons, sauverDonjons, chargerModeles, sauverModeles, enregistrerPartie, supprimerPartie, chargerPresentations, chargerPresentationsEtEcartees, mettreDeCotePresentations, phraseMiseDeCoteParties, sauverPresentations, chargerReglages, sauverReglages, CLE_PARTIE_OUVERTE, memoriserPartieOuverte, oublierPartieOuverte, partieAReprendre, migrer, misDeCote, phraseMiseDeCote, CLE_DONJONS, CLE_MODELES, CLE_PRESENTATIONS, CLE_MIS_DE_COTE, CLE_REGLAGES } from '../js/stockage.js';
 import * as miseDeCote from '../js/mise-de-cote.js';
 import { donjonDeTest } from './aides-partie.js';
 import { verifier, egal, fauxStock, executerSuite } from './mini-test.js';
@@ -300,6 +300,95 @@ const TESTS_PRESENTATION = [
     egal(partieAReprendre(parties, stock), null, '« Liste des donjons » oublie la partie ouverte');
     stock.donnees[CLE_PARTIE_OUVERTE] = '{pas du json';
     egal(partieAReprendre(parties, stock), null, 'donnée corrompue : liste des donjons');
+  }],
+
+  ['parties : une partie relue en partie est copiée avant que la sauvegarde la remplace, une seule fois', () => {
+    const { d } = donjonDeTest();
+    const pres = JSON.parse(JSON.stringify(p.creerPresentation(d)));
+    const abimee = { ...pres, donjon: { ...pres.donjon, personnages: 'tous' } };
+    const stock = fauxStock({ [CLE_PRESENTATIONS]: JSON.stringify({ presentations: { [d.id]: abimee } }) });
+    const avant = stock.donnees[CLE_PRESENTATIONS];
+    const lu = chargerPresentationsEtEcartees(stock);
+    egal([Object.keys(lu.presentations), lu.ecartes.length], [[d.id], 1], 'relue, et signalée');
+    verifier(/personnages ignorés/.test(lu.ecartes[0].raison), lu.ecartes[0].raison);
+    verifier(stock.donnees[CLE_PRESENTATIONS] === avant && !(CLE_MIS_DE_COTE in stock.donnees), 'relire n’écrit rien');
+    verifier(Object.keys(chargerPresentations(stock)).length === 1 && !(CLE_MIS_DE_COTE in stock.donnees), 'chargerPresentations : même résultat, sans effet');
+    verifier(enregistrerPartie(lu.presentations[d.id], stock), 'enregistrement');
+    const copies = misDeCote(stock);
+    verifier(copies.length === 1 && copies[0].cle === CLE_PRESENTATIONS && JSON.stringify(copies[0].valeur) === JSON.stringify(abimee), 'l’original est copié tel quel');
+    verifier(JSON.parse(stock.donnees[CLE_PRESENTATIONS]).presentations[d.id].donjon.personnages !== 'tous', 'et la version nettoyée a bien remplacé l’original');
+    enregistrerPartie(lu.presentations[d.id], stock);
+    mettreDeCotePresentations(stock);
+    egal(misDeCote(stock).length, 1, 'enregistrer ou recharger encore : pas de doublon');
+    // Le même original relu depuis un autre chargement (autre onglet) n'est pas recopié non plus.
+    stock.donnees[CLE_PRESENTATIONS] = avant;
+    egal(mettreDeCotePresentations(stock), { nombre: 1, ok: true }, 'signalé de nouveau');
+    egal(misDeCote(stock).length, 1, 'mais déjà copié');
+  }],
+
+  ['parties : une partie refusée est copiée, et reste en place tant qu’elle n’est pas remplacée ou supprimée', () => {
+    const { d } = donjonDeTest();
+    const bonne = p.creerPresentation(d);
+    const refusee = { format: 'carte-de-mj-presentation', version: 2, donjon: { id: 'autre' }, avenir: true };
+    const stock = fauxStock({ [CLE_PRESENTATIONS]: JSON.stringify({ presentations: { autre: refusee, [d.id]: bonne } }) });
+    const lu = chargerPresentationsEtEcartees(stock);
+    egal([Object.keys(lu.presentations), lu.ecartes.map((e) => e.valeur)], [[d.id], [refusee]], 'écartée, avec sa valeur brute');
+    verifier(/version/.test(lu.ecartes[0].raison), lu.ecartes[0].raison);
+    // Une partie du même identifiant qui l'écrase : l'original part d'abord dans la copie.
+    verifier(enregistrerPartie({ ...bonne, donjon: { ...bonne.donjon, id: 'autre' } }, stock), 'une partie du même identifiant');
+    egal(misDeCote(stock).map((c) => c.valeur), [refusee], 'la refusée est copiée avant d’être écrasée');
+    // Suppression : copiée aussi.
+    const stock2 = fauxStock({ [CLE_PRESENTATIONS]: JSON.stringify({ presentations: { autre: refusee } }) });
+    verifier(supprimerPartie('autre', stock2), 'suppression');
+    egal([misDeCote(stock2).map((c) => c.valeur), JSON.parse(stock2.donnees[CLE_PRESENTATIONS]).presentations], [[refusee], {}], 'copiée avant la suppression');
+  }],
+
+  ['parties : texte illisible ou forme inconnue sous la clé des parties : copiés avant toute réécriture', () => {
+    const { d } = donjonDeTest();
+    const pres = p.creerPresentation(d);
+    const cas = [
+      ['JSON cassé', '{"presentations":{"x":', 'texte illisible', (v) => v === '{"presentations":{"x":'],
+      ['forme inconnue', JSON.stringify({ parties: [1] }), 'forme inconnue', (v) => JSON.stringify(v) === JSON.stringify({ parties: [1] })],
+      ['parties en liste', JSON.stringify({ presentations: [1] }), 'forme inconnue', (v) => JSON.stringify(v) === JSON.stringify({ presentations: [1] })],
+    ];
+    for (const [quoi, brut, raison, intact] of cas) {
+      const stock = fauxStock({ [CLE_PRESENTATIONS]: brut });
+      egal(chargerPresentations(stock), {}, `${quoi} : rien de relu`);
+      verifier(!(CLE_MIS_DE_COTE in stock.donnees), `${quoi} : relire n’écrit rien`);
+      verifier(enregistrerPartie(pres, stock), `${quoi} : enregistrement`);
+      const copies = misDeCote(stock);
+      verifier(copies.length === 1 && copies[0].raison === raison && intact(copies[0].valeur), `${quoi} : copié (${copies[0]?.raison})`);
+      egal(Object.keys(chargerPresentations(stock)), [d.id], `${quoi} : la partie est enregistrée`);
+    }
+    for (const rien of [undefined, 'null']) { // rien à perdre
+      const stock = fauxStock(rien === undefined ? {} : { [CLE_PRESENTATIONS]: rien });
+      verifier(enregistrerPartie(pres, stock) && !(CLE_MIS_DE_COTE in stock.donnees), `${rien} : aucune copie`);
+    }
+  }],
+
+  ['parties : si la copie échoue, rien n’est écrasé et on le sait', () => {
+    const { d } = donjonDeTest();
+    const pres = p.creerPresentation(d);
+    const abimee = { ...pres, donjon: { ...pres.donjon, personnages: 'tous' } };
+    const original = JSON.stringify({ presentations: { [d.id]: abimee } });
+    const plein = stockPlein({ [CLE_PRESENTATIONS]: original }, [CLE_MIS_DE_COTE, CLE_PRESENTATIONS]);
+    egal(mettreDeCotePresentations(plein), { nombre: 1, ok: false }, 'l’échec est signalé');
+    egal([enregistrerPartie(pres, plein), supprimerPartie(d.id, plein), plein.donnees[CLE_PRESENTATIONS] === original], [false, false, true], 'ni enregistrement ni suppression');
+    const secoursAbime = fauxStock({ [CLE_PRESENTATIONS]: original, [CLE_MIS_DE_COTE]: '{pas du json' });
+    egal([mettreDeCotePresentations(secoursAbime)?.ok, enregistrerPartie(pres, secoursAbime), secoursAbime.donnees[CLE_PRESENTATIONS] === original, secoursAbime.donnees[CLE_MIS_DE_COTE]], [false, false, true, '{pas du json'], 'secours abîmé : on n’y touche pas');
+    const ok = phraseMiseDeCoteParties({ ok: true }), mal = phraseMiseDeCoteParties({ ok: false });
+    verifier(/Rien n’est perdu/.test(ok) && !/ne seront pas enregistrées/.test(ok), ok);
+    verifier(/ne seront pas enregistrées/.test(mal) && !/Rien n’est perdu/.test(mal), mal);
+  }],
+
+  ['parties : cas nominal, rien à copier ni à dire', () => {
+    const { d } = donjonDeTest();
+    const pres = p.creerPresentation(d);
+    const stock = fauxStock({ [CLE_PRESENTATIONS]: JSON.stringify({ presentations: { [d.id]: JSON.parse(JSON.stringify(pres)) } }) });
+    egal(chargerPresentationsEtEcartees(stock).ecartes, [], 'aucun écarté');
+    egal(mettreDeCotePresentations(stock), null, 'rien à mettre de côté');
+    verifier(enregistrerPartie(pres, stock) && supprimerPartie('inconnu', stock), 'enregistrer et supprimer');
+    verifier(!(CLE_MIS_DE_COTE in stock.donnees), 'aucune clé de secours créée');
   }],
 ];
 

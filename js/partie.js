@@ -89,10 +89,11 @@ export function creerPresentation(donjon, { salleDepart } = {}) {
 
 /**
  * Valide (et nettoie) une présentation venue du stockage. Refuse ce qui n'est pas exploitable.
- * @returns {{ok:boolean, erreurs:string[], presentation:object|null}}
+ * `avertissements` : ce que le nettoyage du donjon a perdu en route (vide si tout est repris tel quel) ; toujours une liste.
+ * @returns {{ok:boolean, erreurs:string[], avertissements:string[], presentation:object|null}}
  */
 export function validerPresentation(brut) {
-  const refus = (m) => ({ ok: false, erreurs: [m], presentation: null });
+  const refus = (m) => ({ ok: false, erreurs: [m], avertissements: [], presentation: null });
   if (!estObjet(brut)) return refus('présentation invalide');
   if (brut.format !== FORMAT_PRESENTATION) return refus('ce n’est pas une présentation de Carte de MJ');
   if (!Number.isInteger(brut.version) || brut.version < 1 || brut.version > VERSION_PRESENTATION) return refus('version de présentation non prise en charge');
@@ -144,7 +145,7 @@ export function validerPresentation(brut) {
       if (estObjet(e) && positif(e.pv) && positif(e.pvTemp)) pvEnJeu[id] = { pv: e.pv, pvTemp: e.pvTemp };
     }
   }
-  return { ok: true, erreurs: [], presentation: { format: FORMAT_PRESENTATION, version: VERSION_PRESENTATION, donjon, salleCourante, decouvertes, reveles, notesPartie, masques, joueurs: validerJoueurs(brut.joueurs), pvEnJeu } };
+  return { ok: true, erreurs: [], avertissements: v.avertissements, presentation: { format: FORMAT_PRESENTATION, version: VERSION_PRESENTATION, donjon, salleCourante, decouvertes, reveles, notesPartie, masques, joueurs: validerJoueurs(brut.joueurs), pvEnJeu } };
 }
 
 // --- Découvertes, salle courante -------------------------------------------------------

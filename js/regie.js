@@ -595,6 +595,8 @@ export function demarrerRegie() {
 
   // Démarrage : le bouton « Présenter » d'un donjon ouvre CE donjon. Sinon, la partie ouverte au dernier passage est
   // rouverte telle quelle (rien n'est relancé ni écrasé) ; « ← Liste des donjons » ramène à l'écran de départ, et l'oublie.
+  // Une partie qui ne se relit pas en entier est copiée à part avant que quoi que ce soit puisse l'enregistrer.
+  const miseDeCote = stockage.mettreDeCotePresentations();
   etat.presentations = stockage.chargerPresentations();
   const parametres = new URLSearchParams(location.search);
   const demande = pres.partieDemandee(parametres.get('donjon'), stockage.chargerDonjons()?.donjons, etat.presentations);
@@ -607,4 +609,14 @@ export function demarrerRegie() {
   else if (demande) depart.demanderJoueurs(demande.partie);
   else if (aReprendre) entrer(aReprendre, { reprise: true, main: !retraitAvantRechargement });
   else depart.afficher();
+  // Dit une fois, après le premier affichage ; un échec, lui, est redit à chaque ouverture puisque rien n'est enregistré.
+  if (miseDeCote && (miseDeCote.nouvelle || !miseDeCote.ok)) {
+    const phrase = stockage.phraseMiseDeCoteParties(miseDeCote);
+    const surDepart = $('alerte-parties'); // l'écran de départ n'a pas de toast : le message y reste affiché
+    surDepart.textContent = phrase;
+    surDepart.classList.toggle('erreur', !miseDeCote.ok);
+    surDepart.hidden = false;
+    if (miseDeCote.ok) { if (etat.p) annoncer(phrase, 15000); }
+    else { const alerte = $('alerte-stockage'); alerte.hidden = false; alerte.textContent = phrase; } // permanent : un toast serait manqué
+  }
 }

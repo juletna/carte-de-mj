@@ -142,18 +142,47 @@ export const chargerDonjons = (stock = stockParDefaut()) => lireDonjons(stock).e
 export const sauverDonjons = (etat, stock = stockParDefaut()) => !verrouillee(stock, CLE_DONJONS) && ecrireJson(stock, CLE_DONJONS, { actif: etat.actif, donjons: etat.donjons });
 
 /**
- * Présentations en cours, validées une à une : { <idDonjon>: présentation } (vide si rien).
- * Une entrée invalide est écartée sans toucher aux autres.
+ * Relit CLE_PRESENTATIONS sans rien écrire : les parties relues, rangées par identifiant de donjon, et `ecartes` : tout ce qui ne
+ * se relit pas, ou pas en entier (la partie nettoyée remplacerait l'original à la prochaine sauvegarde). Même forme que relireDonjons.
+ * @returns {{ parties: object, ecartes: {valeur:*, raison:string}[] }}
  */
-export function chargerPresentations(stock = stockParDefaut()) {
-  const brut = lireJson(stock, CLE_PRESENTATIONS);
-  const res = {};
-  if (!brut || typeof brut.presentations !== 'object' || brut.presentations === null) return res;
+function relirePresentations(stock) {
+  const { texte, brut } = lireBrut(stock, CLE_PRESENTATIONS);
+  if (texte === null || brut === null) return { parties: {}, ecartes: [] };
+  if (brut === undefined) return { parties: {}, ecartes: [{ valeur: texte, raison: 'texte illisible' }] };
+  if (!estObjet(brut) || !estObjet(brut.presentations)) return { parties: {}, ecartes: [{ valeur: brut, raison: 'forme inconnue' }] };
+  const parties = {}, ecartes = [];
   for (const p of Object.values(brut.presentations)) {
     const v = validerPresentation(p);
-    if (v.presentation) res[v.presentation.donjon.id] = v.presentation;
+    if (v.presentation) {
+      parties[v.presentation.donjon.id] = v.presentation;
+      if (v.avertissements.length) ecartes.push({ valeur: p, raison: v.avertissements.join(' · ') });
+    } else ecartes.push({ valeur: p, raison: v.erreurs.join(' · ') });
   }
-  return res;
+  return { parties, ecartes };
+}
+
+/**
+ * Présentations en cours, validées une à une : { <idDonjon>: présentation } (vide si rien).
+ * Une entrée invalide est écartée sans toucher aux autres. Ne modifie rien.
+ */
+export const chargerPresentations = (stock = stockParDefaut()) => relirePresentations(stock).parties;
+/** Comme chargerPresentations, avec en plus ce qui n'a pas été relu en entier : { presentations, ecartes: [{ valeur, raison }] }. */
+export function chargerPresentationsEtEcartees(stock = stockParDefaut()) {
+  const { parties, ecartes } = relirePresentations(stock);
+  return { presentations: parties, ecartes };
+}
+/**
+ * Met de côté (voir mettreDeCote) les parties qui ne se relisent pas en entier : à faire avant qu'une sauvegarde les remplace.
+ * Une partie refusée reste sous sa clé d'une ouverture à l'autre : `nouvelle` dit si une copie vient d'être faite, pour ne le dire au MJ qu'une fois.
+ * @returns {{nombre:number, ok:boolean, nouvelle:boolean}|null} null si tout se relit ; sinon le nombre concerné, et `ok` faux si la copie a échoué
+ */
+export function mettreDeCotePresentations(stock = stockParDefaut()) {
+  const { ecartes } = relirePresentations(stock);
+  if (!ecartes.length) return null;
+  const avant = misDeCote(stock).length;
+  const ok = mettreDeCote(stock, CLE_PRESENTATIONS, ecartes);
+  return { nombre: ecartes.length, ok, nouvelle: misDeCote(stock).length > avant };
 }
 export const sauverPresentations = (presentations, stock = stockParDefaut()) => ecrireJson(stock, CLE_PRESENTATIONS, { presentations });
 
@@ -162,8 +191,10 @@ const presentationsBrutes = (stock) => {
   const toutes = lireJson(stock, CLE_PRESENTATIONS)?.presentations;
   return toutes && typeof toutes === 'object' ? toutes : {};
 };
-export const enregistrerPartie = (p, stock = stockParDefaut()) => sauverPresentations({ ...presentationsBrutes(stock), [p.donjon.id]: p }, stock);
+/** Enregistre la partie. Faux (rien n'est écrit) si ce qui ne se relisait pas en entier n'a pas pu être mis de côté d'abord. */
+export const enregistrerPartie = (p, stock = stockParDefaut()) => (mettreDeCotePresentations(stock)?.ok ?? true) && sauverPresentations({ ...presentationsBrutes(stock), [p.donjon.id]: p }, stock);
 export function supprimerPartie(idDonjon, stock = stockParDefaut()) {
+  if (!(mettreDeCotePresentations(stock)?.ok ?? true)) return false;
   const { [idDonjon]: _supprimee, ...reste } = presentationsBrutes(stock);
   return sauverPresentations(reste, stock);
 }
@@ -250,6 +281,11 @@ export function chargerTout({ texteInitial, stock = stockParDefaut() } = {}) {
 export const phraseMiseDeCote = ({ ok }) => (ok
   ? 'Des données enregistrées dans ce navigateur n’ont pas pu être relues (écrites par une version plus récente de l’outil, ou abîmées). Rien n’est perdu : une copie est gardée à part.'
   : 'Des données enregistrées dans ce navigateur n’ont pas pu être relues, et leur copie de sécurité n’a pas pu être faite (stockage plein ou bloqué). Pour ne rien écraser, tes modifications ne seront pas enregistrées ici : exporte ton donjon.');
+
+/** Ce qu'on dit au MJ après la mise de côté des parties (voir mettreDeCotePresentations). */
+export const phraseMiseDeCoteParties = ({ ok }) => (ok
+  ? 'Des parties enregistrées dans ce navigateur n’ont pas pu être relues en entier (écrites par une version plus récente de l’outil, ou abîmées). Rien n’est perdu : une copie est gardée à part.'
+  : 'Des parties enregistrées dans ce navigateur n’ont pas pu être relues en entier, et leur copie de sécurité n’a pas pu être faite (stockage plein ou bloqué). Pour ne rien écraser, tes parties ne seront pas enregistrées ici : libère de la place, ou exporte ton donjon.');
 
 // --- Donjon entier (nouveau format) -----------------------------------------------
 

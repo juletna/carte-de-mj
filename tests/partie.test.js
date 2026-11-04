@@ -390,6 +390,21 @@ const TESTS = [
     egal(p.creerPresentation(d, { salleDepart: 'inconnue' }).salleCourante, a.id, 'choix invalide : la première');
     egal(p.salleDepart({ salles: {} }), null, 'donjon sans salle');
   }],
+
+  ['sauvegarde : les avertissements du donjon remontent, la liste est toujours là', () => {
+    const { d } = donjonDeTest();
+    const pres = p.creerPresentation(d);
+    egal(p.validerPresentation(JSON.parse(JSON.stringify(pres))).avertissements, [], 'une partie normale : rien à dire');
+    const abimee = JSON.parse(JSON.stringify(pres));
+    abimee.donjon.personnages = 'tous';
+    const v = p.validerPresentation(abimee);
+    verifier(v.ok, 'relue malgré tout');
+    egal(v.avertissements, ['personnages ignorés : ce n’est pas une liste'], 'l’avertissement du donjon est remonté');
+    for (const refus of [null, { ...pres, format: 'autre' }, { ...pres, donjon: { format: 'x' } }]) {
+      const r = p.validerPresentation(refus);
+      verifier(!r.ok && Array.isArray(r.avertissements) && r.avertissements.length === 0, 'une partie refusée : liste vide, pas absente');
+    }
+  }],
 ];
 
 export const executer = () => executerSuite('présentation : ', TESTS);
