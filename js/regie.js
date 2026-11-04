@@ -58,7 +58,7 @@ export function demarrerRegie() {
     pleinIci: false,
     enregistre: true,
     empreinte: null,     // la partie telle que cette régie l'a lue ou écrite en dernier (voir sauvegarder)
-    perimee: false,      // en retrait : l'autre régie a fait avancer cette partie, on ne l'enregistre plus ici
+    perimee: false,      // en retrait : l'autre régie tient ou a fait avancer cette partie, on ne l'enregistre plus ici
   };
 
   // --- Retour d'action : toast transitoire, hors du flux, annoncé par aria-live (#toast) ------------------
@@ -149,6 +149,7 @@ export function demarrerRegie() {
   window.addEventListener('pageshow', (e) => { if (e.persisted && commande.main) prendreLaMain(); });
 
   /** Une régie en retrait le dit en permanence : dans son panneau, et dans le bandeau au-dessus de la carte (hauteur fixe : la carte ne bouge pas). */
+  const tenueAilleurs = () => table.partieTenueAilleurs(commande, etat.p?.donjon.id, stockage.idPartieOuverte());
   function majRetrait() {
     const alerte = $('alerte-retrait');
     alerte.hidden = !commande.retrait;
@@ -157,7 +158,7 @@ export function demarrerRegie() {
         commande.titulaireParti
           ? 'La régie qui avait la main a été fermée : la table n’est plus servie. Reprends la main pour lui montrer cette partie.'
           : 'Cette régie est en retrait : une autre régie a ouvert une partie et commande la table. Ce que tu fais ici n’est plus montré aux joueurs. Si cette autre régie a été fermée, reprends la main.',
-        ...(etat.perimee ? ['Cette partie a avancé dans l’autre régie : ce que tu fais ici n’est plus enregistré. « Reprendre la main » repart de la version la plus récente.'] : []),
+        ...(etat.perimee || tenueAilleurs() ? ['Cette partie est aussi ouverte dans l’autre régie : ce que tu fais ici n’est pas enregistré. « Reprendre la main » le garde, sauf si elle y a avancé : tu repars alors de sa version.'] : []),
       ].join(' ');
     }
     $('support').className = commande.retrait ? '' : etat.consultee === etat.p.salleCourante ? 'sur-table' : 'consultation';
@@ -169,6 +170,8 @@ export function demarrerRegie() {
     const id = etat.p.donjon.id;
     if (stockage.empreintePartie(id) !== etat.empreinte && stockage.chargerPresentations()[id]) { entrer(etat.p, { reprise: true }); return; }
     prendreLaMain();
+    etat.perimee = false;
+    sauvegarder(); // ce qui a été fait en retrait n'était pas enregistré
     stockage.memoriserPartieOuverte(id);
     etat.message = 'Cette régie a repris la main : la table montre sa partie.';
     rendre();
@@ -177,15 +180,17 @@ export function demarrerRegie() {
 
   /**
    * N'écrit que la partie de cette régie, jamais sa copie en mémoire des autres : elles ont pu avancer dans un autre onglet.
-   * En retrait, si l'autre régie a fait avancer CETTE partie, on n'écrase pas sa version plus récente.
+   * En retrait, on n'enregistre pas CETTE partie si l'autre régie la tient (sa prochaine sauvegarde effacerait tout, sans le dire)
+   * ou l'a fait avancer (on n'écrase pas sa version plus récente). La régie le dit : voir majRetrait.
    */
   function sauvegarder() {
     if (!etat.p) return;
     const id = etat.p.donjon.id;
-    if (commande.retrait && stockage.empreintePartie(id) !== etat.empreinte) {
+    if (commande.retrait && (tenueAilleurs() || stockage.empreintePartie(id) !== etat.empreinte)) {
       if (!etat.perimee) { etat.perimee = true; majRetrait(); }
       return;
     }
+    etat.perimee = false;
     etat.presentations[id] = etat.p;
     const ok = stockage.enregistrerPartie(etat.p);
     if (ok) etat.empreinte = JSON.stringify(etat.p);

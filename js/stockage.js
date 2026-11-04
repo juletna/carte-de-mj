@@ -243,6 +243,7 @@ export const sauverModeles = (modeles, stock = stockParDefaut()) => mettreDeCote
  * `carte-de-mj:presentations-v1`). Sert à rouvrir la régie là où elle était après un rechargement.
  */
 export const memoriserPartieOuverte = (idDonjon, stock = stockParDefaut()) => ecrireJson(stock, CLE_PARTIE_OUVERTE, { id: idDonjon });
+export const idPartieOuverte = (stock = stockParDefaut()) => lireJson(stock, CLE_PARTIE_OUVERTE)?.id ?? null;
 export const oublierPartieOuverte = (stock = stockParDefaut()) => { try { stock?.removeItem?.(CLE_PARTIE_OUVERTE); } catch { /* sans mémoire */ } };
 
 /** La partie à rouvrir parmi `presentations` ({ idDonjon: partie }), ou null (rien de mémorisé, ou partie disparue). */

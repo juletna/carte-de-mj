@@ -69,6 +69,17 @@ const TESTS = [
     egal(t.surMessage(b, { type: 'etat', plan: null }), null, 'l’état d’une autre régie ne la concerne pas');
     verifier(t.prendreMain(a, 1).quand > 5000, 'une prise de main dépasse toujours la dernière entendue, même si l’horloge recule');
   }],
+  ['en retrait, la partie que la régie active a ouverte n’est pas enregistrée ici', () => {
+    const a = t.creerCommande('a'), b = t.creerCommande('b');
+    t.prendreMain(a, 1000);
+    egal(t.partieTenueAilleurs(a, 'x', 'x'), false, 'la régie active enregistre sa partie');
+    const prise = t.prendreMain(b, 2000);
+    t.surMessage(a, prise);
+    egal([t.partieTenueAilleurs(a, 'x', 'x'), t.partieTenueAilleurs(a, 'y', 'x'), t.partieTenueAilleurs(a, 'x', null)], [true, false, false], 'seulement la même partie, tant qu’elle est ouverte là-bas');
+    t.surMessage(a, t.messageDepart(b));
+    egal(t.partieTenueAilleurs(a, 'x', 'x'), false, 'la régie active est partie : plus personne n’écrase');
+  }],
+
   ['la régie active qui se ferme le dit ; la régie en retrait ne reprend pas la main d’elle-même', () => {
     const a = t.creerCommande('a'), b = t.creerCommande('b'), c = t.creerCommande('c');
     const prise = t.prendreMain(a, 1000);

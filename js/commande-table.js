@@ -31,6 +31,9 @@ export function prendreMain(c, maintenant) {
 }
 
 /** Le message à poster quand la page se ferme ou se recharge ; null si cette régie n'a pas la main. */
+/** En retrait, sur la partie que la régie active a ouverte : enregistrer ici serait écrasé à sa prochaine sauvegarde. Si elle a été fermée, plus personne n'écrase. */
+export const partieTenueAilleurs = (c, idPartie, idOuverte) => c.retrait && !c.titulaireParti && idPartie === idOuverte;
+
 export const messageDepart = (c) => (c.main ? { type: DEPART, regie: c.moi } : null);
 
 const idValide = (v) => typeof v === 'string' && v.length > 0 && v.length <= 64;
