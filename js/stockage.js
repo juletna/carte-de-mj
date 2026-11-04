@@ -93,6 +93,16 @@ export function misDeCote(stock = stockParDefaut()) {
   const entrees = lireJson(stock, CLE_MIS_DE_COTE)?.entrees;
   return Array.isArray(entrees) ? entrees : [];
 }
+/** Ce qu'une copie était, d'après la clé d'où elle vient. */
+export const libelleCopie = (cle) => ({ [CLE_DONJONS]: 'Donjon', [CLE_MODELES]: 'Modèle', [CLE_PRESENTATIONS]: 'Partie', [CLE_FICHES]: 'Fiche' })[cle] || 'Donnée';
+/** Le contenu d'une copie, tel qu'il sera téléchargé : un texte illisible reste ce texte, le reste est du JSON. */
+export const texteCopie = ({ valeur }) => (typeof valeur === 'string' ? valeur : JSON.stringify(valeur, null, 2));
+export const nomCopie = ({ cle, le, valeur }) => `copie-${sansAccents(libelleCopie(cle))}-${String(le).slice(0, 10)}.${typeof valeur === 'string' ? 'txt' : 'json'}`;
+/** Retire cette copie, relue dans ce qui est enregistré (un autre onglet a pu en ajouter). Faux si l'écriture échoue : la copie reste. */
+export function supprimerCopie({ cle, valeur }, stock = stockParDefaut()) {
+  const empreinte = JSON.stringify([cle, valeur]);
+  return ecrireJson(stock, CLE_MIS_DE_COTE, { entrees: misDeCote(stock).filter((e) => JSON.stringify([e.cle, e.valeur]) !== empreinte) });
+}
 
 // Une clé dont la copie a échoué ne doit plus être réécrite pendant cette session (sinon le premier enregistrement détruirait l'original).
 const verrous = new WeakMap();
@@ -279,27 +289,30 @@ export function chargerTout({ texteInitial, stock = stockParDefaut() } = {}) {
 
 /** Ce qu'on dit au MJ après une mise de côté (voir chargerTout) : ce qui s'est passé, et que rien n'est perdu. */
 export const phraseMiseDeCote = ({ ok }) => (ok
-  ? 'Des données enregistrées dans ce navigateur n’ont pas pu être relues (écrites par une version plus récente de l’outil, ou abîmées). Rien n’est perdu : une copie est gardée à part.'
+  ? 'Des données enregistrées dans ce navigateur n’ont pas pu être relues (écrites par une version plus récente de l’outil, ou abîmées). Rien n’est perdu : une copie est gardée à part, dans le Donjon : menu du donjon, « Copies mises de côté ».'
   : 'Des données enregistrées dans ce navigateur n’ont pas pu être relues, et leur copie de sécurité n’a pas pu être faite (stockage plein ou bloqué). Pour ne rien écraser, tes modifications ne seront pas enregistrées ici : exporte ton donjon.');
 
 /** Ce qu'on dit au MJ après la mise de côté des parties (voir mettreDeCotePresentations). */
 export const phraseMiseDeCoteParties = ({ ok }) => (ok
-  ? 'Des parties enregistrées dans ce navigateur n’ont pas pu être relues en entier (écrites par une version plus récente de l’outil, ou abîmées). Rien n’est perdu : une copie est gardée à part.'
+  ? 'Des parties enregistrées dans ce navigateur n’ont pas pu être relues en entier (écrites par une version plus récente de l’outil, ou abîmées). Rien n’est perdu : une copie est gardée à part, dans le Donjon : menu du donjon, « Copies mises de côté ».'
   : 'Des parties enregistrées dans ce navigateur n’ont pas pu être relues en entier, et leur copie de sécurité n’a pas pu être faite (stockage plein ou bloqué). Pour ne rien écraser, tes parties ne seront pas enregistrées ici : libère de la place, ou exporte ton donjon.');
 
 // --- Donjon entier (nouveau format) -----------------------------------------------
 
 const nomDeFichier = (nom) => `${sansAccents(nom || 'donjon').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'donjon'}.json`;
 
-/** Propose le téléchargement du donjon entier (salles, notes, liaisons, éléments cachés). */
-export function exporterDonjon(donjon) {
-  const blob = new Blob([texteDonjon(donjon)], { type: 'application/json' });
+function proposerFichier(texte, nom) {
+  const blob = new Blob([texte], { type: nom.endsWith('.json') ? 'application/json' : 'text/plain' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = nomDeFichier(donjon.nom);
+  a.download = nom;
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
+/** Propose le téléchargement du donjon entier (salles, notes, liaisons, éléments cachés). */
+export const exporterDonjon = (donjon) => proposerFichier(texteDonjon(donjon), nomDeFichier(donjon.nom));
+/** Propose le téléchargement d'une copie mise de côté. */
+export const telechargerCopie = (entree) => proposerFichier(texteCopie(entree), nomCopie(entree));
 
 /** Le donjon entier, sous forme de texte : ce que contient le fichier exporté, à copier-coller. */
 export const texteDonjon = (donjon) => JSON.stringify(donjon, null, 2);

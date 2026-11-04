@@ -42,7 +42,7 @@ function toast(m,act){const e=document.getElementById('toast');e.textContent=m;e
 
 /* L'avis du haut de page (fiche.html #avis) : reste affiché jusqu'au clic sur « Compris » */
 function avertir(n,ok){const e=document.getElementById('avis'),au=n>1?'Certaines':'Une';
- e.textContent=ok?`${au} de tes fiches enregistrées dans ce navigateur ${n>1?'n’ont':'n’a'} pas pu être relue${n>1?'s':''} (abîmée${n>1?'s':''}, ou écrite${n>1?'s':''} par une autre version). Rien n’est perdu : une copie est gardée à part.`
+ e.textContent=ok?`${au} de tes fiches enregistrées dans ce navigateur ${n>1?'n’ont':'n’a'} pas pu être relue${n>1?'s':''} (abîmée${n>1?'s':''}, ou écrite${n>1?'s':''} par une autre version). Rien n’est perdu : une copie est gardée à part, dans le Donjon : menu du donjon, « Copies mises de côté ».`
   :`${au} de tes fiches enregistrées dans ce navigateur ${n>1?'n’ont':'n’a'} pas pu être relue${n>1?'s':''}, et la copie de sécurité n’a pas pu être faite (plus de place, ou accès bloqué). Pour ne rien écraser, tes modifications ne seront pas enregistrées ici : exporte tes fiches.`;
  const b=document.createElement('button');b.dataset.a='avisok';b.textContent='Compris';e.appendChild(b);e.hidden=false}
 

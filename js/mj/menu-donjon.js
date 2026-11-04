@@ -193,6 +193,28 @@ export function creerMenu(ctx) {
     ko.textContent = erreurs.join(' · '); // textContent : le contenu du fichier n'est jamais interprété comme du HTML
   }
 
+  // --- Copies mises de côté : ce qui ne s'est pas relu, à récupérer (le bloc n'apparaît que s'il y en a) ---
+  function majCopies() {
+    const copies = stockage.misDeCote();
+    $('copies').hidden = copies.length === 0;
+    $('copies-titre').textContent = `Copies mises de côté (${copies.length})`;
+    $('copies-liste').replaceChildren(...copies.map((copie) => {
+      const date = new Date(copie.le);
+      const telecharger = h('button', { type: 'button', textContent: 'Télécharger' });
+      telecharger.addEventListener('click', () => stockage.telechargerCopie(copie));
+      const supprimer = h('button', { type: 'button', className: 'discret' });
+      deuxTemps(supprimer, 'Supprimer', 'Supprimer pour de bon ?', () => {
+        if (!stockage.supprimerCopie(copie)) messageFichier('', ['Copie non supprimée : le navigateur a refusé l’écriture.']);
+        majCopies();
+      });
+      return h('li', { className: 'fiche-carte' },
+        h('p', {}, h('strong', { textContent: stockage.libelleCopie(copie.cle) }), Number.isNaN(date.getTime()) ? '' : `, ${date.toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })}`),
+        h('p', { className: 'note', textContent: copie.raison || '' }),
+        h('div', { className: 'actions' }, telecharger, supprimer));
+    }));
+  }
+  majCopies();
+
   /** Ajoute le donjon lu dans un fichier ou un texte collé. Renvoie true s'il a été ajouté. */
   function ajouterDonjonLu(brut) {
     // Le donjon importé s'AJOUTE aux autres : il garde l'identifiant de son fichier, sauf s'il est déjà pris (alors il en reçoit un neuf) ; rien n'est écrasé.

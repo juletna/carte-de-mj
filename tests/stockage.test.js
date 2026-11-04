@@ -7,7 +7,7 @@
  */
 import * as m from '../js/donjon.js';
 import * as p from '../js/presentation.js';
-import { chargerTout, chargerDonjons, sauverDonjons, chargerModeles, sauverModeles, enregistrerPartie, supprimerPartie, chargerPresentations, chargerPresentationsEtEcartees, mettreDeCotePresentations, phraseMiseDeCoteParties, sauverPresentations, chargerReglages, sauverReglages, CLE_PARTIE_OUVERTE, memoriserPartieOuverte, oublierPartieOuverte, partieAReprendre, migrer, misDeCote, phraseMiseDeCote, CLE_DONJONS, CLE_MODELES, CLE_PRESENTATIONS, CLE_MIS_DE_COTE, CLE_REGLAGES } from '../js/stockage.js';
+import { chargerTout, chargerDonjons, sauverDonjons, chargerModeles, sauverModeles, enregistrerPartie, supprimerPartie, chargerPresentations, chargerPresentationsEtEcartees, mettreDeCotePresentations, phraseMiseDeCoteParties, sauverPresentations, chargerReglages, sauverReglages, CLE_PARTIE_OUVERTE, memoriserPartieOuverte, oublierPartieOuverte, partieAReprendre, migrer, misDeCote, libelleCopie, texteCopie, nomCopie, supprimerCopie, phraseMiseDeCote, CLE_DONJONS, CLE_MODELES, CLE_PRESENTATIONS, CLE_MIS_DE_COTE, CLE_REGLAGES } from '../js/stockage.js';
 import * as miseDeCote from '../js/mise-de-cote.js';
 import { donjonDeTest } from './aides-partie.js';
 import { verifier, egal, fauxStock, executerSuite } from './mini-test.js';
@@ -365,6 +365,20 @@ const TESTS_PRESENTATION = [
       const stock = fauxStock(rien === undefined ? {} : { [CLE_PRESENTATIONS]: rien });
       verifier(enregistrerPartie(pres, stock) && !(CLE_MIS_DE_COTE in stock.donnees), `${rien} : aucune copie`);
     }
+  }],
+
+  ['une copie mise de côté se décrit, se télécharge et se supprime seule', () => {
+    const fiche = { cle: 'dd-fiche-personnages-v1', le: '2026-11-04T10:00:00.000Z', raison: 'sans caractéristiques', valeur: { nom: 'A' } };
+    const illisible = { cle: CLE_DONJONS, le: '2026-11-05T10:00:00.000Z', raison: 'texte illisible', valeur: '{pas du json' };
+    egal([libelleCopie(fiche.cle), libelleCopie(CLE_DONJONS), libelleCopie(CLE_MODELES), libelleCopie(CLE_PRESENTATIONS), libelleCopie('autre')], ['Fiche', 'Donjon', 'Modèle', 'Partie', 'Donnée'], 'libellés');
+    egal([nomCopie(fiche), nomCopie(illisible), nomCopie({ cle: CLE_MODELES, le: '2026-11-05', valeur: {} })], ['copie-fiche-2026-11-04.json', 'copie-donjon-2026-11-05.txt', 'copie-modele-2026-11-05.json'], 'noms de fichier');
+    egal([JSON.parse(texteCopie(fiche)), texteCopie(illisible)], [{ nom: 'A' }, '{pas du json'], 'contenu rendu tel quel');
+    const stock = fauxStock({ [CLE_MIS_DE_COTE]: JSON.stringify({ entrees: [fiche, illisible] }) });
+    verifier(supprimerCopie(fiche, stock), 'suppression');
+    egal(misDeCote(stock).map((e) => e.valeur), ['{pas du json'], 'l’autre copie reste');
+    verifier(supprimerCopie(fiche, stock) && misDeCote(stock).length === 1, 'supprimer ce qui n’y est plus ne retire rien d’autre');
+    const plein = stockPlein({ [CLE_MIS_DE_COTE]: JSON.stringify({ entrees: [fiche] }) }, [CLE_MIS_DE_COTE]);
+    verifier(!supprimerCopie(fiche, plein) && misDeCote(plein).length === 1, 'écriture refusée : on le sait, et la copie reste');
   }],
 
   ['parties : si la copie échoue, rien n’est écrasé et on le sait', () => {

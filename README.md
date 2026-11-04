@@ -157,6 +157,7 @@ Dans chaque salle, la description reste la seule référence (texte → plan →
   Un donjon (ou un modèle) enregistré qui ne se relit pas, par exemple écrit par une version plus récente de l'outil, n'est jamais
   écrasé en silence : il est copié tel quel dans `carte-de-mj:mis-de-cote-v1` avant que le reste soit réécrit (une seule fois, même
   si la page est rechargée), et l'outil le dit. Si cette copie échoue (stockage plein), les donjons ne sont plus enregistrés de la session.
+  Les fiches et les parties suivent la même règle. Le menu du donjon liste ces copies (« Copies mises de côté ») : on peut les télécharger ou les supprimer.
 - **Exporter / importer** : « Exporter le donjon » écrit tout (salles, notes, liaisons, éléments cachés). « Importer un donjon »
   ajoute un donjon sans rien écraser (il garde l'identifiant de son fichier, sauf si un de vos donjons l'a déjà : importer deux fois le même fichier donne deux donjons) ; il accepte le format ci-dessous, l'ancien format `jdr-carte` (une salle) et un plan seul,
   et refuse proprement un fichier invalide ou d'une version plus récente. Rien de ce qui vient d'un fichier n'est interprété
