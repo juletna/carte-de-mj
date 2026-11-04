@@ -12,7 +12,7 @@ import { STATS } from './regles.js';
 import { rnd, mod, sg, profFor, rollExpr } from './des.js';
 import { SKILLS, CONDS, SCOPES, KINDS_FX, PRESETS, TYPES_OBJET, ITYPES, IACTS, ACT_L, KINDS, freshTurn, uid, sample, blank, complete,
   ETAT_INTERFACE, snapP, chargerBase } from './base.js';
-import { skB, svB, hdLeft, hasHaste, fxOf, negFx, acTotal, speedNow, note, fxVal, manualFx, dropFx, d20, push, spend,
+import { skB, svB, hdLeft, hasHaste, fxOf, negFx, acTotal, speedNow, hpMaxNow, effetsEpuisement, note, fxVal, manualFx, dropFx, d20, push, spend,
   damage, heal, startTurn, addFx } from './jeu.js';
 
 /* Plusieurs personnages : { actif:id, persos:{id:fiche} } (js/fiche/base.js). */
@@ -33,11 +33,11 @@ function toast(m,act){const e=document.getElementById('toast');e.textContent=m;e
 
 /* ---------- Rendu ---------- */
 function vHeader(){
- const C=S.mode==='combat',pct=Math.max(0,Math.min(100,S.hp/Math.max(1,S.hpMax)*100)),ac=acTotal(S);
+ const C=S.mode==='combat',pct=Math.max(0,Math.min(100,S.hp/Math.max(1,hpMaxNow(S))*100)),ac=acTotal(S);
  return`<div class="idrow"><h1><button class="who" data-a="sheet" data-v="perso" aria-haspopup="dialog" aria-label="${esc((S.name||'Sans nom')+' : changer de personnage ou en créer un')}"><span>${esc(S.name||'Sans nom')}</span><i aria-hidden="true">▾</i></button></h1><p>${esc([S.cls&&`${S.cls} niv. ${S.lvl}`,S.race,S.guild].filter(Boolean).join(' · '))}</p></div>
  <div class="vitals ${C?'':'two'}">
   <button class="hpbtn" data-a="sheet" data-v="hp" aria-label="Modifier les points de vie">
-   <span class="n"><b>${S.hp}</b>/ ${S.hpMax} PV${S.tmp?` <em>+${S.tmp} temp</em>`:''}<small>± PV</small></span>
+   <span class="n"><b>${S.hp}</b>/ ${hpMaxNow(S)} PV${S.tmp?` <em>+${S.tmp} temp</em>`:''}<small>± PV</small></span>
    <span class="bar"><i style="width:${pct}%"></i></span></button>
   <div class="vt ${ac>S.ac?'up':''}"><span class="lbl">CA</span><b>${ac}</b></div>
   ${C?`<div class="vt cb"><span class="lbl">Round</span><b>${S.round||'–'}</b></div>`:''}
@@ -139,7 +139,7 @@ function vExplo(){
    <div class="qty"><button data-a="aq" data-i="${i}" data-v="-1" aria-label="Retirer">−</button><b>${a.q}</b><button data-a="aq" data-i="${i}" data-v="1" aria-label="Ajouter">+</button></div></div>`).join('')}</div></section>`:''}
  <section class="card"><h2>Repos</h2>
   <div class="spread"><span><span class="lbl">Dés de vie</span><br><b style="font-size:1.2rem">${hdLeft(S)}/${S.lvl}</b> <span class="muted">d${S.hd.die} ${sg(mod(S.stats.CON))}</span></span>
-   <button data-a="hd" ${hdLeft(S)&&S.hp<S.hpMax?'':'disabled'}>Dépenser 1 DV</button></div>
+   <button data-a="hd" ${hdLeft(S)&&S.hp<hpMaxNow(S)?'':'disabled'}>Dépenser 1 DV</button></div>
   <div class="grid2"><button data-a="short">Repos court</button><button data-a="long">Repos long</button></div>
  </section>`;
 }
@@ -279,7 +279,7 @@ function vJournal(){
 function vSheetHp(){
  const v=S.pad;
  return`<h2>Points de vie <button class="x" data-a="close" aria-label="Fermer">✕</button></h2>
- <div class="muted" style="text-align:center">${S.hp} / ${S.hpMax} PV${S.tmp?` · ${S.tmp} temporaires`:''}</div>
+ <div class="muted" style="text-align:center">${S.hp} / ${hpMaxNow(S)} PV${S.tmp?` · ${S.tmp} temporaires`:''}</div>
  <div class="padv ${v?'':'ph'}">${v||'0'}</div>
  <div class="keys">${[1,2,3,4,5,6,7,8,9].map(n=>`<button data-a="key" data-v="${n}">${n}</button>`).join('')}<button data-a="key" data-v="c" aria-label="Effacer tout">C</button><button data-a="key" data-v="0">0</button><button data-a="key" data-v="b" aria-label="Effacer un chiffre">⌫</button></div>
  <div class="padact"><button class="red" data-a="padgo" data-v="dmg">Dégâts</button><button class="heal" data-a="padgo" data-v="heal">Soins</button><button data-a="padgo" data-v="tmp">Temp</button></div>`;
@@ -324,7 +324,7 @@ function vSheetAdd(){
  <span class="lbl">États</span>
  <div class="chips">${CONDS.map(c=>`<button class="chip ${S.conds.includes(c)?'on':''}" data-a="cond" data-n="${c}">${c}</button>`).join('')}
   <button class="chip ${S.conc?'on':''}" data-a="conc">Concentration</button></div>
- <div class="spread"><span><span class="lbl">Épuisement</span><br><small class="muted">−2 aux jets d20 et −1,5 m par niveau</small></span>
+ <div class="spread"><span><span class="lbl">Épuisement</span><br><small class="muted">${S.exh?effetsEpuisement(S.exh).join(' · '):'Les effets s’ajoutent à chaque niveau'}</small></span>
   <div class="step"><button data-a="exh" data-v="-1">−</button><b>${S.exh}</b><button data-a="exh" data-v="1">+</button></div></div>
  <small class="muted">Les états à avantage ou désavantage (Empoisonné, À terre, Invisible…) s'appliquent tout seuls à tes jets.</small>
  <button class="primary" data-a="close">Terminé</button>`;
@@ -417,12 +417,12 @@ document.addEventListener('click',e=>{
   case 'res':{const r=S.res[i],j=+t.dataset.j;r.used=j>=r.used?j+1:j;break}
   case 'cond':{const n=t.dataset.n;S.conds=S.conds.includes(n)?S.conds.filter(c=>c!==n):[...S.conds,n];break}
   case 'conc':S.conc=!S.conc;if(!S.conc)S.concDD=0;break;
-  case 'exh':S.exh=Math.max(0,Math.min(6,S.exh+v));break;
+  case 'exh':S.exh=Math.max(0,Math.min(6,S.exh+v));S.hp=Math.min(S.hp,hpMaxNow(S));if(S.exh===6&&v>0)toast('Épuisement 6 : le personnage meurt');break;
   case 'hd':{if(!hdLeft(S))return;const r=rnd(S.hd.die),c=mod(S.stats.CON),g=Math.max(0,r+c);S.hd.used++;heal(S,g);
    push(S,{t:Date.now(),l:'Dé de vie',tot:g,det:`${r} ${sg(c)} PV rendus`});break}
   case 'short':S.res.forEach(r=>{if(r.rest==='court')r.used=0});note(S,'Note','Repos court');toast('Repos court : capacités « court » rechargées');break;
-  case 'long':S.hp=S.hpMax;S.tmp=0;S.saves={s:0,f:0};S.slots.forEach(s=>s.used=0);S.res.forEach(r=>r.used=0);
-   S.hd.used=Math.max(0,S.hd.used-Math.max(1,Math.floor(S.lvl/2)));S.exh=Math.max(0,S.exh-1);note(S,'Note','Repos long');toast('Repos long : PV, sorts et capacités restaurés');break;
+  case 'long':S.exh=Math.max(0,S.exh-1);S.hp=hpMaxNow(S);S.tmp=0;S.saves={s:0,f:0};S.slots.forEach(s=>s.used=0);S.res.forEach(r=>r.used=0);
+   S.hd.used=Math.max(0,S.hd.used-Math.max(1,Math.floor(S.lvl/2)));note(S,'Note','Repos long');toast('Repos long : PV, sorts et capacités restaurés');break;
   case 'skill':{const n=t.dataset.n;push(S,d20(S,skB(S,n),n,'chk'));break}
   case 'save':{const s=t.dataset.s;push(S,d20(S,svB(S,s),`Sauvegarde ${s}`,'save'));break}
   case 'chk':{const s=t.dataset.s;push(S,d20(S,mod(S.stats[s]),`Test ${s}`,'chk'));break}
@@ -520,7 +520,7 @@ document.addEventListener('change',e=>{
  else if(['name','cls','race','guild'].includes(k))S[k]=raw.trim();
  else S[k]=num;
  if(k==='hpMax')S.hpMax=Math.max(1,S.hpMax);
- S.hp=Math.max(0,Math.min(S.hp,S.hpMax));
+ S.hp=Math.max(0,Math.min(S.hp,hpMaxNow(S)));
  S.example=false;
  document.getElementById('hdr').innerHTML=vHeader();save();
 });

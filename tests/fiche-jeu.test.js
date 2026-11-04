@@ -3,7 +3,7 @@
  * Chaque fonction reçoit la fiche `S` en paramètre ; les dés sont imposés. Sans dépendance : marche sous Node et dans tests.html.
  */
 import { blank, sample } from '../js/fiche/base.js';
-import { skB, svB, hdLeft, hasHaste, fxOf, negFx, acTotal, baseSpeed, speedNow, note, fxVal, manualFx, dropFx, d20, push, spend,
+import { skB, svB, hdLeft, hasHaste, fxOf, negFx, acTotal, baseSpeed, speedNow, hpMaxNow, effetsEpuisement, note, fxVal, manualFx, dropFx, d20, push, spend,
   damage, heal, startTurn, addFx } from '../js/fiche/jeu.js';
 import { verifier, egal, executerSuite } from './mini-test.js';
 
@@ -28,8 +28,12 @@ const TESTS = [
     egal(acTotal(S), 16, 'un effet de CA fixe, ni les autres portées ni les autres genres');
     egal([baseSpeed(S), speedNow(S)], [9, 9], 'vitesse normale');
     S.turn.dash = true; egal(speedNow(S), 18, 'foncer double');
-    S.turn.dash = false; S.exh = 2; egal(baseSpeed(S), 6, 'épuisement : −1,5 m par niveau');
-    S.fx = [fx({ haste: true, sc: ['ac'] })]; egal([hasHaste(S), baseSpeed(S)], [true, 15], 'hâte : le double, puis l’épuisement');
+    S.turn.dash = false; S.exh = 1; egal(baseSpeed(S), 9, 'épuisement 1 : vitesse intacte');
+    S.exh = 2; egal(baseSpeed(S), 4.5, 'épuisement 2 : vitesse divisée par 2');
+    egal(baseSpeed(fiche({ speed: 7.5, exh: 2 })), 3, 'arrondie à la case inférieure');
+    S.fx = [fx({ haste: true, sc: ['ac'] })]; egal([hasHaste(S), baseSpeed(S)], [true, 9], 'hâte : le double, divisé par l’épuisement');
+    S.exh = 5; egal(baseSpeed(S), 0, 'épuisement 5 : immobile, même avec la hâte');
+    S.exh = 2;
     S.conds = ['Entravé']; egal(baseSpeed(S), 0, 'entravé : immobile');
     egal(baseSpeed(fiche({ speed: 1, exh: 6 })), 0, 'jamais négative');
   }],
@@ -46,8 +50,12 @@ const TESTS = [
     egal([r.nat, r.det], [3, '15|3 désavantage (Effrayé)'], 'état qui joue sur les tests');
     r = d20(S, 0, 'x', 'save', impose([15, 3]));
     egal(r.nat, 15, 'le même état ne joue pas sur les sauvegardes');
-    S.conds = []; S.exh = 2; r = d20(S, 2, 'x', 'chk', impose([10, 1]));
-    egal([r.tot, r.m, r.det], [8, -2, '10 +2 −4 épuisement'], 'épuisement : −2 par niveau');
+    S.conds = []; S.exh = 1; r = d20(S, 2, 'x', 'chk', impose([10, 1]));
+    egal([r.tot, r.m, r.det], [3, 2, '10|1 désavantage (épuisement) +2'], 'épuisement 1 : désavantage aux tests, sans malus');
+    egal(d20(S, 0, 'x', 'atk', impose([10, 1])).nat, 10, 'épuisement 1 : les attaques ne changent pas');
+    S.exh = 2; egal(d20(S, 0, 'x', 'save', impose([10, 1])).nat, 10, 'épuisement 2 : les sauvegardes non plus');
+    S.exh = 3; egal([d20(S, 0, 'x', 'atk', impose([10, 1])).nat, d20(S, 0, 'x', 'save', impose([10, 1])).nat], [1, 1], 'épuisement 3 : désavantage aux attaques et sauvegardes');
+    egal(d20(S, 0, 'x', undefined, impose([10, 1])).nat, 10, 'un d20 libre ne dépend pas de l’épuisement');
   }],
   ['d20 : les effets actifs s’ajoutent, ceux « à ajouter après le jet » non, un avantage à usage unique est consommé', () => {
     const S = fiche();
@@ -80,13 +88,19 @@ const TESTS = [
     damage(C, 8); egal(C.concDD, 10, 'DD 10 au minimum');
     damage(C, 30); egal(C.concDD, 15, 'la moitié des dégâts quand elle dépasse 10');
     damage(C, 8); egal(C.concDD, 15, 'jamais en dessous du DD déjà posé');
-    const D = fiche({ hp: 99, hpMax: 99, conc: true }); damage(D, 90); egal(D.concDD, 30, 'DD 30 au plus');
+    const D = fiche({ hp: 99, hpMax: 99, conc: true }); damage(D, 90); egal(D.concDD, 45, 'pas de plafond au DD');
     const E = fiche({ hp: 30, hpMax: 30, conc: true }); damage(E, 0); egal(E.concDD, 0, 'sans dégât, pas de jet');
   }],
   ['soins : jamais au-dessus du maximum ; remonter de 0 PV efface les jets contre la mort', () => {
     const S = fiche({ hp: 0, hpMax: 10 }); S.saves = { s: 2, f: 1 };
     heal(S, 4); egal([S.hp, S.saves], [4, { s: 0, f: 0 }], 'retour à la vie');
     S.saves = { s: 1, f: 1 }; heal(S, 100); egal([S.hp, S.saves], [10, { s: 1, f: 1 }], 'plafonné, et sans effet sur les jets quand on n’est pas à 0');
+    const X = fiche({ hp: 3, hpMax: 11, exh: 4 }); egal(hpMaxNow(X), 5, 'épuisement 4 : PV max divisés par 2');
+    heal(X, 100); egal(X.hp, 5, 'les soins s’arrêtent à ce maximum');
+    egal(hpMaxNow(fiche({ hpMax: 11, exh: 3 })), 11, 'épuisement 3 : PV max intacts');
+    egal(effetsEpuisement(0), [], 'pas d’épuisement, pas d’effet');
+    egal(effetsEpuisement(2), ['désavantage aux tests', 'vitesse divisée par 2'], 'les effets se cumulent');
+    egal(effetsEpuisement(5), ['désavantage aux tests', 'désavantage aux attaques et sauvegardes', 'PV max divisés par 2', 'vitesse à 0'], 'la vitesse à 0 remplace la vitesse divisée');
     const Z = fiche({ hp: 0, hpMax: 10 }); Z.saves = { s: 2, f: 1 }; heal(Z, 0); egal([Z.hp, Z.saves], [0, { s: 2, f: 1 }], 'soigner de 0 ne relève pas');
   }],
   ['début de tour : un round de plus, actions rendues, effets en rounds décomptés et rendus quand ils prennent fin', () => {

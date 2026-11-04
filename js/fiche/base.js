@@ -24,7 +24,7 @@ export const PRESETS=[
  {n:'Hâte',sc:['ac'],kind:'flat',val:2,dur:'rounds',left:10,haste:true,note:'Vitesse ×2, action supplémentaire, avantage aux sauvegardes de DEX'},
  {n:'Sort Bouclier',sc:['ac'],kind:'flat',val:5,dur:'rounds',left:1},
  {n:'Marque du chasseur',sc:['dmg'],kind:'die',val:'1d6',dur:'conc',note:'Seulement contre la cible marquée'},
- {n:'Inspiration héroïque',sc:['atk','save','chk'],kind:'reroll',dur:'once'},
+ {n:'Inspiration',sc:['atk','save','chk'],kind:'adv',dur:'once'},
  {n:'Fléau',sc:['atk','save'],kind:'dieneg',val:'1d4',dur:'rounds',left:10},
 ];
 /* Les types d'objet du sac. `ressource` : l'objet apparaît dans « Ressources » de l'écran Jeu ; `sansCout` : pas de « Coûte » (action) à régler. */
@@ -50,7 +50,7 @@ export function sample(){return{example:true,name:'Elwyn Brisevent',guild:'',rac
  res:[{n:'Marque du chasseur (gratuite)',max:2,used:0,rest:'long'}],hd:{die:10,used:0},
  ammo:[{n:'Flèches',q:20,spent:0}],slots:slots([3,0,0,0,0,0,0,0,0]),coins:{pp:0,po:15,pa:8,pc:0},
  inv:[{n:'Arc long',q:1,type:'objet'},{n:'Épée courte',q:2,type:'objet'},{n:'Armure de cuir clouté',q:1,type:'objet'},{n:'Corde de chanvre (15 m)',q:1,type:'objet'},
-  {n:'Rations (1 jour)',q:5,type:'conso',act:'none'},{n:'Potion de soins',q:2,type:'soin',dice:'2d4+2',act:'bonus'},{n:'Fiole d\'acide',q:1,type:'conso',act:'action'}],
+  {n:'Rations (1 jour)',q:5,type:'conso',act:'none'},{n:'Potion de soins',q:2,type:'soin',dice:'2d4+2',act:'action'},{n:'Fiole d\'acide',q:1,type:'conso',act:'action'}],
  log:[{t:Date.now(),k:'Idée',x:'Exemple : fouiller la tour nord avant de rejoindre le village.'}],
  fx:[],mode:'explo',phase:'wait',round:0,turn:freshTurn(),fxSrc:'',showCustom:false,
  fxD:{n:'',sc:['atk'],kind:'die',val:'1d4',dur:'rounds',left:10},openItem:-1,
@@ -66,7 +66,7 @@ export function complete(o){const d=o.example?sample():blank();
  STATS.forEach(s=>{if(!Number.isFinite(+o.stats[s]))o.stats[s]=10});
  ['attacks','res','ammo','inv','log','fx','slots'].forEach(k=>o[k]=o[k].filter(x=>x&&typeof x==='object'));
  if(o.slots.length!==9)o.slots=d.slots;
- o.inv.forEach(it=>{if(!it.type){if(/potion de soins/i.test(it.n)){it.type='soin';it.dice='2d4+2';it.act='bonus'}else it.type='objet'}});
+ o.inv.forEach(it=>{if(!it.type){if(/potion de soins/i.test(it.n)){it.type='soin';it.dice='2d4+2';it.act='action'}else it.type='objet'}});
  o.sheet=null;return o}
 
 /* État d'interface d'une fiche (feuille ouverte, pavé, objet déplié…) : remis à zéro quand on change de personnage, hors de l'empreinte. L'onglet (`tab`) s'y ajoute. */

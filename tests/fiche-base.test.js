@@ -39,7 +39,7 @@ const TESTS = [
   ['complete : remet à niveau une fiche ancienne ou abîmée, sans toucher à ce qui est bon', () => {
     const f = complete({ example: false, name: 'Brann', lvl: 4, stats: { FOR: 'x', DEX: 14 }, inv: [{ n: 'Potion de soins', q: 1 }, null, 3, { n: 'Corde', q: 1, type: 'objet' }], slots: [1, 2], sheet: 'hp', rolls: 5, log: [null, { x: 'ok' }] });
     egal([f.name, f.lvl, f.stats.DEX, f.stats.FOR, f.stats.INT], ['Brann', 4, 14, 10, 10], 'ce qui est bon reste, le reste est complété');
-    egal(f.inv, [{ n: 'Potion de soins', q: 1, type: 'soin', dice: '2d4+2', act: 'bonus' }, { n: 'Corde', q: 1, type: 'objet' }], 'les entrées illisibles du sac sont écartées, la potion reconnue');
+    egal(f.inv, [{ n: 'Potion de soins', q: 1, type: 'soin', dice: '2d4+2', act: 'action' }, { n: 'Corde', q: 1, type: 'objet' }], 'les entrées illisibles du sac sont écartées, la potion reconnue');
     egal([f.slots.length, f.sheet, Array.isArray(f.rolls)], [9, null, true], 'emplacements refaits, feuille fermée, jets en liste');
     egal(f.log, [{ x: 'ok' }], 'journal filtré');
     const ex = complete({ example: true, stats: {} });

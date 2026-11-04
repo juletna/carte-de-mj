@@ -185,7 +185,7 @@ function ficheComplete(classe, race, nom, lvl, alea) {
     ammo: (classe.munitions || []).map((a) => ({ ...a })),
     slots: emplacements(classe.magie, lvl),
     coins: { pp: 0, po: 5 + Math.floor(alea() * 20), pa: Math.floor(alea() * 10), pc: 0 },
-    inv: [...classe.sac.map((o) => ({ ...o })), { n: 'Rations (1 jour)', q: 5, type: 'conso', act: 'none' }, { n: 'Potion de soins', q: 1, type: 'soin', dice: '2d4+2', act: 'bonus' }],
+    inv: [...classe.sac.map((o) => ({ ...o })), { n: 'Rations (1 jour)', q: 5, type: 'conso', act: 'none' }, { n: 'Potion de soins', q: 1, type: 'soin', dice: '2d4+2', act: 'action' }],
     log: [],
   };
 }
