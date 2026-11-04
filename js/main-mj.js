@@ -60,6 +60,8 @@ const etat = {
   clePlan: '',       // donjon du plan affiché : quand il change, le zoom du plan est oublié
 };
 const r = etat.reglages;
+// Ce qui est enregistré au chargement, pas une copie de `r` : des réglages repris de l'ancienne clé restent à écrire.
+let reglagesLus = stockage.chargerReglages();
 
 const donjon = () => etat.donjons[etat.actif];
 const salle = () => donjon().salles[donjon().salleActive];
@@ -98,7 +100,8 @@ function rendre() {
 
 function sauvegarder() {
   stockage.sauverDonjons(etat);
-  stockage.sauverReglages(r);
+  // Seulement ce qui a changé ici : un onglet resté ouvert n'écrase pas ce que la régie a réglé entre-temps (calibrage, rotation de la table…).
+  if (stockage.enregistrerReglages(reglagesLus, r).ok) reglagesLus = { ...r };
 }
 
 /** Analyse le texte de la salle affichée et met à jour la carte et le retour « compris / ignoré ». */

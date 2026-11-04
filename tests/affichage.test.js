@@ -8,7 +8,7 @@ import {
   ROTATIONS_TABLE, caseMmValide, ajusterTaille, carteDeCalibrage, transformOrientation, versCarte,
   tailleReglable, tailleRemplir, tailleTable, modeTableDefaut, modeTable, affichageDeReglages, validerAffichage, tailleQuiTientPlan, tailleCanvasBornee, CANVAS_COTE_MAX, CANVAS_SURFACE_MAX,
 } from '../js/affichage.js';
-import { chargerReglages, fusionnerReglages, CLE_REGLAGES } from '../js/stockage.js';
+import { chargerReglages, fusionnerReglages, enregistrerReglages, CLE_REGLAGES } from '../js/stockage.js';
 import { dessiner } from '../js/rendu/moteur.js';
 import { tailleQuiTient } from '../js/telephone.js';
 import { analyser } from '../js/parseur/index.js';
@@ -89,6 +89,13 @@ const TESTS = (pages) => [
     egal(fusionnerReglages({ taille: 60, grille: false, inconnu: 1 }, { taille: 40, grille: true, miniTable: false }, { taille: 40, grille: true, reperes: false }), { taille: 60, grille: false, inconnu: 1, reperes: false }, 'seul ce qui a changé ici est repris');
     egal(fusionnerReglages({ taille: 60, miniTable: false }, { taille: 40, miniTable: false }, { taille: 40 }), { taille: 60 }, 'une valeur retirée ici disparaît');
     egal(fusionnerReglages({ taille: 60 }, { taille: 40 }, { taille: 40 }), { taille: 60 }, 'rien de changé ici : ce qui est enregistré reste');
+    const stock = fauxStock({ [CLE_REGLAGES]: JSON.stringify({ echelle: 1.5, taille: 60, grille: true, rotationTable: 90, caseMm: 30 }) });
+    const vieux = { echelle: 1.5, taille: 48, grille: true };
+    egal(enregistrerReglages(vieux, { ...vieux }, stock).ok, true, 'rien de changé ici : rien à écrire');
+    egal(chargerReglages(stock).taille, 60, 'et la taille réglée ailleurs reste');
+    verifier(enregistrerReglages(vieux, { ...vieux, grille: false }, stock).ok, 'écriture');
+    egal(chargerReglages(stock), { echelle: 1.5, taille: 60, grille: false, rotationTable: 90, caseMm: 30 }, 'un onglet en retard n’écrit que ce qu’il a changé');
+    verifier(!enregistrerReglages(vieux, { ...vieux, grille: true, taille: 80 }, { getItem: () => null, setItem() { throw new Error('plein'); } }).ok, 'écriture refusée : on le sait');
     egal(reglagesDe({}), { echelle: ECHELLE_PAR_DEFAUT, taille: TAILLE_PAR_DEFAUT, grille: true }, 'défauts');
     egal([15, 16, 160, 161, 0, -3].map((taille) => reglagesDe({ taille }).taille), [48, 16, 160, 48, 48, 48], 'bornes');
     egal(reglagesDe({ taille: '60' }).taille, 60, 'un texte numérique est relu (le stockage convertit, contrairement au message de la table)');

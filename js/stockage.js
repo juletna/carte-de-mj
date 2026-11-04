@@ -78,6 +78,12 @@ export function fusionnerReglages(enregistres, avant, apres) {
   }
   return res;
 }
+/** Enregistre seulement ce qui a changé ici : voir fusionnerReglages. `ok` faux si l'écriture a échoué. @returns {{reglages:object, ok:boolean}} */
+export function enregistrerReglages(avant, apres, stock = stockParDefaut()) {
+  const enregistres = chargerReglages(stock);
+  const reglages = fusionnerReglages(enregistres, avant, apres);
+  return { reglages, ok: JSON.stringify(reglages) === JSON.stringify(enregistres) || sauverReglages(reglages, stock) };
+}
 
 // --- Migration et mise de côté ---------------------------------------------------------
 

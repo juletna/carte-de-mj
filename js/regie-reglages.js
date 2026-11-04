@@ -18,9 +18,7 @@ export function creerReglages(ctx) {
   let lu;
   function sauverReglages() {
     if (commande.retrait) return;
-    const enregistres = stockage.chargerReglages();
-    const frais = stockage.fusionnerReglages(enregistres, lu, r);
-    if (JSON.stringify(frais) !== JSON.stringify(enregistres)) stockage.sauverReglages(frais);
+    const frais = stockage.enregistrerReglages(lu, r).reglages;
     for (const cle of Object.keys(r)) delete r[cle];
     Object.assign(r, frais);
     majControles();
