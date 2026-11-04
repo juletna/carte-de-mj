@@ -226,6 +226,19 @@
         <summary><h2>Personnages</h2></summary>
         <ul id="personnages-liste" class="fiches"></ul>
         <p id="personnages-vide" class="note" hidden>Aucun personnage : ajoute des fiches dans le Donjon, outil « Personnages », et elles apparaîtront ici. Les joueurs sans fiche s’indiquent en lançant la partie.</p>
+        <details class="ajout-joueur">
+          <summary>Ajouter un joueur en cours de partie</summary>
+          <form id="form-ajout-joueur" class="nouvelle-salle" autocomplete="off">
+            <label for="ajout-nom">Nom</label>
+            <input id="ajout-nom" type="text" maxlength="80" placeholder="Joueur suivant">
+            <label for="ajout-race">Race</label>
+            <input id="ajout-race" type="text" maxlength="80">
+            <label for="ajout-classe">Classe</label>
+            <input id="ajout-classe" type="text" maxlength="80">
+            <div class="actions"><button type="submit">Ajouter et poser dans cette salle</button></div>
+            <p class="note">Sans fiche : rien n’est obligatoire. Son pion est posé dans la salle que tu regardes.</p>
+          </form>
+        </details>
       </details>
 
       <details class="bloc">

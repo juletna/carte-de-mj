@@ -128,6 +128,9 @@ body.presentation a { color: var(--accent); }
 .nouvelle-salle label { font-weight: 600; }
 .nouvelle-salle input[type="text"], .nouvelle-salle textarea { width: 100%; background: var(--champ); color: var(--texte); border: 1px solid var(--bord); border-radius: var(--rayon); padding: 8px 10px; font: inherit; }
 
+.ajout-joueur { margin-top: 8px; font-size: 14px; }
+.ajout-joueur .nouvelle-salle { margin-top: 6px; }
+
 .reglage-pv { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; flex: 1 1 100%; }
 .reglage-pv input { width: 72px; min-height: var(--cible); background: var(--panneau); color: var(--texte); border: 1px solid var(--bord); border-radius: var(--rayon); padding: 6px 8px; font: inherit; }
 

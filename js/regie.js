@@ -489,6 +489,21 @@ export function demarrerRegie() {
       ...joueurs.map((joueur) => carte(joueur.id, (actions, mention) => carteJoueur(joueur, actions, mention))));
   }
 
+  // Retardataire : le formulaire est dans la page (hors de #personnages-liste), donc majPersonnages ne l'efface jamais et la saisie survit aux rafraîchissements.
+  $('form-ajout-joueur').addEventListener('submit', (e) => {
+    e.preventDefault();
+    if (!etat.p) return;
+    const champs = ['nom', 'race', 'classe'].map((c) => $(`ajout-${c}`));
+    const res = pres.ajouterRetardataire(etat.p, etat.consultee, { nom: champs[0].value, race: champs[1].value, classe: champs[2].value });
+    if (!res.ok) { annoncer(res.message); return; }
+    for (const c of champs) c.value = '';
+    etat.message = res.pose.ok
+      ? `${res.nom} rejoint la partie : pion posé dans « ${salleConsultee().nom} ». Glisse-le sur la carte pour le déplacer.`
+      : `${res.nom} rejoint la partie, sans pion. ${res.pose.message} Pose-le depuis sa carte, dans une autre salle.`;
+    modifie();
+    champs[0].focus({ preventScroll: true });
+  });
+
   function majMiniCarte() {
     const p = etat.p;
     majMiniPlan({

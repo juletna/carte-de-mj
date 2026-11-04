@@ -13,7 +13,7 @@ import { surLeSol } from './formes.js';
 import { ancragePorte } from './rendu/geometrie.js';
 import { seChevauchent } from './pose.js';
 import { estRevele } from './vue-publique.js';
-import { tousLesElements, afficherATable, revelerElement, recacherElement, nomPersonnage, pionDuPersonnage } from './partie.js';
+import { tousLesElements, afficherATable, revelerElement, recacherElement, nomPersonnage, pionDuPersonnage, ajouterJoueurs } from './partie.js';
 
 // --- Passage d'une porte, le groupe suit -----------------------------------------------------------
 
@@ -165,6 +165,18 @@ export function creerSalleEtPasser(p, idSalle, idPorte, description, { nom, eche
   const c = creerSalleApresPorte(p, idSalle, idPorte, description, { nom, echelle });
   if (!c.ok) return c;
   return { ...passerPorte(p, idSalle, idPorte, { groupe }), salle: c.salle, ignores: c.ignores };
+}
+
+/**
+ * Un retardataire sans fiche en pleine partie : il est ajouté puis son pion est posé dans la salle donnée.
+ * Si la pose échoue (plus de place), le joueur reste ajouté, sans pion.
+ * @returns {{ok:false, message:string}|{ok:true, id:string, nom:string, pose:{ok:boolean, message?:string}}}
+ *   ok:false : le nombre maximal de personnages est atteint, rien n'est ajouté
+ */
+export function ajouterRetardataire(p, idSalle, ligne) {
+  const [id] = ajouterJoueurs(p, [{ nom: ligne?.nom, race: ligne?.race, classe: ligne?.classe }]);
+  if (!id) return { ok: false, message: 'La partie ne peut pas accueillir d’autre joueur.' };
+  return { ok: true, id, nom: nomPersonnage(p, id), pose: poserPersonnage(p, idSalle, id) };
 }
 
 /**

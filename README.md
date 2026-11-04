@@ -95,6 +95,8 @@ En régie, le bloc « Personnages » montre les mêmes fiches, et « Poser dans 
 
 **Jouer sans fiche :** quand une partie commence (« Présenter », « Recommencer »), la Présentation demande qui joue. Soit on coche des fiches du donjon, soit on indique un nombre de joueurs, puis le nom, la race et la classe de chacun (rien n'est obligatoire), soit on ne pose aucun pion. Les pions sont posés dans la première salle, numérotés P1, P2… dans l'ordre de saisie. Ces joueurs appartiennent à la partie et pas au donjon préparé, et aucune fiche n'est créée. En régie, ils sont dans le bloc « Personnages » et le pion sélectionné porte leur nom ; à la table, le pion reste « P1 », et ni le nom, ni la race, ni la classe n'y partent.
 
+**Un joueur qui arrive en cours de partie :** dans le bloc « Personnages » de la régie, le volet « Ajouter un joueur en cours de partie » prend un nom, une race et une classe (rien n'est obligatoire). Le joueur est ajouté sans fiche et son pion est posé dans la salle regardée, avec le numéro suivant ; s'il n'y a plus de place, il est ajouté quand même et se pose ensuite depuis sa carte. La partie en cours n'est pas touchée, et la saisie en cours résiste aux rafraîchissements de la régie.
+
 **Montrer une case aux joueurs :** en régie, un clic sur une case vide la met en surbrillance, ici et à la table ; un second clic ou Échap l'enlève, et elle s'efface quand un pion s'y pose. Glisser un pion le déplace, ceux des joueurs compris. À la souris, les mêmes gestes marchent sur l'écran de table (fenêtre table ou plein écran) : c'est la régie qui décide, et un doigt de joueur sur la carte ne déclenche rien.
 
 ## Formes de salle

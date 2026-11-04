@@ -231,6 +231,43 @@ const TESTS = [
     const [autre] = p.ajouterJoueurs(ancienne, [{ nom: 'Tard' }]);
     verifier(autre && p.nomPersonnage(ancienne, autre) === 'Tard', 'ajout sur une ancienne partie');
   }],
+  ['retardataire : ajouté en cours de partie, pion suivant posé dans la salle consultée, sans toucher au reste, relu après enregistrement', () => {
+    const d = m.creerDonjon({ texte: 'Salle de 6 par 6 cases, une porte au mur est en 3.' });
+    const a = d.salles[d.salleActive];
+    const b = m.ajouterSalle(d, { texte: 'Salle de 6 par 6 cases, une porte au mur ouest en 3.' });
+    m.relier(d, { salle: a.id, mur: 'est', position: 2 }, { salle: b.id, mur: 'ouest', position: 2 });
+    const pres = p.creerPresentation(d);
+    const [premier] = p.ajouterJoueurs(pres, [{ nom: 'Mira' }]);
+    p.poserAuDepart(pres, [premier]);
+    p.passerPorte(pres, a.id, pres.donjon.salles[a.id].plan.portes[0].id, { groupe: true });
+    const salle = pres.salleCourante;
+    const res = p.ajouterRetardataire(pres, b.id, { nom: '  Tard  ', race: 'Nain', classe: 'Clerc' });
+    verifier(res.ok && res.pose.ok, 'ajouté et posé');
+    egal(res.nom, 'Tard', 'nom nettoyé');
+    egal(pres.joueurs.map((j) => j.nom), ['Mira', 'Tard'], 'ajouté à la suite, le premier est intact');
+    egal(pres.salleCourante, salle, 'la partie n’a pas bougé');
+    egal(p.pionDuPersonnage(pres, premier)?.salle, b.id, 'le premier joueur est toujours là');
+    egal(p.pionDuPersonnage(pres, res.id).pion.numero, 2, 'numéro de pion suivant (P2)');
+    const relu = p.validerPresentation(JSON.parse(JSON.stringify(pres))).presentation;
+    egal(relu.joueurs, pres.joueurs, 'joueurs relus');
+    egal(p.pionDuPersonnage(relu, res.id)?.pion.numero, 2, 'pion relu');
+    const autre = p.ajouterRetardataire(pres, a.id, {});
+    egal(autre.nom, 'Joueur 3', 'nom vide : nom par défaut');
+    egal(p.pionDuPersonnage(pres, autre.id)?.salle, a.id, 'posé dans la salle demandée');
+    verifier(!p.ajouterRetardataire(pres, 'inconnue', { nom: 'X' }).pose.ok, 'salle inconnue : pose refusée');
+  }],
+  ['retardataire : sans place, il reste ajouté sans pion ; au maximum de joueurs, rien n’est ajouté', () => {
+    const d = m.creerDonjon({ texte: 'Salle de 1 par 1 cases, un gobelin en A1.' });
+    const pres = p.creerPresentation(d);
+    const res = p.ajouterRetardataire(pres, pres.salleCourante, { nom: 'Sans place' });
+    verifier(res.ok && !res.pose.ok && res.pose.message, 'ajouté, pose refusée avec un message');
+    egal(pres.joueurs.map((j) => j.nom), ['Sans place'], 'le joueur reste');
+    egal(p.pionDuPersonnage(pres, res.id), null, 'pas de pion');
+    const pleine = p.creerPresentation(donjon());
+    p.ajouterJoueurs(pleine, Array.from({ length: 30 }, (_, i) => ({ nom: `J${i}` })));
+    const refus = p.ajouterRetardataire(pleine, pleine.salleCourante, { nom: 'De trop' });
+    egal([refus.ok, pleine.joueurs.length], [false, 30], 'refusé au maximum');
+  }],
   ['poser au départ : les fiches choisies seulement ; sans place, le nom de ceux qui restent', () => {
     const d = donjon();
     ajouterPersonnage(d, resumerFiche(FICHE), 'loc1');
