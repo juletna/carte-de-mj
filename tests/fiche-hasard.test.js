@@ -58,6 +58,7 @@ const TESTS = [
       egal(f.prof, 2 + Math.floor((niveau - 1) / 4), `maîtrise, ${ou}`);
       egal(f.init, mod(f.stats.DEX), `initiative, ${ou}`);
       egal(f.hp, f.hpMax, `PV pleins, ${ou}`);
+      egal(f.edition, '2014', `tirage aux règles de 2014, ${ou}`);
       verifier(f.hpMax >= niveau, `PV ${f.hpMax}, ${ou}`);
       if (niveau === 1) egal(f.hpMax, Math.max(1, de + mod(f.stats.CON)), `PV au niveau 1, ${ou}`);
       egal(f.hd, { die: de, used: 0 }, `dé de vie, ${ou}`);

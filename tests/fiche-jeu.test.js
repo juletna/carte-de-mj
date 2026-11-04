@@ -3,7 +3,7 @@
  * Chaque fonction reçoit la fiche `S` en paramètre ; les dés sont imposés. Sans dépendance : marche sous Node et dans tests.html.
  */
 import { blank, sample } from '../js/fiche/base.js';
-import { skB, svB, hdLeft, hasHaste, fxOf, negFx, acTotal, baseSpeed, speedNow, hpMaxNow, effetsEpuisement, note, fxVal, manualFx, dropFx, d20, push, spend,
+import { skB, svB, hdLeft, hasHaste, fxOf, negFx, acTotal, baseSpeed, speedNow, hpMaxNow, effetsEpuisement, soinDV, dvRendus, changerEdition, note, fxVal, manualFx, dropFx, d20, push, spend,
   damage, heal, startTurn, addFx } from '../js/fiche/jeu.js';
 import { verifier, egal, executerSuite } from './mini-test.js';
 
@@ -13,6 +13,43 @@ const fiche = (extra = {}) => Object.assign(blank(), { stats: { FOR: 10, DEX: 16
 const fx = (extra) => ({ id: 'e' + Math.random(), n: 'Effet', sc: ['atk'], kind: 'flat', val: 1, dur: 'once', left: 1, ...extra });
 
 const TESTS = [
+  ['règles 2024 : épuisement linéaire, plafond de concentration, dés de vie', () => {
+    const S = fiche({ edition: '2024', speed: 9, exh: 2, hpMax: 30, hp: 30 });
+    egal(baseSpeed(S), 6, '−1,5 m par niveau');
+    egal(hpMaxNow(fiche({ edition: '2024', hpMax: 30, exh: 4 })), 30, 'PV max intacts');
+    const r = d20(S, 2, 'x', 'chk', impose([10, 1]));
+    egal([r.tot, r.nat, r.det], [8, 10, '10 +2 −4 épuisement'], '−2 par niveau, sans désavantage');
+    egal(effetsEpuisement(2, '2024'), ['−4 aux jets d20', 'vitesse −3 m'], 'les effets affichés');
+    egal(effetsEpuisement(1, '2024')[1], 'vitesse −1,5 m', 'avec une virgule');
+    egal(effetsEpuisement(6, '2024').at(-1), 'mort', 'la mort au niveau 6');
+    const C = fiche({ edition: '2024', hp: 99, hpMax: 99, conc: true }); damage(C, 90); egal(C.concDD, 30, 'DD 30 au plus');
+    const D = fiche({ edition: '2024', lvl: 5, stats: { FOR: 10, DEX: 10, CON: 6, INT: 10, SAG: 10, CHA: 10 } }); D.hd.used = 4;
+    egal([soinDV(D, 1), dvRendus(D)], [1, 4], 'au moins 1 PV par dé, tous les dés au repos long');
+  }],
+  ['règles 2014 : dés de vie', () => {
+    const S = fiche({ lvl: 5, stats: { FOR: 10, DEX: 10, CON: 6, INT: 10, SAG: 10, CHA: 10 } }); S.hd.used = 4;
+    egal([soinDV(S, 1), dvRendus(S)], [0, 2], '0 PV possible, la moitié des dés au repos long');
+    egal(dvRendus(fiche({ lvl: 1 })), 1, 'au moins un dé');
+  }],
+  ['règles libres : ni états ni épuisement, ni échec automatique, ni jet de concentration', () => {
+    const S = fiche({ edition: 'libre', speed: 9, exh: 5, conds: ['Entravé', 'Empoisonné'], hpMax: 30, hp: 30 });
+    egal([baseSpeed(S), hpMaxNow(S), effetsEpuisement(5, 'libre')], [9, 30, []], 'vitesse et PV intacts');
+    const r = d20(S, 0, 'x', 'atk', impose([10, 1]));
+    egal([r.nat, r.tot], [10, 10], 'un jet sans désavantage ni malus');
+    S.adv = 1; egal(d20(S, 0, 'x', 'atk', impose([1, 10])).nat, 10, 'l’avantage choisi par le joueur reste');
+    const Z = fiche({ edition: 'libre', hp: 0, hpMax: 10, conc: true }); egal([damage(Z, 5), Z.saves.f, Z.concDD], [null, 0, 0], 'les dégâts ne décident de rien');
+  }],
+  ['changer de règles : les potions de soins suivent, les autres réglages restent', () => {
+    const S = fiche({ hp: 30, hpMax: 30, exh: 4, edition: '2024' });
+    S.inv = [{ n: 'Potion de soins', type: 'soin', act: 'bonus' }, { n: 'Grande potion de soins', type: 'soin', act: 'action' }, { n: 'Potion de soins', type: 'soin', act: 'none' }, { n: 'Baume', type: 'soin', act: 'bonus' }];
+    changerEdition(S, '2014');
+    egal([S.edition, S.inv.map((i) => i.act)], ['2014', ['action', 'action', 'none', 'bonus']], 'vers 2014');
+    egal(S.hp, 15, 'les PV suivent le nouveau maximum');
+    changerEdition(S, 'libre'); egal(S.inv[0].act, 'action', 'le mode libre ne touche pas aux potions');
+    changerEdition(S, '2024'); egal(S.inv[0].act, 'bonus', 'vers 2024');
+    changerEdition(S, 'inconnue'); egal(S.edition, '2024', 'une édition inconnue ne change rien');
+    changerEdition(S, 'constructor'); egal(S.edition, '2024', 'ni un nom hérité de Object');
+  }],
   ['bonus de compétence et de sauvegarde : modificateur plus maîtrise (ou expertise)', () => {
     const S = fiche({ saveProf: ['DEX'], skills: { Discrétion: 1, Acrobaties: 2 } });
     egal([skB(S, 'Discrétion'), skB(S, 'Acrobaties'), skB(S, 'Athlétisme')], [5, 7, 0], 'compétences');

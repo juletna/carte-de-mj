@@ -24,6 +24,8 @@ const TESTS = [
     egal([f.nom, f.classe, f.niveau, f.pv, f.pvMax, f.ca, f.stats.DEX, f.etats], ['Elwyn', 'Rôdeur', 3, 20, 28, 15, 16, ['Empoisonné']], 'les champs');
     egal(resumerFiche({ ...FICHE, hp: 10, exh: 4 }).pvMax, 14, 'épuisement 4 : le résumé garde les PV max réduits');
     egal(resumerFiche(resumerFiche({ ...FICHE, hp: 10, exh: 4 })).pvMax, 14, 'relire un résumé ne les divise pas deux fois');
+    egal(resumerFiche({ ...FICHE, exh: 4, edition: '2024' }).pvMax, 28, 'en 2024, l’épuisement ne touche pas aux PV max');
+    egal(resumerFiche({ ...FICHE, exh: 4, edition: 'libre' }).pvMax, 28, 'en mode libre non plus');
     egal(f.attaques, [{ nom: 'Arc long', toucher: 7, degats: '1d8+3', note: '45 m' }], 'les attaques');
     egal(f.sac, [{ nom: 'Corde', quantite: 2 }], 'le sac');
     verifier(!JSON.stringify(f).includes('SECRET'), 'le journal du joueur ne vient pas');

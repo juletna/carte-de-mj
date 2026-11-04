@@ -5,7 +5,7 @@
  * La clé du navigateur et le format viennent de ./format.js, les caractéristiques de ./regles.js : le Donjon les lit au même endroit.
  */
 import { CLE_FICHES, CLE_FICHE_ANCIENNE } from './format.js';
-import { STATS } from './regles.js';
+import { STATS, EDITIONS, EDITION_PAR_DEFAUT, reglesDe } from './regles.js';
 
 export const SKILLS=[['Acrobaties','DEX'],['Arcanes','INT'],['Athlétisme','FOR'],['Discrétion','DEX'],['Dressage','SAG'],['Escamotage','DEX'],
  ['Histoire','INT'],['Intimidation','CHA'],['Intuition','SAG'],['Investigation','INT'],['Médecine','SAG'],['Nature','INT'],
@@ -24,9 +24,12 @@ export const PRESETS=[
  {n:'Hâte',sc:['ac'],kind:'flat',val:2,dur:'rounds',left:10,haste:true,note:'Vitesse ×2, action supplémentaire, avantage aux sauvegardes de DEX'},
  {n:'Sort Bouclier',sc:['ac'],kind:'flat',val:5,dur:'rounds',left:1},
  {n:'Marque du chasseur',sc:['dmg'],kind:'die',val:'1d6',dur:'conc',note:'Seulement contre la cible marquée'},
- {n:'Inspiration',sc:['atk','save','chk'],kind:'adv',dur:'once'},
+ {n:'Inspiration',sc:['atk','save','chk'],kind:'adv',dur:'once',edition:'2014'},
+ {n:'Inspiration héroïque',sc:['atk','save','chk'],kind:'reroll',dur:'once',edition:'2024'},
  {n:'Fléau',sc:['atk','save'],kind:'dieneg',val:'1d4',dur:'rounds',left:10},
 ];
+/* Un effet propre à une édition n'est proposé qu'avec elle ; en mode libre, tout est proposé. */
+export const presetDispo=(p,edition)=>!p.edition||edition==='libre'||p.edition===edition;
 /* Les types d'objet du sac. `ressource` : l'objet apparaît dans « Ressources » de l'écran Jeu ; `sansCout` : pas de « Coûte » (action) à régler. */
 export const TYPES_OBJET={
  objet:{nom:'Objet simple',sansCout:true},
@@ -43,7 +46,7 @@ export const KINDS=['Note','Idée','Quête','PNJ','Butin'];
 export const slots=a=>a.map(m=>({max:m,used:0}));
 export const freshTurn=()=>({action:false,bonus:false,react:false,obj:false,haste:false,move:0,dash:false});
 export const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
-export function sample(){return{example:true,name:'Elwyn Brisevent',guild:'',race:'Demi-elfe',cls:'Rôdeur',lvl:3,hpMax:28,hp:28,tmp:0,ac:15,speed:9,init:3,prof:2,
+export function sample(){return{example:true,edition:EDITION_PAR_DEFAUT,name:'Elwyn Brisevent',guild:'',race:'Demi-elfe',cls:'Rôdeur',lvl:3,hpMax:28,hp:28,tmp:0,ac:15,speed:9,init:3,prof:2,
  stats:{FOR:11,DEX:16,CON:13,INT:10,SAG:14,CHA:12},saves:{s:0,f:0},conds:[],exh:0,conc:false,
  saveProf:['FOR','DEX'],skills:{Perception:1,Discrétion:1,Survie:1},
  attacks:[{n:'Arc long',hit:7,dmg:'1d8+3',ammo:'Flèches',note:'45/180 m'},{n:'Épée courte',hit:5,dmg:'1d6+3',ammo:'',note:'Légère, finesse'}],
@@ -63,10 +66,11 @@ export function blank(){return Object.assign(sample(),{example:false,name:'Nouve
 /* Complète une fiche créée avec une version précédente (ou importée) */
 export function complete(o){const d=o.example?sample():blank();
  for(const k in d){const a=d[k];if(o[k]==null||(Array.isArray(a)?!Array.isArray(o[k]):typeof a==='object'?typeof o[k]!=='object'||Array.isArray(o[k]):typeof a!==typeof o[k]))o[k]=a}
+ if(!Object.hasOwn(EDITIONS,String(o.edition)))o.edition=EDITION_PAR_DEFAUT;
  STATS.forEach(s=>{if(!Number.isFinite(+o.stats[s]))o.stats[s]=10});
  ['attacks','res','ammo','inv','log','fx','slots'].forEach(k=>o[k]=o[k].filter(x=>x&&typeof x==='object'));
  if(o.slots.length!==9)o.slots=d.slots;
- o.inv.forEach(it=>{if(!it.type){if(/potion de soins/i.test(it.n)){it.type='soin';it.dice='2d4+2';it.act='action'}else it.type='objet'}});
+ o.inv.forEach(it=>{if(!it.type){if(/potion de soins/i.test(it.n)){it.type='soin';it.dice='2d4+2';it.act=reglesDe(o.edition).potion||'action'}else it.type='objet'}});
  o.sheet=null;return o}
 
 /* État d'interface d'une fiche (feuille ouverte, pavé, objet déplié…) : remis à zéro quand on change de personnage, hors de l'empreinte. L'onglet (`tab`) s'y ajoute. */

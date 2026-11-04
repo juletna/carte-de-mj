@@ -15,7 +15,7 @@ Chaque outil est complet seul : il a ses propres données (dans le navigateur) e
 
 | Outil | Adresse | Pour qui |
 |---|---|---|
-| Fiche (`fiche.html`) | <http://localhost:8765/fiche.html> | un joueur, sur son téléphone : jets, PV, sac, journal. Plusieurs personnages par navigateur (changer ou créer depuis le nom, en haut), suppression annulable quelques secondes, export et import en JSON. Le bonus de maîtrise suit le niveau tant qu'il n'a pas été saisi à la main. Les règles automatiques suivent D&D 2014 (épuisement par paliers, potion de soins en action, Inspiration qui donne l'avantage) |
+| Fiche (`fiche.html`) | <http://localhost:8765/fiche.html> | un joueur, sur son téléphone : jets, PV, sac, journal. Plusieurs personnages par navigateur (changer ou créer depuis le nom, en haut), suppression annulable quelques secondes, export et import en JSON. Le bonus de maîtrise suit le niveau tant qu'il n'a pas été saisi à la main. Chaque fiche choisit ses règles : D&D 2014 (par défaut), D&D 2024 ou Libre, où la Fiche n'applique ni les états ni l'épuisement. Ce qui diffère est rangé dans une seule table (`EDITIONS`, `js/fiche/regles.js`) ; le tirage au hasard reste en 2014 |
 | Donjon (`donjon.html`) | <http://localhost:8765/donjon.html> | le MJ, qui prépare ses salles et les relie (voir la section Donjon) |
 | Présentation (`presentation.html`) | <http://localhost:8765/presentation.html> | le MJ à la table : ouvre un donjon déjà prêt, régie pour lui, carte en grand pour les joueurs (voir la section Présentation) |
 

@@ -2,7 +2,7 @@
  * Tests des données de la Fiche (js/fiche/base.js) : listes, types d'objet, remise à niveau d'une fiche, empreinte, chargement de la base du navigateur.
  * Sans dépendance : marche sous Node et dans tests.html.
  */
-import { SKILLS, CONDS, COND_ADV, PRESETS, SCOPES, TYPES_OBJET, ITYPES, ACT_L, ETAT_INTERFACE, snapP, sample, blank, complete, chargerBase, slots, freshTurn } from '../js/fiche/base.js';
+import { SKILLS, CONDS, COND_ADV, PRESETS, presetDispo, SCOPES, TYPES_OBJET, ITYPES, ACT_L, ETAT_INTERFACE, snapP, sample, blank, complete, chargerBase, slots, freshTurn } from '../js/fiche/base.js';
 import { CLE_FICHES, CLE_FICHE_ANCIENNE } from '../js/fiche/format.js';
 import { STATS } from '../js/fiche/regles.js';
 import { verifier, egal, executerSuite } from './mini-test.js';
@@ -40,6 +40,14 @@ const TESTS = [
     const f = complete({ example: false, name: 'Brann', lvl: 4, stats: { FOR: 'x', DEX: 14 }, inv: [{ n: 'Potion de soins', q: 1 }, null, 3, { n: 'Corde', q: 1, type: 'objet' }], slots: [1, 2], sheet: 'hp', rolls: 5, log: [null, { x: 'ok' }] });
     egal([f.name, f.lvl, f.stats.DEX, f.stats.FOR, f.stats.INT], ['Brann', 4, 14, 10, 10], 'ce qui est bon reste, le reste est complété');
     egal(f.inv, [{ n: 'Potion de soins', q: 1, type: 'soin', dice: '2d4+2', act: 'action' }, { n: 'Corde', q: 1, type: 'objet' }], 'les entrées illisibles du sac sont écartées, la potion reconnue');
+    egal(f.edition, '2014', 'une fiche sans règles suit 2014');
+    egal(complete({ example: false, edition: 'autre', stats: {} }).edition, '2014', 'des règles inconnues aussi');
+    egal(complete({ example: false, edition: 'constructor', stats: {} }).edition, '2014', 'même un nom hérité de Object');
+    const f24 = complete({ example: false, edition: '2024', stats: {}, inv: [{ n: 'Potion de soins', q: 1 }] });
+    egal([f24.edition, f24.inv[0].act], ['2024', 'bonus'], 'une fiche 2024 garde ses règles, la potion reconnue les suit');
+    egal(PRESETS.filter((p) => presetDispo(p, '2014') && /Inspiration( héroïque)?$/.test(p.n)).map((p) => p.kind), ['adv'], 'en 2014, l’Inspiration donne l’avantage');
+    egal(PRESETS.filter((p) => presetDispo(p, '2024') && /Inspiration( héroïque)?$/.test(p.n)).map((p) => p.kind), ['reroll'], 'en 2024, elle relance');
+    egal(PRESETS.filter((p) => presetDispo(p, 'libre')).length, PRESETS.length, 'en mode libre, tout est proposé');
     egal([f.slots.length, f.sheet, Array.isArray(f.rolls)], [9, null, true], 'emplacements refaits, feuille fermée, jets en liste');
     egal(f.log, [{ x: 'ok' }], 'journal filtré');
     const ex = complete({ example: true, stats: {} });

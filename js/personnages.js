@@ -37,7 +37,7 @@ export function resumerFiche(brut) {
   return {
     nom: texte(brut.name ?? brut.nom).trim() || 'Personnage',
     race: texte(brut.race), classe: texte(brut.cls ?? brut.classe), niveau: nombre(brut.lvl ?? brut.niveau, 1),
-    pv: nombre(brut.hp ?? brut.pv), pvMax: pvMaxEpuise(nombre(brut.hpMax ?? brut.pvMax), nombre(brut.exh)), pvTemp: nombre(brut.tmp ?? brut.pvTemp),
+    pv: nombre(brut.hp ?? brut.pv), pvMax: pvMaxEpuise(nombre(brut.hpMax ?? brut.pvMax), nombre(brut.exh), brut.edition), pvTemp: nombre(brut.tmp ?? brut.pvTemp),
     ca: nombre(brut.ac ?? brut.ca, 10) + bonusEquipe(brut.inv), vitesse: nombre(brut.speed ?? brut.vitesse), initiative: nombre(brut.init ?? brut.initiative),
     stats: Object.fromEntries(STATS.map((s) => [s, nombre(brut.stats[s], 10)])),
     etats: (Array.isArray(brut.conds ?? brut.etats) ? brut.conds ?? brut.etats : []).map((c) => texte(c)).filter(Boolean).slice(0, MAX_LISTE),

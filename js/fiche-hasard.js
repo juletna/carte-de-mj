@@ -5,7 +5,7 @@
  *
  * Il sert à deux endroits : le Donjon (qui en garde le résumé de personnages.js) et la Fiche (qui les enregistre telles quelles).
  *
- * Règles de construction, inspirées de la 5e édition :
+ * Règles de construction, inspirées de la 5e édition, version 2014 (les fiches tirées sont réglées sur « 2014 ») :
  *  - caractéristiques : 4d6 sans le plus bas, rangées selon les priorités de la classe, puis bonus de race et, aux niveaux 4, 8, 12, 16 et 19,
  *    +2 à la caractéristique principale (20 au plus) ;
  *  - PV : le dé de vie entier au niveau 1, sa moyenne ensuite ; bonus de maîtrise, attaques et emplacements de sorts suivent le niveau ;
@@ -175,7 +175,7 @@ function ficheComplete(classe, race, nom, lvl, alea) {
     return { n: a.n, hit: prof + bonus, dmg: degats, ammo: a.ammo || '', note: a.note || '' };
   });
   return {
-    example: false, name: nom, guild: '', race: race.nom, cls: classe.nom, lvl, hpMax, hp: hpMax, tmp: 0,
+    example: false, edition: '2014', name: nom, guild: '', race: race.nom, cls: classe.nom, lvl, hpMax, hp: hpMax, tmp: 0,
     ac: classe.ca(m), speed: race.vitesse, init: m.DEX, prof, stats, saves: { s: 0, f: 0 }, conds: [], exh: 0, conc: false,
     saveProf: [...classe.sauvegardes],
     skills: Object.fromEntries(melanger(classe.competences, alea).slice(0, classe.nbCompetences).map((c) => [c, 1])),

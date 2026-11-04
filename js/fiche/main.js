@@ -9,10 +9,11 @@
  */
 import { CLE_FICHES, FORMAT_FICHE, VERSION_FICHE } from './format.js';
 import { STATS } from './regles.js';
+import { EDITIONS, reglesDe } from './regles.js';
 import { rnd, mod, sg, profFor, rollExpr } from './des.js';
-import { SKILLS, CONDS, SCOPES, KINDS_FX, PRESETS, TYPES_OBJET, ITYPES, IACTS, ACT_L, KINDS, freshTurn, uid, sample, blank, complete,
+import { SKILLS, CONDS, SCOPES, KINDS_FX, PRESETS, presetDispo, TYPES_OBJET, ITYPES, IACTS, ACT_L, KINDS, freshTurn, uid, sample, blank, complete,
   ETAT_INTERFACE, snapP, chargerBase } from './base.js';
-import { skB, svB, hdLeft, hasHaste, fxOf, negFx, acTotal, speedNow, hpMaxNow, effetsEpuisement, note, fxVal, manualFx, dropFx, d20, push, spend,
+import { skB, svB, hdLeft, hasHaste, fxOf, negFx, acTotal, speedNow, hpMaxNow, effetsEpuisement, soinDV, dvRendus, changerEdition, note, fxVal, manualFx, dropFx, d20, push, spend,
   damage, heal, startTurn, addFx } from './jeu.js';
 
 /* Plusieurs personnages : { actif:id, persos:{id:fiche} } (js/fiche/base.js). */
@@ -184,6 +185,8 @@ function vFiche(){
   ${fld('Guilde','guild',S.guild||'')}
   <div class="grid2">${fld('Classe','cls',S.cls)}${fld('Race / espèce','race',S.race)}</div>
   <div class="grid2">${fld('Niveau','lvl',S.lvl,'number')}${fld('Bonus de maîtrise','prof',S.prof,'number')}</div>
+  ${sel('Règles','edition',S.edition,Object.entries(EDITIONS).map(([e,r])=>[e,r.nom]))}
+  <small class="muted">Elles changent l'épuisement, la potion de soins, l'Inspiration, la concentration et les dés de vie. Le tirage au hasard reste en 2014.</small>
  </section>
  <section class="card"><h2>Combat</h2>
   <div class="grid2">${fld('PV max','hpMax',S.hpMax,'number')}${fld('PV actuels','hp',S.hp,'number')}</div>
@@ -293,6 +296,7 @@ function vTirage(){if(!tirage.ouvert||!H)return'';
   <label class="field"><span class="lbl">Race / espèce</span><select id="tg_race">${opts(H.RACES,tirage.race)}</select></label></div>
   <div class="grid2"><label class="field"><span class="lbl">Niveau</span><input id="tg_niveau" type="number" inputmode="numeric" min="${H.BORNES.niveau[1]}" max="${H.BORNES.niveau[2]}" value="${esc(tirage.niveau)}"></label>
   <label class="field"><span class="lbl">Numéro de tirage</span><input id="tg_graine" type="number" inputmode="numeric" min="1" max="${H.GRAINE_MAX}" placeholder="Vide : un nouveau" value="${esc(tirage.graine)}"></label></div>
+  <small class="muted">Tirage aux règles de D&amp;D 2014.</small>
   <button class="primary" data-a="tgo">Générer</button>
   ${tirage.msg?`<small class="muted" role="status">${esc(tirage.msg)}</small>`:''}
  </div>`}
@@ -312,7 +316,7 @@ function vSheetAdd(){
    <button class="x" data-a="fxdel" data-id="${f.id}" aria-label="Retirer ${esc(f.n)}">✕</button><small>${esc(fxSummary(f))}${f.note?' · '+esc(f.note):''}</small></div>`).join('')}`:''}
  <span class="lbl">Ajouter un effet</span>
  <input id="fx_src" data-f="fxSrc" value="${esc(S.fxSrc)}" placeholder="De la part de (facultatif)" aria-label="De la part de">
- <div class="presets">${PRESETS.map((p,i)=>`<button class="${['dieneg','dis'].includes(p.kind)?'neg':''}" data-a="fxpre" data-i="${i}">${p.n}</button>`).join('')}
+ <div class="presets">${PRESETS.map((p,i)=>presetDispo(p,S.edition)?`<button class="${['dieneg','dis'].includes(p.kind)?'neg':''}" data-a="fxpre" data-i="${i}">${p.n}</button>`:'').join('')}
   <button data-a="custom" aria-expanded="${S.showCustom}">${S.showCustom?'− Personnalisé':'+ Personnalisé'}</button></div>
  ${S.showCustom?`<div class="edit">
   <input id="fx_n" data-f="fxD.n" value="${esc(D.n)}" placeholder="Nom de l'effet" aria-label="Nom de l'effet">
@@ -324,9 +328,9 @@ function vSheetAdd(){
  <span class="lbl">États</span>
  <div class="chips">${CONDS.map(c=>`<button class="chip ${S.conds.includes(c)?'on':''}" data-a="cond" data-n="${c}">${c}</button>`).join('')}
   <button class="chip ${S.conc?'on':''}" data-a="conc">Concentration</button></div>
- <div class="spread"><span><span class="lbl">Épuisement</span><br><small class="muted">${S.exh?effetsEpuisement(S.exh).join(' · '):'Les effets s’ajoutent à chaque niveau'}</small></span>
+ <div class="spread"><span><span class="lbl">Épuisement</span><br><small class="muted">${reglesDe(S.edition).epuisement?(S.exh?effetsEpuisement(S.exh,S.edition).join(' · '):'Les effets s’ajoutent à chaque niveau'):'Aucun effet automatique'}</small></span>
   <div class="step"><button data-a="exh" data-v="-1">−</button><b>${S.exh}</b><button data-a="exh" data-v="1">+</button></div></div>
- <small class="muted">Les états à avantage ou désavantage (Empoisonné, À terre, Invisible…) s'appliquent tout seuls à tes jets.</small>
+ <small class="muted">${reglesDe(S.edition).auto?'Les états à avantage ou désavantage (Empoisonné, À terre, Invisible…) s\'appliquent tout seuls à tes jets.':'Règles libres : les états servent de pense-bête et ne changent aucun jet.'}</small>
  <button class="primary" data-a="close">Terminé</button>`;
 }
 
@@ -417,12 +421,12 @@ document.addEventListener('click',e=>{
   case 'res':{const r=S.res[i],j=+t.dataset.j;r.used=j>=r.used?j+1:j;break}
   case 'cond':{const n=t.dataset.n;S.conds=S.conds.includes(n)?S.conds.filter(c=>c!==n):[...S.conds,n];break}
   case 'conc':S.conc=!S.conc;if(!S.conc)S.concDD=0;break;
-  case 'exh':S.exh=Math.max(0,Math.min(6,S.exh+v));S.hp=Math.min(S.hp,hpMaxNow(S));if(S.exh===6&&v>0)toast('Épuisement 6 : le personnage meurt');break;
-  case 'hd':{if(!hdLeft(S))return;const r=rnd(S.hd.die),c=mod(S.stats.CON),g=Math.max(0,r+c);S.hd.used++;heal(S,g);
+  case 'exh':S.exh=Math.max(0,Math.min(6,S.exh+v));S.hp=Math.min(S.hp,hpMaxNow(S));if(S.exh===6&&v>0&&reglesDe(S.edition).epuisement)toast('Épuisement 6 : le personnage meurt');break;
+  case 'hd':{if(!hdLeft(S))return;const r=rnd(S.hd.die),c=mod(S.stats.CON),g=soinDV(S,r);S.hd.used++;heal(S,g);
    push(S,{t:Date.now(),l:'Dé de vie',tot:g,det:`${r} ${sg(c)} PV rendus`});break}
   case 'short':S.res.forEach(r=>{if(r.rest==='court')r.used=0});note(S,'Note','Repos court');toast('Repos court : capacités « court » rechargées');break;
-  case 'long':S.exh=Math.max(0,S.exh-1);S.hp=hpMaxNow(S);S.tmp=0;S.saves={s:0,f:0};S.slots.forEach(s=>s.used=0);S.res.forEach(r=>r.used=0);
-   S.hd.used=Math.max(0,S.hd.used-Math.max(1,Math.floor(S.lvl/2)));note(S,'Note','Repos long');toast('Repos long : PV, sorts et capacités restaurés');break;
+  case 'long':if(reglesDe(S.edition).auto)S.exh=Math.max(0,S.exh-1);S.hp=hpMaxNow(S);S.tmp=0;S.saves={s:0,f:0};S.slots.forEach(s=>s.used=0);S.res.forEach(r=>r.used=0);
+   S.hd.used=Math.max(0,S.hd.used-dvRendus(S));note(S,'Note','Repos long');toast('Repos long : PV, sorts et capacités restaurés');break;
   case 'skill':{const n=t.dataset.n;push(S,d20(S,skB(S,n),n,'chk'));break}
   case 'save':{const s=t.dataset.s;push(S,d20(S,svB(S,s),`Sauvegarde ${s}`,'save'));break}
   case 'chk':{const s=t.dataset.s;push(S,d20(S,mod(S.stats[s]),`Test ${s}`,'chk'));break}
@@ -504,9 +508,10 @@ document.addEventListener('change',e=>{
   if(p[1]==='kind'||p[1]==='dur')render();else save();return}
  if(k==='inv'){const it=S.inv[+p[1]];if(!it)return;const fk=p[2];
   if(['ch','chMax','acb'].includes(fk))it[fk]=num;else it[fk]=raw.trim();
-  if(fk==='type'){if(raw==='soin'&&!it.dice){it.dice='2d4+2';it.act=it.act||'bonus'}if(raw==='charges'&&!it.chMax){it.chMax=3;it.ch=3}}
+  if(fk==='type'){if(raw==='soin'&&!it.dice){it.dice='2d4+2';it.act=it.act||reglesDe(S.edition).potion||'action'}if(raw==='charges'&&!it.chMax){it.chMax=3;it.ch=3}}
   render();return}
  if(k==='stats'){S.stats[p[1]]=num;const m=document.getElementById('m_'+p[1]);if(m)m.textContent=sg(mod(num))}
+ else if(k==='edition')changerEdition(S,raw);
  else if(k==='coins')S.coins[p[1]]=Math.max(0,num);
  else if(k==='slots'){const s=S.slots[+p[1]];s.max=Math.max(0,Math.min(9,num));s.used=Math.min(s.used,s.max)}
  else if(k==='hd')S.hd.die=num||8;
