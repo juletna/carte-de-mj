@@ -322,7 +322,8 @@ const TESTS_PRESENTATION = [
     egal(misDeCote(stock).length, 1, 'enregistrer ou recharger encore : pas de doublon');
     // Le même original relu depuis un autre chargement (autre onglet) n'est pas recopié non plus.
     stock.donnees[CLE_PRESENTATIONS] = avant;
-    egal(mettreDeCotePresentations(stock), { nombre: 1, ok: true }, 'signalé de nouveau');
+    egal(mettreDeCotePresentations(stock), { nombre: 1, ok: true, nouvelle: false }, 'encore là, mais rien de nouveau à dire au MJ');
+    egal(mettreDeCotePresentations(fauxStock({ [CLE_PRESENTATIONS]: avant })), { nombre: 1, ok: true, nouvelle: true }, 'la première copie, elle, est à dire');
     egal(misDeCote(stock).length, 1, 'mais déjà copié');
   }],
 
@@ -372,7 +373,7 @@ const TESTS_PRESENTATION = [
     const abimee = { ...pres, donjon: { ...pres.donjon, personnages: 'tous' } };
     const original = JSON.stringify({ presentations: { [d.id]: abimee } });
     const plein = stockPlein({ [CLE_PRESENTATIONS]: original }, [CLE_MIS_DE_COTE, CLE_PRESENTATIONS]);
-    egal(mettreDeCotePresentations(plein), { nombre: 1, ok: false }, 'l’échec est signalé');
+    egal(mettreDeCotePresentations(plein), { nombre: 1, ok: false, nouvelle: false }, 'l’échec est signalé');
     egal([enregistrerPartie(pres, plein), supprimerPartie(d.id, plein), plein.donnees[CLE_PRESENTATIONS] === original], [false, false, true], 'ni enregistrement ni suppression');
     const secoursAbime = fauxStock({ [CLE_PRESENTATIONS]: original, [CLE_MIS_DE_COTE]: '{pas du json' });
     egal([mettreDeCotePresentations(secoursAbime)?.ok, enregistrerPartie(pres, secoursAbime), secoursAbime.donnees[CLE_PRESENTATIONS] === original, secoursAbime.donnees[CLE_MIS_DE_COTE]], [false, false, true, '{pas du json'], 'secours abîmé : on n’y touche pas');
