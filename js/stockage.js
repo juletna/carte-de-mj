@@ -69,6 +69,15 @@ export function chargerReglages(stock = stockParDefaut()) {
   };
 }
 export const sauverReglages = (reglages, stock = stockParDefaut()) => ecrireJson(stock, CLE_REGLAGES, reglages);
+/** Ce qui est enregistré, plus ce qui a changé ici entre `avant` et `apres` : un autre onglet a pu régler autre chose entre-temps. */
+export function fusionnerReglages(enregistres, avant, apres) {
+  const res = { ...enregistres };
+  for (const cle of new Set([...Object.keys(avant), ...Object.keys(apres)])) {
+    if (avant[cle] === apres[cle]) continue;
+    if (cle in apres) res[cle] = apres[cle]; else delete res[cle];
+  }
+  return res;
+}
 
 // --- Migration et mise de côté ---------------------------------------------------------
 

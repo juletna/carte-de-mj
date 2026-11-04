@@ -139,6 +139,7 @@ export function demarrerRegie() {
   function prendreLaMain() {
     canal?.postMessage(table.prendreMain(commande, Date.now()));
     stockage.oublierRetrait();
+    reglages.sauver(); // ce qui a été réglé en retrait, et ce que l'autre régie a réglé entre-temps
   }
   window.addEventListener('pagehide', () => {
     const depart = table.messageDepart(commande);
@@ -602,7 +603,7 @@ export function demarrerRegie() {
   const ctx = { etat, r, commande, annoncer, rendre, modifie, salleCourante, salleConsultee, entrer, viderSauvegarde, noterRetrait, quitterPleinIci, diffuser, montrerIci };
   const depart = creerDepart(ctx);
   const selection = creerSelection(ctx);
-  creerReglages(ctx);
+  const reglages = creerReglages(ctx);
   let minuterie;
   window.addEventListener('resize', () => { clearTimeout(minuterie); minuterie = setTimeout(() => { if (etat.p) rendre(); }, 150); });
   // Écran étroit : onglets Carte / Actions ; la carte est redessinée à la taille qui tient quand on l'affiche.

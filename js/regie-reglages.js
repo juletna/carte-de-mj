@@ -1,25 +1,46 @@
 /**
  * Les réglages de la régie (partagés avec le Donjon : carte-de-mj:reglages-v1) : taille de case, grille, repères, mini-carte et
  * mode de la table, adaptation de la carte de la régie à la fenêtre. Fabrique `creerReglages(ctx)` ; `ctx` est celui de regie.js
- * (`etat`, `r`, `rendre`, `diffuser`, `montrerIci`), lu au moment de l'appel.
+ * (`etat`, `r`, `commande`, `rendre`, `diffuser`, `montrerIci`), lu au moment de l'appel. Renvoie `sauver` (à rappeler quand la régie reprend la main).
+ *
+ * Plusieurs régies peuvent être ouvertes : en retrait, un réglage reste propre à cet onglet, rien n'est enregistré. La régie qui a la main n'écrit
+ * que ce qu'elle a changé elle-même (depuis `lu`), sur ce qui est enregistré à cet instant, et reprend ce que les autres ont réglé.
  */
 import * as stockage from './stockage.js';
 import { modeTable, ajusterTaille, caseMmValide, CASE_MM_PAR_DEFAUT } from './affichage.js';
 import { $ } from './dom.js';
 
 export function creerReglages(ctx) {
-  const { etat, r } = ctx;
+  const { etat, r, commande } = ctx;
   const rendre = () => ctx.rendre();
   const diffuser = () => ctx.diffuser();
   const montrerIci = () => ctx.montrerIci();
-  const sauverReglages = () => stockage.sauverReglages(r);
+  let lu;
+  function sauverReglages() {
+    if (commande.retrait) return;
+    const enregistres = stockage.chargerReglages();
+    const frais = stockage.fusionnerReglages(enregistres, lu, r);
+    if (JSON.stringify(frais) !== JSON.stringify(enregistres)) stockage.sauverReglages(frais);
+    for (const cle of Object.keys(r)) delete r[cle];
+    Object.assign(r, frais);
+    majControles();
+  }
 
   // --- Réglages (partagés avec le Donjon : carte-de-mj:reglages-v1) ------------------------------------
-  if (r.reperes === undefined) r.reperes = true;
-  $('grille').checked = r.grille;
-  $('reperes').checked = r.reperes !== false;
+  /** Les contrôles montrent `r`, et `lu` retient ce qui est enregistré : la prochaine différence sera un changement fait ici. */
+  function majControles() {
+    if (r.reperes === undefined) r.reperes = true;
+    lu = { ...r };
+    $('grille').checked = r.grille;
+    $('reperes').checked = r.reperes !== false;
+    $('mini-active').checked = r.miniTable !== false;
+    majModeTable();
+    majTaille();
+    $('rotation-table').value = String(r.rotationTable || 0);
+    $('miroir-table').checked = r.miroirTable === true;
+    $('case-mm').value = r.caseMm ?? CASE_MM_PAR_DEFAUT;
+  }
   $('ajuster').checked = etat.ajuster;
-  $('mini-active').checked = r.miniTable !== false;
   $('mini-active').addEventListener('change', (e) => { r.miniTable = e.target.checked; sauverReglages(); diffuser(); montrerIci(); });
   function majModeTable() {
     const mode = modeTable(r);
@@ -29,7 +50,6 @@ export function creerReglages(ctx) {
       ? 'La case s’adapte à la fenêtre de la table : la salle occupe tout l’écran. Les figurines ne sont plus à l’échelle.'
       : `Chaque case garde sa taille calibrée (${r.taille} px) : les figurines restent à l’échelle. Une grande salle défile.`;
   }
-  majModeTable();
   for (const radio of [$('mode-remplir'), $('mode-reel')]) {
     radio.addEventListener('change', () => { r.modeTable = radio.value; sauverReglages(); majModeTable(); diffuser(); montrerIci(); });
   }
@@ -39,13 +59,10 @@ export function creerReglages(ctx) {
     $('taille-val').textContent = `${r.taille} px`;
     $('calibrage-val').textContent = `${r.taille} px`;
   }
-  majTaille();
+  majControles();
   $('taille').addEventListener('input', (e) => { r.taille = Number(e.target.value); majTaille(); sauverReglages(); majModeTable(); rendre(); });
 
   // --- L'écran de table : orientation et calibrage ------------------------------------------------------
-  $('rotation-table').value = String(r.rotationTable || 0);
-  $('miroir-table').checked = r.miroirTable === true;
-  $('case-mm').value = r.caseMm ?? CASE_MM_PAR_DEFAUT;
   $('rotation-table').addEventListener('change', (e) => {
     const v = Number(e.target.value);
     if (v) r.rotationTable = v; else delete r.rotationTable;
@@ -78,4 +95,5 @@ export function creerReglages(ctx) {
   $('grille').addEventListener('change', (e) => { r.grille = e.target.checked; sauverReglages(); rendre(); });
   $('reperes').addEventListener('change', (e) => { r.reperes = e.target.checked; sauverReglages(); rendre(); });
   $('ajuster').addEventListener('change', (e) => { etat.ajuster = e.target.checked; rendre(); });
+  return { sauver: sauverReglages };
 }

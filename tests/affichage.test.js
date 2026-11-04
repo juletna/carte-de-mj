@@ -8,7 +8,7 @@ import {
   ROTATIONS_TABLE, caseMmValide, ajusterTaille, carteDeCalibrage, transformOrientation, versCarte,
   tailleReglable, tailleRemplir, tailleTable, modeTableDefaut, modeTable, affichageDeReglages, validerAffichage, tailleQuiTientPlan, tailleCanvasBornee, CANVAS_COTE_MAX, CANVAS_SURFACE_MAX,
 } from '../js/affichage.js';
-import { chargerReglages, CLE_REGLAGES } from '../js/stockage.js';
+import { chargerReglages, fusionnerReglages, CLE_REGLAGES } from '../js/stockage.js';
 import { dessiner } from '../js/rendu/moteur.js';
 import { tailleQuiTient } from '../js/telephone.js';
 import { analyser } from '../js/parseur/index.js';
@@ -86,6 +86,9 @@ const TESTS = (pages) => [
     egal(validerAffichage(null, { taille: 70, grille: false, reperes: false, mode: 'reel' }), { mode: 'reel', taille: 70, grille: false, reperes: false }, 'rien reçu : le défaut');
   }],
   ['stockage : mêmes bornes et mêmes défauts que affichage.js, même pour une taille écrite en texte', () => {
+    egal(fusionnerReglages({ taille: 60, grille: false, inconnu: 1 }, { taille: 40, grille: true, miniTable: false }, { taille: 40, grille: true, reperes: false }), { taille: 60, grille: false, inconnu: 1, reperes: false }, 'seul ce qui a changé ici est repris');
+    egal(fusionnerReglages({ taille: 60, miniTable: false }, { taille: 40, miniTable: false }, { taille: 40 }), { taille: 60 }, 'une valeur retirée ici disparaît');
+    egal(fusionnerReglages({ taille: 60 }, { taille: 40 }, { taille: 40 }), { taille: 60 }, 'rien de changé ici : ce qui est enregistré reste');
     egal(reglagesDe({}), { echelle: ECHELLE_PAR_DEFAUT, taille: TAILLE_PAR_DEFAUT, grille: true }, 'défauts');
     egal([15, 16, 160, 161, 0, -3].map((taille) => reglagesDe({ taille }).taille), [48, 16, 160, 48, 48, 48], 'bornes');
     egal(reglagesDe({ taille: '60' }).taille, 60, 'un texte numérique est relu (le stockage convertit, contrairement au message de la table)');
