@@ -4,7 +4,7 @@
  * (`etat`, `r`, `rendre`, `diffuser`, `montrerIci`), lu au moment de l'appel.
  */
 import * as stockage from './stockage.js';
-import { modeTable } from './affichage.js';
+import { modeTable, ajusterTaille, caseMmValide, CASE_MM_PAR_DEFAUT } from './affichage.js';
 import { $ } from './dom.js';
 
 export function creerReglages(ctx) {
@@ -16,8 +16,6 @@ export function creerReglages(ctx) {
 
   // --- Réglages (partagés avec le Donjon : carte-de-mj:reglages-v1) ------------------------------------
   if (r.reperes === undefined) r.reperes = true;
-  $('taille').value = r.taille;
-  $('taille-val').textContent = `${r.taille} px`;
   $('grille').checked = r.grille;
   $('reperes').checked = r.reperes !== false;
   $('ajuster').checked = etat.ajuster;
@@ -35,7 +33,48 @@ export function creerReglages(ctx) {
   for (const radio of [$('mode-remplir'), $('mode-reel')]) {
     radio.addEventListener('change', () => { r.modeTable = radio.value; sauverReglages(); majModeTable(); diffuser(); montrerIci(); });
   }
-  $('taille').addEventListener('input', (e) => { r.taille = Number(e.target.value); $('taille-val').textContent = `${r.taille} px`; sauverReglages(); majModeTable(); rendre(); });
+  /** Affiche la taille partout où on la règle. */
+  function majTaille() {
+    $('taille').value = r.taille;
+    $('taille-val').textContent = `${r.taille} px`;
+    $('calibrage-val').textContent = `${r.taille} px`;
+  }
+  majTaille();
+  $('taille').addEventListener('input', (e) => { r.taille = Number(e.target.value); majTaille(); sauverReglages(); majModeTable(); rendre(); });
+
+  // --- L'écran de table : orientation et calibrage ------------------------------------------------------
+  $('rotation-table').value = String(r.rotationTable || 0);
+  $('miroir-table').checked = r.miroirTable === true;
+  $('case-mm').value = r.caseMm ?? CASE_MM_PAR_DEFAUT;
+  $('rotation-table').addEventListener('change', (e) => {
+    const v = Number(e.target.value);
+    if (v) r.rotationTable = v; else delete r.rotationTable;
+    sauverReglages(); rendre();
+  });
+  $('miroir-table').addEventListener('change', (e) => {
+    if (e.target.checked) r.miroirTable = true; else delete r.miroirTable;
+    sauverReglages(); rendre();
+  });
+  $('case-mm').addEventListener('change', (e) => {
+    const v = Number(String(e.target.value).replace(',', '.'));
+    if (!caseMmValide(v)) { e.target.value = r.caseMm ?? CASE_MM_PAR_DEFAUT; return; }
+    if (v === CASE_MM_PAR_DEFAUT) delete r.caseMm; else r.caseMm = v;
+    sauverReglages(); rendre();
+  });
+  function basculerCalibrage(actif) {
+    etat.calibrage = actif;
+    $('calibrer-table').hidden = actif;
+    $('reglage-calibrage').hidden = !actif;
+    rendre();
+  }
+  $('calibrer-table').addEventListener('click', () => basculerCalibrage(true));
+  $('calibrage-fini').addEventListener('click', () => {
+    r.calibre = true; r.modeTable = 'reel'; // ce qui vient d'être mesuré sert à la table
+    sauverReglages(); majModeTable(); basculerCalibrage(false);
+  });
+  for (const b of document.querySelectorAll('[data-pas-taille]')) {
+    b.addEventListener('click', () => { r.taille = ajusterTaille(r.taille, Number(b.dataset.pasTaille)); majTaille(); sauverReglages(); majModeTable(); rendre(); });
+  }
   $('grille').addEventListener('change', (e) => { r.grille = e.target.checked; sauverReglages(); rendre(); });
   $('reperes').addEventListener('change', (e) => { r.reperes = e.target.checked; sauverReglages(); rendre(); });
   $('ajuster').addEventListener('change', (e) => { etat.ajuster = e.target.checked; rendre(); });

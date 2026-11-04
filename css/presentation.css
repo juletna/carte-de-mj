@@ -75,6 +75,8 @@ body.presentation a { color: var(--accent); }
 .croix { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
 .croix button { min-width: max(40px, var(--cible)); }
 .defilement { margin-top: 8px; font-size: 14px; }
+.pas-calibrage { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 8px; }
+.pas-calibrage output { min-width: 72px; text-align: center; font-weight: 600; }
 
 .liste-portes { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
 .liste-portes button { width: 100%; text-align: left; font-weight: 400; font-size: 13px; padding: 5px 8px; }
@@ -132,6 +134,17 @@ body.presentation a { color: var(--accent); }
 /* --- Vue table : la carte seule --- */
 body.vue-table { overflow: hidden; background: #000; }
 #ecran-table { position: fixed; inset: 0; background: #000; z-index: 50; }
+#orientation-table { position: absolute; inset: 0; }
+/* Tourné d'un quart de tour : largeur et hauteur s'échangent, centré sans transformation pour garder la rotation autour du milieu. */
+#orientation-table.couche { inset: auto; left: 50%; top: 50%; width: 100vh; height: 100vw; margin: -50vw 0 0 -50vh; }
+/* La souris qui ne bouge plus disparaît avec les boutons de coin. */
+#ecran-table:not(.coins-visibles), #ecran-table:not(.coins-visibles) * { cursor: none !important; }
+/* Un doigt ou une main sur la table ne fait ni défiler ni zoomer ; le MJ a les flèches de la régie. Sur téléphone, le doigt reste le seul moyen. */
+@media (min-width: 761px) { #ecran-table { touch-action: none; } }
+#calibrage-table { position: absolute; inset: 0; z-index: 3; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; pointer-events: none; }
+#calibrage-table[hidden] { display: none; }
+#carte-calibrage { box-sizing: border-box; border: 2px dashed #fff; border-radius: 3px; background: rgba(0, 0, 0, 0.35); }
+#texte-calibrage { margin: 0; padding: 6px 10px; max-width: min(520px, 90%); text-align: center; color: #fff; background: rgba(0, 0, 0, 0.75); border-radius: var(--rayon); }
 #vue-table { position: absolute; inset: 0; overflow: auto; display: flex; scrollbar-width: none; }
 #vue-table::-webkit-scrollbar { display: none; }
 #carte-table { display: block; margin: auto; flex: none; }

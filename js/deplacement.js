@@ -55,19 +55,21 @@ export function porteSous(cx, cy, plan, profondeur = EPAISSEUR_CLIC) {
  *   cliquer?: (touche: {genre: string, element: object} | null, caseVide?: [number, number]) => void
  *                                       appui sans glissement ; sans ce rappel, tout appui est un déplacement.
  *                                       Rien sous le pointeur : `touche` est null et `caseVide` donne la case visée
+ *   versCanvas?: (e: PointerEvent) => [number, number]  position du pointeur en px CSS dans le canvas, s'il est tourné ou en miroir
  *   filtre?: (e: PointerEvent) => boolean  seuls ces pointeurs agissent (à la table : la souris du MJ, pas le doigt d'un joueur)
  *   commencer?: (genre: string) => void un vrai glissement démarre (le pointeur a dépassé le seuil)
  *   deplacables?: string[]              genres qui peuvent bouger (par défaut : tous)
  * }} options
  */
-export function activerDeplacement(canvas, { plan, taille, apercu, deposer, cliquer, commencer, deplacables, portesLarges = false, filtre = () => true }) {
+export function activerDeplacement(canvas, { plan, taille, apercu, deposer, cliquer, commencer, deplacables, portesLarges = false, filtre = () => true, versCanvas }) {
   const peutBouger = (genre) => !deplacables || deplacables.includes(genre);
   let prise = null; // { genre, element, depart, glisse, decalX, decalY, x, y } ou, pour une porte, { mur, position }
   let image = 0;
 
   function enCases(e) {
-    const r = canvas.getBoundingClientRect();
     const t = taille();
+    if (versCanvas) { const [x, y] = versCanvas(e); return [x / t - MARGE, y / t - MARGE]; }
+    const r = canvas.getBoundingClientRect();
     return [(e.clientX - r.left) / t - MARGE, (e.clientY - r.top) / t - MARGE];
   }
 

@@ -9,7 +9,8 @@
 import { dessiner } from './rendu/moteur.js';
 import { dessinerPlanDonjon } from './rendu/plan.js';
 import { activerDeplacement } from './deplacement.js';
-import { AFFICHAGE_PAR_DEFAUT, tailleTable, tailleQuiTientPlan } from './affichage.js';
+import { AFFICHAGE_PAR_DEFAUT, CASE_MM_PAR_DEFAUT, tailleTable, tailleQuiTientPlan, carteDeCalibrage, transformOrientation, versCarte } from './affichage.js';
+import { virgule } from './format.js';
 import { $ } from './dom.js';
 
 /** Boutons de coin : invisibles ET inactifs tant que la souris n'a pas bougé, puis quelques secondes. */
@@ -34,13 +35,47 @@ export function creerEcranTable({ affichage = { ...AFFICHAGE_PAR_DEFAUT }, surCo
     return { taille, grille, reperes, marques: ecran.caseVisee ? { caseVisee: ecran.caseVisee } : {} };
   }
 
+  /** Tourne ou retourne tout ce que voient les joueurs ; les boutons de coin restent à l'endroit. */
+  function orienter() {
+    const o = $('orientation-table'), { rotation = 0 } = ecran.affichage;
+    o.style.transform = transformOrientation(ecran.affichage);
+    o.classList.toggle('couche', rotation === 90 || rotation === 270);
+  }
+
+  /** Pendant le calibrage : une carte bancaire dessinée à l'échelle réglée, à faire coïncider avec une vraie carte posée sur la table. */
+  function montrerCalibrage(taille) {
+    const { calibrage, caseMm = CASE_MM_PAR_DEFAUT } = ecran.affichage;
+    $('calibrage-table').hidden = !calibrage;
+    if (!calibrage) return;
+    const { largeur, hauteur } = carteDeCalibrage(taille, caseMm);
+    Object.assign($('carte-calibrage').style, { width: `${largeur}px`, height: `${hauteur}px` });
+    $('texte-calibrage').textContent = `Pose une carte bancaire sur ce rectangle, puis ajuste la taille depuis la régie. 1 case = ${virgule(caseMm)} mm.`;
+  }
+
+  // L'écran reste allumé tant que la table montre quelque chose, si le navigateur le permet (sinon, rien ne change).
+  let eveil = null, demandeEveil = false;
+  async function garderEveille() {
+    if (eveil || demandeEveil || document.hidden || $('ecran-table').hidden || !navigator.wakeLock) return;
+    demandeEveil = true;
+    try {
+      eveil = await navigator.wakeLock.request('screen');
+      eveil.addEventListener('release', () => { eveil = null; });
+    } catch { /* batterie faible, page en arrière-plan… */ }
+    demandeEveil = false;
+  }
+  document.addEventListener('visibilitychange', () => { if (ecran.plan) garderEveille(); });
+  function relacherEveil() { eveil?.release().catch(() => {}); eveil = null; }
+
   function rendre() {
     const carte = $('carte-table');
+    orienter();
     $('attente').hidden = !!ecran.plan;
     carte.hidden = !ecran.plan;
     const mini = $('mini-table');
     mini.hidden = !ecran.plan || !ecran.mini;
+    montrerCalibrage(ecran.affichage.taille);
     if (!ecran.plan) return;
+    garderEveille();
     if (ecran.mini) {
       const { donjon, disposition, actif, portesFermees } = ecran.mini;
       const taille = tailleQuiTientPlan(disposition, Math.min(window.innerWidth * 0.28, 400), Math.min(window.innerHeight * 0.36, 340));
@@ -88,6 +123,11 @@ export function creerEcranTable({ affichage = { ...AFFICHAGE_PAR_DEFAUT }, surCo
       cliquer: (touche, caseVide) => { if (!touche && caseVide) viser(caseVide[0], caseVide[1]); },
       deplacables: ['creature'],
       filtre: (e) => e.pointerType === 'mouse',
+      versCanvas: (e) => {
+        const c = $('carte-table'), r = c.getBoundingClientRect();
+        const [x, y] = versCarte(e.clientX - (r.left + r.width / 2), e.clientY - (r.top + r.height / 2), ecran.affichage);
+        return [x + parseFloat(c.style.width) / 2, y + parseFloat(c.style.height) / 2];
+      },
     });
   }
 
@@ -95,7 +135,10 @@ export function creerEcranTable({ affichage = { ...AFFICHAGE_PAR_DEFAUT }, surCo
   function defiler({ dx = 0, dy = 0, recentrer = false }) {
     const v = $('vue-table');
     if (recentrer) v.scrollTo({ left: (v.scrollWidth - v.clientWidth) / 2, top: (v.scrollHeight - v.clientHeight) / 2 });
-    else v.scrollBy({ left: dx * Math.round(v.clientWidth * 0.6), top: dy * Math.round(v.clientHeight * 0.6) });
+    else {
+      const [x, y] = versCarte(dx, dy, ecran.affichage); // « vers le haut » veut dire vers le haut de l'écran, même carte tournée
+      v.scrollBy({ left: x * Math.round(v.clientWidth * 0.6), top: y * Math.round(v.clientHeight * 0.6) });
+    }
   }
 
   // Recalculé quand la fenêtre change de taille (le mode « remplir » suit ; « échelle réelle » ne bouge pas).
@@ -127,7 +170,7 @@ export function creerEcranTable({ affichage = { ...AFFICHAGE_PAR_DEFAUT }, surCo
   });
 
   return {
-    appliquer, attendre, activerActions, defiler,
+    appliquer, attendre, activerActions, defiler, relacherEveil,
     /** L'affichage en cours (la fenêtre table s'en sert de repli quand un message en porte un invalide). */
     affichage: () => ecran.affichage,
     aUnPlan: () => !!ecran.plan,

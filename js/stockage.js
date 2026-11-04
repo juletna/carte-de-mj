@@ -23,7 +23,7 @@ import { validerDonjon } from './donjon-validation.js';
 import { validerPresentation } from './partie.js';
 import { fichesDuNavigateur } from './personnages.js';
 import { CLE_FICHES } from './fiche/format.js';
-import { TAILLE_PAR_DEFAUT, ECHELLE_PAR_DEFAUT, MODES_TABLE, tailleReglable } from './affichage.js';
+import { TAILLE_PAR_DEFAUT, ECHELLE_PAR_DEFAUT, MODES_TABLE, tailleReglable, ROTATIONS_TABLE, caseMmValide } from './affichage.js';
 import { sansAccents, estObjet } from './format.js';
 
 export const CLE_DONJONS = 'carte-de-mj:donjons-v1';
@@ -62,7 +62,7 @@ export function chargerReglages(stock = stockParDefaut()) {
   const lu = lireJson(stock, CLE_REGLAGES);
   const r = estObjet(lu) ? lu : {};
   // Ce que cette version ne connaît pas (écrit par une version plus récente) est gardé tel quel : `sauverReglages` le réécrira.
-  const { echelle: _e, taille: _t, grille: _g, reperes: _r, calibre: _c, modeTable: _m, miniTable: _n, ...inconnus } = r;
+  const { echelle: _e, taille: _t, grille: _g, reperes: _r, calibre: _c, modeTable: _m, miniTable: _n, rotationTable: _o, miroirTable: _i, caseMm: _k, ...inconnus } = r;
   return {
     ...inconnus,
     echelle: Number(r.echelle) > 0 ? Number(r.echelle) : REGLAGES_DEFAUT.echelle,
@@ -76,6 +76,10 @@ export function chargerReglages(stock = stockParDefaut()) {
     ...(MODES_TABLE.includes(r.modeTable) ? { modeTable: r.modeTable } : {}),
     // `miniTable` : seulement si le MJ l'a éteinte (par défaut, la table a sa mini-carte).
     ...(r.miniTable === false ? { miniTable: false } : {}),
+    // Écran de table : seulement s'ils diffèrent du défaut (pas de rotation, pas de miroir, 25 mm par case).
+    ...(ROTATIONS_TABLE.includes(r.rotationTable) && r.rotationTable ? { rotationTable: r.rotationTable } : {}),
+    ...(r.miroirTable === true ? { miroirTable: true } : {}),
+    ...(caseMmValide(r.caseMm) ? { caseMm: r.caseMm } : {}),
   };
 }
 export const sauverReglages = (reglages, stock = stockParDefaut()) => ecrireJson(stock, CLE_REGLAGES, reglages);

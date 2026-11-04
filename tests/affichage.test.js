@@ -5,6 +5,7 @@
  */
 import {
   TAILLE_PAR_DEFAUT, TAILLE_MIN, TAILLE_MAX, TAILLE_MAX_REMPLIR, ECHELLE_PAR_DEFAUT, MODES_TABLE, AFFICHAGE_PAR_DEFAUT,
+  ROTATIONS_TABLE, caseMmValide, ajusterTaille, carteDeCalibrage, transformOrientation, versCarte,
   tailleReglable, tailleRemplir, tailleTable, modeTableDefaut, modeTable, affichageDeReglages, validerAffichage, tailleQuiTientPlan, tailleCanvasBornee, CANVAS_COTE_MAX, CANVAS_SURFACE_MAX,
 } from '../js/affichage.js';
 import { chargerReglages, CLE_REGLAGES } from '../js/stockage.js';
@@ -23,6 +24,46 @@ function attribut(html, id, nom) {
 }
 
 const TESTS = (pages) => [
+  ['écran de table : orientation, miroir et taille réelle sont envoyés seulement s’ils diffèrent du défaut', () => {
+    egal(affichageDeReglages({ taille: 60, grille: true, modeTable: 'reel', rotationTable: 180, miroirTable: true, caseMm: 25.4 }),
+      { taille: 60, grille: true, reperes: true, mode: 'reel', rotation: 180, miroir: true, caseMm: 25.4 }, 'tout réglé');
+    const defaut = { mode: 'remplir', taille: 48, grille: true, reperes: true };
+    egal(validerAffichage({ ...defaut, rotation: 90, miroir: true, caseMm: 30, calibrage: true }, defaut), { ...defaut, rotation: 90, miroir: true, caseMm: 30, calibrage: true }, 'tout valide');
+    egal(validerAffichage({ ...defaut, rotation: 45, miroir: 'oui', caseMm: 500, calibrage: 1 }, defaut), defaut, 'tout invalide : rien de gardé');
+    egal(validerAffichage({ ...defaut, rotation: 0 }, defaut), defaut, 'rotation nulle : aucune clé');
+    egal(ROTATIONS_TABLE, [0, 90, 180, 270], 'quarts de tour');
+    egal([caseMmValide(10), caseMmValide(9.9), caseMmValide(50), caseMmValide(50.1), caseMmValide('25')], [true, false, true, false, false], 'bornes de la taille réelle');
+    const r = reglagesDe({ taille: 60, rotationTable: 270, miroirTable: true, caseMm: 25.4 });
+    egal([r.rotationTable, r.miroirTable, r.caseMm], [270, true, 25.4], 'relus du stockage');
+    const m = reglagesDe({ taille: 60, rotationTable: 45, miroirTable: 'oui', caseMm: 0 });
+    verifier(!('rotationTable' in m) && !('miroirTable' in m) && !('caseMm' in m), 'valeurs invalides ignorées');
+  }],
+  ['calibrage : la carte bancaire suit la case visée, la taille se règle au dixième de pixel dans ses bornes', () => {
+    egal(carteDeCalibrage(25), { largeur: 85.6, hauteur: 53.98 }, '25 px pour 25 mm : 1 px par mm');
+    egal(carteDeCalibrage(50, 25).largeur, 171.2, 'deux fois plus grand');
+    verifier(Math.abs(carteDeCalibrage(30, 30).hauteur - 53.98) < 1e-9, 'une autre case visée');
+    egal([ajusterTaille(32, 0.1), ajusterTaille(32.1, 0.1), ajusterTaille(32.3, -1)], [32.1, 32.2, 31.3], 'sans erreur d’arrondi');
+    egal([ajusterTaille(16, -1), ajusterTaille(160, 1)], [16, 160], 'dans les bornes');
+    egal(tailleTable({ mode: 'reel', plan: null, vue: null, taille: 32.4 }), 32.4, 'l’échelle réelle garde les décimales');
+  }],
+  ['orientation : la transformation et son inverse se répondent', () => {
+    egal(transformOrientation({}), '', 'rien par défaut');
+    egal(transformOrientation({ rotation: 90 }), 'rotate(90deg)', 'rotation');
+    egal(transformOrientation({ miroir: true }), 'scaleX(-1)', 'miroir');
+    egal(transformOrientation({ rotation: 180, miroir: true }), 'rotate(180deg) scaleX(-1)', 'les deux');
+    egal(versCarte(3, 4, {}), [3, 4], 'rien ne change par défaut');
+    // À l'écran, rotate(90deg) envoie (x, y) sur (-y, x) : un point à droite de l'écran vient du haut de la carte.
+    const ecran = ([x, y], { rotation = 0, miroir = false }) => {
+      const m = miroir ? -x : x;
+      return { 0: [m, y], 90: [-y, m], 180: [-m, -y], 270: [y, -m] }[rotation];
+    };
+    for (const rotation of ROTATIONS_TABLE) for (const miroir of [false, true]) {
+      const o = { rotation, miroir }, [dx, dy] = ecran([3, 4], o);
+      egal(versCarte(dx, dy, o), [3, 4], `aller-retour, ${rotation}°, miroir ${miroir}`);
+    }
+    egal(versCarte(0, -1, { rotation: 180 }), [0, 1], 'défiler vers le haut de l’écran, carte retournée : vers le bas de la carte');
+    egal(versCarte(0, 0, { rotation: 180, miroir: true }), [0, 0], 'pas de -0');
+  }],
   ['les valeurs de référence : 48 par défaut, bornes 16 et 160, 300 en « remplir », 1,5 m par case', () => {
     egal([TAILLE_PAR_DEFAUT, TAILLE_MIN, TAILLE_MAX, TAILLE_MAX_REMPLIR, ECHELLE_PAR_DEFAUT], [48, 16, 160, 300, 1.5], 'constantes');
     egal(MODES_TABLE, ['remplir', 'reel'], 'modes');

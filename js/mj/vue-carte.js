@@ -7,9 +7,10 @@
  * Renvoie : `taille(plan)`, `apercu(plan, taille?)` (dessin sans rien enregistrer), `redessiner(plan)`, `oublierZoomSiAutreCarte()`,
  * `majCarteRef()`, `cibleZoom` (voir zoom.js), `palette`, `ouvrirTiroir(ouvert)` et `tiroirOuvert()`.
  */
+import { virgule } from '../format.js';
 import { dessiner } from '../rendu/moteur.js';
 import { MARGE } from '../rendu/geometrie.js';
-import { tailleRemplir } from '../affichage.js';
+import { tailleRemplir, carteDeCalibrage, CASE_MM_PAR_DEFAUT } from '../affichage.js';
 import { ZOOM_MIN, ZOOM_MAX, zoomBorne } from '../mise-en-page.js';
 import { ajouterElement, elementsPalette, GROUPES_PALETTE, SOUS_GROUPES } from '../pose.js';
 import { creerPalette } from '../palette.js';
@@ -79,12 +80,14 @@ export function creerVueCarte(ctx) {
     etat.zoom = null;
   }
 
-  // Calibrage : une carte bancaire mesure 85,6 × 53,98 mm ; une case visée = 25 mm.
+  // Calibrage : une carte bancaire à l'échelle de la case visée (25 mm, sauf réglage de la Présentation).
   function majCarteRef() {
     const ref = $('carte-ref');
     ref.hidden = !$('calibrage').checked;
-    ref.style.width = `${(r.taille * 85.6) / 25}px`;
-    ref.style.height = `${(r.taille * 53.98) / 25}px`;
+    const { largeur, hauteur } = carteDeCalibrage(r.taille, r.caseMm);
+    ref.style.width = `${largeur}px`;
+    ref.style.height = `${hauteur}px`;
+    $('aide-calibrage-mm').textContent = `${virgule(r.caseMm ?? CASE_MM_PAR_DEFAUT)} mm`;
   }
 
   // --- Palette : catalogue de vignettes (panneau sur ordinateur, tiroir sur téléphone) ------------------------

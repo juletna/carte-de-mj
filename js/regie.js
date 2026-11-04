@@ -82,7 +82,8 @@ export function demarrerRegie() {
   const idsReveles = (idSalle) => etat.p.reveles[idSalle] || [];
 
   // --- Communication avec la fenêtre table -------------------------------------------------------
-  const affichageTable = () => affichageDeReglages(r);
+  /** Pendant le calibrage, la table est à l'échelle réelle et dessine la carte bancaire ; ce réglage passager n'est pas enregistré. */
+  const affichageTable = () => (etat.calibrage ? { ...affichageDeReglages(r), mode: 'reel', calibrage: true } : affichageDeReglages(r));
   // Le plan complet essaie plusieurs dispositions : on ne le refait que si les salles, leurs portes ou les liaisons ont changé.
   let dispositionPartie = { cle: null, plan: null };
   function dispositionDePartie() {
@@ -535,6 +536,7 @@ export function demarrerRegie() {
   function quitterPleinIci() {
     if (!etat.pleinIci) return;
     etat.pleinIci = false;
+    ecran.relacherEveil();
     $('ecran-table').hidden = true;
     $('retour-regie').hidden = true;
     if (document.fullscreenElement) document.exitFullscreen?.();

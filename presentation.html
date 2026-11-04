@@ -134,6 +134,35 @@
         </fieldset>
         <label class="ligne case"><input id="mini-active" type="checkbox" checked> Mini-carte à la table (salles découvertes seulement)</label>
         <details class="defilement">
+          <summary>Régler l'écran de table</summary>
+          <label class="ligne">Rotation
+            <select id="rotation-table">
+              <option value="0">Aucune</option>
+              <option value="90">90° à droite</option>
+              <option value="180">180°</option>
+              <option value="270">90° à gauche</option>
+            </select>
+          </label>
+          <label class="ligne case"><input id="miroir-table" type="checkbox"> Image en miroir</label>
+          <p class="note">Pour un projecteur sous la table dont le montage n'a pas de miroir, si le projecteur n'a pas lui-même de mode « rétroprojection ».</p>
+          <label class="ligne">Taille réelle d'une case (mm)
+            <input id="case-mm" type="number" inputmode="decimal" min="10" max="50" step="0.1">
+          </label>
+          <p class="note">25 mm pour les figurines courantes, 25,4 mm pour 1 pouce.</p>
+          <div class="actions"><button id="calibrer-table" type="button">Calibrer sur la table</button></div>
+          <div id="reglage-calibrage" hidden>
+            <div class="pas-calibrage" role="group" aria-label="Ajuster la taille d'une case">
+              <button type="button" class="discret" data-pas-taille="-1">−1</button>
+              <button type="button" class="discret" data-pas-taille="-0.1">−0,1</button>
+              <output id="calibrage-val" aria-live="polite">48 px</output>
+              <button type="button" class="discret" data-pas-taille="0.1">+0,1</button>
+              <button type="button" class="discret" data-pas-taille="1">+1</button>
+            </div>
+            <div class="actions"><button id="calibrage-fini" type="button">Terminer le calibrage</button></div>
+          </div>
+          <p class="note">Ouvre d'abord la fenêtre table et glisse-la sur l'écran de la table. Sur un seul écran, calibre depuis le Donjon.</p>
+        </details>
+        <details class="defilement">
           <summary>Faire défiler la vue table</summary>
           <p class="note">Utile si la carte dépasse l'écran de la table. Tu peux aussi réduire la taille d'une case dans les réglages.</p>
           <div class="croix" role="group" aria-label="Faire défiler la vue table">
@@ -209,12 +238,12 @@
       <details class="bloc reglages">
         <summary><h2>Réglages</h2></summary>
         <label class="ligne">Taille d'une case
-          <span><input id="taille" type="range" min="16" max="160" step="1" value="48"> <output id="taille-val">48 px</output></span>
+          <span><input id="taille" type="range" min="16" max="160" step="0.1" value="48"> <output id="taille-val">48 px</output></span>
         </label>
         <label class="ligne case"><input id="grille" type="checkbox" checked> Afficher la grille</label>
         <label class="ligne case"><input id="reperes" type="checkbox" checked> Afficher les repères (A, B… et 1, 2…)</label>
         <label class="ligne case"><input id="ajuster" type="checkbox" checked> Adapter la carte de la régie à la fenêtre</label>
-        <p class="note">La taille d'une case sert à la table en « échelle réelle » (réglage partagé avec le Donjon, où se fait le calibrage avec une carte bancaire) et de plafond à la régie.
+        <p class="note">La taille d'une case sert à la table en « échelle réelle » (réglage partagé avec le Donjon ; on la calibre avec une carte bancaire dans « Régler l'écran de table » ou dans le Donjon) et de plafond à la régie.
           « Adapter » ne change que l'affichage de cette régie.</p>
       </details>
 
@@ -247,12 +276,19 @@
 
   <!-- Vue table : uniquement la carte. Fenêtre ?vue=table, ou « Plein écran ici » depuis la régie. -->
   <div id="ecran-table" hidden>
-    <div id="vue-table" tabindex="-1">
-      <canvas id="carte-table" aria-label="Carte de la salle"></canvas>
+    <!-- Tout ce que voient les joueurs, tourné ou en miroir d'un bloc. Pas #ecran-table : le navigateur annule la transformation de l'élément en plein écran. -->
+    <div id="orientation-table">
+      <div id="vue-table" tabindex="-1">
+        <canvas id="carte-table" aria-label="Carte de la salle"></canvas>
+      </div>
+      <!-- Salles découvertes seulement (vue-publique.js, miniPlanTable). Ne reçoit aucun clic : le doigt d'un joueur passe au travers. -->
+      <canvas id="mini-table" aria-label="Plan des salles découvertes, la salle en cours en surbrillance" hidden></canvas>
+      <p id="attente" role="status" hidden></p>
+      <div id="calibrage-table" hidden>
+        <div id="carte-calibrage"></div>
+        <p id="texte-calibrage"></p>
+      </div>
     </div>
-    <!-- Salles découvertes seulement (vue-publique.js, miniPlanTable). Ne reçoit aucun clic : le doigt d'un joueur passe au travers. -->
-    <canvas id="mini-table" aria-label="Plan des salles découvertes, la salle en cours en surbrillance" hidden></canvas>
-    <p id="attente" role="status" hidden></p>
     <button id="retour-regie" type="button" class="coin coin-gauche" hidden>← Retour à la régie</button>
     <button id="plein-ecran-table" type="button" class="coin coin-droite">⛶ Plein écran</button>
   </div>
