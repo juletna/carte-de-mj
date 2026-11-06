@@ -109,7 +109,7 @@ export function creerSectionAuHasard(ctx) {
     const presentes = famillesPresentes(typesDesAutresSalles(d, sel.id));
     const famille = creerChampMulti({
       titre: 'Type de monstres', icone: 'creature',
-      auto: presentes.length ? `Auto · comme le donjon (${presentes.map((f) => FAMILLES[f].libelle).join(', ')})` : 'Auto',
+      auto: 'Auto', autoDetail: presentes.length ? `comme le donjon (${presentes.map((f) => FAMILLES[f].libelle).join(', ')})` : '',
       options: Object.entries(FAMILLES).map(([cle, f]) => ({ valeur: cle, libelle: f.libelle })),
       valeurs: reglages.familles, surChangement: (valeurs) => { reglages.familles = valeurs; },
     });
