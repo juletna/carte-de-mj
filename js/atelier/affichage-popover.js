@@ -95,7 +95,7 @@ export function creerAffichagePopover({ lire, surChangement }) {
         h('span', { textContent: 'Pénombre' }), penombre, penombreVal),
       caseACocher('Flammes animées', flammes), caseACocher('Repères (A, B… et 1, 2…)', reperes)),
     groupe('Grille', interrupteurLigne,
-      h('label', { className: 'atelier-affichage-ligne' }, h('span', { textContent: 'Opacité des lignes' }), curseur, valeur))));
+      h('label', { className: 'atelier-affichage-ligne' }, h('span', { textContent: 'Opacité des lignes' }), curseur, valeur)));
   const racine = h('div', { className: 'atelier-affichage' }, bouton, panneau);
 
   function maj() {
