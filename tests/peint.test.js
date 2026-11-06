@@ -516,6 +516,28 @@ const TESTS = [
       }
     }
   }],
+  ['portes dessinées : chaque type (porte, herse, arche, cachée) se dessine en riches comme en sobres, avec et sans relief, sans valeur invalide, déterministe ; sobres ne passe pas par le nouveau code', () => {
+    const portes = (plan, details, relief) => {
+      const { ctx, lignes } = ctxJournal();
+      THEMES.peint.preparer(ctx, plan, 48, { relief, details });
+      for (const q of plan.portes) THEMES.peint.porte(ctx, q, plan, 48);
+      return lignes;
+    };
+    const types = ['porte', 'herse', 'arche'];
+    for (const relief of [true, false]) for (const mur of ['nord', 'est', 'sud', 'ouest']) for (const type of types) for (const cache of [false, true]) {
+      const plan = rect(9, 7, { id: 'po', portes: [{ id: `p-${type}`, mur, position: 2, type, ...(cache ? { cache: true } : {}) }] }), quoi = `${type} · ${mur} · relief ${relief}${cache ? ' · cachée' : ''}`;
+      const riches = portes(plan, 'riches', relief), sobres = portes(plan, 'sobres', relief);
+      verifier(riches.length > 20, `${quoi} : riches trace quelque chose`);
+      verifier(riches.every((l) => !/NaN|undefined|Infinity/.test(l)), `${quoi} : valeur invalide en riches : ${riches.find((l) => /NaN|undefined|Infinity/.test(l))}`);
+      verifier(sobres.every((l) => !/NaN|undefined|Infinity/.test(l)), `${quoi} : valeur invalide en sobres`);
+      egal(riches, portes(plan, 'riches', relief), `${quoi} : riches déterministe`);
+      egal(sobres, portes(plan, 'sobres', relief), `${quoi} : sobres déterministe`);
+      verifier(riches.join('|') !== sobres.join('|'), `${quoi} : riches et sobres diffèrent`);
+      verifier(!sobres.some((l) => /fillStyle=#(d09a58|bd8446|dcaa6a|c48d4c|b27a3e|4b4a52|aab0bb|e2b53a|3a2c20)/.test(l)), `${quoi} : sobres n’emploie aucune couleur des portes dessinées`);
+    }
+    const sobresPorte = portes(rect(9, 7, { id: 'po', portes: [{ id: 'q', mur: 'nord', position: 2, type: 'porte' }] }), 'sobres', true);
+    verifier(sobresPorte.some((l) => l.includes('#9a6836') || l.includes('#8a5a2c')), 'sobres : le battant d’avant');
+  }],
   ['peint : les pions se dessinent pour chaque état, avec leur abréviation ; mort et blessé se distinguent d’un pion normal', () => {
     const tracer = (k) => { const { ctx, lignes } = ctxJournal(); THEMES.peint.preparer(ctx, rect(9, 7, { id: 'p' }), 48, { relief: true }); pionPeint(ctx, { type: 'gobelin', camp: 'monstre', numero: 2, x: 3, y: 2, taille: 1, ...k }, 48); return lignes; };
     const normal = tracer({}), blesse = tracer({ etat: 'blesse' }), mort = tracer({ etat: 'mort' });

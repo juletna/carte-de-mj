@@ -22,6 +22,7 @@ import { alea, graineDeTexte } from './bruit.js';
 import { chemin, encre, trait, dl, ENCRE } from './trait.js';
 import { couleurMur, usureDe } from './ambiance.js';
 import { dessinerFaceDessinee, tacheMousseDessinee } from './murs-dessines.js';
+import { dessinerPorteDessinee } from './portes-dessinees.js';
 
 const DESSUS = '#060504'; // le dessus des murs : presque noir, bien distinct des faces et du sol
 const FOND_FACE = '#120f0c';
@@ -239,6 +240,7 @@ const SEUIL = ['#8a867e', '#5f5b55']; // la trouée dans le dessus du mur : la p
  * comme sur une carte à plat.
  */
 export function dessinerPorte(ctx, p, plan, t) {
+  if (etat.details === 'riches') return dessinerPorteDessinee(ctx, p, plan, t, murDeSol(plan.sol)); // portes dessinées (portes-dessinees.js)
   const { vue } = etat, e = EPAISSEUR_MUR * t, ep = e * (1 + vue.kp);
   const anc = ancragePorte(plan, p.mur, p.position, t);
   const c = Math.cos(anc.angle), s = Math.sin(anc.angle);
