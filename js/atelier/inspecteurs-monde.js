@@ -57,6 +57,7 @@ export function enregistrerInspecteursMonde(coquille, U) {
     if (el.select && (cle === 'monde-nom' || (cle === 'nom' && !el.value))) el.select();
   }
   /** Une section du panneau (js/atelier/section.js) : bandeau repliable, puis son contenu. `cle` garde le pli pour la session. */
+  const AIDE_POINTS = 'Sur la carte : un clic dans le vide pose un point, glisser le déplace, Suppr efface le point choisi.';
   const section = (cle, titre, enfants, options = {}) => creerSection({ cle: `monde:${cle}`, titre, enfants, ...options }).element;
   const soustitre = (nom) => h('p', { className: 'note', textContent: nom });
   /** La carte du monde est-elle celle que la scène affiche ? (Le panneau du monde est alors celui de cette carte.) */
@@ -181,7 +182,7 @@ export function enregistrerInspecteursMonde(coquille, U) {
       section('lieu-notes', 'Notes', [notes]),
       section('lieu-carte', 'Carte', [
         depart,
-        ...(peutCaler ? [h('div', { className: 'ligne' }, h('span', { className: 'univers-etat-grille doux', textContent: etatGrille }), avecCle(btn('Caler la grille', () => U.definirMode('grille'), { icone: 'grille', classe: 'btn-discret' }), 'caler'))] : [])]));
+        ...(peutCaler ? [h('div', { className: 'ligne' }, h('span', { className: 'univers-etat-grille doux', textContent: etatGrille }), avecCle(btn('Caler la grille', () => U.definirMode('grille'), { icone: 'grille', classe: 'btn-discret' }), 'caler'))] : [])], { aide: AIDE_POINTS }));
     retrouverFocus();
   }
 

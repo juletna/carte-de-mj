@@ -2,8 +2,8 @@
  * La barre d'outils de la scène « lieu » du Monde (lot C), dans `coquille.barreOutils`. En tête, le fil d'Ariane quand on est descendu d'une carte.
  * Les points n'ont pas d'outil : la carte les pose d'un clic dans le vide et les choisit d'un clic dessus (js/mj/univers-ui.js). La barre garde
  *   - Calage : le calage de la grille du lieu (réglages dans l'inspecteur) ; proposé pour une zone, une localité, un bâtiment ou un souterrain ;
- *   - une consigne courte et discrète, « Clic : poser un point » (masquée sous 760 px, où l'aide du panneau suffit) ; pendant le calage, une
- *     pastille `.barre-lieu-etat` dit « Calage en cours » à sa place.
+ *   - pendant le calage, une pastille `.barre-lieu-etat` dit « Calage en cours ».
+ * (La consigne des points, « Clic : poser un point… », est l'aide « ? » de la section « Carte » de l'inspecteur : js/atelier/inspecteurs-monde.js.)
  * L'aide de Calage est son infobulle (`title`, relue par `aria-describedby`). Le groupe n'est visible que pendant que le Monde est affiché.
  * Sous 760 px, l'outil est une icône seule (le libellé reste en `aria-label`).
  */
@@ -12,7 +12,6 @@ import { btn } from '../univers-boutons.js';
 import { icone } from '../icones.js';
 
 const AIDE_CALAGE = 'Règle la grille dans le panneau (Échap : quitter sans enregistrer).';
-const CONSIGNE = 'Clic : poser un point · Glisser : déplacer · Suppr : effacer';
 
 /** @param {object} coquille  js/atelier/coquille.js   @param {object} U  `ctx.univers` (js/mj/univers-ui.js) */
 export function creerBarreLieu(coquille, U) {
@@ -22,10 +21,9 @@ export function creerBarreLieu(coquille, U) {
   calage.setAttribute('aria-label', 'Calage');
   calage.title = AIDE_CALAGE;
   calage.setAttribute('aria-describedby', decrit.id);
-  const consigne = h('span', { className: 'barre-lieu-consigne doux', textContent: CONSIGNE });
   const etat = h('span', { className: 'barre-lieu-etat', 'aria-live': 'polite', hidden: true });
   // Le fil d'Ariane (js/mj/univers-ui.js) se range en tête de la barre : il n'apparaît qu'à partir de deux niveaux, et la carte garde sa hauteur.
-  const groupe = h('div', { className: 'barre-lieu', role: 'group', 'aria-label': 'Outils de la carte', hidden: true }, ...(U.filAriane ? [U.filAriane] : []), calage, etat, consigne, decrit);
+  const groupe = h('div', { className: 'barre-lieu', role: 'group', 'aria-label': 'Outils de la carte', hidden: true }, ...(U.filAriane ? [U.filAriane] : []), calage, etat, decrit);
   coquille.barreOutils.append(groupe);
 
   let version = 0;
@@ -39,7 +37,6 @@ export function creerBarreLieu(coquille, U) {
     calage.disabled = !lieu;
     etat.textContent = lieu && enCalage ? 'Calage en cours' : '';
     etat.hidden = !etat.textContent;
-    consigne.hidden = !lieu || enCalage || (U.filAriane && !U.filAriane.hidden); // le fil d'Ariane passe avant la consigne
     const moi = ++version;
     U.grillePossible().then((ok) => { if (moi === version) calage.hidden = !!lieu && !ok && !enCalage; });
   }

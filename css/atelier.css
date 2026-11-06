@@ -54,7 +54,11 @@ body.atelier-avec-inspecteur { --largeur-inspecteur: 330px; }
 .atelier-menu-item { justify-content: flex-start; width: 100%; text-align: left; }
 /* « + Nouveau » : libellé visible (créer est l'action principale de l'atelier) ; groupes titrés Créer · Apporter. Le titre de l'arbre ne se tasse pas. */
 .atelier-arbre-titre { white-space: nowrap; flex-shrink: 0; }
-.atelier-arbre-tete .atelier-menu-corps { right: auto; left: 0; } /* « Nouveau » est à gauche de la tête : le menu s'ouvre vers la droite */
+/* Le menu « Nouveau » prend la largeur de la colonne (jamais plus : elle coupe ce qui dépasse) ; un long libellé (« Lieu dans <nom du monde> ») passe à la ligne. */
+.atelier-arbre-tete { position: relative; }
+.atelier-arbre-tete .atelier-menu { position: static; }
+.atelier-arbre-tete .atelier-menu-corps { left: var(--esp-2); right: var(--esp-2); min-width: 0; }
+.atelier-arbre-tete .atelier-menu-item { height: auto; min-height: var(--cible); white-space: normal; overflow-wrap: anywhere; }
 .atelier-tout-replier { margin-left: auto; } /* « Nouveau » à gauche, les icônes (tout replier, replier la colonne) à droite */
 /* Le titre de la colonne ne sert plus qu'aux lecteurs d'écran : l'onglet « Préparer » dit déjà où l'on est. */
 .atelier-arbre .atelier-arbre-titre { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
@@ -63,7 +67,6 @@ body.atelier-avec-inspecteur { --largeur-inspecteur: 330px; }
 .atelier-menu-bouton { background: var(--p-surface-1, var(--champ)); border-color: var(--p-filet-fort, var(--bord)); color: var(--texte); font-weight: 650; }
 .atelier-menu-bouton .icone { color: var(--accent); }
 .atelier-menu-bouton:hover, .atelier-menu[open] > .atelier-menu-bouton { background: var(--p-surface-survol, var(--champ)); }
-.atelier-arbre-tete .atelier-menu-corps { min-width: 200px; } /* la colonne de l'arbre coupe ce qui dépasse : le menu tient dedans, aligné à droite du bouton */
 .atelier-menu-groupe { margin: 0; padding: 6px var(--esp-3) 2px; font-size: 11px; font-weight: 650; letter-spacing: .06em; text-transform: uppercase; color: var(--texte-doux); }
 .atelier-menu-separateur { width: 100%; margin: 4px 0; border: 0; border-top: 1px solid var(--bord); }
 .atelier-voile { display: none; }
@@ -81,9 +84,6 @@ body.atelier-avec-inspecteur { --largeur-inspecteur: 330px; }
 .atelier-barre-fin > .btn-primaire, .atelier-barre-fin > .btn-discret[href] { font-size: 13px; }
 .barre-lieu-etat { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; padding: 2px 10px; border: 1px solid var(--accent); border-radius: 999px; color: var(--accent); font-size: 13px; white-space: nowrap; }
 .barre-lieu-etat[hidden] { display: none; }
-/* La consigne des points (pas d'outil à choisir) : discrète, coupée plutôt que de faire passer la barre sur deux lignes ; absente sous 760 px. */
-.barre-lieu-consigne { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
-.barre-lieu-consigne[hidden] { display: none; }
 .atelier-barre { position: relative; column-gap: var(--esp-1); container-type: inline-size; }
 .atelier-barre-fin { gap: var(--esp-1); }
 .atelier-barre .barre-donjon { column-gap: var(--esp-1); }
@@ -101,7 +101,6 @@ body.atelier-avec-inspecteur { --largeur-inspecteur: 330px; }
   .atelier-barre .barre-donjon, .atelier-barre .barre-groupe { flex-wrap: nowrap; gap: var(--esp-1); }
   .atelier-barre .barre-donjon .btn:not(.pose-pastille) { padding: 0; width: 44px; justify-content: center; }
   .outil-lieu { padding: 0; }
-  .barre-lieu-consigne { display: none; }
   .atelier-barre-fin { gap: var(--esp-1); }
   /* La consigne d'une action armée se pose sur la carte, sous la barre : la ligne d'outils reste à une seule rangée. */
   .barre-lieu-etat { position: absolute; z-index: 28; top: calc(100% + var(--esp-2)); left: var(--esp-2); background: var(--panneau); box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45); }
