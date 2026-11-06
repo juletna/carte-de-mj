@@ -15,7 +15,8 @@ import * as modele from '../donjon.js';
 import { libelleSelection } from '../coordonnees.js';
 import { $, h } from '../dom.js';
 import { OPPOSE } from '../murs.js';
-import { variantesDe, varianteDe, varianteParDefaut, nomVariante } from '../catalogue.js';
+import { evaluerPose } from '../pose.js';
+import { estSymetrique, variantesDe, varianteDe, varianteParDefaut, nomVariante } from '../catalogue.js';
 import { selection as creerSelection, selectionElement, meme, TYPES_ELEMENT } from '../atelier-selection.js';
 import { creerSection } from '../atelier/section.js';
 import { creerVignette } from '../vignettes.js';
@@ -77,6 +78,27 @@ export function creerBulle(ctx) {
   }
 
   /**
+   * Un quart de tour d'un objet allongé (bibliothèque, table…) : largeur et hauteur s'échangent, à la place la plus proche où il tient (même règle de pose
+   * que le glisser-déposer, donc il s'adosse au mur voisin). Rien ne change s'il ne tient nulle part.
+   */
+  function pivoter(el) {
+    const plan = salle().plan;
+    const tourne = { ...el, l: el.h, h: el.l };
+    const poses = [];
+    for (let dy = -3; dy <= 3; dy++) for (let dx = -3; dx <= 3; dx++) {
+      const pose = evaluerPose(plan, 'objet', tourne, el.x + dx, el.y + dy, el);
+      if (pose.ok) poses.push({ pose, rang: (pose.modifs.rotation === undefined ? 100 : 0) + Math.abs(dx) + Math.abs(dy) }); // adossé à un mur d'abord, puis le plus près
+    }
+    if (poses.length) {
+      const { pose } = poses.sort((a, b) => a.rang - b.rang)[0];
+      modifierObjet(el, (o) => ({ ...o, l: tourne.l, h: tourne.h, ...pose.modifs }));
+      return;
+    }
+    etat.message = 'Pas la place de le pivoter ici.';
+    rendre();
+  }
+
+  /**
    * Tout ce que l'inspecteur dit de l'élément sélectionné, ou null s'il n'y en a plus. Pas de DOM ici : `actions` (visibles),
    * `destructives` (rangées dans « ⋯ ») et les données du corps ; `rendreDans` construit le DOM.
    */
@@ -111,6 +133,7 @@ export function creerBulle(ctx) {
         }
       }
     }
+    if (trouve.genre === 'objet' && !escalier && el.l !== el.h && !estSymetrique(el.type)) actions.push({ libelle: 'Pivoter', icone: 'pivoter', titre: 'Un quart de tour (le long d’un autre mur)', executer: () => pivoter(el) });
     // Cacher : une rangée « Visibilité » du corps (interrupteur) ; supprimer : un seul clic (« Annuler » rattrape une erreur), sauf une porte reliée qui demande confirmation.
     destructives.push(lien
       ? { libelle: 'Supprimer', confirmation: 'Retirer la liaison et supprimer ?', titre: `Supprime ${escalier ? 'cet escalier' : 'cette porte'} et retire sa liaison (annulable)`, executer: supprimerSelection }
