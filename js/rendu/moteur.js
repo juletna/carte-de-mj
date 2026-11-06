@@ -105,7 +105,8 @@ export function peindre(ctx, plan, t, { grille, reperes, theme, marques, relief 
   theme.preparer?.(ctx, plan, t, { relief });
   theme.sol(ctx, plan, t);
 
-  const objets = [...plan.objets].sort((a, b) => coucheDe(a.type) - coucheDe(b.type));
+  // Un thème en fausse 3D (`preparer`) veut aussi le plus loin du centre d'abord, au sein d'une couche (voir ordonnerObjets).
+  const objets = ordonnerObjets(plan.objets, plan, typeof theme.preparer === 'function');
   const auSol = objets.filter((o) => coucheDe(o.type) < COUCHE_PAR_DEFAUT);
   const autres = objets.filter((o) => coucheDe(o.type) >= COUCHE_PAR_DEFAUT);
 
@@ -122,6 +123,18 @@ export function peindre(ctx, plan, t, { grille, reperes, theme, marques, relief 
   // Repères d'interface, tout au-dessus.
   for (const p of marques.portesReliees || []) theme.marqueLiaison?.(ctx, rectPorte(plan, p), p.mur, t, p);
   if (marques.selection) theme.marqueSelection?.(ctx, rectDe(marques.selection.genre, marques.selection.element, plan), t, marques.selection.genre);
+}
+
+/**
+ * L'ordre de dessin des objets : par couche (catalogue.js), puis, si `profondeur`, du plus loin au plus proche du centre de la salle. En fausse 3D,
+ * le haut d'un objet penche vers l'extérieur et doit recouvrir ce qui est derrière lui, c'est-à-dire plus loin du centre. À distance égale,
+ * l'ordre du plan est gardé (tri stable). Sans `profondeur` (vectoriel, papier), seul l'ordre des couches compte : leur rendu ne change pas.
+ * @returns {object[]} une copie triée ; `plan.objets` n'est pas modifié
+ */
+export function ordonnerObjets(objets, plan, profondeur = false) {
+  const cx = plan.largeur / 2, cy = plan.longueur / 2;
+  const loin = (o) => Math.hypot(o.x + o.l / 2 - cx, o.y + o.h / 2 - cy);
+  return [...objets].sort((a, b) => coucheDe(a.type) - coucheDe(b.type) || (profondeur ? loin(b) - loin(a) : 0));
 }
 
 /** La case que le MJ montre : très voyante, sous les pions, pour se lire de loin à la table. */

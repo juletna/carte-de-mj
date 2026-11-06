@@ -33,11 +33,12 @@ Au-dessus de 760 px, ni la mise en page ni la carte ne changent. En dessous, le 
 - **Apparence de la carte** (Donjon, onglet Réglages, et bloc Table de la régie ; la vue table suit la régie) :
   - **Thème** : « Peint » (par défaut) ou « Vectoriel » (l'ancien dessin, en aplats). L'impression garde son thème « papier », qui ne change pas.
     Le thème peint dessine un style « trait colorié » : contour brun irrégulier, sols à texture calculée (pierre, marbre, bois, terre, sable, herbe, glace), roche autour de la salle,
-    ombre au pied des murs. Rien n'est une image : tout est généré par le code. Les objets et les pions y sont encore ceux du thème vectoriel (les suites du chantier les repeindront).
+    ombre au pied des murs. Rien n'est une image : tout est généré par le code.
+    Les 19 objets y sont dessinés en fausse 3D (un empilement de prismes et de cylindres vus du centre de la salle : pilier et colonne hauts jusqu'au plafond, coffre à couvercle, table sur pieds, escalier et fosse en creux dont on voit la paroi, bibliothèque dont on lit les rayonnages, torche sur la face du mur…) : leur pied reste sur leurs cases, seul leur haut penche vers l'extérieur. Ils sont dessinés du plus loin au plus proche du centre, par couche. Les pions restent à plat, au-dessus de tout : disque en dégradé de la couleur du camp, anneau clair, abréviation, numéro ; blessé : anneau en tirets et croix rouge ; mort : grisé et barré.
   - **Cases** : l'opacité des lignes de case, de 0 (invisibles) à 100 %. Elle remplace l'ancienne case à cocher « Afficher la grille » : `reglages.cases` (entier de 0 à 100) l'emporte, et
     `reglages.grille` reste écrit (vrai dès que `cases` > 0) pour les versions qui ne connaissent que lui. Un réglage enregistré avant ce curseur se relit sans rien perdre : « grille » coché
     vaut 40 %, décoché 0 %.
-  - **Relief** : la fausse 3D des murs (case à cocher, oui par défaut). La caméra est au-dessus du centre de la salle : le haut d'un mur s'écarte du centre de `1 + KP` (au plus 10,5 %),
+  - **Relief** : la fausse 3D des murs (case à cocher, oui par défaut). La caméra est au-dessus du centre de la salle : le haut d'un mur s'écarte du centre de `1 + KP` (environ 10 %, davantage sur les petites salles pour que les faces de mur restent lisibles : le mur du côté court se décale d'au moins 0,42 case),
     on voit donc les faces des murs tournées vers le centre (trois assises de briques, ombrées par une lumière venue du nord-ouest) et leur dessus, presque noir. KP est calculé par salle
     pour que le décalage et l'épaisseur du mur tiennent dans la marge de roche ; sans relief, KP vaut 0 et la salle est vue à plat. Une salle non rectangulaire (croix, L, U…) suit le
     même principe, mur par mur.
@@ -71,7 +72,7 @@ pour prouver qu'une refactorisation ne les change pas. Après un changement voul
 - **Objets** : pilier, colonne, coffre, statue, table, chaise, autel, trône, tonneau, caisse, escalier, fosse, lit,
   bibliothèque, torche, débris, puits, fontaine, sarcophage, ainsi que les portes, herses et arches.
   Pour en ajouter un, ajoutez son entrée dans `js/catalogue.js` (mots, taille, nom, genre…), puis son dessin dans chacun des deux
-  thèmes (`js/rendu/themes/vectoriel.js` et `papier.js`) : un test vérifie qu'aucun n'en manque. Le thème peint (`peint.js`) reprend pour l'instant ceux du vectoriel.
+  thèmes (`js/rendu/themes/vectoriel.js` et `papier.js`) : un test vérifie qu'aucun n'en manque. Le thème peint (`peint.js`) a les siens, en fausse 3D (`themes/peint/objets.js`) : un objet y est un empilement de volumes (`volumes.js`), et peut déclarer une source de lumière (`V.lumiere`).
 - **Créatures** (pions numérotés) : les personnages / joueurs / aventuriers (bleu), les peuples et PNJ
   (or : humain, elfe, nain, halfelin, gnome, garde, mage, roi…) et les monstres (rouge : gobelin, orque, kobold,
   squelette, zombie, goule, ogre, troll, minotaure, géant, dragon…). La taille du pion suit la catégorie
@@ -406,7 +407,7 @@ js/coordonnees.js   coordonnées de cases façon échecs (A1…), repère d'une 
 js/parseur/         index (chaîne d'analyse), normalisation, nombres, lexique (vocabulaire et index des mots), dimensions, positions, placement,
                     decrire (plan → texte), commandes (« ajoute trois gobelins » en cours de partie : pur, sans DOM)
 js/parseur/placement/  le détail de placement.js (qui orchestre) : grille (cases occupées, répartition), portes (mur d'entrée, portes), placeurs (une disposition par zone), journal (phrases du journal)
-js/rendu/           moteur Canvas (une salle ; `peindre`), plan.js (le plan complet du donjon : couloirs, ponts, cadres, noms ; s'appuie sur le moteur), géométrie (marge, épaisseur des murs, rectangle d'un élément, ancrage d'une porte : pur), trace.js (tracé Canvas du sol et des murs découpés), portraits de monstres, thème vectoriel, thème papier (impression) et thème peint (themes/peint.js, avec ses modules dans themes/peint/ : bruits, tuiles de sol, murs en segments, volumes en fausse 3D) ; perspective.js (calculs de la fausse 3D : KP, `haut`, repère local d'un objet ; pur) et graine.js (graine d'une salle)
+js/rendu/           moteur Canvas (une salle ; `peindre`), plan.js (le plan complet du donjon : couloirs, ponts, cadres, noms ; s'appuie sur le moteur), géométrie (marge, épaisseur des murs, rectangle d'un élément, ancrage d'une porte : pur), trace.js (tracé Canvas du sol et des murs découpés), portraits de monstres, thème vectoriel, thème papier (impression) et thème peint (themes/peint.js, avec ses modules dans themes/peint/ : bruits, tuiles de sol, murs en segments, volumes en fausse 3D, objets, pions) ; perspective.js (calculs de la fausse 3D : KP, `haut`, repère local d'un objet ; pur) et graine.js (graine d'une salle)
 tests/              un fichier de test par module (*.test.js), tous.js (la liste unique des suites, lue par node.mjs et tests.html),
                     mini-test.js (assertions et harnais communs), aides-partie.js (donjon et partie d'essai des tests de partie), phrases.js (phrases du parseur), references.js (empreintes de rendu
                     et de disposition, générées par regenerer-references.mjs)

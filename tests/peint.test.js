@@ -11,12 +11,15 @@ import { h2, vbp, fbmp, voroP, alea, graineDeTexte } from '../js/rendu/themes/pe
 import { creerVolumes, volumesLocaux } from '../js/rendu/themes/peint/volumes.js';
 import { graineDePlan, idPublic } from '../js/rendu/graine.js';
 import { themeParNom, THEMES } from '../js/rendu/themes/index.js';
-import { dessiner } from '../js/rendu/moteur.js';
+import { dessiner, ordonnerObjets } from '../js/rendu/moteur.js';
+import { objets as objetsPeints, ordonner, face } from '../js/rendu/themes/peint/objets.js';
+import { pion as pionPeint } from '../js/rendu/themes/peint/pions.js';
+import { etat } from '../js/rendu/themes/peint/etat.js';
 import { casesDeReglages, themeDeReglages, reliefDeReglages, optionsRendu, affichageDeReglages, validerAffichage, CASES_PAR_DEFAUT, AFFICHAGE_PAR_DEFAUT } from '../js/affichage.js';
 import { chargerReglages, CLE_REGLAGES } from '../js/stockage.js';
 import { planPublic } from '../js/vue-publique.js';
 import { casesRetirees, nombreCases } from '../js/formes.js';
-import { OBJETS } from '../js/catalogue.js';
+import { OBJETS, CREATURES, coucheDe } from '../js/catalogue.js';
 import { verifier, egal, fauxStock, executerSuite } from './mini-test.js';
 
 const rect = (largeur, longueur, plus = {}) => ({ id: 's1', largeur, longueur, sol: 'pierre', portes: [], objets: [], creatures: [], ...plus });
@@ -34,18 +37,37 @@ function ctxPermissif() {
     set: () => true,
   });
 }
-const canvasSimule = () => ({ width: 0, height: 0, style: {}, getContext: () => ctxPermissif() });
+/** Contexte 2D qui note chaque appel et chaque affectation, dans l'ordre (dégradés compris). */
+function ctxJournal() {
+  const lignes = [];
+  const fmt = (a) => a.map((v) => (typeof v === 'number' ? v.toFixed(3) : v)).join(',');
+  const ctx = new Proxy({}, {
+    get: (_, nom) => (typeof nom === 'symbol' ? undefined
+      : nom === 'createRadialGradient' || nom === 'createLinearGradient' ? (...a) => { lignes.push(`${nom}(${fmt(a)})`); return { addColorStop: (...c) => lignes.push(`stop(${c.join(',')})`) }; }
+      : nom === 'measureText' ? (s) => ({ width: String(s).length * 6 })
+      : (...a) => { lignes.push(`${nom}(${fmt(a)})`); }),
+    set: (_, nom, v) => { lignes.push(`${nom}=${v}`); return true; },
+  });
+  return { ctx, lignes };
+}
+const canvasSimule =() => ({ width: 0, height: 0, style: {}, getContext: () => ctxPermissif() });
 
 const TESTS = [
   // --- Perspective et KP ---------------------------------------------------------------------------------
-  ['KP : au plus KP_MAX, et plus petit pour une grande salle ; 0 sans relief', () => {
-    proche(kpDeSalle(rect(4, 3), 48), KP_MAX, 'petite salle');
-    proche(kpDeSalle(rect(8, 6), 48), KP_MAX, 'salle moyenne');
-    proche(kpDeSalle(rect(12, 8), 48), 0.62 / 6, 'une salle de 12 cases est déjà un peu en dessous');
+  ['KP : relevé sur les petites salles (le mur du côté court se décale d’au moins 0,42 case), borné par la marge ; 0 sans relief', () => {
+    proche(kpDeSalle(rect(4, 3), 48), (0.42 * 48) / 72, 'petite salle : 0,42 case sur l’axe court');
+    proche(kpDeSalle(rect(8, 6), 48), (0.42 * 48) / 144, 'salle moyenne');
+    proche(kpDeSalle(rect(12, 8), 48), 0.62 / 6, 'à cette taille, la marge borne déjà : on passe sous KP_MAX');
+    proche(kpDeSalle(rect(10, 8), 48), KP_MAX, 'ni la marge ni le côté court n’y touchent : KP_MAX');
     proche(kpDeSalle(rect(40, 30), 48), (0.62 * 48) / ((40 * 48) / 2), 'grande salle : 0,62 case / demi-largeur en pixels');
-    proche(kpDeSalle(rect(10, 40), 20), (0.62 * 20) / ((40 * 20) / 2), 'la plus grande dimension compte');
+    proche(kpDeSalle(rect(10, 40), 20), (0.62 * 20) / ((40 * 20) / 2), 'salle étroite et longue : la marge borne, sur le plus grand côté');
+    verifier(kpDeSalle(rect(1, 1), 48) < 0.84, 'une seule case : le plafond de la marge l’emporte sur 0,42 case');
     egal(kpDeSalle(rect(12, 8), 48, false), 0, 'sans relief');
     verifier(kpDeSalle(rect(60, 60), 16) < kpDeSalle(rect(30, 30), 16), 'plus la salle est grande, plus KP baisse');
+    for (const [l, h] of [[3, 3], [4, 3], [6, 4], [8, 6], [5, 9]]) {
+      const t = 48, demiMin = (Math.min(l, h) * t) / 2, decalage = (kpDeSalle(rect(l, h), t) * demiMin) / t;
+      verifier(decalage >= 0.42 - 1e-9 || kpDeSalle(rect(l, h), t) >= KP_MAX, `${l}×${h} : le côté court se décale de ${decalage.toFixed(3)} case`);
+    }
   }],
   ['KP : le haut des murs et leur épaisseur tiennent toujours dans la marge de roche', () => {
     for (const [l, h, t] of [[1, 1, 48], [3, 3, 16], [8, 5, 48], [12, 8, 100], [20, 20, 30], [40, 30, 48], [60, 60, 16], [60, 4, 160], [5, 60, 24]]) {
@@ -56,13 +78,14 @@ const TESTS = [
   }],
   ['haut(x, y, h) : un point à la hauteur h s’écarte du centre de 1 + h·KP ; rien ne bouge au sol ni sans relief', () => {
     const vue = vueDeSalle(rect(10, 6), 40); // centre (200, 120)
+    const KP = vue.kp;
     egal([vue.cx, vue.cy], [200, 120], 'centre');
     egal(haut(vue, 40, 30, 0), [40, 30], 'au sol');
     const [x, y] = haut(vue, 40, 30, 1);
-    proche(x, 200 + (40 - 200) * (1 + KP_MAX), 'x au sommet du mur');
-    proche(y, 120 + (30 - 120) * (1 + KP_MAX), 'y au sommet du mur');
+    proche(x, 200 + (40 - 200) * (1 + KP), 'x au sommet du mur');
+    proche(y, 120 + (30 - 120) * (1 + KP), 'y au sommet du mur');
     egal(haut(vue, 200, 120, 1), [200, 120], 'le centre ne bouge jamais');
-    proche(echelle(vue, 2), 1 + 2 * KP_MAX, 'une hauteur de deux murs');
+    proche(echelle(vue, 2), 1 + 2 * KP, 'une hauteur de deux murs');
     egal(haut(vueDeSalle(rect(10, 6), 40, false), 40, 30, 1), [40, 30], 'sans relief : à plat');
   }],
   ['faceVisible : on voit les faces tournées vers le centre, jamais sans relief ; l’éclairage vient du nord-ouest', () => {
@@ -289,10 +312,102 @@ const TESTS = [
     const ctx = ctxPermissif();
     THEMES.peint.preparer(ctx, rect(12, 8, { id: 'a' }), 48, { relief: true });
     const V = volumesLocaux(ctx);
-    proche(V.KP, 0.62 / 6, 'KP de la salle préparée');
+    proche(V.KP, kpDeSalle(rect(12, 8), 48), 'KP de la salle préparée');
     THEMES.peint.preparer(ctx, rect(12, 8, { id: 'a' }), 48, { relief: false });
     egal(volumesLocaux(ctx).KP, 0, 'sans relief');
     egal(nombreCases(rect(12, 8)), 96, 'rectangle 12 × 8');
+  }],
+
+  // --- Lot 2 : objets en fausse 3D, ordre de dessin, pions -----------------------------------------------
+  ['ordre de dessin : par couche, puis du plus loin au plus proche du centre ; le vectoriel et le papier gardent l’ordre du plan', () => {
+    const plan = rect(10, 10);
+    const o = (id, type, x, y) => ({ id, type, x, y, l: 1, h: 1, rotation: 0 });
+    const liste = [o('proche', 'pilier', 5, 5), o('coin', 'pilier', 0, 0), o('mur', 'torche', 4, 0), o('trou', 'fosse', 4, 4), o('loin', 'coffre', 9, 9), o('milieu', 'colonne', 2, 5)];
+    egal(ordonnerObjets(liste, plan, true).map((x) => x.id), ['trou', 'coin', 'loin', 'milieu', 'proche', 'mur'], 'couche d’abord (fosse au sol, torche au mur), puis le plus loin du centre');
+    egal(ordonnerObjets(liste, plan, false).map((x) => x.id), ['trou', 'proche', 'coin', 'loin', 'milieu', 'mur'], 'sans profondeur : seule la couche compte, l’ordre du plan est gardé');
+    egal(liste.map((x) => x.id), ['proche', 'coin', 'mur', 'trou', 'loin', 'milieu'], 'le plan n’est pas modifié');
+    egal(ordonnerObjets([o('a', 'pilier', 0, 0), o('b', 'pilier', 9, 9)], plan, true).map((x) => x.id), ['a', 'b'], 'à distance égale, l’ordre du plan');
+    verifier(coucheDe('fosse') < coucheDe('pilier') && coucheDe('pilier') < coucheDe('torche'), 'couches du catalogue : sol < défaut < mur');
+  }],
+  ['moteur : le thème peint reçoit les objets du plus loin au plus proche, pas le vectoriel', () => {
+    const noms = (theme) => {
+      const vus = [];
+      const faux = { ...theme, objets: new Proxy({}, { get: () => (ctx, w, h, t, o) => vus.push(o.id) }) };
+      dessiner(canvasSimule(), rect(10, 10, { objets: [{ id: 'a', type: 'pilier', x: 5, y: 5, l: 1, h: 1, rotation: 0 }, { id: 'b', type: 'pilier', x: 0, y: 0, l: 1, h: 1, rotation: 0 }] }), { taille: 20, theme: faux });
+      return vus;
+    };
+    egal(noms(THEMES.peint), ['b', 'a'], 'peint : le coin (loin du centre) d’abord');
+    egal(noms(THEMES.vectoriel), ['a', 'b'], 'vectoriel : ordre du plan');
+  }],
+  ['peint : chaque objet du catalogue se dessine, sans relief comme avec, à toutes les rotations, avec un tracé, et de façon déterministe', () => {
+    for (const { type } of OBJETS) {
+      for (const relief of [true, false]) {
+        for (const rotation of [0, 90, 180, 270]) {
+          const dessiner1 = () => {
+            const { ctx, lignes } = ctxJournal();
+            THEMES.peint.preparer(ctx, rect(9, 7, { id: 'essai' }), 48, { relief });
+            const quart = rotation === 90 || rotation === 270, l = type === 'table' ? 2 : 1, h = type === 'lit' ? 2 : 1;
+            THEMES.peint.objets[type](ctx, (quart ? h : l) * 48, (quart ? l : h) * 48, 48, { type, x: 2, y: 3, l, h, rotation });
+            return lignes;
+          };
+          const a = dessiner1(), b = dessiner1();
+          verifier(a.some((l) => l.startsWith('fill(') || l.startsWith('stroke(')), `${type} · relief ${relief} · ${rotation}° : rien n’est tracé`);
+          verifier(a.every((l) => !/NaN|undefined|Infinity/.test(l)), `${type} · relief ${relief} · ${rotation}° : valeur invalide : ${a.find((l) => /NaN|undefined|Infinity/.test(l))}`);
+          egal(a, b, `${type} : même objet, même dessin`);
+        }
+      }
+    }
+  }],
+  ['peint : le même objet, à une autre place de la salle, ne se dessine pas pareil (les aléas viennent de sa place) ; la salle change la graine', () => {
+    const tracer = (id, x) => { const { ctx, lignes } = ctxJournal(); THEMES.peint.preparer(ctx, rect(9, 7, { id }), 48, { relief: true }); objetsPeints.debris(ctx, 48, 48, 48, { type: 'debris', x, y: 1 }); return lignes.join('|'); };
+    verifier(tracer('a', 1) !== tracer('a', 5), 'deux débris à deux endroits');
+    verifier(tracer('a', 1) !== tracer('b', 1), 'deux salles');
+    egal(tracer('a', 1), tracer('a', 1), 'même salle, même place');
+  }],
+  ['peint : un objet qui brûle déclare sa source de lumière, dans le repère de la salle ; les autres n’en déclarent pas', () => {
+    const lumieres = (type, relief = true, rotation = 180) => {
+      const { ctx } = ctxJournal();
+      THEMES.peint.preparer(ctx, rect(9, 7, { id: 'l' }), 48, { relief });
+      objetsPeints[type](ctx, 48, 48, 48, { type, x: 4, y: 0, rotation });
+      return [...etat.lumieres];
+    };
+    egal(lumieres('torche').length, 1, 'une torche : une source');
+    egal(lumieres('autel').length, 2, 'un autel : deux bougies');
+    for (const type of ['pilier', 'coffre', 'table', 'fosse', 'puits', 'tonneau']) egal(lumieres(type).length, 0, `${type} : aucune`);
+    const [a] = lumieres('torche', false), [b] = lumieres('torche', true), centreSalle = [(9 * 48) / 2, (7 * 48) / 2];
+    for (const k of ['x', 'y', 's', 'r', 'k']) verifier(Number.isFinite(b[k]), `la source a un ${k}`);
+    verifier(typeof b.c === 'string' && /^\d+,\d+,\d+$/.test(b.c), 'couleur « r,g,b »');
+    verifier(Math.hypot(b.x - centreSalle[0], b.y - centreSalle[1]) > Math.hypot(a.x - centreSalle[0], a.y - centreSalle[1]), 'avec le relief, la flamme monte et s’écarte du centre');
+    THEMES.peint.preparer(ctxPermissif(), rect(9, 7, { id: 'l' }), 48, { relief: true });
+    egal(etat.lumieres, [], 'preparer vide les sources');
+  }],
+  ['peint : tant que les flammes ne sont pas animées par la couche de lumière, la torche dessine sa flamme ; ensuite non', () => {
+    const traces = () => { const { ctx, lignes } = ctxJournal(); THEMES.peint.preparer(ctx, rect(9, 7, { id: 'l' }), 48, { relief: true }); objetsPeints.torche(ctx, 48, 48, 48, { type: 'torche', x: 4, y: 0, rotation: 180 }); return lignes.length; };
+    const fixe = traces();
+    etat.flammesAnimees = true;
+    try { verifier(traces() < fixe, 'moins de tracés quand la flamme est animée ailleurs'); } finally { etat.flammesAnimees = false; }
+  }],
+  ['peint : ordonner joue les pièces du plus loin au plus proche du centre ; face() ne voit que les faces tournées vers lui', () => {
+    const vue = vueDeSalle(rect(10, 6), 40), V = creerVolumes(vue), vus = [];
+    ordonner(V, [{ x: 190, y: 120, dessiner: () => vus.push('centre') }, { x: 10, y: 10, dessiner: () => vus.push('coin') }, { x: 300, y: 100, dessiner: () => vus.push('milieu') }]);
+    egal(vus, ['coin', 'milieu', 'centre'], 'ordre');
+    const F = face(V, 40, 30, 40, 40, 'sud'), N = face(V, 40, 30, 40, 40, 'nord');
+    verifier(F.visible && !N.visible, 'un objet au nord-ouest montre sa face sud, pas sa face nord');
+    verifier(!face(creerVolumes(vueDeSalle(rect(10, 6), 40, false)), 40, 30, 40, 40, 'sud').visible, 'sans relief, aucune face');
+    egal(F.P(0, 0), [40, 70], 'au sol, le coin de la face est sur le sol');
+    verifier(F.P(0, 1)[0] < 40, 'monté d’un mur, le point s’écarte du centre');
+  }],
+  ['peint : les pions se dessinent pour chaque état, avec leur abréviation ; mort et blessé se distinguent d’un pion normal', () => {
+    const tracer = (k) => { const { ctx, lignes } = ctxJournal(); THEMES.peint.preparer(ctx, rect(9, 7, { id: 'p' }), 48, { relief: true }); pionPeint(ctx, { type: 'gobelin', camp: 'monstre', numero: 2, x: 3, y: 2, taille: 1, ...k }, 48); return lignes; };
+    const normal = tracer({}), blesse = tracer({ etat: 'blesse' }), mort = tracer({ etat: 'mort' });
+    verifier(normal.some((l) => l.startsWith('fillText(Gob,')), 'l’abréviation du type est écrite');
+    verifier(normal.some((l) => l.startsWith('fillText(2,')), 'la pastille de numéro');
+    verifier(blesse.some((l) => l.startsWith('setLineDash(')) && !normal.some((l) => l.startsWith('setLineDash(')), 'anneau en tirets pour un blessé seulement');
+    verifier(mort.length > normal.length && mort.some((l) => l.startsWith('globalAlpha=')), 'un mort est grisé et barré d’une croix');
+    verifier(tracer({ camp: 'pj', type: 'pj', numero: 3 }).some((l) => l.startsWith('fillText(P3,')), 'un joueur : P + son numéro');
+    verifier(!tracer({ camp: 'pj', type: 'pj', numero: 3 }).some((l) => l.startsWith('fillText(3,')), 'pas de pastille pour un joueur');
+    verifier(tracer({ sansNumero: true }).every((l) => !l.startsWith('fillText(2,')), 'sansNumero : pas de pastille');
+    for (const { type, camp, taille } of CREATURES) verifier(tracer({ type, camp, taille }).length > 20, `${type} : le pion se dessine`);
   }],
 ];
 

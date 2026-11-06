@@ -11,14 +11,19 @@
  *   V.cylindre(ctx, r, cx, cy, rayon, h0, h1, couleur, dessus, cannelures)
  *   V.cerclage(ctx, cx, cy, rayon, h, h1)     trait en travers du flanc d'un cylindre
  *   V.ombrePied(ctx, tracer)                  ombre portée douce au pied d'un volume posé au sol
+ *   V.lumiere(x, y, h, source)                déclare une source de lumière (ou une flamme) au point (x, y) monté à la hauteur h : elle est notée dans
+ *                                             `etat.lumieres` en coordonnées de la salle (voir etat.js), pour la couche de lumière
  * `r` est le générateur de bruit.js (`alea(graine)`) ; `couleur` une teinte [h, s, l] (trait.js : `ton`).
  */
-import { vueLocale, haut as hautVue, echelle as echelleVue, faceVisible, eclairage } from '../../perspective.js';
+import { vueLocale, haut as hautVue, echelle as echelleVue, faceVisible, eclairage, composer, inverser, appliquer, IDENTITE } from '../../perspective.js';
 import { etat } from './etat.js';
 import { chemin, cercle, encre, trait, dl, dr, ton, centre } from './trait.js';
 
-/** Les volumes d'une vue. */
-export function creerVolumes(vue) {
+/**
+ * Les volumes d'une vue. `versSalle` est la matrice qui ramène le repère de la vue à celui de la salle (l'identité quand la vue est celle de la salle) :
+ * elle ne sert qu'à `lumiere`.
+ */
+export function creerVolumes(vue, versSalle = IDENTITE) {
   const echelle = (h) => echelleVue(vue, h);
   const haut = (x, y, h) => hautVue(vue, x, y, h);
   function auNiveau(ctx, h, dessin) {
@@ -85,7 +90,12 @@ export function creerVolumes(vue) {
     const rr = rad * echelle(h), a = Math.atan2(ty - by, tx - bx);
     ctx.beginPath(); ctx.arc(bx, by, rr, a + Math.PI / 2, a + Math.PI * 1.5); trait(ctx, '#2e2a27', 2.4);
   }
-  return { vue, KP: vue.kp, echelle, haut, auNiveau, ombrePied, prisme, cylindre, cerclage };
+  // Une source de lumière au point (x, y) élevé à la hauteur h ; (x, y) est dans le repère de la vue, la source notée dans celui de la salle.
+  function lumiere(x, y, h, source) {
+    const [px, py] = appliquer(versSalle, ...haut(x, y, h));
+    etat.lumieres.push({ ...source, x: px, y: py });
+  }
+  return { vue, KP: vue.kp, echelle, haut, auNiveau, ombrePied, prisme, cylindre, cerclage, lumiere };
 }
 
 /**
@@ -95,5 +105,6 @@ export function creerVolumes(vue) {
 export function volumesLocaux(ctx) {
   const m = ctx.getTransform?.();
   const courante = m && Number.isFinite(m.a) ? { a: m.a, b: m.b, c: m.c, d: m.d, e: m.e, f: m.f } : etat.base;
-  return creerVolumes(vueLocale(etat.vue, etat.base, courante));
+  const vers = composer(inverser(courante), etat.base); // repère de la salle → repère local
+  return creerVolumes(vueLocale(etat.vue, etat.base, courante), inverser(vers));
 }

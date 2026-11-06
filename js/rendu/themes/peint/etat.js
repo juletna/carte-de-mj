@@ -10,6 +10,10 @@
  *   graine   nombre dérivé de l'identifiant de la salle : tout aléa du décor en est tiré (même salle, même rendu, partout)
  *   relief   la perspective est-elle active ? (kp > 0)
  *   ambiance, etatSalle   neutre/froide/chaude/nuit et neuve/usee/ruine : champs du plan prévus pour le lot 4, valeurs neutres d'ici là
+ *   lumieres sources de lumière relevées pendant le dessin des objets, vidées par `preparer` : { x, y, s, r, c, k, petite? } en pixels, dans le repère de la
+ *            salle (origine : coin nord-ouest de la pièce) ; s = taille de la flamme, r = rayon de la lumière, c = 'r,g,b', k = intensité (0–1).
+ *            Un objet les déclare avec `V.lumiere(x, y, h, source)` (volumes.js) ; le lot « lumière » les lit après avoir dessiné les objets.
+ *   flammesAnimees  vrai quand la couche de lumière dessine elle-même les flammes (lot 3) : les objets ne dessinent alors plus leur petite flamme fixe
  */
 import { IDENTITE } from '../../perspective.js';
 
@@ -23,4 +27,6 @@ export const etat = {
   etatSalle: 'neuve',
   plan: null,
   t: 48,
+  lumieres: [],
+  flammesAnimees: false,
 };

@@ -6,13 +6,14 @@
  *   grille(ctx, plan, t, opacite)         grille en pointillés, d'opacité réglable (0–1)
  *
  * Où se brancheront les lots suivants :
- *   - objets en fausse 3D (lot 2)  : `objets[type]` ci-dessous, avec `volumesLocaux(ctx)` (peint/volumes.js : haut, KP, prisme, cylindre, auNiveau) ;
- *                                    pour l'instant les objets et les pions sont ceux du thème vectoriel, à plat.
- *   - lumière et flammes (lot 3)   : une couche sombre posée par le moteur après `pions`, dont les sources sont relevées pendant le dessin des objets.
+ *   - objets en fausse 3D (lot 2)  : peint/objets.js, avec `volumesLocaux(ctx)` (peint/volumes.js : haut, KP, prisme, cylindre, auNiveau) ; les pions à plat : peint/pions.js.
+ *                                    Le moteur dessine les objets du plus loin au plus proche du centre (moteur.js : `ordonnerObjets`).
+ *   - lumière et flammes (lot 3)   : une couche sombre posée par le moteur après `pions`. Les sources sont relevées pendant le dessin des objets dans `etat.lumieres`
+ *                                    (un objet les déclare avec `V.lumiere(x, y, h, source)`, voir peint/volumes.js et peint/etat.js) ; `etat.flammesAnimees` éteint les flammes fixes.
  *   - ambiance, état, éclairage (lot 4) : champs du plan lus par `preparer` (etat.ambiance, etat.etatSalle) et déjà dans la clé des tuiles de sol.
  *
  * Modules : peint/bruit.js (bruits), peint/sols.js (tuiles), peint/segments.js (murs en segments), peint/murs.js (murs, ombre, portes),
- * peint/trait.js (trait à la main), peint/volumes.js (volumes en fausse 3D), peint/etat.js (état du dessin en cours), ../perspective.js (calculs de vue).
+ * peint/trait.js (trait à la main), peint/volumes.js (volumes en fausse 3D), peint/objets.js (les 19 objets), peint/pions.js (pions à plat), peint/etat.js (état du dessin en cours), ../perspective.js (calculs de vue).
  */
 import { tracerSol } from '../trace.js';
 import { vueDeSalle, IDENTITE, haut as hautVue } from '../perspective.js';
@@ -23,8 +24,9 @@ import { graineDePlan } from '../graine.js';
 import { etat } from './peint/etat.js';
 import * as vectoriel from './vectoriel.js';
 
-// Les objets et les pions restent ceux du thème vectoriel jusqu'au lot 2.
-export { objets, pion } from './vectoriel.js';
+// Les objets et les pions sont ceux du thème peint (peint/objets.js, peint/pions.js) ; le repère de liaison reste celui du vectoriel.
+export { objets } from './peint/objets.js';
+export { pion } from './peint/pions.js';
 export { marqueLiaison } from './vectoriel.js';
 
 const FOND_ROCHE = '#141316';
@@ -48,6 +50,7 @@ export function preparer(ctx, plan, t, { relief = true } = {}) {
   etat.etatSalle = plan.etat ?? 'neuve';
   etat.plan = plan;
   etat.t = t;
+  etat.lumieres = [];
 }
 
 // --- Tuiles de sol --------------------------------------------------------------------------------------------

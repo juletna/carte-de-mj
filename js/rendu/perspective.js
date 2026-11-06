@@ -10,24 +10,31 @@
  */
 import { MARGE, EPAISSEUR_MUR } from './geometrie.js';
 
-/** Plus grand relief : le haut d'un mur s'écarte du centre de 10,5 % de plus que son pied. */
+/** Relief de base : le haut d'un mur s'écarte du centre de 10,5 % de plus que son pied (kpDeSalle le relève sur les petites salles). */
 export const KP_MAX = 0.105;
 /** Part de la marge (en cases) que le décalage du haut des murs peut occuper ; le reste est pour leur épaisseur. */
 export const PART_MARGE = 0.62;
 /** D'où vient la lumière : le nord-ouest (vecteur unitaire vers la source). */
 export const LUMIERE = [-0.6, -0.8];
 
+/** Décalage que le haut du mur le plus proche du centre doit prendre au moins, en cases : en dessous, les faces de mur des petites salles sont trop fines. */
+export const DECALAGE_MIN = 0.42;
+
 /**
- * KP d'une salle : le plus grand relief qui laisse le haut des murs dans la marge de roche. Le décalage du haut du mur le plus éloigné est
- * `KP × demi-côté` ; il ne doit pas dépasser PART_MARGE cases, pour que ce décalage plus l'épaisseur du mur (EPAISSEUR_MUR) tiennent dans MARGE.
+ * KP d'une salle : `min(PART_MARGE·T / demiMax, max(KP_MAX, DECALAGE_MIN·T / demiMin))` (demi = demi-dimension intérieure en pixels).
+ * Le haut du mur le plus éloigné se décale de `KP × demiMax` : il ne dépasse jamais PART_MARGE cases, pour que ce décalage plus l'épaisseur
+ * du mur (EPAISSEUR_MUR) tiennent dans MARGE. Mais sur une petite salle, `KP_MAX` ferait des faces trop fines : on relève KP pour que le
+ * mur du côté court se décale d'au moins DECALAGE_MIN case, tant que la marge le permet.
  * @param {{largeur:number, longueur:number}} plan
  * @param {number} t       côté d'une case en pixels
  * @param {boolean} [relief=true]  faux : vue à plat, KP = 0
  */
 export function kpDeSalle(plan, t, relief = true) {
   if (!relief) return 0;
-  const demi = (Math.max(plan.largeur, plan.longueur) * t) / 2;
-  return Math.min(KP_MAX, (PART_MARGE * MARGE * t) / demi);
+  const demiMax = (Math.max(plan.largeur, plan.longueur) * t) / 2, demiMin = (Math.min(plan.largeur, plan.longueur) * t) / 2;
+  // L'épaisseur du mur grandit aussi avec KP : sur les toutes petites salles, un dernier plafond garde le dessus des murs dans la marge.
+  const plafond = (0.98 * (MARGE - EPAISSEUR_MUR)) / (demiMax / t + EPAISSEUR_MUR);
+  return Math.min((PART_MARGE * MARGE * t) / demiMax, Math.max(KP_MAX, (DECALAGE_MIN * t) / demiMin), plafond);
 }
 
 /** Jusqu'où le dessus des murs déborde du rectangle de la salle, en cases : le décalage du haut du mur le plus éloigné plus l'épaisseur du mur. Toujours inférieur à MARGE. */
