@@ -36,6 +36,8 @@ h2 { margin: 0 0 6px; font-size: 13px; text-transform: uppercase; letter-spacing
 label { display: block; }
 .saisie > label { font-weight: 600; margin-bottom: 6px; }
 
+/* Champs numériques : les flèches haut / bas sont toujours visibles, à droite (par défaut le navigateur ne les montre qu'au survol). */
+input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { opacity: 1; cursor: pointer; }
 textarea, input[type="number"] {
   width: 100%;
   background: var(--champ);
