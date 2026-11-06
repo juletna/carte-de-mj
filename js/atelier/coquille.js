@@ -69,7 +69,7 @@ export function creerCoquille({
   const fermer = h('button', { type: 'button', className: 'btn btn-icone btn-discret atelier-fermer-tiroir', 'aria-label': 'Fermer l’arbre', title: 'Fermer l’arbre' }, icone('fermer'));
   const menuCorps = h('div', { className: 'atelier-menu-corps' });
   const menu = h('details', { className: 'atelier-menu', hidden: true },
-    h('summary', { className: 'btn btn-discret atelier-menu-bouton', title: 'Créer un monde ou un donjon, importer un fichier, coller un donjon' }, icone('plus'), 'Nouveau'), menuCorps);
+    h('summary', { className: 'btn btn-discret atelier-menu-bouton', title: 'Créer un lieu, un monde ou un donjon, importer un fichier, coller un donjon' }, icone('plus'), 'Nouveau'), menuCorps);
   const toutReplier = h('button', { type: 'button', className: 'btn btn-icone btn-discret atelier-tout-replier', 'aria-label': 'Tout replier', title: 'Tout replier : seules les têtes de l’arbre restent' }, icone('tout-replier'));
   toutReplier.addEventListener('click', () => vue.toutReplier());
   const tete = h('div', { className: 'atelier-arbre-tete' }, h('h2', { className: 'atelier-arbre-titre', textContent: mode === 'jouer' ? 'La table' : 'L’atelier' }), toutReplier, menu, replier, fermer);
@@ -81,10 +81,10 @@ export function creerCoquille({
   function majMenu() {
     menu.hidden = actionsArbre.length === 0;
     const blocs = GROUPES.map(([id, titre]) => {
-      const actions = actionsArbre.filter((a) => (a.groupe ?? 'creer') === id).sort((a, b) => (a.ordre ?? 0) - (b.ordre ?? 0));
+      const actions = actionsArbre.filter((a) => (a.groupe ?? 'creer') === id && (a.visible?.() ?? true)).sort((a, b) => (a.ordre ?? 0) - (b.ordre ?? 0));
       if (!actions.length) return null;
       return [...(titre ? [h('p', { className: 'atelier-menu-groupe', textContent: titre })] : []), ...actions.map((a) => {
-        const b = h('button', { type: 'button', className: `btn ${a.danger ? 'btn-danger' : 'btn-discret'} atelier-menu-item`, ...(a.aide ? { 'aria-label': a.aide, title: a.aide } : {}) }, ...(a.icone ? [icone(a.icone)] : []), a.libelle);
+        const b = h('button', { type: 'button', className: `btn ${a.danger ? 'btn-danger' : 'btn-discret'} atelier-menu-item`, ...(a.aide ? { 'aria-label': a.aide, title: a.aide } : {}) }, ...(a.icone ? [icone(a.icone)] : []), typeof a.libelle === 'function' ? a.libelle() : a.libelle);
         b.addEventListener('click', () => { menu.open = false; a.executer(); });
         return b;
       })];
@@ -93,9 +93,10 @@ export function creerCoquille({
   }
   /**
    * Une entrée du menu « + Nouveau » de l'en-tête de l'arbre. `groupe` : 'creer' (défaut), 'apporter' ou 'signal' (sans titre, en dernier) ;
-   * `ordre` range les entrées d'un groupe ; `aide` sert d'étiquette accessible quand le libellé seul est trop court (« Monde » sous « Créer »).
+   * `ordre` range les entrées d'un groupe ; `libelle` peut être une fonction et `visible` une fonction (recalculées à l'ouverture du menu) ; `aide` sert d'étiquette accessible quand le libellé seul est trop court (« Monde » sous « Créer »).
    */
   function ajouterAction(a) { actionsArbre.push(a); majMenu(); }
+  menu.addEventListener('toggle', () => { if (menu.open) majMenu(); }); // les entrées qui dépendent de la sélection (« Lieu dans… ») se recalculent à l'ouverture
   // Un clic ailleurs referme le menu ; Échap aussi (plus bas, avec le tiroir), et rend le focus au bouton.
   document.addEventListener('click', (e) => { if (menu.open && !menu.contains(e.target)) menu.open = false; });
 

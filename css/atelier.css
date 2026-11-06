@@ -55,7 +55,8 @@ body.atelier-avec-inspecteur { --largeur-inspecteur: 330px; }
 .atelier-arbre-titre { white-space: nowrap; flex-shrink: 0; }
 .atelier-arbre-tete .atelier-menu { margin-left: auto; }
 .atelier-menu-bouton { gap: 6px; min-width: 0; padding-inline: var(--esp-2); white-space: nowrap; }
-.atelier-menu[open] > .atelier-menu-bouton { background: var(--champ); }
+.atelier-menu-bouton { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); font-weight: 650; } /* visible sans être un second bouton doré : « Jouer » reste l'unique action pleine */
+.atelier-menu-bouton:hover, .atelier-menu[open] > .atelier-menu-bouton { background: color-mix(in srgb, var(--accent) 26%, transparent); }
 .atelier-arbre-tete .atelier-menu-corps { min-width: 200px; } /* la colonne de l'arbre coupe ce qui dépasse : le menu tient dedans, aligné à droite du bouton */
 .atelier-menu-groupe { margin: 0; padding: 6px var(--esp-3) 2px; font-size: 11px; font-weight: 650; letter-spacing: .06em; text-transform: uppercase; color: var(--texte-doux); }
 .atelier-menu-separateur { width: 100%; margin: 4px 0; border: 0; border-top: 1px solid var(--bord); }

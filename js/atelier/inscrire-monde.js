@@ -63,6 +63,15 @@ export function inscrireMonde(coquille, ctx) {
 
   // (Importer un monde : l'entrée commune « Importer un fichier… », js/atelier/importer.js.)
   coquille.arbre.ajouterAction({ groupe: 'creer', ordre: 1, libelle: 'Monde', icone: 'monde', aide: 'Nouveau monde', executer: () => { U.creerMondeNeuf(); } });
+  // « Lieu dans <monde> » : seulement quand un monde est ouvert, en tête du menu (le même geste que la ligne « + Ajouter un lieu » de l'arbre).
+  const mondeOuvert = () => (U.ouvert() ? U.donnees().univers[U.donnees().actif] ?? null : null);
+  coquille.arbre.ajouterAction({
+    groupe: 'creer', ordre: 0, icone: 'plus',
+    visible: () => mondeOuvert() !== null,
+    libelle: () => `Lieu dans ${mondeOuvert()?.nom ?? 'ce monde'}`,
+    aide: 'Ajouter un lieu à ce monde : choisit une carte dans la bibliothèque',
+    executer: () => { if (telephone()) coquille.fermerTiroir({ rendreFocus: false }); U.ajouterLieuLibre(); },
+  });
   // Un lieu appartient à un monde : on l'ajoute sous ce monde, par la dernière ligne de sa branche (choisit une carte dans la bibliothèque).
   // Un monde sans carte commence par celle-ci : la carte du monde, qui prend son nom.
   coquille.arbre.vue.definirAjout((n) => (n.type !== 'monde' ? null : {

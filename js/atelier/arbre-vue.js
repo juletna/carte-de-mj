@@ -123,7 +123,7 @@ export function creerArbreVue({ mode = 'preparer', surChoix, pastille = null, ti
     if (vue.horsMonde.enfants.length) tetes.push(noeud(vue.horsMonde, 1, forcer, ancetres));
     liste.replaceChildren(...tetes);
     vide.hidden = tetes.length > 0;
-    vide.textContent = total > 1 || filtreTexte ? 'Rien ne correspond.' : 'Rien ici pour l’instant.';
+    vide.textContent = total > 1 || filtreTexte ? 'Rien ne correspond.' : 'Rien ici pour l’instant : commence par « Nouveau ».';
     const tous = visibles();
     const cible = (garde && tous.find((li) => li.dataset.cle === garde)) || liste.querySelector('.courant') || tous[0];
     tous.forEach((li) => { li.tabIndex = li === cible ? 0 : -1; });
