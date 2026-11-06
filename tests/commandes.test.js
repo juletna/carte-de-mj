@@ -256,6 +256,41 @@ const TESTS = [
     const m2 = commande('déplace le dragon en G7', r.plan);
     verifier(m2.ok === false || m2.plan.creatures.find((k) => k.type === 'dragon').x + 3 <= 8, 'ne déborde pas du bord');
   }],
+  ['supprimer, déplacer : l’aspect cité (« la torche éteinte », « le coffre ouvert ») choisit le bon objet parmi plusieurs du même type', () => {
+    const p = analyser('Salle de 10 par 8 cases, une porte au mur sud, deux torches en B2 H2, une torche éteinte en E1, un coffre ouvert en B6, un coffre fermé en F6, un coffre vide en H6, un brasero bleu en D4.').plan;
+    const aspects = (q, type) => q.objets.filter((o) => o.type === type).map((o) => `${o.variante ?? '-'}@${cases([o])}`).sort();
+    egal(aspects(p, 'torche'), ['-@B2', '-@H2', 'eteinte@E1'], 'le plan de départ');
+    // Sans l'aspect : ambigu, et le message propose de le préciser.
+    refusee('supprime la torche', p, ['3 torches', 'éteinte'], 'supprime la torche');
+    const e = commande('supprime la torche éteinte', p);
+    verifier(e.ok, e.message); plausible(e.plan);
+    egal(aspects(e.plan, 'torche'), ['-@B2', '-@H2'], 'seule l’éteinte est supprimée');
+    egal(e.supprimes.length, 1, 'un seul supprimé');
+    egal(aspects(commande('supprime la torche éteinte', p).plan, 'coffre'), aspects(p, 'coffre'), 'les coffres ne bougent pas');
+    // Le défaut se nomme aussi ; avec deux candidats, il faut encore un numéro ou une case.
+    refusee('supprime la torche normale', p, ['2 torches'], 'supprime la torche normale');
+    const n = commande('supprime la torche normale en H2', p);
+    verifier(n.ok, n.message);
+    egal(aspects(n.plan, 'torche'), ['-@B2', 'eteinte@E1'], 'la normale de H2');
+    const o = commande('supprime le coffre ouvert', p);
+    verifier(o.ok, o.message);
+    egal(aspects(o.plan, 'coffre'), ['-@F6', 'vide@H6'], 'seul le coffre ouvert part');
+    const v = commande('supprime les coffres vides', p);
+    verifier(v.ok, v.message);
+    egal(v.supprimes.length, 1, 'tous les coffres vides : un');
+    const f = commande('supprime le brasero à flamme bleue', p);
+    verifier(f.ok, f.message);
+    egal(f.plan.objets.some((x) => x.type === 'brasero'), false, '« à flamme bleue » : mots de liaison compris');
+    refusee('supprime le coffre brisé', p, ['Aucun coffre brisé'], 'supprime le coffre brisé');
+    // Déplacer : « déplace le coffre ouvert en B3 ».
+    const d = commande('déplace le coffre ouvert en B3', p);
+    verifier(d.ok, d.message); plausible(d.plan);
+    egal(d.plan.objets.filter((x) => x.type === 'coffre').map((x) => `${x.variante ?? '-'}@${cases([x])}`).sort(), ['-@F6', 'ouvert@B3', 'vide@H6'].sort(), 'le coffre ouvert est déplacé, il garde son aspect');
+    const d2 = commande('déplace la torche éteinte à gauche', p);
+    verifier(d2.ok, d2.message);
+    egal(d2.plan.objets.find((x) => x.variante === 'eteinte').variante, 'eteinte', 'l’aspect est gardé');
+    refusee('supprime la torche éteinte en B2', p, ['Aucune torche éteinte en B2'], 'supprime la torche éteinte en B2');
+  }],
 ];
 
 export const executer = () => executerSuite('commandes : ', TESTS);

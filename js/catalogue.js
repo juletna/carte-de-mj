@@ -19,10 +19,11 @@
  *   auLarge    écarté d'une case du mur quand la pièce est assez large
  *   couche     ordre de dessin, 5 par défaut : en dessous, c'est au sol (dessiné sous la grille et sous les autres objets, et
  *              attrapé en dernier à la souris) ; au-dessus, c'est accroché au mur (dessiné en dernier)
- *   variantes  liste ordonnée { id, nom, mots, fem?, pluriel? } des aspects que peut prendre l'objet (torche éteinte, flamme bleue…).
+ *   variantes  liste ordonnée { id, nom, mots, fem?, pluriel?, invariable? } des aspects que peut prendre l'objet (torche éteinte, flamme bleue…).
  *              La PREMIÈRE est la variante par défaut : c'est le dessin d'origine, et le plan n'écrit rien pour elle. `id` : minuscules, sans accent ;
  *              `nom` : l'adjectif au masculin singulier, tel qu'on l'affiche (« éteint ») ; `fem` : son féminin si ce n'est pas « nom + e » ;
- *              `pluriel` : son pluriel masculin si ce n'est pas « nom + s » (« infernaux ») ; `mots` : les formes reconnues dans le texte, sans accents,
+ *              `pluriel` : son pluriel masculin si ce n'est pas « nom + s » (« infernaux » ; « -al » donne « -aux » seul) ; `invariable` : jamais de s, aux deux genres
+ *              (« à treuil », « debout », « de grimoires ») ; `mots` : les formes reconnues dans le texte, sans accents,
  *              au singulier et aux deux genres (le pluriel en -s est reconnu). Le plan garde `variante: id` sur un objet seulement si elle est connue
  *              de son type et n'est pas la défaut (schema.js). Accès : variantesDe, varianteDe, variantePourMot, nomVariante. Un thème qui ne
  *              connaît pas une variante dessine l'objet par défaut ; un test vérifie que le thème peint dessine chaque variante déclarée (themes.test.js).
@@ -67,10 +68,10 @@ const VARIANTES_BIBLIOTHEQUE = [
   { id: 'pleine', nom: 'plein', fem: 'pleine', mots: ['plein', 'pleine', 'garni', 'garnie', 'rempli', 'remplie', 'fourni', 'fournie'] },
   { id: 'clairsemee', nom: 'clairsemé', fem: 'clairsemée', mots: ['clairseme', 'clairsemee', 'vide', 'degarni', 'degarnie', 'depeuple', 'depeuplee', 'pille', 'pillee'] },
   { id: 'renversee', nom: 'renversé', fem: 'renversée', mots: ['renverse', 'renversee', 'bascule', 'basculee', 'tombe', 'tombee', 'effondre', 'effondree', 'couche', 'couchee'] },
-  { id: 'grimoires', nom: 'de grimoires', fem: 'de grimoires', mots: ['grimoire', 'mage', 'magicien', 'sorcier', 'sorciere', 'arcane', 'arcanes', 'occulte', 'magique', 'enchante', 'enchantee'] },
+  { id: 'grimoires', nom: 'de grimoires', fem: 'de grimoires', invariable: true, mots: ['grimoire', 'mage', 'magicien', 'sorcier', 'sorciere', 'arcane', 'arcanes', 'occulte', 'magique', 'enchante', 'enchantee'] },
 ];
 const VARIANTES_TONNEAU = [
-  { id: 'debout', nom: 'debout', pluriel: 'debout', mots: ['debout', 'dresse', 'dressee'] },
+  { id: 'debout', nom: 'debout', invariable: true, mots: ['debout', 'dresse', 'dressee'] },
   { id: 'couche', nom: 'couché', mots: ['couche', 'couchee', 'renverse', 'renversee', 'allonge', 'allongee', 'tombe', 'tombee'] },
   { id: 'eventre', nom: 'éventré', mots: ['eventre', 'eventree', 'defonce', 'defoncee', 'creve', 'crevee', 'perce', 'percee', 'fendu', 'fendue', 'brise', 'brisee'] },
 ];
@@ -107,7 +108,7 @@ const VARIANTES_AUTEL = [
 const VARIANTES_PUITS = [
   { id: 'ouvert', nom: 'ouvert', fem: 'ouverte', mots: ['ouvert', 'ouverte', 'decouvert', 'decouverte'] },
   { id: 'couvert', nom: 'couvert', fem: 'couverte', mots: ['couvert', 'couverte', 'ferme', 'fermee', 'bouche', 'bouchee', 'condamne', 'condamnee', 'planche', 'planches', 'scelle', 'scellee'] },
-  { id: 'treuil', nom: 'à treuil', fem: 'à treuil', pluriel: 'à treuil', mots: ['treuil', 'seau', 'corde', 'portique', 'potence', 'poulie', 'manivelle'] },
+  { id: 'treuil', nom: 'à treuil', fem: 'à treuil', invariable: true, mots: ['treuil', 'seau', 'corde', 'portique', 'potence', 'poulie', 'manivelle'] },
 ];
 const COULEURS_TISSU = [
   { id: 'rouge', nom: 'rouge', fem: 'rouge', mots: ['rouge', 'ecarlate', 'cramoisi', 'cramoisie'] },
@@ -245,6 +246,7 @@ export function nomVariante(type, id, n = 1) {
   if (!v) return '';
   const feminin = estFeminin(type);
   const base = feminin ? (v.fem ?? `${v.nom}e`) : v.nom;
-  if (n <= 1 || /[sx]$/.test(base)) return base;
-  return !feminin && v.pluriel ? v.pluriel : `${base}s`;
+  if (n <= 1 || v.invariable || /[sx]$/.test(base)) return base;
+  if (!feminin) return v.pluriel ?? (/al$/.test(base) ? base.replace(/al$/, 'aux') : `${base}s`); // « normal » → « normaux », « infernal » → « infernaux »
+  return `${base}s`;
 }

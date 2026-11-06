@@ -4,6 +4,7 @@
  *   « ajoute trois gobelins »            « ajoute un coffre en C4 »        « ajoute un gobelin caché »
  *   « supprime le coffre »               « supprime le gobelin 2 »         « supprime tous les gobelins »
  *   « déplace la statue à gauche »       « déplace le gobelin 2 en C4 »    « déplace le coffre de C4 à D5 »
+ *   « supprime la torche éteinte »       « déplace le coffre ouvert en B3 »   (l'aspect cité choisit parmi des objets du même type)
  *
  * Module PUR : aucun accès au DOM, il ne modifie jamais le plan reçu. Il réutilise le parseur
  * existant (normaliser, nombres, lexique, coordonnées, positions) et le placement de
@@ -25,7 +26,8 @@ import { evaluerPose } from '../pose.js';
 import { trouverObjet, definition, nomAffiche, MOTS_VIDES, ADJ_CACHE } from './lexique.js';
 import { analyserPosition } from './positions.js';
 import { construirePlan } from './placement.js';
-import { analyserProposition, decouper, hacher, preparer } from './index.js';
+import { analyserProposition, decouper, hacher, preparer, LIAISONS_VARIANTE } from './index.js';
+import { variantePourMot, varianteDe, variantesDe, nomVariante, aUneVariante, estFeminin } from '../catalogue.js';
 import { lireCase, nomCase } from '../coordonnees.js';
 import { portesEntreeDabord } from '../murs.js';
 
@@ -44,8 +46,8 @@ const rectDe = (e) => ({ x: e.x, y: e.y, l: e.taille ?? e.l, h: e.taille ?? e.h 
 const estChiffres = (m) => /^\d+$/.test(m);
 const casePrincipale = (e) => nomCase(e.x, e.y);
 
-/** « gobelin 2 », « coffre » (+ « caché »). */
-const libelle = (genre, e) => `${nomAffiche(e.type)}${genre === 'creature' ? ` ${e.numero}` : ''}${e.cache ? ' caché' : ''}`;
+/** « gobelin 2 », « coffre », « torche éteinte » (+ « caché »). */
+const libelle = (genre, e) => `${nomAffiche(e.type)}${genre === 'creature' ? ` ${e.numero}` : aUneVariante(e) ? ` ${nomVariante(e.type, e.variante)}` : ''}${e.cache ? ' caché' : ''}`;
 
 /** Tous les éléments qui occupent la salle (hors portes), avec leur genre. */
 const occupants = (plan) => [
@@ -203,8 +205,9 @@ function ajouter(reste, plan, graine) {
 // --- Désigner un élément existant (supprimer, déplacer) ---------------------------------------------
 
 /**
- * Lit « le gobelin 2 », « les coffres », « le coffre caché », « la statue en C4 » au début de `mots`.
- * @returns {{erreur:string}|{trouve:object, genre:string, plusieurs:boolean, cache:boolean, numero:number|null,
+ * Lit « le gobelin 2 », « les coffres », « le coffre caché », « la torche éteinte », « les torches à flamme bleue », « la statue en C4 » au début de `mots`.
+ * `variante` : l'aspect cité après le nom (id de variante du type, la défaut comprise) pour distinguer des objets du même type ; null sinon.
+ * @returns {{erreur:string}|{trouve:object, genre:string, plusieurs:boolean, cache:boolean, numero:number|null, variante:string|null,
  *            casePrecise:number[]|null, fin:number, ignores:string[]}}
  */
 function lireDesignation(mots, exemple) {
@@ -223,13 +226,21 @@ function lireDesignation(mots, exemple) {
     else if (!MOTS_VIDES.has(m) && m.length > 1) ignores.push(m);
   }
   if (quantite > 1) return { erreur: `Je ne sais pas lequel prendre parmi ${quantite} ${nomAffiche(trouve.def.type, quantite)}. Dis « ${exemple} » (avec son numéro) ou « tous les ${nomAffiche(trouve.def.type, 2)} ».` };
-  let j = i + 1;
+  let j = i + 1, variante = null;
+  const avecVariantes = trouve.def.genre === 'objet' && variantesDe(trouve.def.type).length > 0;
   for (; j < mots.length; j++) {
     if (estChiffres(mots[j]) && numero === null) numero = Number(mots[j]);
     else if (ADJ_CACHE.has(mots[j])) cache = true;
-    else break;
+    else if (avecVariantes && variante === null) {
+      // « la torche éteinte », « le coffre ouvert », « la torche à flamme bleue » : les mots de liaison se lisent avec la variante qui les suit.
+      let q = j;
+      while (q < mots.length && LIAISONS_VARIANTE.has(mots[q])) q++;
+      const v = q < mots.length ? variantePourMot(trouve.def.type, mots[q]) : null;
+      if (!v) break;
+      variante = v; j = q;
+    } else break;
   }
-  return { trouve, genre: trouve.def.genre, plusieurs, cache, numero, fin: j, ignores };
+  return { trouve, genre: trouve.def.genre, plusieurs, cache, numero, variante, fin: j, ignores };
 }
 
 /** Éléments de la salle qui correspondent à la désignation, ou un message si aucun. */
@@ -246,18 +257,20 @@ function chercherCandidats(plan, d, casePrecise, verbe) {
     if (!retenus.length) return { erreur: `Il n’y a pas de ${nom} ${d.numero} dans cette salle. ${enumerer(d.genre, ordre)}.` };
   }
   if (d.cache) retenus = retenus.filter((e) => e.cache);
+  if (d.variante) retenus = retenus.filter((e) => varianteDe(e) === d.variante);
   if (casePrecise) {
     retenus = retenus.filter((e) => { const r = rectDe(e); return casePrecise[0] >= r.x && casePrecise[0] < r.x + r.l && casePrecise[1] >= r.y && casePrecise[1] < r.y + r.h; });
   }
   if (!retenus.length) {
-    const precis = [d.cache ? 'caché' : '', casePrecise ? `en ${nomCase(...casePrecise)}` : ''].filter(Boolean).join(' ');
-    return { erreur: `Aucun ${nom}${precis ? ` ${precis}` : ''} dans cette salle. Il y a : ${enumerer(d.genre, ordre)}.` };
+    const precis = [d.variante ? nomVariante(type, d.variante) : '', d.cache ? 'caché' : '', casePrecise ? `en ${nomCase(...casePrecise)}` : ''].filter(Boolean).join(' ');
+    return { erreur: `${estFeminin(type) ? 'Aucune' : 'Aucun'} ${nom}${precis ? ` ${precis}` : ''} dans cette salle. Il y a : ${enumerer(d.genre, ordre)}.` };
   }
   retenus.sort((a, b) => numeroDe(a) - numeroDe(b));
   if (retenus.length > 1 && !d.plusieurs) {
     const ex = retenus[0];
     const conseil = [`« ${verbe} le ${nom} ${numeroDe(ex)} »`, `« ${verbe} le ${nom} en ${casePrincipale(ex)} »`];
     if (retenus.some((e) => e.cache) && retenus.some((e) => !e.cache)) conseil.push(`« ${verbe} le ${nom} caché »`);
+    if (!d.variante && new Set(retenus.map((e) => varianteDe(e))).size > 1) conseil.push(`« ${verbe} le ${nom} ${nomVariante(type, varianteDe(ex))} »`);
     if (verbe === 'supprime') conseil.push(`« supprime tous les ${nomAffiche(type, 2)} »`);
     const rang = d.genre === 'creature' ? '' : ' (numérotés de haut en bas, puis de gauche à droite)';
     return { erreur: `Il y a ${retenus.length} ${nomAffiche(type, retenus.length)} dans cette salle${rang} : ${enumerer(d.genre, retenus)}. Précise lequel : ${conseil.join(', ')}.` };

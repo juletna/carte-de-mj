@@ -115,6 +115,30 @@ const TESTS = [
     const v = validerPlan({ largeur: 8, longueur: 6, objets: [{ type: 'tapis', x: 0, y: 0, l: 3, h: 2, variante: 'bleue' }, { type: 'tapis', x: 4, y: 0, l: 3, h: 2, variante: 'rouge' }, { type: 'puits', x: 3, y: 3, variante: 'bleue' }] });
     egal(v.plan.objets.map((o) => o.variante), ['bleue', undefined, undefined], 'gardée ou retirée');
   }],
+  ['nomVariante : toutes les variantes du catalogue au singulier et au pluriel, masculin et féminin (invariables sans s, -al en -aux, féminin en -e)', () => {
+    const attendu = { // les cas particuliers, écrits en toutes lettres : [type, variante] → [singulier, pluriel]
+      'brasero/normale': ['normal', 'normaux'], 'feudecamp/normale': ['normal', 'normaux'], 'brasero/infernale': ['infernal', 'infernaux'], 'feudecamp/infernale': ['infernal', 'infernaux'],
+      'torche/normale': ['normale', 'normales'], 'torche/infernale': ['infernale', 'infernales'], 'bougies/infernale': ['infernale', 'infernales'],
+      'puits/treuil': ['à treuil', 'à treuil'], 'tonneau/debout': ['debout', 'debout'], 'bibliotheque/grimoires': ['de grimoires', 'de grimoires'],
+      'caisse/ouverte': ['ouverte', 'ouvertes'], 'coffre/ouvert': ['ouvert', 'ouverts'], 'statue/brisee': ['brisée', 'brisées'], 'fontaine/asec': ['asséchée', 'asséchées'], 'autel/ensanglante': ['ensanglanté', 'ensanglantés'],
+      'tapis/bleue': ['bleu', 'bleus'], 'banniere/bleue': ['bleue', 'bleues'], 'tapis/doree': ['doré', 'dorés'], 'banniere/blanche': ['blanche', 'blanches'], 'sarcophage/ferme': ['fermé', 'fermés'],
+    };
+    let vues = 0;
+    for (const o of OBJETS.filter((x) => x.variantes)) {
+      for (const v of variantesDe(o.type)) {
+        const s = nomVariante(o.type, v.id), p = nomVariante(o.type, v.id, 2), cle = `${o.type}/${v.id}`;
+        verifier(s && p && !/\s$/.test(s + p), `${cle} : un nom au singulier et au pluriel`);
+        egal(nomVariante(o.type, v.id, 1), s, `${cle} : n = 1 est le singulier`);
+        if (attendu[cle]) egal([s, p], attendu[cle], `${cle} : accord`);
+        else if (v.invariable) egal(p, s, `${cle} : invariable`);
+        else verifier(/[sx]$/.test(s) ? p === s : p === `${s}s`, `${cle} : « ${s} » → « ${p} »`);
+        verifier(!/als$/.test(p), `${cle} : pas de « -als » (« ${p} »)`);
+        vues++;
+      }
+    }
+    verifier(vues >= 60, `toutes les variantes énumérées (${vues})`);
+    egal(decrire(analyser('salle 12 par 10, deux puits à treuil, deux braseros normaux, deux tonneaux debout').plan).includes('puits à treuil en'), true, 'décrit : « puits à treuil » sans s');
+  }],
   ['listeSources : la couleur de flamme est validée (orange par défaut) et « magique » passe tel quel', () => {
     const [a, b, c] = listeSources([
       { x: 10, y: 10, r: 50 }, { x: 60, y: 10, r: 50, f: { flamme: '#2f7be8', coeur: '#a8e4ff' }, m: true }, { x: 110, y: 10, r: 50, f: { flamme: 'rouge', coeur: 3 }, m: 'oui' }]);
