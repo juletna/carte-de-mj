@@ -121,19 +121,17 @@
 .atelier-onglet.btn:hover { background: none; color: var(--p-texte-1); }
 .atelier-onglet.btn[aria-selected="true"] { background: none; border-color: transparent; border-bottom-color: var(--accent); color: var(--p-texte-1); }
 #regie .atelier-inspecteur .onglet-contenu { gap: 0; padding: 0 0 var(--esp-3); font-size: 14px; color: var(--p-texte-2); }
-#regie .onglet-contenu > section, #regie .onglet-contenu > details.bloc, #regie .onglet-contenu > #projection, #regie .onglet-contenu > div:not([hidden]) {
-  margin: 0; padding: var(--esp-3) var(--esp-4) var(--esp-4); border: 0; border-bottom: 1px solid var(--p-filet); border-radius: 0;
-}
-#regie .onglet-contenu > :last-child { border-bottom: 0; }
+#regie .onglet-contenu > #alerte-retrait { padding: var(--esp-3) var(--esp-4); border-bottom: 1px solid var(--p-filet); }
 #regie .onglet-contenu > p.note { padding: var(--esp-3) var(--esp-4) 0; }
-#regie .onglet-contenu > section, #regie .onglet-contenu > details.bloc { display: flex; flex-direction: column; gap: var(--esp-3); }
+/* Les blocs de presentation.html dans le corps d'une section (js/regie-panneau.js, sectionnerOnglets) : sans cadre ni titre propres. */
+#regie .p-section-corps > section, #regie .p-section-corps > details, #regie .p-section-corps > #projection { display: flex; flex-direction: column; gap: var(--esp-3); margin: 0; padding: 0; border: 0; border-radius: 0; }
+#regie .p-section-corps > section > h2, #regie .p-section-corps > details > summary { display: none; }
+#regie .p-section-corps > #projection { flex-direction: row; flex-wrap: wrap; align-items: center; gap: var(--esp-2); }
+#regie .p-section-corps > #projection > .btn { flex: 1 1 120px; }
+#regie .p-section-corps section > *, #regie .p-section-corps details > *, #regie .onglet-contenu fieldset { margin: 0; }
 #regie .onglet-contenu h2 { margin: 0; font-size: 13px; font-weight: 650; line-height: 1.35; letter-spacing: 0; text-transform: none; color: var(--p-texte-1); }
-#regie .onglet-contenu details.bloc > summary h2 { display: inline; }
 #regie .onglet-contenu .note, #regie .onglet-contenu legend, #regie .onglet-contenu .doux { font-size: 12.5px; color: var(--p-texte-3); }
 #regie .onglet-contenu .note.erreur { color: var(--erreur); }
-#regie .onglet-contenu > section > *, #regie .onglet-contenu fieldset { margin: 0; }
-#regie .onglet-contenu details > summary { font-size: 13px; font-weight: 600; color: var(--p-texte-2); cursor: pointer; }
-#regie .onglet-contenu details[open] > summary { color: var(--p-texte-1); margin-bottom: var(--esp-2); }
 #regie .onglet-contenu .ligne { font-size: 14px; color: var(--p-texte-1); }
 #regie .onglet-contenu textarea, #regie .onglet-contenu input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), #regie .onglet-contenu select { font-size: 14px; color: var(--p-texte-1); }
 #regie .onglet-contenu ::placeholder { color: var(--p-texte-4); }
@@ -171,3 +169,10 @@
 .atelier-inspecteur .fiche-carte .fiche-chiffres { font-size: 13px; color: var(--p-texte-2); font-variant-numeric: tabular-nums; }
 .atelier-inspecteur .fiche-carte details > summary { font-size: 12.5px; color: var(--p-texte-3); cursor: pointer; }
 .atelier-inspecteur .fiche-carte .actions { margin-top: var(--esp-2); }
+/* Rangées de Jouer (js/regie.js) : l'élément sélectionné sur la carte est la rangée choisie ; un élément encore caché est en italique. */
+#regie .liste-portes .p-rang { grid-template-columns: 0 minmax(0, 1fr) auto; column-gap: 0; }
+#regie .liste-portes .p-rang .p-rang-position { padding-left: var(--esp-2); }
+#regie .liste-portes .p-rang[aria-pressed="true"] { background: var(--p-choisi); }
+#regie .liste-portes .p-rang[aria-pressed="true"] .p-rang-nom { color: var(--accent); font-weight: 600; }
+#regie .liste-portes .p-rang.cachee .p-rang-nom { font-style: italic; color: var(--p-texte-3); }
+#regie .cette-salle > p.note:has(+ .liste-portes:empty) { display: none; } /* « Portes de la salle : » sans porte */

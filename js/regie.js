@@ -36,7 +36,8 @@ import { creerDepart } from './regie-depart.js';
 import { creerSelection } from './regie-selection.js';
 import { creerReglages } from './regie-reglages.js';
 import { creerRegieUnivers } from './regie-univers.js';
-import { lierPanneau } from './regie-panneau.js';
+import { lierPanneau, sectionnerOnglets } from './regie-panneau.js';
+import { creerSection } from './atelier/section.js';
 import { poserIcones, iconeEtTexte, deuxTempsIcone } from './regie-icones.js';
 import * as pu from './univers-partie.js';
 import { creerJouer } from './atelier/jouer.js';
@@ -425,9 +426,17 @@ export function demarrerRegie() {
       : 'Aucun élément caché dans cette salle.';
     $('reveler-tout').disabled = total === reveles;
     const choisi = (genre, id) => etat.selection?.genre === genre && etat.selection.id === id;
-    /** Bouton de liste (portes et éléments) : sélectionne au clavier comme à la souris, `aria-pressed` = élément sélectionné. */
-    const boutonListe = (genre, e, texte, cachee) => {
-      const b = bouton(texte, () => selection.selectionner(genre, e.id, { clavier: true }), `btn btn-discret${cachee ? ' cachee' : ''}`);
+    /**
+     * Rangée de liste (portes et éléments, docs/design-panneaux.md « Liste ») : nom, case à droite, état dessous ; sélectionne au clavier
+     * comme à la souris, `aria-pressed` = élément sélectionné.
+     */
+    const boutonListe = (genre, e, nom, position, detail, cachee) => {
+      const b = h('button', { type: 'button', className: `p-rang compacte${cachee ? ' cachee' : ''}` },
+        h('span', { className: 'p-rang-icone' }),
+        h('span', { className: 'p-rang-nom', textContent: nom }),
+        h('span', { className: 'p-rang-position', textContent: position }),
+        ...(detail ? [h('span', { className: 'p-rang-detail', textContent: detail })] : []));
+      b.addEventListener('click', () => selection.selectionner(genre, e.id, { clavier: true }));
       b.dataset.el = `${genre}:${e.id}`;
       b.setAttribute('aria-pressed', String(choisi(genre, e.id)));
       return h('li', {}, b);
@@ -435,15 +444,16 @@ export function demarrerRegie() {
     $('liste-portes').replaceChildren(...s.plan.portes.map((q) => {
       const lien = modele.liaisonDePorte(p.donjon, s.id, q);
       const vers = lien && p.donjon.salles[lien.autre.salle];
-      return boutonListe('porte', q, `${libelleDePorte(q)} · ${vers ? `→ ${vers.nom}` : 'non reliée'}${!q.cache ? '' : pres.estRevele(p, s.id, q.id) ? ' · cachée, révélée' : ' · cachée'}`, !pres.estDevoile(p, s.id, q));
+      const etatCache = !q.cache ? '' : pres.estRevele(p, s.id, q.id) ? ' · cachée, révélée' : ' · cachée';
+      return boutonListe('porte', q, libelleDePorte(q), '', `${vers ? `vers ${vers.nom}` : 'non reliée'}${etatCache}`, !pres.estDevoile(p, s.id, q));
     }));
     // Éléments de la salle : pions puis objets, cachés repérés (comme sur la carte du MJ). Liste repliable.
-    const marque = (e) => (!e.cache ? '' : pres.estRevele(p, s.id, e.id) ? ' · caché, révélé' : ' · caché');
+    const marque = (e) => (!e.cache ? '' : pres.estRevele(p, s.id, e.id) ? 'caché, révélé' : 'caché');
     const elements = [
-      ...s.plan.creatures.map((k) => boutonListe('creature', k, `${selection.nomPion(k)} · ${nomCase(k.x, k.y)}${k.etat ? ` · ${pres.LIBELLES_ETAT[k.etat]}` : ''}${marque(k)}`, !pres.estDevoile(p, s.id, k))),
-      ...s.plan.objets.map((o) => boutonListe('objet', o, `${nomAffiche(o.type)}${o.variante ? ` ${nomVariante(o.type, o.variante)}` : ''} · ${nomCase(o.x, o.y)}${marque(o)}`, !pres.estDevoile(p, s.id, o))),
+      ...s.plan.creatures.map((k) => boutonListe('creature', k, selection.nomPion(k), nomCase(k.x, k.y), [k.etat ? pres.LIBELLES_ETAT[k.etat] : '', marque(k)].filter(Boolean).join(' · '), !pres.estDevoile(p, s.id, k))),
+      ...s.plan.objets.map((o) => boutonListe('objet', o, `${nomAffiche(o.type)}${o.variante ? ` ${nomVariante(o.type, o.variante)}` : ''}`, nomCase(o.x, o.y), marque(o), !pres.estDevoile(p, s.id, o))),
     ];
-    $('nb-elements').textContent = `(${elements.length})`;
+    $('nb-elements').textContent = String(elements.length); // pastille du bandeau de la section « Éléments »
     $('liste-elements').replaceChildren(...(elements.length ? elements : [h('li', { className: 'note', textContent: 'Aucun pion ni objet dans cette salle.' })]));
     const notes = $('notes');
     notes.textContent = s.notes || 'Aucune note pour cette salle.';
@@ -644,6 +654,7 @@ export function demarrerRegie() {
   // qu'une fois la page démarrée, jamais pendant leur création.
   poserIcones();
   lierPanneau();
+  sectionnerOnglets(creerSection); // les onglets en sections de panneau (docs/design-panneaux.md)
   const ctx = { etat, r, commande, canal, affichageTable, prendreLaMain, annoncer, rendre, modifie, salleCourante, salleConsultee, entrer, viderSauvegarde, noterRetrait, quitterPleinIci, diffuser, montrerIci };
   const depart = creerDepart(ctx);
   ctx.depart = depart;

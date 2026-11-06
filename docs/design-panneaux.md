@@ -4,7 +4,7 @@ Règles de composition des panneaux latéraux : l'arbre (gauche), l'inspecteur (
 
 Maquettes avant/après et diagnostic détaillé : [`docs/maquettes/panneaux.html`](maquettes/panneaux.html) (ouvrir dans le navigateur).
 
-Proposé le 6 novembre 2026. **État : en cours de migration** (voir « Migration » en bas). Les jetons `--p-*` sont dans `css/base.css` ; les règles des panneaux sont dans `css/panneaux.css` (chargée après `css/atelier.css`) : toute nouvelle règle de panneau y va.
+Proposé le 6 novembre 2026. **État : appliqué** à tous les panneaux (voir « Migration » en bas). Les jetons `--p-*` sont dans `css/base.css` ; les règles des panneaux sont dans `css/panneaux.css` (chargée après `css/atelier.css`) : toute nouvelle règle de panneau y va.
 
 ## Pourquoi
 
@@ -141,15 +141,15 @@ Même grammaire dans le panneau bas. Replié, il ne montre que l'en-tête. Cible
 
 - [x] **1. Jetons et typographie** : ajouter les `--p-*` dans `css/base.css`, réécrire la typographie de `.atelier-inspecteur` et `.atelier-arbre` dans `css/atelier.css` (règles 1, 2, 4). CSS seul.
 - [x] **2. Composant section** : `creerSection({ cle, titre, compte, aide, action, repliee, enfants })` dans `js/atelier/section.js` (fait, testé : `tests/section.test.js`), état replié en session. Adoptée par les inspecteurs Monde, Lieu, Point, Donjon, Salle.
-- [ ] **3. Listes** : `creerListe([...])` dans `js/atelier/liste.js` (fait, testé : `tests/liste.test.js`) ; adopté par les points d'un lieu. Restent les éléments de Jouer et les personnages.
-- [ ] **4. Jouer** : les onglets de la régie au même modèle (en-tête, sections), onglets soulignés. Fait en CSS seul (`css/panneaux.css`) ; reste la structure JS (en-tête par onglet, sections repliables, éléments regroupés « pilier × 4 ») une fois la refonte UI de la régie terminée.
+- [x] **3. Listes** : `creerListe([...])` dans `js/atelier/liste.js` (testé : `tests/liste.test.js`) pour les points d'un lieu ; mêmes rangées (classes `p-rang`) pour les portes et éléments de Jouer (`js/regie.js`). Les fiches de personnage gardent leur contenu (PV, détails, poser le pion) et se rangent en liste en creux (CSS).
+- [x] **4. Jouer** : onglets soulignés ; chaque onglet en sections repliables (`sectionnerOnglets` dans `js/regie-panneau.js`, qui range les blocs de `presentation.html` sans changer leurs identifiants). Pas fait, volontairement : regrouper les objets identiques (« pilier × 4 ») ferait perdre la sélection d'un objet précis depuis la liste.
 - [x] **5. Téléphone** : vérifié à 375 px (Donjons, Monde, Jouer) : bandeaux et rangées à 44 px, en-tête qui laisse la place au chevron « replier », pas de défilement horizontal.
 
 | Panneau | Code | Suit ce document |
 |---|---|---|
-| Arbre | `js/atelier/arbre-vue.js` | oui (CSS) |
+| Arbre | `js/atelier/arbre-vue.js` | oui |
 | Inspecteur Monde, Lieu, Point | `js/atelier/inspecteurs-monde.js` | oui (typographie, sections, liste des points) |
-| Inspecteur Calage | univers (calage) | non |
-| Inspecteur Donjon, Salle | `js/atelier/inspecteurs-donjon.js`, `js/mj/salle-forme.js` | typographie, sections (propriétés, « Compris » en pastilles : non) |
-| Porte, Objet, Créature | `js/mj/bulle.js` | typographie seulement (sections : après la recette de la refonte UI) |
-| Jouer · Salle, Joueurs, Table | `presentation.html`, `js/regie.js`, `js/atelier/jouer.js` | CSS (onglets, sections, rangées) ; en-tête et sections en JS : après la refonte UI |
+| Inspecteur Calage | `js/mj/univers-calage.js` | typographie seulement |
+| Inspecteur Donjon, Salle | `js/atelier/inspecteurs-donjon.js`, `js/mj/salle-forme.js` | oui (« Compris » reste une liste, pas encore en pastilles) |
+| Porte, Objet, Créature | `js/mj/bulle.js` | oui (sections « Liaison », « Aspect ») |
+| Jouer · Salle, Joueurs, Table | `presentation.html`, `js/regie.js`, `js/regie-panneau.js` | oui |

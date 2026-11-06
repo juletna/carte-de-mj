@@ -132,7 +132,7 @@ export function creerSelection(ctx) {
     etat.selection = null;
     etat.message = '';
     rendre();
-    if (avaitFocus) (document.querySelector(`[data-el="${sel.genre}:${sel.id}"]`) || $('elements-salle').querySelector('summary')).focus?.({ preventScroll: true });
+    if (avaitFocus) (document.querySelector(`[data-el="${sel.genre}:${sel.id}"]`) || $('elements-salle').closest('.p-section')?.querySelector('.p-section-bascule') || $('elements-salle').querySelector('summary')).focus?.({ preventScroll: true });
   }
 
   function majSelection() {
