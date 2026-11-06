@@ -10,6 +10,7 @@ import { estFeminin, estSymetrique } from '../catalogue.js';
 import { nomCase, reperePorte } from '../coordonnees.js';
 import { REGARD_VERS, portesEntreeDabord, murEntree } from '../murs.js';
 import { nomDesBras } from '../formes.js';
+import { regardAdosse } from '../pose.js';
 import { MOTS_AMBIANCE } from './ambiance.js';
 
 const NOMBRES = ['', 'un', 'deux', 'trois', 'quatre', 'cinq', 'six', 'sept', 'huit', 'neuf', 'dix', 'onze', 'douze'];
@@ -39,14 +40,15 @@ function emplacement(e, largeur, hauteur, defaut) {
   return `de ${nomCase(e.x, e.y)} à ${nomCase(e.x + largeur - 1, e.y + hauteur - 1)}`;
 }
 
-function decrireObjets(objets, regardDefaut) {
+function decrireObjets(objets, regardDefaut, plan) {
   // Les objets de même type, taille et orientation sont regroupés sur une seule proposition.
   const groupes = new Map();
   const seuls = [];
   for (const o of objets) {
     const def = definition(o.type);
-    // Un objet identique quelle que soit son orientation : inutile de la préciser.
-    const rotation = estSymetrique(o.type) || o.rotation === regardDefaut ? null : o.rotation;
+    // Un objet identique quelle que soit son orientation, ou qui regarde là où la relecture le tournera (vers l'entrée, ou dos au
+    // mur qu'il touche) : inutile de la préciser.
+    const rotation = estSymetrique(o.type) || o.rotation === (regardAdosse(plan, { ...o, rotation: regardDefaut }, o.x, o.y) ?? regardDefaut) ? null : o.rotation;
     const etendue = emplacement(o, o.l, o.h, def);
     const cache = o.cache === true;
     const suite = rotation === null ? '' : (n) => ` ${accord('tourné', o.type, n)} vers ${DIRECTIONS[rotation]}`;
@@ -133,7 +135,7 @@ export function decrire(plan) {
   // La porte du mur d'entrée d'abord : c'est la première porte qui définit l'entrée.
   propositions.push(...portesEntreeDabord(plan).map(decrirePorte));
 
-  propositions.push(...decrireObjets(plan.objets, REGARD_VERS[murEntree(plan)]));
+  propositions.push(...decrireObjets(plan.objets, REGARD_VERS[murEntree(plan)], plan));
   propositions.push(...decrireCreatures(plan.creatures || []));
   return `${propositions.join(', ')}.`;
 }

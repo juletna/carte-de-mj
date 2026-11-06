@@ -11,10 +11,10 @@
  * Coordonnées : en cases, x de l'ouest vers l'est, y du nord vers le sud (voir schema.js).
  */
 import { PORTES, definition, nomAffiche } from './parseur/lexique.js';
-import { OBJETS, CREATURES } from './catalogue.js';
+import { OBJETS, CREATURES, estSymetrique } from './catalogue.js';
 import { nomCase } from './coordonnees.js';
 import { normaliserForme, surLeSol } from './formes.js';
-import { REGARD, REGARD_VERS, estHorizontal, longueurMur, murEntree } from './murs.js';
+import { MURS, REGARD, REGARD_VERS, estHorizontal, longueurMur, murEntree } from './murs.js';
 import { CASES_MAX, LISTES } from './schema.js';
 import { sansAccents } from './format.js';
 
@@ -41,10 +41,33 @@ export function positionSurMur(mur, cx, cy, plan) {
 }
 
 /**
+ * Rotation d'un objet orienté (trône, coffre, lit…) posé avec son coin nord-ouest en (x, y) contre un mur : dos au mur, il
+ * regarde vers l'intérieur de la salle. Un mur, c'est aussi le bord d'une case retirée (salle en L, en croix…).
+ * Un objet allongé ne pivote pas d'un quart de tour (son emprise sur la grille ne change pas) : seuls comptent les murs le long
+ * desquels il tient déjà. Dans un coin, l'orientation actuelle est gardée si elle convient.
+ * @returns {number|null}  null : objet symétrique, ou qui ne touche aucun mur compatible (l'appelant garde son orientation).
+ */
+export function regardAdosse(plan, el, x, y) {
+  const def = definition(el.type);
+  if (def?.genre !== 'objet' || estSymetrique(el.type)) return null;
+  const l = largeurDe(el), h = hauteurDe(el);
+  const contre = {
+    nord: !surLeSol(plan, x, y - 1, l, 1), sud: !surLeSol(plan, x, y + h, l, 1),
+    ouest: !surLeSol(plan, x - 1, y, 1, h), est: !surLeSol(plan, x + l, y, 1, h),
+  };
+  // Emprise tournée d'un quart par rapport au catalogue (table de 1 × 2 au lieu de 2 × 1) : l'objet regarde vers l'est ou l'ouest.
+  const quart = l !== h && (l > h) !== (def.l > def.h);
+  const murs = MURS.filter((m) => contre[m] && (l === h || (REGARD[m] % 180 !== 0) === quart));
+  if (!murs.length) return null;
+  return murs.map((m) => REGARD[m]).find((r) => r === el.rotation) ?? REGARD[murs[0]];
+}
+
+/**
  * Un objet ou un pion de dimensions `el` peut-il se poser avec son coin nord-ouest en (x, y) ?
  * `ignorer` : l'élément déplacé lui-même (il ne se gêne pas), ou null pour un ajout.
  * Règles : dans la pièce ; un pion peut monter sur un objet, pas sur un autre pion ; un objet ne se pose ni sur un objet
- * bloquant ni sur un pion ; une torche (non bloquante) se pose sur un mur, dos au mur le plus proche.
+ * bloquant ni sur un pion ; une torche (non bloquante) se pose sur un mur, dos au mur le plus proche ; un objet orienté posé
+ * contre un mur s'y adosse (voir `regardAdosse`).
  * @returns {{ok:true, modifs:object}|{ok:false, raison:'hors'}|{ok:false, raison:'gene', gene:{genre:'objet'|'creature', element:object}}}
  *   `gene` : le premier élément qui gêne (les objets d'abord, puis les pions), pour que l'appelant puisse le citer.
  */
@@ -63,7 +86,8 @@ export function evaluerPose(plan, genre, el, x, y, ignorer = null) {
   if (objet) return { ok: false, raison: 'gene', gene: { genre: 'objet', element: objet } };
   const pion = creatures.find((k) => seChevauchent(cible, k));
   if (pion) return { ok: false, raison: 'gene', gene: { genre: 'creature', element: pion } };
-  return { ok: true, modifs: { x, y } };
+  const rotation = regardAdosse(plan, el, x, y);
+  return { ok: true, modifs: rotation === null ? { x, y } : { x, y, rotation } };
 }
 
 // --- Éléments proposés par la palette ---------------------------------------------------

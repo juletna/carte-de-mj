@@ -5,7 +5,7 @@
  * Sans dépendance : marche sous Node et dans tests.html.
  */
 import * as m from '../js/donjon.js';
-import { ajouterElement, elementsPalette, evaluerPose, filtrerElements, GROUPES_PALETTE, SOUS_GROUPES, redimensionner } from '../js/pose.js';
+import { ajouterElement, elementsPalette, evaluerPose, filtrerElements, GROUPES_PALETTE, SOUS_GROUPES, redimensionner, regardAdosse } from '../js/pose.js';
 import { sansAccents } from '../js/format.js';
 import { etatDepuis, outilAffiche } from '../js/rail.js';
 import { analyser } from '../js/parseur/index.js';
@@ -311,6 +311,33 @@ const TESTS = [
     s.plan = n;
     egal(m.liaisonsOrphelines(d).length, 0, 'pas de liaison orpheline');
     egal(m.liaisonDePorte(d, s.id, n.portes[0]) !== null, true, 'la liaison retrouve la porte');
+  }],
+  ['dos au mur : un objet orienté posé contre un mur regarde vers l’intérieur, au milieu il garde son orientation', () => {
+    const plan = planDe('Salle de 6 par 6 cases, une porte au mur sud en B');
+    const trone = { type: 'trone', l: 1, h: 1, rotation: 180 };
+    egal(regardAdosse(plan, trone, 5, 2), 270, 'contre le mur est : tourné vers l’ouest');
+    egal(regardAdosse(plan, trone, 0, 2), 90, 'contre le mur ouest : tourné vers l’est');
+    egal(regardAdosse(plan, trone, 2, 0), 180, 'contre le mur nord : tourné vers le sud');
+    egal(regardAdosse(plan, trone, 2, 2), null, 'au milieu : rien ne change');
+    egal(regardAdosse(plan, { ...trone, rotation: 90 }, 0, 0), 90, 'dans un coin : l’orientation actuelle est gardée si elle convient');
+    egal(regardAdosse(plan, { type: 'pilier', l: 1, h: 1, rotation: 0 }, 5, 2), null, 'un objet symétrique ne pivote pas');
+    egal(regardAdosse(plan, { type: 'table', l: 2, h: 1, rotation: 180 }, 4, 2), null, 'une table en long contre le mur est ne pivote pas d’un quart');
+    egal(regardAdosse(plan, { type: 'table', l: 1, h: 2, rotation: 90 }, 5, 2), 270, 'une table en travers, si');
+    const croix = planDe('Salle en croix de 9 par 9 cases');
+    egal(regardAdosse(croix, trone, 3, 1), 90, 'salle en croix : le bord d’une case retirée est un mur');
+  }],
+  ['dos au mur : déplacer ou ajouter un trône contre un mur le retourne, et la description le relit pareil', () => {
+    const plan = planDe('Salle de 6 par 6 cases, une porte au mur sud en B, un trône en C3');
+    const trone = plan.objets[0];
+    const pose = evaluerPose(plan, 'objet', trone, 5, 2, trone);
+    egal(pose.modifs, { x: 5, y: 2, rotation: 270 }, 'lâché contre le mur est');
+    egal(evaluerPose(plan, 'objet', trone, 2, 1, trone).modifs, { x: 2, y: 1 }, 'lâché au milieu : orientation inchangée');
+    const ajout = ajouterElement(plan, { genre: 'objet', type: 'trone' }, 0.5, 4.5);
+    egal(ajout.element.rotation, 90, 'ajouté contre le mur ouest');
+    const relu = analyser(decrire(ajout.plan), { echelle: 1.5 }).plan;
+    egal(relu.objets.map((o) => o.rotation), ajout.plan.objets.map((o) => o.rotation), 'relecture : mêmes orientations');
+    egal(analyser('Salle de 6 par 6 cases, un coffre en F3').plan.objets[0].rotation, 270, 'parseur : un coffre en F3 s’adosse au mur est');
+    egal(analyser('Salle de 6 par 6 cases, un coffre en F3 tourné vers le sud').plan.objets[0].rotation, 180, 'une orientation dite reste la sienne');
   }],
 ];
 

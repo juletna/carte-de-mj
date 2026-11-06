@@ -7,6 +7,7 @@ import { estAuLarge } from '../../catalogue.js';
 import { REGARD, REGARD_VERS, estHorizontal, longueurMur } from '../../murs.js';
 import { GAUCHE, DROITE, repartir, repartirInterieur } from './grille.js';
 import { devantPorte } from './portes.js';
+import { regardAdosse } from '../../pose.js';
 
 const VECTEUR = { 0: [0, -1], 90: [1, 0], 180: [0, 1], 270: [-1, 0] };
 
@@ -37,6 +38,13 @@ export function creerPlaceurs({ plan, g, W, L, entree, fond, graine, fixes }) {
     if (bloquant) c = g.chercher(Math.round(x), Math.round(y), l, h, ignorerReserve);
     if (!c) return null;
     return inscrire(def, c[0], c[1], l, h, rotation);
+  }
+
+  /** Un objet orienté posé contre un mur sans orientation imposée s'y adosse (voir pose.js) ; sinon il garde la sienne. */
+  function adosser(o) {
+    const r = o && o.l !== undefined ? regardAdosse(plan, o, o.x, o.y) : null;
+    if (r !== null) o.rotation = r;
+    return o;
   }
 
   /** Ajoute l'objet ou la créature au plan, à cet endroit précis. */
@@ -220,7 +228,7 @@ export function creerPlaceurs({ plan, g, W, L, entree, fond, graine, fixes }) {
 
     aleatoire(def, n, l, h) {
       const tirer = () => [Math.floor(rnd() * (W - l + 1)), Math.floor(rnd() * (L - h + 1)), Math.floor(rnd() * 4) * 90];
-      if (def.bloquant !== false || def.genre === 'creature') return Array.from({ length: n }, () => { const [x, y, r] = tirer(); return poser(def, x, y, l, h, r); });
+      if (def.bloquant !== false || def.genre === 'creature') return Array.from({ length: n }, () => { const [x, y, r] = tirer(); return adosser(poser(def, x, y, l, h, r)); });
       // Un objet non bloquant ne cherche pas de place libre (poser) : on évite ici les cases déjà prises par un objet ou par un autre semis,
       // tant qu'il en reste ; sinon (salle pleine) il se pose où le hasard l'a mis.
       const prise = (x, y) => { for (let i = x; i < x + l; i++) for (let j = y; j < y + h; j++) if (g.occupe.has(`${i},${j}`) || couvertes.has(`${i},${j}`)) return true; return false; };
@@ -242,6 +250,7 @@ export function creerPlaceurs({ plan, g, W, L, entree, fond, graine, fixes }) {
       const rotation = pos.rotation ?? versEntree;
       const exact = (x, y, ll, hh) => {
         const ok = inscrire(def, Math.max(0, Math.min(W - ll, x)), Math.max(0, Math.min(L - hh, y)), ll, hh, rotation);
+        if (pos.rotation === undefined) adosser(ok);
         if (def.genre === 'creature') fixes.add(ok);
         return ok;
       };
