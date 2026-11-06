@@ -110,7 +110,6 @@ export function creerRegieUnivers(ctx) {
     for (const id of ['depart', 'choix-joueurs']) $(id).hidden = true;
     $('regie').hidden = false;
     ecran.hidden = false;
-    $('nom-donjon').textContent = '';
     ctx.jouer?.mode('monde');
     document.title = `${courant.univers.nom} · Jouer · Carte de MJ`;
   }
@@ -235,7 +234,6 @@ export function creerRegieUnivers(ctx) {
     courant = trouve;
     remplirFil(zone, trouve.partie, trouve.univers, etat.p.donjon.nom);
     zone.prepend(h('span', { className: 'doux', textContent: `${trouve.univers.nom} · ` }));
-    $('nom-donjon').textContent = '';
   }
 
   // --- Rendu de la carte ----------------------------------------------------------------------------------------

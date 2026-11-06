@@ -5,7 +5,6 @@
    Au-dessus de 760 px : ordinateur. En dessous : l'arbre est un tiroir, l'inspecteur un panneau bas (règles de css/atelier.css). */
 
 /* --- Barre du haut (bouton de l'arbre, Jouer) --- */
-#barre { margin: 0; background: var(--panneau); border-bottom: 1px solid var(--bord); }
 /* Le doré est réservé à « Jouer » : un seul .btn-primaire par écran (système visuel, css/base.css). Les états « choisi »
    (outil, bouton à bascule) s'écrivent en teinte dorée légère, comme .btn[aria-pressed="true"]. */
 #presenter { flex: none; margin-left: auto; }
@@ -135,7 +134,6 @@ body.vue-plan #palette { display: none; }
 
   /* Rangée 1 : la barre commune (identique aux autres pages) ; rangée 2 : le bouton de l'arbre et « Jouer » ; rangée 3 : la scène. */
   body > .menu-site { grid-column: 1 / -1; grid-row: 1; }
-  #barre { grid-column: 2 / -1; grid-row: 2; position: relative; z-index: 50; display: flex; align-items: center; gap: var(--esp-3); padding: var(--esp-1) var(--esp-3); min-height: 48px; }
   #cadre-scene { grid-column: 2; grid-row: 3; }
 
   /* Le catalogue : une colonne à gauche de la carte, ouverte par un outil de la barre. */
@@ -147,7 +145,6 @@ body.vue-plan #palette { display: none; }
   :root { --h-zoom: 60px; } /* la rangée du zoom, sous la carte (elle ne recouvre plus les − et + du côté sud) */
   body { display: flex; flex-direction: column; height: 100vh; height: 100dvh; overflow: hidden; }
   body > .menu-site { flex: none; }
-  #barre { flex: none; position: relative; z-index: 50; display: flex; align-items: center; gap: var(--esp-2); padding: var(--esp-1) var(--esp-3); min-height: 52px; }
   #cadre-scene { flex: 1 1 auto; padding-bottom: var(--h-zoom); }
   #scene { min-height: 0; } /* style.css réserve 70 vh à la scène des autres pages */
   .atelier-barre { padding: var(--esp-1) var(--esp-2); gap: var(--esp-1); }

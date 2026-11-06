@@ -247,7 +247,6 @@ export function demarrerRegie() {
     $('choix-joueurs').hidden = true;
     $('regie').hidden = false;
     ctx.jouer?.mode('donjon');
-    $('nom-donjon').textContent = p.donjon.nom;
     document.title = `${p.donjon.nom} · Jouer · Carte de MJ`;
     if (!reprise) sauvegarder();
     if (main) stockage.memoriserPartieOuverte(p.donjon.id); // un rechargement rouvre cette partie

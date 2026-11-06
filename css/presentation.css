@@ -199,7 +199,6 @@ details.bloc > .aide, .defilement > .aide { display: block; margin-bottom: 6px; 
 .etat-haut .atelier-arbre-bouton { flex: none; }
 #alerte-stockage { margin: 0; padding: var(--esp-1) var(--esp-3); }
 .btn-fort { border-color: var(--accent); color: var(--accent); font-weight: 700; }
-#regie #nom-donjon { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 24ch; }
 
 /* Commande rapide : barre fixe au-dessus de la carte. */
 #barre-commande { position: relative; flex: none; padding: var(--esp-1) var(--esp-3); background: var(--panneau); border-bottom: 1px solid var(--bord); }
