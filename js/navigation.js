@@ -1,12 +1,13 @@
 /**
  * Barre de navigation commune à toutes les pages : chaque élément `[data-navigation]` est rempli avec la même barre
  * (accueil, Monde, Donjons, Jouer, Bibliothèque, puis à droite Fiche joueur et Sauvegarde). Sous 760 px, elle se réduit au nom
- * et à un bouton ☰ qui ouvre ces mêmes liens. La page courante porte aria-current="page" (Monde : quand le hash est #monde).
+ * et à un bouton menu qui ouvre ces mêmes liens. La page courante porte aria-current="page" (Monde : quand le hash est #monde).
  * Chaque emplacement est un <header class="menu-site" data-navigation> posé tout en haut de la page, hors de toute colonne : la barre est
  * donc au même endroit partout. Elle n'est jamais montée dans la vue table (?vue=table) : l'emplacement vide reste caché.
  * La Sauvegarde ouvre un dialogue chargé à la demande (mj/sauvegarde-ui.js).
  */
 import { LIENS, LIEN_ACCUEIL, LIEN_FICHE, pageCourante } from './navigation-donnees.js';
+import { icone } from './icones.js';
 
 let compteur = 0;
 
@@ -16,15 +17,17 @@ function el(tag, attrs = {}, ...enfants) {
   e.append(...enfants);
   return e;
 }
-const lien = (l, classe) => el('a', { class: classe, href: l.href, ...(l.titre ? { title: l.titre } : {}), 'data-nav': l.id }, l.texte);
+const ICONE_LIEN = { monde: 'monde', donjons: 'donjon', jouer: 'jouer', bibliotheque: 'bibliotheque', fiche: 'fiche' };
+const lien = (l, classe) => el('a', { class: classe, href: l.href, ...(l.titre ? { title: l.titre } : {}), 'data-nav': l.id },
+  ...(ICONE_LIEN[l.id] ? [icone(ICONE_LIEN[l.id]), el('span', { class: 'menu-texte' }, l.texte)] : [l.texte]));
 
 function monter(conteneur) {
   const id = `menu-corps-${++compteur}`;
   const nav = el('nav', { 'aria-label': 'Navigation principale' }, ...LIENS.map((l) => lien(l, 'menu-lien')));
-  const sauvegarde = el('button', { type: 'button', class: 'menu-lien menu-sauvegarde', 'aria-haspopup': 'dialog', title: 'Tout sauvegarder ou tout restaurer : donjons, personnages, mondes, images importées' }, 'Sauvegarde');
+  const sauvegarde = el('button', { type: 'button', class: 'btn btn-icone btn-discret menu-sauvegarde', 'aria-haspopup': 'dialog', 'aria-label': 'Sauvegarde', title: 'Sauvegarde : tout sauvegarder ou tout restaurer (donjons, personnages, mondes, images importées)' }, icone('sauvegarde'), el('span', { class: 'menu-texte' }, 'Sauvegarde'));
   const droite = el('div', { class: 'menu-droite' }, lien(LIEN_FICHE, 'menu-lien'), sauvegarde);
   const corps = el('div', { class: 'menu-corps', id }, nav, droite);
-  const burger = el('button', { type: 'button', class: 'menu-burger', 'aria-expanded': 'false', 'aria-controls': id, 'aria-label': 'Menu' }, '☰');
+  const burger = el('button', { type: 'button', class: 'btn btn-icone btn-discret menu-burger', 'aria-expanded': 'false', 'aria-controls': id, 'aria-label': 'Menu' }, icone('menu'));
   const nom = lien(LIEN_ACCUEIL, 'menu-nom');
   const fermer = () => { burger.setAttribute('aria-expanded', 'false'); corps.classList.remove('ouvert'); };
   burger.addEventListener('click', () => {

@@ -1,6 +1,22 @@
-/* Carte de MJ — socle commun : jetons partagés (thème sombre : couleurs, rayon, focus, police) et en-tête de navigation.
-   Chargé avant les autres feuilles. Ne contient aucune règle globale (ni body, ni reset) :
-   chaque page pose elle-même son fond, sa police et sa mise en page avec ces jetons, la Fiche comme le Donjon. */
+/* Carte de MJ — socle commun : jetons partagés (thème sombre : couleurs, rayon, focus, police), SYSTÈME VISUEL (boutons, icônes, aides)
+   et en-tête de navigation. Chargé avant les autres feuilles. Ne contient aucune règle globale (ni body, ni reset) :
+   chaque page pose elle-même son fond, sa police et sa mise en page avec ces jetons, la Fiche comme le Donjon.
+
+   SYSTÈME VISUEL — à suivre sur toutes les pages
+   Boutons (sur <button> ou <a>) :
+     .btn            secondaire, le défaut : fond de panneau, filet, texte clair.
+     .btn-primaire   doré : l'UNIQUE action principale d'un écran ou d'une fenêtre (jamais deux dans le même cadre).
+     .btn-discret    sans fond ni filet : actions de confort, barres d'outils.
+     .btn-danger     rouge : actions destructives (supprimer, tout effacer), toujours derrière une confirmation.
+     .btn-icone      carré, icône seule : aria-label OBLIGATOIRE (et title). Se combine : class="btn btn-icone btn-discret".
+     États : :hover, :focus-visible (anneau doré), :disabled / [aria-disabled="true"], [aria-pressed="true"] (bouton à bascule : fond doré léger).
+     Une icône peut précéder le texte : <button class="btn">${iconeHtml('plus')} Ajouter</button> (ou icone('plus') en DOM).
+   Icônes : js/icones.js. Jamais d'emoji ni de caractère-symbole (✕ ← ↑ ☰ ⋯) comme icône.
+   Cibles tactiles : --cible vaut 44 px sous 760 px ; boutons (--btn-h), liens de barre, cases et interrupteurs la respectent (34 px au-dessus).
+   Aide : .aide, un « ? » qui déplie un court texte, sans script :
+     <details class="aide"><summary class="btn btn-icone btn-discret" aria-label="Aide">?</summary><div class="aide-texte">…</div></details>
+   Compatibilité : les anciennes classes (button seul = doré, .bouton.principal, button.danger, button.discret, button.petit) marchent toujours ;
+   on migre page par page. */
 
 :root {
   /* Couleurs du thème sombre */
@@ -39,14 +55,51 @@
   /* Taille de cible tactile : aucune exigence au-dessus de 760 px (densité inchangée), 44 px en dessous. */
   --cible: 0px;
   --cible-petit: 32px; /* plancher des boutons .petit, quelle que soit la largeur */
+  --btn-h: 34px;       /* hauteur des boutons .btn au-dessus de 760 px (44 px en dessous) */
 
   /* Hauteur de la barre de navigation commune (tout en haut de chaque page) ; les mises en page à hauteur d'écran la retranchent. */
   --h-barre: 40px;
   --hauteur-barre: var(--h-barre); /* même valeur, nom lu par la régie (css/presentation.css) */
 }
 @media (max-width: 760px) {
-  :root { --cible: 44px; --h-barre: 48px; }
+  :root { --cible: 44px; --btn-h: 44px; --h-barre: 48px; }
 }
+
+/* --- Icônes (js/icones.js) : le trait et les arrondis sont dans le SVG ; ici seulement la taille. --- */
+.icone { width: 1.15em; height: 1.15em; flex: none; vertical-align: -0.2em; }
+
+/* --- Boutons --- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--esp-2);
+  box-sizing: border-box; min-height: var(--btn-h); padding: 0 var(--esp-3);
+  background: var(--panneau); color: var(--texte); border: 1px solid var(--bord); border-radius: var(--rayon);
+  font: inherit; font-weight: 600; line-height: 1.2; text-decoration: none; white-space: nowrap;
+  cursor: pointer; touch-action: manipulation;
+}
+.btn:hover { background: var(--champ); border-color: var(--texte-doux); }
+.btn:focus-visible { outline: var(--focus); outline-offset: var(--focus-decalage); }
+.btn:active { transform: scale(0.97); }
+.btn:disabled, .btn[aria-disabled="true"] { opacity: 0.45; cursor: default; pointer-events: none; transform: none; }
+.btn[aria-pressed="true"] { background: rgba(217, 169, 41, 0.16); border-color: var(--accent); color: var(--accent); }
+.btn-primaire { background: var(--accent); color: var(--accent-texte); border-color: var(--accent); font-weight: 700; }
+.btn-primaire:hover { background: var(--accent); border-color: var(--accent); filter: brightness(1.1); }
+.btn-primaire[aria-pressed="true"] { background: var(--accent); color: var(--accent-texte); filter: brightness(0.9); }
+.btn-discret { background: transparent; border-color: transparent; color: var(--texte-doux); font-weight: 500; }
+.btn-discret:hover { background: var(--champ); border-color: transparent; color: var(--texte); }
+.btn-danger { background: transparent; color: var(--erreur); border-color: var(--erreur); }
+.btn-danger:hover { background: var(--erreur); border-color: var(--erreur); color: #fff; }
+.btn-icone { width: var(--btn-h); padding: 0; flex: none; font-size: 16px; }
+.btn-icone .icone { width: 20px; height: 20px; vertical-align: 0; }
+summary.btn { list-style: none; }
+summary.btn::-webkit-details-marker { display: none; }
+
+/* --- Aide repliable : un « ? » qui ouvre un court texte à l'endroit même (details/summary, sans script). --- */
+.aide { display: inline-block; vertical-align: middle; }
+.aide[open] > summary { color: var(--accent); }
+.aide-texte { margin: var(--esp-2) 0 0; padding: var(--esp-2) var(--esp-3); max-width: 46ch; background: var(--champ); border: 1px solid var(--bord); border-radius: var(--rayon); color: var(--texte-doux); font-size: 13px; line-height: 1.45; white-space: normal; font-weight: 400; }
+
+/* Cases et interrupteurs : la zone cliquable atteint --cible. */
+label:has(> input[type="checkbox"]), label:has(> input[type="radio"]), [role="switch"] { min-height: var(--cible); }
 
 /* --- En-tête commun (classe menu-site : « entete » est déjà pris par les pages A4 de l'impression) ---
    Statique, dans le flux (il défile avec la page, il ne prend pas de hauteur à la carte).
@@ -75,9 +128,9 @@
 .menu-site nav { display: flex; flex: 1 1 auto; min-width: 0; }
 .menu-droite { display: flex; align-items: center; flex: none; }
 .menu-site .menu-nom,
-.menu-site .menu-lien,
-.menu-site .menu-burger {
+.menu-site .menu-lien {
   display: inline-flex;
+  gap: 6px;
   align-items: center;
   min-height: max(var(--cible), 32px);
   padding: 0 var(--esp-2);
@@ -91,12 +144,17 @@
   cursor: pointer;
 }
 .menu-site .menu-nom { padding-left: 0; font-size: 15px; font-weight: 700; color: var(--m-accent); }
-.menu-site .menu-lien:hover, .menu-site .menu-nom:hover, .menu-site .menu-burger:hover { color: var(--m-texte); }
+.menu-site .menu-lien:hover, .menu-site .menu-nom:hover { color: var(--m-texte); }
 /* Page courante : texte plein, gras et filet (pas la couleur seule). */
 .menu-site .menu-lien[aria-current="page"] { color: var(--m-texte); font-weight: 700; box-shadow: inset 0 -2px 0 var(--m-accent); border-radius: 0; }
 .menu-site .menu-nom[aria-current="page"] { text-decoration: underline; text-underline-offset: 4px; }
 .menu-site :focus-visible { outline: 2px solid var(--m-accent); outline-offset: -2px; }
-.menu-burger { display: none !important; font-size: 20px !important; margin-left: auto; }
+.menu-site .menu-lien .icone { width: 18px; height: 18px; vertical-align: 0; }
+.menu-site .btn-icone { width: max(var(--cible), 34px); min-height: max(var(--cible), 34px); }
+.menu-site .menu-sauvegarde .menu-texte { display: none; }
+.menu-site .menu-sauvegarde { color: var(--m-doux); }
+.menu-site .menu-sauvegarde:hover { color: var(--m-texte); }
+.menu-burger { display: none !important; margin-left: auto; }
 
 /* Sous 760 px : barre compacte (nom + ☰) ; les liens, les mêmes partout, s'ouvrent en liste sous la barre. */
 @media (max-width: 760px) {
@@ -107,6 +165,9 @@
   .menu-corps.ouvert { display: flex; }
   .menu-site nav, .menu-droite { flex-direction: column; align-items: stretch; flex: none; }
   .menu-site .menu-lien { justify-content: flex-start; min-height: 44px; }
+  .menu-site .menu-sauvegarde { width: auto; justify-content: flex-start; gap: 6px; padding: 0 var(--esp-2); font-weight: 400; font-size: 14px; }
+  .menu-site .menu-sauvegarde .menu-texte { display: inline; }
+  .menu-site .menu-burger { width: 44px; }
 }
 
 /* Dialogue de la sauvegarde complète (mj/sauvegarde-ui.js), ouvert depuis le bouton « Sauvegarde » de la barre. */
