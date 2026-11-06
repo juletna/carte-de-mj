@@ -4,9 +4,9 @@
    barre d'outils (catalogue en onglet de l'inspecteur ou en tiroir, bandes de dimensions, zoom), les blocs de l'inspecteur et la feuille « Ajouter un donjon ».
    Au-dessus de 760 px : ordinateur. En dessous : l'arbre est un tiroir, l'inspecteur un panneau bas (règles de css/atelier.css). */
 
-/* --- Barre du haut (bouton de l'arbre, Jouer) --- */
-/* Le doré est réservé à « Jouer » : un seul .btn-primaire par écran (système visuel, css/base.css). Les états « choisi »
-   (outil, bouton à bascule) s'écrivent en teinte dorée légère, comme .btn[aria-pressed="true"]. */
+/* --- Barre du haut (bouton de l'arbre, outils) --- */
+/* Un seul .btn-primaire (doré plein) par écran (système visuel, css/base.css) : il n'y en a plus dans la barre de l'atelier, on joue par l'onglet « Jouer » de la navigation.
+   Les états « choisi » (outil, bouton à bascule) s'écrivent en teinte dorée légère, comme .btn[aria-pressed="true"]. */
 /* Actions destructives : à part, sous un filet, loin des actions courantes. */
 .zone-danger { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--bord); }
 
