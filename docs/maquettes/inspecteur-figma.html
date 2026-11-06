@@ -80,6 +80,46 @@ textarea { min-height: 72px; resize: none; }
 .formes { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; }
 .formes span { aspect-ratio: 1; background: var(--s1); border: 1px solid var(--filet); border-radius: 5px; }
 .formes span.on { border-color: var(--accent); background: rgba(217, 169, 41, .13); }
+
+/* --- Piste B : le cadre de composition --- */
+hr.coupe { width: 100%; border: 0; border-top: 1px solid var(--filet-fort); margin: 0; }
+.principes { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 12px; margin-top: 20px; }
+.principe { padding: 16px; background: var(--panneau); border: 1px solid var(--bord); border-radius: 8px; font-size: 14px; color: var(--t2); }
+.principe h3 { margin: 0 0 8px; font-size: 15px; color: var(--t1); }
+.principe .figma { color: var(--t3); font-size: 13px; margin-bottom: 6px; }
+.principe .chez { color: var(--t1); }
+.principe b { color: var(--accent); font-weight: 600; }
+table.matrice { width: 100%; max-width: 720px; margin-top: 20px; border-collapse: collapse; font-size: 14px; }
+.matrice th, .matrice td { padding: 8px 12px; border-bottom: 1px solid var(--filet); text-align: center; }
+.matrice th:first-child, .matrice td:first-child { text-align: left; color: var(--t1); }
+.matrice thead th { color: var(--t3); font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+.matrice td { color: var(--accent); }
+.matrice td.non { color: var(--t4); }
+.matrice tr.groupe td { padding-top: 14px; color: var(--t3); font-size: 11px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; text-align: left; border-bottom: 0; }
+.tete.fine { align-items: center; padding: 10px 16px; }
+.tete.fine .nom { margin: 0; font-size: 15px; }
+.tete.fine .nom small { margin-left: 6px; font-size: 12.5px; font-weight: 400; color: var(--t3); }
+.tete.fine svg.t { width: 18px; height: 18px; flex: none; fill: none; stroke: var(--accent); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.rang { position: relative; display: grid; grid-template-columns: 28px 1fr auto; align-items: center; gap: 10px; min-height: 40px; padding: 0 10px; background: var(--s1); border-radius: 6px; color: var(--t1); }
+.rang .l { color: var(--t3); font-size: 12.5px; }
+.rang .v { font-variant-numeric: tabular-nums; }
+.rang .sw { width: 24px; height: 24px; border-radius: 4px; background: #3a3128; border: 1px solid #5a4a36; display: grid; place-items: center; color: var(--t3); }
+.rang .sw svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.rang .sw.pierre { background: #55555c; border-color: #6a6a72; }
+.rang .sw.neutre { background: #2b2b30; border-color: #45454c; }
+.rang .fin { color: var(--t4); font-size: 12px; }
+.rang.sel { outline: 1px solid var(--accent); }
+.rang .oeil2 { color: var(--t4); }
+.rang.choisi { background: rgba(217, 169, 41, .13); color: var(--accent); }
+.rangs { display: flex; flex-direction: column; gap: 4px; }
+.interrupteur { width: 30px; height: 18px; border-radius: 999px; background: var(--accent); position: relative; }
+.interrupteur::after { content: ""; position: absolute; top: 2px; right: 2px; width: 14px; height: 14px; border-radius: 50%; background: #1a1508; }
+.popo { position: absolute; z-index: 5; left: 0; right: 0; top: calc(100% + 6px); padding: 10px; background: #2a2930; border: 1px solid var(--filet-fort); border-radius: 8px; box-shadow: 0 10px 28px rgba(0,0,0,.55); }
+.popo .titre { margin-bottom: 8px; font-size: 12px; color: var(--t3); }
+.panneau.avec-popo { overflow: visible; margin-bottom: 110px; }
+.onglets.trois .onglet { font-size: 13px; }
+.rep { position: relative; }
+.tiret { color: var(--t4); font-size: 12.5px; padding: 0 16px 14px; }
 </style>
 </head>
 <body>
@@ -101,11 +141,12 @@ textarea { min-height: 72px; resize: none; }
     <p class="sur">Maquette · inspecteur du Donjon</p>
     <h1>L'inspecteur, avant et après Figma</h1>
     <p class="chapeau">Deux sélections : un coffre posé sur la carte, puis une salle. À gauche, l'inspecteur livré ; à droite, la même information avec les idées de Figma : rangée d'icônes d'action, champs compacts à deux colonnes, ordre de sections fixe, icône de type. Rien n'est branché : c'est pour juger du résultat avant de coder.</p>
+    <p class="chapeau">Deux pistes. <strong>A</strong> reprend des fonctionnalités de Figma (rangée d'icônes, champs compacts). <strong>B</strong>, plus bas, reprend sa <em>manière de composer</em> le panneau : onglets par intention, catalogue de modules, anatomie unique, détails en popover.</p>
   </header>
 
   <!-- ===== Coffre ===== -->
   <section>
-    <h2>1. Un objet posé : le coffre</h2>
+    <h2>Piste A · 1. Un objet posé : le coffre</h2>
     <div class="paire" style="margin-top:20px">
       <div class="cote">
         <p class="etiquette">Avant</p>
@@ -157,7 +198,7 @@ textarea { min-height: 72px; resize: none; }
 
   <!-- ===== Salle ===== -->
   <section>
-    <h2>2. Une salle</h2>
+    <h2>Piste A · 2. Une salle</h2>
     <div class="paire" style="margin-top:20px">
       <div class="cote">
         <p class="etiquette">Avant</p>
@@ -207,6 +248,132 @@ textarea { min-height: 72px; resize: none; }
         <ul class="notes"><li>Largeur et longueur côte à côte (L / H) avec leur lettre dans le champ ; la forme juste dessous.</li><li>Sol et ambiance sur une seule ligne.</li><li>Même rangée d'actions qu'un objet : l'inspecteur a toujours le même gabarit.</li><li>Les sections rares (notes, éléments) restent repliées avec leur compteur.</li></ul>
       </div>
     </div>
+  </section>
+
+  <hr class="coupe">
+
+  <!-- ===== Piste B ===== -->
+  <section>
+    <p class="sur">Piste B · le cadre de composition de Figma</p>
+    <h2>Reprendre sa façon de construire le panneau, pas ses fonctions</h2>
+    <p class="chapeau">La piste A pioche des détails (une rangée d'icônes, des champs en grille). Ici, on regarde plutôt <em>comment</em> le panneau de Figma est composé : c'est ce cadre-là qui le rend lisible pour tout, d'un rectangle à un texte. Cinq règles de construction, et ce qu'elles donneraient chez nous.</p>
+    <div class="principes">
+      <div class="principe"><h3>1. Les onglets sont des intentions</h3>
+        <p class="figma">Figma : « Design » (comment ça se voit), « Prototype » (comment ça réagit). Deux manières de penser le même objet, pas deux listes de propriétés.</p>
+        <p class="chez">Chez nous : <b>Décor</b> (ce qu'on voit sur la carte : place, taille, aspect, contenu), <b>Récit</b> (ce qu'on raconte : description, notes, liaisons, ce qui est caché) et <b>Ajouter</b>. La sélection ne change pas d'onglet : elle change ce qu'il contient.</p></div>
+      <div class="principe"><h3>2. Un catalogue fixe de modules</h3>
+        <p class="figma">Figma : Position, Apparence, Remplissage, Contour, Effets… toujours dans le même ordre. Chaque type d'objet déclare ceux qui le concernent ; les autres n'existent pas.</p>
+        <p class="chez">Chez nous : huit modules (tableau ci-dessous), un ordre global. Une porte, un coffre et une salle réutilisent les mêmes briques : on apprend le panneau une fois.</p></div>
+      <div class="principe"><h3>3. Une seule anatomie de module</h3>
+        <p class="figma">Figma : titre à gauche, actions du module à droite (+, réglages), puis des rangées toutes bâties pareil. Jamais de bouton isolé dans le corps.</p>
+        <p class="chez">Chez nous : bandeau [titre ··· actions], puis des <b>rangées</b> [aperçu · libellé / valeur · détail]. Pivoter et miroir vivent dans le bandeau de Position ; « caché aux joueurs » est une rangée de Visibilité.</p></div>
+      <div class="principe"><h3>4. Le détail s'ouvre en popover</h3>
+        <p class="figma">Figma : un clic sur une couleur ou un effet ouvre un petit panneau ancré à la rangée. Le panneau principal reste plat et de hauteur stable.</p>
+        <p class="chez">Chez nous : l'aspect, le sol, la forme de la salle sont une rangée avec un aperçu ; un clic ouvre les vignettes en popover. Fini les listes déroulantes et les grilles qui allongent la colonne.</p></div>
+      <div class="principe"><h3>5. L'identité est portée ailleurs</h3>
+        <p class="figma">Figma : le nom et la hiérarchie sont dans les calques, à gauche. Le panneau de droite commence par les propriétés, pas par un gros titre.</p>
+        <p class="chez">Chez nous : l'arbre dit déjà ce qui est choisi. L'en-tête devient une ligne (icône · nom · salle), qui laisse la hauteur aux modules. Le nom se renomme dans l'arbre ou en double-cliquant la ligne.</p></div>
+    </div>
+
+    <h3 style="margin-top:32px;font-size:17px">Le catalogue de modules, par type de sélection</h3>
+    <p class="notes" style="margin-top:6px">Un point = le module existe pour ce type. L'ordre des lignes est l'ordre d'affichage, le même partout.</p>
+    <table class="matrice">
+      <thead><tr><th>Module</th><th>Salle</th><th>Porte</th><th>Objet</th><th>Créature</th></tr></thead>
+      <tbody>
+        <tr class="groupe"><td colspan="5">Onglet Décor</td></tr>
+        <tr><td>Position</td><td class="non">–</td><td>●</td><td>●</td><td>●</td></tr>
+        <tr><td>Taille</td><td>●</td><td class="non">–</td><td class="non">–</td><td class="non">–</td></tr>
+        <tr><td>Apparence</td><td>●</td><td>●</td><td>●</td><td>●</td></tr>
+        <tr><td>Contenu</td><td>●</td><td class="non">–</td><td class="non">–</td><td class="non">–</td></tr>
+        <tr class="groupe"><td colspan="5">Onglet Récit</td></tr>
+        <tr><td>Description</td><td>●</td><td class="non">–</td><td class="non">–</td><td>●</td></tr>
+        <tr><td>Notes du MJ</td><td>●</td><td>●</td><td>●</td><td>●</td></tr>
+        <tr><td>Liaisons</td><td>●</td><td>●</td><td class="non">–</td><td class="non">–</td></tr>
+        <tr><td>Visibilité</td><td>●</td><td>●</td><td>●</td><td>●</td></tr>
+      </tbody>
+    </table>
+
+    <h3 style="margin-top:36px;font-size:17px">Piste B · 1. Le coffre : Décor et Récit</h3>
+    <div class="paire" style="margin-top:16px">
+      <div class="cote apres">
+        <p class="etiquette">Onglet Décor · popover ouvert sur l'aspect</p>
+        <div class="panneau avec-popo">
+          <div class="onglets trois" role="tablist"><button class="onglet" role="tab" aria-selected="true">Décor</button><button class="onglet" role="tab" aria-selected="false">Récit</button><button class="onglet" role="tab" aria-selected="false">Ajouter</button></div>
+          <div class="tete fine"><svg class="t" viewBox="0 0 24 24"><use href="#i-objet"/></svg><p class="nom">Coffre<small>Salle 1</small></p><span style="margin-left:auto"></span><button class="ib" aria-label="Plus d'actions"><svg viewBox="0 0 24 24"><use href="#i-actions"/></svg></button></div>
+          <div class="corps">
+            <div class="sec"><div class="bandeau">Position<span class="droite"><button class="ib" title="Pivoter" style="width:26px;height:26px"><svg viewBox="0 0 24 24"><use href="#i-pivoter"/></svg></button><button class="ib" title="Miroir" style="width:26px;height:26px"><svg viewBox="0 0 24 24"><use href="#i-miroir"/></svg></button></span></div>
+              <div class="contenu"><div class="rangs"><div class="rang"><span class="sw"><svg viewBox="0 0 24 24"><path d="M4 4h16v16H4zM4 12h16M12 4v16"/></svg></span><span><span class="v">B4</span> <span class="l">· case</span></span><span class="fin">0°</span></div></div></div></div>
+            <div class="sec"><div class="bandeau">Apparence</div>
+              <div class="contenu rep"><div class="rangs"><div class="rang sel"><span class="sw"></span><span><span class="v">Fermé</span> <span class="l">· aspect</span></span><span class="fin">▾</span></div></div>
+                <div class="popo"><p class="titre">Aspect du coffre</p><div class="pastilles">
+                  <div class="pastille" aria-pressed="true"><i></i>Fermé</div><div class="pastille" aria-pressed="false"><i class="ouvert"></i>Ouvert</div>
+                  <div class="pastille" aria-pressed="false"><i class="vide"></i>Vide</div><div class="pastille" aria-pressed="false"><i class="brise"></i>Brisé</div></div></div></div></div>
+          </div>
+        </div>
+        <ul class="notes"><li>L'aspect tient en <b>une rangée</b> ; les vignettes n'apparaissent qu'au clic, ancrées sous elle.</li><li>Pivoter et miroir sont les actions du module Position.</li></ul>
+      </div>
+      <div class="cote apres">
+        <p class="etiquette">Onglet Récit</p>
+        <div class="panneau">
+          <div class="onglets trois" role="tablist"><button class="onglet" role="tab" aria-selected="false">Décor</button><button class="onglet" role="tab" aria-selected="true">Récit</button><button class="onglet" role="tab" aria-selected="false">Ajouter</button></div>
+          <div class="tete fine"><svg class="t" viewBox="0 0 24 24"><use href="#i-objet"/></svg><p class="nom">Coffre<small>Salle 1</small></p><span style="margin-left:auto"></span><button class="ib" aria-label="Plus d'actions"><svg viewBox="0 0 24 24"><use href="#i-actions"/></svg></button></div>
+          <div class="corps">
+            <div class="sec"><div class="bandeau">Notes du MJ</div><div class="contenu"><textarea aria-label="Notes" placeholder="Contenu, piège, clé…"></textarea></div></div>
+            <div class="sec"><div class="bandeau">Visibilité</div>
+              <div class="contenu"><div class="rangs"><div class="rang"><span class="sw"><svg viewBox="0 0 24 24"><use href="#i-oeil"/></svg></span><span>Visible aux joueurs</span><span class="interrupteur" role="switch" aria-checked="true"></span></div></div></div></div>
+          </div>
+        </div>
+        <ul class="notes"><li>Pas de module « Liaisons » : un coffre n'en a pas, il n'apparaît donc pas.</li><li>« Caché » devient une rangée à interrupteur, plus un bouton qui change de texte.</li></ul>
+      </div>
+    </div>
+
+    <h3 style="margin-top:36px;font-size:17px">Piste B · 2. La salle : Décor et Récit</h3>
+    <div class="paire" style="margin-top:16px">
+      <div class="cote apres">
+        <p class="etiquette">Onglet Décor</p>
+        <div class="panneau">
+          <div class="onglets trois" role="tablist"><button class="onglet" role="tab" aria-selected="true">Décor</button><button class="onglet" role="tab" aria-selected="false">Récit</button><button class="onglet" role="tab" aria-selected="false">Ajouter</button></div>
+          <div class="tete fine"><svg class="t" viewBox="0 0 24 24"><use href="#i-salle"/></svg><p class="nom">Salle 1<small>Essai</small></p><span style="margin-left:auto"></span><button class="ib" aria-label="Plus d'actions"><svg viewBox="0 0 24 24"><use href="#i-actions"/></svg></button></div>
+          <div class="corps">
+            <div class="sec"><div class="bandeau">Taille</div>
+              <div class="contenu"><div class="rangs"><div class="rang"><span class="sw"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="1"/></svg></span><span><span class="v">6 × 6</span> <span class="l">· cases</span></span><span class="fin">9 × 9 m</span></div></div></div></div>
+            <div class="sec"><div class="bandeau">Apparence</div>
+              <div class="contenu"><div class="rangs"><div class="rang"><span class="sw pierre"></span><span><span class="v">Pierre</span> <span class="l">· sol</span></span><span class="fin">▾</span></div>
+                <div class="rang"><span class="sw neutre"></span><span><span class="v">Neutre</span> <span class="l">· ambiance</span></span><span class="fin">▾</span></div></div></div></div>
+            <div class="sec"><div class="bandeau">Contenu <span class="compte">3</span><span class="droite"><button class="ib" title="Ajouter" style="width:24px;height:24px"><svg viewBox="0 0 24 24"><use href="#i-plus"/></svg></button></span></div>
+              <div class="contenu"><div class="rangs">
+                <div class="rang"><span class="sw"><svg viewBox="0 0 24 24"><path d="M7 21V4.5a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1V21M4 21h16"/></svg></span><span class="v">Porte</span><span class="fin">mur nord</span></div>
+                <div class="rang choisi"><span class="sw"><svg viewBox="0 0 24 24"><use href="#i-objet"/></svg></span><span class="v">Coffre</span><span class="fin">B4</span></div>
+                <div class="rang"><span class="sw"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M6 20c0-4 2.5-6.5 6-6.5s6 2.500 6 6.500z"/></svg></span><span class="v">Gobelin 1</span><span class="fin">D6</span></div>
+              </div></div></div>
+          </div>
+        </div>
+        <ul class="notes"><li>Taille, sol et ambiance sont des rangées avec aperçu : un clic ouvre le détail (grille de formes, matières) en popover.</li><li>Le contenu de la salle est une liste de même grammaire : la sélection y a le même aspect que dans l'arbre.</li></ul>
+      </div>
+      <div class="cote apres">
+        <p class="etiquette">Onglet Récit</p>
+        <div class="panneau">
+          <div class="onglets trois" role="tablist"><button class="onglet" role="tab" aria-selected="false">Décor</button><button class="onglet" role="tab" aria-selected="true">Récit</button><button class="onglet" role="tab" aria-selected="false">Ajouter</button></div>
+          <div class="tete fine"><svg class="t" viewBox="0 0 24 24"><use href="#i-salle"/></svg><p class="nom">Salle 1<small>Essai</small></p><span style="margin-left:auto"></span><button class="ib" aria-label="Plus d'actions"><svg viewBox="0 0 24 24"><use href="#i-actions"/></svg></button></div>
+          <div class="corps">
+            <div class="sec"><div class="bandeau">Description</div><div class="contenu"><textarea aria-label="Description">De 6 par 6 cases, une porte au mur est en 3.</textarea></div></div>
+            <div class="sec"><div class="bandeau">Notes du MJ</div><div class="contenu"><textarea aria-label="Notes" placeholder="Secrets, pièges, trésors…"></textarea></div></div>
+            <div class="sec"><div class="bandeau">Liaisons <span class="compte">1</span></div>
+              <div class="contenu"><div class="rangs"><div class="rang"><span class="sw"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span><span class="v">Salle 2</span><span class="fin">par la porte est</span></div></div></div></div>
+            <div class="sec"><div class="bandeau">Visibilité</div>
+              <div class="contenu"><div class="rangs"><div class="rang"><span class="sw"><svg viewBox="0 0 24 24"><use href="#i-oeil"/></svg></span><span>Révélée aux joueurs</span><span class="interrupteur" role="switch" aria-checked="true"></span></div></div></div></div>
+          </div>
+        </div>
+        <ul class="notes"><li>Tout le texte est sur un seul onglet : on écrit son récit sans voir les réglages de forme.</li><li>Les liaisons (portes vers d'autres salles) sont des rangées cliquables : elles mènent à la salle liée.</li></ul>
+      </div>
+    </div>
+
+    <h3 style="margin-top:36px;font-size:17px">A ou B ?</h3>
+    <ul class="notes">
+      <li><b style="color:var(--accent)">A</b> est un ajustement : même panneau, de meilleurs détails. Peu de risque, on peut le livrer en deux ou trois étapes.</li>
+      <li><b style="color:var(--accent)">B</b> est une recomposition : trois onglets, un catalogue de modules, des popovers. Plus de travail (le « Aspect » de la bulle, la forme de salle et le sol deviennent des popovers ; les inspecteurs se découpent en modules), mais le panneau devient prévisible et facile à étendre (un nouveau type d'objet = choisir ses modules).</li>
+      <li>On peut aussi prendre le meilleur des deux : la piste B comme cadre, avec les champs compacts de la piste A à l'intérieur du module Position et Taille.</li>
+    </ul>
   </section>
 </main>
 </body>
