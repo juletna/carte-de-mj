@@ -181,7 +181,6 @@ export function enregistrerInspecteursMonde(coquille, U) {
       section('lieu-notes', 'Notes', [notes]),
       section('lieu-carte', 'Carte', [
         depart,
-        ...(!l.image ? [h('p', { className: 'note', textContent: 'Pas d’image pour l’instant : un fond neutre tient lieu de carte. Les points posés gardent leur place quand l’image arrive.' })] : []),
         ...(peutCaler ? [h('div', { className: 'ligne' }, h('span', { className: 'univers-etat-grille doux', textContent: etatGrille }), avecCle(btn('Caler la grille', () => U.definirMode('grille'), { icone: 'grille', classe: 'btn-discret' }), 'caler'))] : [])]));
     retrouverFocus();
   }
