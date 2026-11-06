@@ -193,7 +193,7 @@ function majAide() {
  * L'inspecteur revient en haut ; une salle qui vient d'être créée donne le focus à sa description (sauf au doigt,
  * pour ne pas faire surgir le clavier, et sauf si le focus doit rester sur la mini-carte).
  */
-function afficherSalleActive() {
+function afficherSalleActive({ sansArbre = false } = {}) {
   const garderMini = $('minicarte').contains(document.activeElement); // le focus reste sur la miniature, si c'est là qu'il était
   clearTimeout(minuterie);
   deselectionner();
@@ -205,7 +205,7 @@ function afficherSalleActive() {
   generer();
   ctx.coquille?.inspecteur.element.scrollTo?.({ top: 0 }); // l'inspecteur revient en haut
   ctx.menu.fermer();
-  if (!ctx.univers?.ouvert()) ctx.coquille?.positionner(etat.plan ? { donjon: etat.actif } : { donjon: etat.actif, salle: donjon().salleActive }); // l'arbre et l'adresse suivent la salle (ou la vue d'ensemble)
+  if (!sansArbre && !ctx.univers?.ouvert()) ctx.coquille?.positionner(etat.plan ? { donjon: etat.actif } : { donjon: etat.actif, salle: donjon().salleActive }); // l'arbre et l'adresse suivent la salle (ou la vue d'ensemble)
   const nouvelle = etat.neuves.delete(salle().id);
   if (nouvelle && !garderMini && !matchMedia('(pointer: coarse)').matches) $('description').focus({ preventScroll: true });
 }
@@ -385,7 +385,7 @@ inscrireDonjon(ctx.coquille, ctx);
 inscrireMonde(ctx.coquille, ctx);
 
 // --- Démarrage ----------------------------------------------------------------
-afficherSalleActive();
+afficherSalleActive({ sansArbre: true }); // l'arbre n'y passe pas : `naviguer` pose la vraie position (une étape de plus dépliait des plis du MJ)
 ctx.coquille.naviguer(routeInitiale); // F5 retrouve le même nœud ; une adresse périmée retombe sur le donjon actif
 if (charge.miseDeCote) { // dit après le premier dessin : le bandeau de la carte est prêt, et l'avertissement reste aussi dans la feuille « Ajouter un donjon »
   const phrase = stockage.phraseMiseDeCote(charge.miseDeCote);

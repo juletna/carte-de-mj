@@ -70,7 +70,7 @@ export function creerArbreVue({ mode = 'preparer', surChoix, pastille = null, ti
     li.append(ligne);
     ligne.addEventListener('click', (e) => {
       li.focus({ preventScroll: true });
-      if ((bascule.contains(e.target) || n.type === 'groupe') && aEnfants) basculer(n.cle, ouvert);
+      if ((bascule.contains(e.target) || n.type === 'groupe') && aEnfants) basculer(n.cle, !ouvert); // `basculer(cle, ouvrir)`
       else if (n.type !== 'groupe') surChoix(n);
     });
     if (ouvert) li.append(h('ul', { role: 'group' }, ...n.enfants.map((e) => noeud(e, niveau + 1, forcer, ancetres))));
@@ -148,7 +148,7 @@ export function creerArbreVue({ mode = 'preparer', surChoix, pastille = null, ti
   /** `arbre` : le résultat d'`arbreAtelier` ; `actifCle` : le nœud à marquer (par défaut `arbre.actif.cle`). */
   function maj({ arbre, actifCle = arbre?.actif?.cle ?? null }) {
     // Aller vers un NOUVEAU nœud déplie son chemin ; un simple rafraîchissement (mêmes nœuds) ne défait jamais un pli du MJ.
-    if (actifCle !== donnees.actifCle) { for (const cle of [...(arbre?.actif?.chemin ?? []), ...(actifCle ? [actifCle] : [])]) fermes.delete(cle); garderPlis(); }
+    if (actifCle !== donnees.actifCle) { for (const cle of arbre?.actif?.chemin ?? []) fermes.delete(cle); garderPlis(); } // les ancêtres seulement : le nœud lui-même garde son pli
     donnees = { arbre, actifCle };
     dessiner();
   }
