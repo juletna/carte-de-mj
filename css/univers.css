@@ -40,8 +40,10 @@
 .univers-panneau { text-align: left; flex: none; width: 340px; overflow-y: auto; padding: var(--esp-3); background: var(--panneau); border-left: 1px solid var(--bord); }
 .univers-panneau h3 { margin: var(--esp-4) 0 var(--esp-2); font-size: 14px; color: var(--accent); }
 .univers-panneau h3:first-child { margin-top: 0; }
+.univers-panneau section + section { margin-top: var(--esp-4); }
+.univers.sans-monde .univers-panneau { width: auto; flex: 1 1 auto; max-width: 520px; margin: 8vh auto 0; border: 0; background: transparent; text-align: center; }
 .univers-panneau .actions .univers-menu-cadre { margin-left: auto; }
-.univers-panneau .ligne { display: flex; flex-direction: column; gap: 2px; margin: var(--esp-2) 0; font-size: 13px; }
+.univers-panneau .ligne { display: flex; flex-direction: column; align-items: stretch; text-align: left; gap: 2px; margin: var(--esp-2) 0; font-size: 13px; }
 .univers-panneau .ligne.case { flex-direction: row; align-items: center; gap: var(--esp-2); }
 .univers-panneau select, .univers-panneau input[type="text"], .univers-panneau textarea { width: 100%; box-sizing: border-box; }
 .univers-panneau .actions { display: flex; flex-wrap: wrap; gap: var(--esp-2); margin-top: var(--esp-3); }
@@ -82,7 +84,7 @@
 .univers-bulle[hidden] { display: none; }
 .univers-bulle-tete { display: flex; align-items: center; gap: var(--esp-2); }
 .univers-bulle-tete strong { flex: 1 1 auto; color: var(--accent); font-size: 14px; }
-.univers-bulle .ligne { display: flex; flex-direction: column; gap: 2px; margin: var(--esp-2) 0; }
+.univers-bulle .ligne { display: flex; flex-direction: column; align-items: stretch; gap: 2px; margin: var(--esp-2) 0; text-align: left; }
 .univers-bulle select, .univers-bulle input[type="text"] { width: 100%; box-sizing: border-box; }
 .univers-bulle .actions { display: flex; flex-wrap: wrap; gap: var(--esp-2); margin-top: var(--esp-3); }
 .univers-bulle .actions button { flex: 1 1 auto; }

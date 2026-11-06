@@ -360,10 +360,10 @@ export function creerUniversUI(ctx) {
   /** Pose la bulle à côté du point (à droite, sinon à gauche, dessous, dessus), sans jamais dépasser de la scène. */
   function placerBulle() {
     if (bulle.hidden) return;
-    if (telephone()) { bulle.style.left = bulle.style.top = bulle.style.maxHeight = ''; bulle.style.visibility = ''; return; }
+    if (telephone()) { bulle.style.left = bulle.style.top = bulle.style.maxHeight = ''; bulle.style.visibility = ''; focaliserBulle(); return; }
     const marqueur = carte.cadre.querySelector(`[data-id="${CSS.escape(pointId ?? '')}"] .univers-pastille`);
     const sc = scene.getBoundingClientRect();
-    if (!marqueur || !sc.width) { bulle.style.visibility = ''; return; }
+    if (!marqueur || !sc.width) { bulle.style.visibility = ''; focaliserBulle(); return; }
     const m = marqueur.getBoundingClientRect();
     const vue = { g: sc.left + scene.clientLeft + 8, h: sc.top + scene.clientTop + 8, d: sc.left + scene.clientLeft + scene.clientWidth - 8, b: sc.top + scene.clientTop + scene.clientHeight - 8 };
     bulle.style.maxHeight = `${Math.max(160, vue.b - vue.h)}px`;
@@ -371,6 +371,14 @@ export function creerUniversUI(ctx) {
     bulle.style.left = `${Math.round(x - sc.left - scene.clientLeft)}px`;
     bulle.style.top = `${Math.round(y - sc.top - scene.clientTop)}px`;
     bulle.style.visibility = '';
+    focaliserBulle();
+  }
+  /** Rend le focus au champ qui l'avait (ou au nom d'un point neuf), une fois la bulle visible : un élément caché ne le prend pas. */
+  let focusAttendu = false;
+  function focaliserBulle() {
+    if (!focusAttendu || bulle.hidden) return;
+    focusAttendu = false;
+    if (cleFocus) bulle.querySelector(`[data-cle="${cleFocus}"]`)?.focus({ preventScroll: true });
   }
   bulle.addEventListener('focusin', (e) => { cleFocus = e.target.dataset?.cle ?? cleFocus; });
 
@@ -454,7 +462,7 @@ export function creerUniversUI(ctx) {
       interrupteur,
       h('div', { className: 'actions' }, entrer));
     if (!telephone()) bulle.style.visibility = 'hidden'; // le temps de la placer à côté du point
-    if (cleFocus) bulle.querySelector(`[data-cle="${cleFocus}"]`)?.focus({ preventScroll: true });
+    focusAttendu = !!cleFocus;
   }
 
   // --- Rendu : panneau latéral (lieu et liste des points) -------------------------------------------------------------------------
