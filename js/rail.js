@@ -1,6 +1,6 @@
 /**
- * Les outils de la barre d'outils de la scène du Donjon (js/atelier/barre-salle.js) : Portes, Mobilier et Créatures ouvrent le
- * catalogue de vignettes (js/palette.js). L'ancien rail à gauche n'existe plus : Salle, Personnages, Notes, Salles et Réglages
+ * Les trois catégories du catalogue de vignettes (js/palette.js), onglet « Ajouter » de l'inspecteur du Donjon
+ * (js/atelier/catalogue-onglet.js) : Portes, Mobilier et Créatures. L'ancien rail à gauche n'existe plus : Salle, Personnages, Notes, Salles et Réglages
  * sont passés dans l'inspecteur (js/atelier/inspecteurs-donjon.js). Ne reste ici que la table des outils de catalogue et l'état
  * mémorisé de l'ancien rail (`etatDepuis`, `outilAffiche`, gardés tels quels : testés dans tests/pose.test.js).
  */

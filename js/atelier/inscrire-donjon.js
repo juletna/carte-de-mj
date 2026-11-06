@@ -5,12 +5,13 @@
  *   coquille : voir js/atelier/coquille.js (arbre.ajouterAction, barreOutils, inspecteur.enregistrer, selectionner, naviguer…)
  *   ctx      : le ctx de main-mj.js (etat, donjon(), salle(), rendre, modifierPlan, historique, activerSalle, afficherSalleActive, …)
  * Elle enregistre les inspecteurs salle, donjon, porte, objet, creature et pion (inspecteurs-donjon.js), range la barre d'outils de la
- * scène (barre-salle.js : Portes, Mobilier, Créatures, pose, salle, vue d'ensemble, annuler), ajoute au menu « + Nouveau » de l'arbre ce que
+ * scène (barre-salle.js : pose, salle, vue d'ensemble, annuler), les onglets Salle · Ajouter de l'inspecteur (catalogue-onglet.js), ajoute au menu « + Nouveau » de l'arbre ce que
  * le menu du donjon faisait (nouveau, coller, copies mises de côté ; l'import est commun, js/atelier/importer.js) et tient d'accord la sélection de la carte et celle de l'atelier.
  * Elle expose `ctx.barre` (voir barre-salle.js).
  */
 import { enregistrerInspecteursDonjon } from './inspecteurs-donjon.js';
 import { creerBarreSalle } from './barre-salle.js';
+import { creerCatalogueOnglet } from './catalogue-onglet.js';
 import { TYPES_ELEMENT } from '../atelier-selection.js';
 import { telephone } from '../telephone.js';
 import { creerCartouche, cartoucheSalle, cartoucheEnsemble } from './cartouche.js';
@@ -20,7 +21,8 @@ export function inscrireDonjon(coquille, ctx) {
   const { etat } = ctx;
 
   enregistrerInspecteursDonjon(coquille, ctx);
-  ctx.barre = creerBarreSalle(coquille, ctx);
+  ctx.barre = creerBarreSalle(coquille);
+  const catalogue = creerCatalogueOnglet(coquille, ctx);
   // Une seule ligne en haut de la scène : le bouton de l'arbre au début, puis les outils et « Affichage ». Pas de bouton « Jouer » : on joue par l'onglet « Jouer » de la barre de navigation.
   coquille.barreOutils.prepend($('arbre-bouton'));
 
@@ -53,7 +55,7 @@ export function inscrireDonjon(coquille, ctx) {
     coquille.positionner(etat.plan ? { donjon: etat.actif } : { donjon: etat.actif, salle: ctx.donjon().salleActive });
   }).observe(document.body, { attributes: true, attributeFilter: ['class'] });
 
-  // --- Le cartouche d'échelle : en haut à gauche de la zone de carte (après le catalogue, qui le pousse à droite quand il est ouvert) ---------
+  // --- Le cartouche d'échelle : en haut à gauche de la zone de carte  ---------
   // Une salle : sa taille en cases et en mètres, et l'échelle ; la vue d'ensemble : l'échelle seule. ctx.rendre() le tient à jour (taille, échelle).
   const cartouche = creerCartouche();
   cartouche.element.classList.add('cartouche-donjon');
@@ -68,7 +70,7 @@ export function inscrireDonjon(coquille, ctx) {
   };
 
   // --- La barre d'outils du Donjon se tait quand le Monde est affiché (il y met ses propres outils) --------------------
-  const majBarre = () => ctx.barre.montrer(!ctx.univers?.ouvert());
+  const majBarre = () => { ctx.barre.montrer(!ctx.univers?.ouvert()); catalogue.montrer(!ctx.univers?.ouvert()); };
   ctx.univers?.surChangement(majBarre);
   coquille.surSelection(majBarre);
   majBarre();

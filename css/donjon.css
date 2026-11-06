@@ -1,7 +1,7 @@
 /* Carte de MJ — mise en page de l'outil Donjon (donjon.html seulement).
    Charge après css/style.css : elle n'en change ni les couleurs, ni les polices, ni les jetons de css/base.css, seulement
    l'organisation. L'atelier a trois colonnes (css/atelier.css : arbre, scène, inspecteur) ; ici : la barre du haut, la scène sous sa
-   barre d'outils (catalogue en colonne ou en tiroir, bandes de dimensions, zoom), les blocs de l'inspecteur et la feuille « Ajouter un donjon ».
+   barre d'outils (catalogue en onglet de l'inspecteur ou en tiroir, bandes de dimensions, zoom), les blocs de l'inspecteur et la feuille « Ajouter un donjon ».
    Au-dessus de 760 px : ordinateur. En dessous : l'arbre est un tiroir, l'inspecteur un panneau bas (règles de css/atelier.css). */
 
 /* --- Barre du haut (bouton de l'arbre, Jouer) --- */
@@ -14,15 +14,13 @@
 .barre-donjon { flex: 1 1 auto; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: var(--esp-2); }
 .barre-groupe { display: flex; flex-wrap: wrap; align-items: center; gap: var(--esp-1); }
 .barre-donjon .btn { font-size: 13px; }
-.outil-catalogue { gap: 6px; }
-.outil-catalogue[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); background: rgba(217, 169, 41, 0.16); font-weight: 600; }
 .bouton-plan[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); background: rgba(217, 169, 41, 0.16); font-weight: 600; }
 .bouton-ajouter { display: none; }
 #annuler-carte { margin-left: auto; }
 /* Pastille d'état de la pose : rangée dans la barre, posée sur le haut de la carte (rien ne bouge), quel que soit le groupe ouvert. */
 .pose-pastille { position: absolute; z-index: 28; top: 54px; left: 50%; transform: translateX(-50%); max-width: calc(100% - 24px); min-height: max(var(--cible), 30px); padding: 0 var(--esp-3); overflow: hidden; text-overflow: ellipsis; background: var(--panneau); color: var(--accent); border-color: var(--accent); border-radius: 999px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45); }
 
-/* --- La scène : le catalogue (colonne sur ordinateur, tiroir sur téléphone) puis la carte --- */
+/* --- La scène : la carte (le catalogue est l'onglet « Ajouter » de l'inspecteur sur ordinateur, un tiroir sur téléphone) --- */
 #cadre-scene { position: relative; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
 #zone-scene { flex: 1 1 auto; display: flex; min-width: 0; min-height: 0; }
 /* flex et marges automatiques (pas place-items) : une carte zoomée plus grande que la scène reste entièrement atteignable au défilement. */
@@ -63,7 +61,9 @@ details.exemples summary { font-size: 13px; }
 
 /* --- Catalogue de vignettes (Portes, Mobilier, Créatures) --- */
 .catalogue { display: flex; flex-direction: column; gap: 8px; flex: 1 1 auto; min-height: 0; }
-.palette-groupes { display: none; }
+.palette-groupes { display: flex; flex: none; gap: var(--esp-1); }
+.palette-groupes button { flex: 1 1 0; min-width: 0; min-height: max(var(--cible), 32px); padding: 0 var(--esp-1); font-size: 13px; font-weight: 500; }
+.palette-groupes button[aria-pressed="true"] { background: rgba(217, 169, 41, 0.16); color: var(--accent); border-color: var(--accent); font-weight: 600; }
 .palette-tete { display: flex; align-items: center; justify-content: space-between; flex: none; }
 #palette { display: none; }
 #palette.tiroir-ouvert { display: flex; }
@@ -113,7 +113,7 @@ body.palette-glisse, body.palette-glisse * { cursor: grabbing !important; user-s
 #plan-donjon.sur-salle { cursor: pointer; }
 .cache-visuel button:focus-visible { outline: var(--focus); }
 /* Pas de pose dans la vue d'ensemble : le catalogue et la pastille s'effacent. */
-body.vue-plan .outil-catalogue, body.vue-plan .bouton-ajouter, body.vue-plan #pose-pastille { display: none; }
+body.vue-plan .bouton-ajouter, body.vue-plan #pose-pastille { display: none; }
 body.vue-plan #palette { display: none; }
 
 /* --- Commandes flottantes de la scène --- */
@@ -135,8 +135,12 @@ body.vue-plan #palette { display: none; }
   body > .menu-site { grid-column: 1 / -1; grid-row: 1; }
   #cadre-scene { grid-column: 2; grid-row: 3; }
 
-  /* Le catalogue : une colonne à gauche de la carte, ouverte par un outil de la barre. */
-  #palette.tiroir-ouvert { flex: none; width: 300px; min-height: 0; padding: var(--esp-3); gap: var(--esp-2); background: var(--panneau); border-right: 1px solid var(--bord); }
+  /* Le catalogue : l'onglet « Ajouter » de l'inspecteur (js/atelier/catalogue-onglet.js le range dans la colonne de droite). L'onglet « Salle » montre l'en-tête et le corps de l'inspecteur. */
+  .atelier-inspecteur[data-onglet="ajouter"] > #palette { display: flex; flex: 1 1 auto; min-height: 0; padding: var(--esp-4); gap: var(--esp-3); }
+  .atelier-inspecteur[data-onglet="ajouter"] > .atelier-inspecteur-tete, .atelier-inspecteur[data-onglet="ajouter"] > .atelier-inspecteur-corps { display: none; }
+  .atelier-inspecteur .palette-tete { display: none; } /* l'onglet « Ajouter » dit déjà de quoi il s'agit */
+  .onglets-donjon { position: sticky; top: 0; z-index: 6; }
+  [data-atelier="preparer"] .atelier-inspecteur-tete { top: 41px; } /* sous les onglets */
 }
 
 /* --- Écran étroit (sous 760 px) : une seule colonne, la scène sous sa barre d'outils, l'inspecteur en panneau bas (css/atelier.css) --- */
@@ -148,7 +152,7 @@ body.vue-plan #palette { display: none; }
   #scene { min-height: 0; } /* style.css réserve 70 vh à la scène des autres pages */
   .atelier-barre { padding: var(--esp-1) var(--esp-2); gap: var(--esp-1); }
   .atelier-barre .btn { min-height: 44px; }
-  .outil-catalogue { display: none; } /* « + Ajouter » ouvre le catalogue en tiroir */
+  .onglets-donjon { display: none; } /* « + Ajouter » ouvre le catalogue en tiroir */
   .bouton-ajouter { display: inline-flex; padding: 0 var(--esp-4); font-size: 14px; background: var(--panneau); color: var(--texte); border-color: var(--accent); }
   #plan-bouton .libelle, #annuler-carte .libelle { display: none; } /* icônes seules (étiquettes en aria-label) */
   #plan-bouton, #annuler-carte { padding: 0; width: 44px; }
@@ -158,9 +162,7 @@ body.vue-plan #palette { display: none; }
 
   /* Tiroir du bas : les trois catégories, la recherche et les vignettes. Il se referme tout seul quand un élément est armé. */
   #palette.tiroir-ouvert { position: fixed; left: 0; right: 0; bottom: 0; z-index: 95; height: min(66vh, 500px); height: min(66dvh, 500px); padding: var(--esp-3) var(--esp-3) max(var(--esp-3), env(safe-area-inset-bottom)); gap: var(--esp-2); background: var(--panneau); border-top: 1px solid var(--accent); border-radius: 12px 12px 0 0; box-shadow: 0 -8px 28px rgba(0, 0, 0, 0.6); }
-  .palette-groupes { display: flex; flex: none; gap: var(--esp-1); }
-  .palette-groupes button { flex: 1 1 0; min-width: 0; min-height: 44px; padding: 0 var(--esp-1); font-size: 14px; font-weight: 500; }
-  .palette-groupes button[aria-pressed="true"] { background: rgba(217, 169, 41, 0.16); color: var(--accent); border-color: var(--accent); font-weight: 600; }
+  .palette-groupes button { min-height: 44px; font-size: 14px; }
   .palette-recherche { min-height: 44px; font-size: 16px; } /* 16 px : iOS ne zoome pas la page à la saisie */
   .palette-grille { grid-template-columns: repeat(auto-fill, minmax(86px, 1fr)); }
   .palette-item { min-height: 88px; }
@@ -209,3 +211,5 @@ body.vue-plan #palette { display: none; }
 .modeles li { display: flex; gap: 6px; align-items: center; }
 .modele-choix { flex: 1; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; padding: 6px 8px; }
 .modele-choix span { font-size: 12px; white-space: normal; }
+
+.atelier-onglets[hidden] { display: none; }

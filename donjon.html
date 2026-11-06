@@ -30,7 +30,7 @@
     <div id="cadre-scene">
       <!-- La barre d'outils de la scène : js/atelier/barre-salle.js la range dans coquille.barreOutils. Écran étroit : « + Ajouter » ouvre le tiroir du catalogue. -->
       <div id="barre-donjon" class="barre-donjon">
-        <div class="barre-groupe" id="barre-catalogue" role="group" aria-label="Ajouter à la carte">
+        <div class="barre-groupe" id="barre-catalogue" role="group" aria-label="Ajouter à la carte"><!-- téléphone seulement : sur ordinateur, le catalogue est l'onglet « Ajouter » de l'inspecteur -->
           <button id="ajouter" type="button" class="btn bouton-ajouter" aria-label="Ajouter à la carte" title="Ajouter à la carte : portes, mobilier, créatures" aria-haspopup="dialog" aria-expanded="false" aria-controls="palette"><span data-icone="plus"></span><span class="libelle">Ajouter</span></button>
         </div>
         <button id="pose-pastille" type="button" class="btn pose-pastille" hidden></button>
@@ -43,7 +43,7 @@
       </div>
 
       <div id="zone-scene">
-        <!-- Catalogue de vignettes (js/palette.js) : Portes, Mobilier, Créatures. Ordinateur : colonne à gauche de la carte ; téléphone : tiroir du bas. -->
+        <!-- Catalogue de vignettes (js/palette.js) : Portes, Mobilier, Créatures. Ordinateur : onglet « Ajouter » de l'inspecteur (js/atelier/catalogue-onglet.js, qui le déplace) ; téléphone : tiroir du bas. -->
         <section id="palette" class="catalogue" role="group" aria-label="Ajouter à la carte"></section>
         <main id="scene">
           <!-- Vue Plan (js/main-mj.js, ouvrirPlan) : remplace #support. La liste est cachée à l'œil mais atteignable au clavier. -->

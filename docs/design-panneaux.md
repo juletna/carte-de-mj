@@ -115,9 +115,9 @@ Oui/non : interrupteur (`role="switch"`) puis le libellé en T1, aligné sur le 
 - Une action secondaire dans un texte (Effacer, Copier pour signaler) : lien d'action en T3, **sans marge interne**, pour rester sur le bord gauche.
 - Un bouton désactivé qui n'a jamais de raison de s'activer dans ce contexte (« Révéler toute la salle » quand rien n'est caché) disparaît ; l'état est dit dans la méta de l'en-tête.
 
-### Onglets (Jouer)
+### Onglets (Jouer, Donjon)
 
-Texte 13,5px/600 en T3, l'onglet actif en T1 souligné de 2px d'or. Pas de fond doré : l'or est réservé à la sélection et au bouton principal. Chaque onglet a ensuite un en-tête et des sections comme un inspecteur.
+Texte 13,5px/600 en T3, l'onglet actif en T1 souligné de 2px d'or. Pas de fond doré : l'or est réservé à la sélection et au bouton principal. Chaque onglet a ensuite un en-tête et des sections comme un inspecteur. Dans le Donjon (ordinateur), deux onglets en haut de l'inspecteur : « Salle » (l'inspecteur) et « Ajouter » (le catalogue : Portes · Mobilier · Créatures, recherche, vignettes) ; sous 760 px, pas d'onglets, le « + Ajouter » du bas ouvre le catalogue en tiroir.
 
 ### Arbre
 
@@ -151,6 +151,7 @@ Même grammaire dans le panneau bas. Replié, il ne montre que l'en-tête. Cible
 | Inspecteur Monde, Lieu, Point | `js/atelier/inspecteurs-monde.js` | oui (typographie, sections, liste des points) |
 | Inspecteur Calage | `js/mj/univers-calage.js` | oui |
 | Inspecteur Donjon, Salle | `js/atelier/inspecteurs-donjon.js`, `js/mj/salle-forme.js` | oui (« Compris » en pastilles, formes en icônes) |
+| Donjon · onglet « Ajouter » (catalogue) | `js/atelier/catalogue-onglet.js`, `js/palette.js` | oui (onglets soulignés comme Jouer ; catégories, recherche et vignettes sous les onglets) |
 | Porte, Objet, Créature | `js/mj/bulle.js` | oui (sections « Liaison », « Aspect ») |
 | Jouer · Salle, Joueurs, Table | `presentation.html`, `js/regie.js`, `js/regie-panneau.js` | oui (en-tête de l'onglet Salle) |
 | Jouer · Lieu (monde) | `js/regie-univers.js` | oui |

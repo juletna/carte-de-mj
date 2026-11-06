@@ -25,7 +25,9 @@
  *   coquille.position()        la position courante
  *   coquille.rafraichir({ inspecteur? })   les données ont changé : l'arbre (si ses noms ont changé) et la validité de la sélection ; l'inspecteur seulement si `inspecteur: true`
  *   coquille.surSelection(f)   f(sel) après chaque changement de sélection
- *   coquille.onglets           (mode jouer) { ajouter({ id, libelle, contenu }), choisir(id), courant() } : Salle · Joueurs · Table
+ *   coquille.onglets           { ajouter({ id, libelle, contenu }), choisir(id), courant(), element } : Salle · Joueurs · Table (Jouer) ; Salle · Ajouter (Préparer, Donjon : js/atelier/catalogue-onglet.js).
+ *                              `contenu` : un élément ou une liste d'éléments ; la colonne porte `data-onglet`.
+ *   coquille.colonneInspecteur la colonne de droite
  *   coquille.ouvrirTiroir() / fermerTiroir()   l'arbre en tiroir (sous 760 px)
  *
  * Sous 760 px : l'arbre est un tiroir (fond cliquable, Échap le ferme et rend le focus) et l'inspecteur un panneau bas repliable.
@@ -153,21 +155,24 @@ export function creerCoquille({
     function choisir(id) {
       if (!panneaux.has(id)) return;
       courant = id;
+      colonneInspecteur.dataset.onglet = id; // le CSS de l'atelier masque, au besoin, les blocs qui ne sont pas à l'onglet (Préparer : en-tête et corps de l'inspecteur)
       for (const [cle, p] of panneaux) {
         p.bouton.setAttribute('aria-selected', String(cle === id));
         p.bouton.tabIndex = cle === id ? 0 : -1;
-        p.contenu.hidden = cle !== id;
+        for (const c of p.contenus) if (!c.dataset.sansMasque) c.hidden = cle !== id; // sans-masque : le CSS décide (display: flex l'emporte sur hidden)
       }
     }
     function ajouter({ id, libelle, contenu }) {
       const b = h('button', { type: 'button', role: 'tab', className: 'btn btn-discret atelier-onglet', textContent: libelle, id: `atelier-onglet-${id}` });
       b.addEventListener('click', () => choisir(id));
-      contenu.setAttribute('role', 'tabpanel');
-      contenu.setAttribute('aria-labelledby', b.id);
-      panneaux.set(id, { bouton: b, contenu });
+      // `contenu` : un élément, ou une liste d'éléments (Préparer : l'en-tête et le corps de l'inspecteur forment l'onglet « Salle »).
+      const contenus = [].concat(contenu);
+      contenus[0].setAttribute('role', 'tabpanel');
+      contenus[0].setAttribute('aria-labelledby', b.id);
+      panneaux.set(id, { bouton: b, contenus });
       liste.append(b);
-      colonneInspecteur.append(contenu);
-      if (mode === 'jouer') colonneInspecteur.prepend(liste);
+      for (const c of contenus) if (c.parentNode !== colonneInspecteur) colonneInspecteur.append(c);
+      if (!liste.isConnected) colonneInspecteur.prepend(liste);
       choisir(courant ?? id);
     }
     liste.addEventListener('keydown', (e) => {
@@ -338,7 +343,7 @@ export function creerCoquille({
   });
 
   const coquille = {
-    arbre: { element: colonneArbre, ajouterAction, rafraichir, vue }, scene: sceneEl, barreOutils, barreFin, inspecteur, onglets,
+    colonneInspecteur, arbre: { element: colonneArbre, ajouterAction, rafraichir, vue }, scene: sceneEl, barreOutils, barreFin, inspecteur, onglets,
     selectionner, selection: () => sel, naviguer, positionner, position: () => ({ ...pos }), rafraichir,
     surSelection: (f) => { ecouteursSelection.push(f); },
     ouvrirTiroir, fermerTiroir, tiroirOuvert, mode, affichage: affichagePopover,

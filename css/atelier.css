@@ -246,16 +246,12 @@ body.atelier-avec-inspecteur { --largeur-inspecteur: 330px; }
   font-size: 12px; line-height: 1.5; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35); }
 .atelier-cartouche[hidden] { display: none; }
 .atelier-cartouche-moyen, .atelier-cartouche-court { display: none; }
-/* Donjon : en haut à gauche de la zone de carte ; le catalogue (300 px), quand il est ouvert, le pousse à sa droite. */
+/* Donjon : en haut à gauche de la zone de carte. */
 #zone-scene { position: relative; container: zone-scene / inline-size; }
-/* Zone étroite (catalogue ouvert, inspecteur large) : le cartouche perd l'échelle, puis les mots, pour ne pas atteindre les boutons N et S du centre. */
+/* Zone étroite : le cartouche perd l'échelle, puis les mots, pour ne pas atteindre les boutons N et S du centre. */
 @container zone-scene (max-width: 720px) { .cartouche-donjon .atelier-cartouche-long { display: none; } .cartouche-donjon .atelier-cartouche-moyen { display: inline; } }
 @container zone-scene (max-width: 470px) { .cartouche-donjon .atelier-cartouche-moyen { display: none; } .cartouche-donjon .atelier-cartouche-court { display: inline; } }
-/* Catalogue ouvert : il prend 300 px de la zone, les seuils montent d'autant. */
-@container zone-scene (max-width: 1020px) { #palette.tiroir-ouvert ~ .cartouche-donjon .atelier-cartouche-long { display: none; } #palette.tiroir-ouvert ~ .cartouche-donjon .atelier-cartouche-moyen { display: inline; } }
-@container zone-scene (max-width: 770px) { #palette.tiroir-ouvert ~ .cartouche-donjon .atelier-cartouche-moyen { display: none; } #palette.tiroir-ouvert ~ .cartouche-donjon .atelier-cartouche-court { display: inline; } }
 .cartouche-donjon { left: var(--esp-3); top: var(--esp-3); }
-#palette.tiroir-ouvert ~ .cartouche-donjon { left: calc(300px + var(--esp-3)); }
 /* Monde : en bas à gauche de la carte du lieu (le fil d'Ariane tient le haut). */
 .cartouche-monde { left: var(--esp-3); bottom: var(--esp-3); }
 #scene:fullscreen ~ .cartouche-donjon { display: none; }
@@ -264,7 +260,7 @@ body.atelier-avec-inspecteur { --largeur-inspecteur: 330px; }
   .atelier-cartouche .atelier-cartouche-long, .atelier-cartouche .atelier-cartouche-moyen { display: none; }
   .atelier-cartouche .atelier-cartouche-court { display: inline; }
   /* Donjon : en bas à droite, dans la rangée du zoom sous la carte (--h-zoom), à droite de la barre de zoom : en haut à gauche il recouvrait un coin du plan. */
-  .cartouche-donjon, #palette.tiroir-ouvert ~ .cartouche-donjon { left: auto; top: auto; right: var(--esp-2); bottom: calc(var(--esp-2) - var(--h-zoom, 60px)); max-width: max(72px, calc(100% - 252px)); }
+  .cartouche-donjon { left: auto; top: auto; right: var(--esp-2); bottom: calc(var(--esp-2) - var(--h-zoom, 60px)); max-width: max(72px, calc(100% - 252px)); }
   .cartouche-monde { left: var(--esp-2); bottom: var(--esp-2); }
 }
 
