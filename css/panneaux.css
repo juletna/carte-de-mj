@@ -224,7 +224,7 @@
 
 /* === Rangées de champ (Aspect, Visibilité de l'inspecteur d'un élément) : aperçu · valeur · détail ; l'aspect ouvre un popover === */
 .rang-hote { position: relative; }
-.rang-champ { display: grid; grid-template-columns: 28px 1fr auto; align-items: center; gap: 10px; width: 100%; min-height: max(40px, var(--cible)); padding: 0 10px; background: var(--p-surface-1); border: 1px solid transparent; border-radius: var(--rayon); color: var(--p-texte-1); font: inherit; font-size: 14px; text-align: left; cursor: pointer; }
+.rang-champ { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; width: 100%; min-height: max(40px, var(--cible)); padding: 0 10px; background: var(--p-surface-1); border: 1px solid transparent; border-radius: var(--rayon); color: var(--p-texte-1); font: inherit; font-size: 14px; text-align: left; cursor: pointer; }
 .rang-champ:hover { background: var(--p-surface-survol); }
 .rang-champ[aria-expanded="true"] { border-color: var(--accent); }
 .rang-aperce { display: grid; place-items: center; width: 28px; height: 28px; overflow: hidden; border-radius: 5px; line-height: 0; }
@@ -244,6 +244,12 @@
 .rang-aperce-hote { display: contents; }
 .popover-choix { display: flex; flex-direction: column; gap: 2px; padding: 6px; }
 .popover-choix .popover-titre { margin: 2px 6px 6px; }
-.rang-choix { display: grid; grid-template-columns: 28px 1fr; align-items: center; gap: 10px; min-height: max(36px, var(--cible)); padding: 0 8px; background: none; border: 1px solid transparent; border-radius: 6px; color: var(--p-texte-2); font: inherit; font-size: 14px; text-align: left; cursor: pointer; }
+.rang-choix { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 10px; min-height: max(36px, var(--cible)); padding: 0 8px; background: none; border: 1px solid transparent; border-radius: 6px; color: var(--p-texte-2); font: inherit; font-size: 14px; text-align: left; cursor: pointer; }
 .rang-choix:hover { background: var(--p-surface-survol); }
 .rang-choix[aria-selected="true"] { background: var(--p-choisi); color: var(--accent); }
+
+/* Miniature dessinée par le moteur (sol, ambiance, état, éclairage de la salle) : plus grande qu'un simple carré de couleur. */
+.rang-rendu { width: 44px; height: 44px; margin: 4px 0; border: 1px solid var(--p-filet-fort); background: var(--p-surface-0); }
+.rang-rendu canvas { width: 100% !important; height: 100% !important; object-fit: cover; transform: scale(1.5); } /* recadré sur le sol : la marge de roche du moteur sort du cadre */
+.rang-aperce { min-width: 28px; }
+.rang-choix .rang-rendu { width: 36px; height: 36px; margin: 3px 0; }

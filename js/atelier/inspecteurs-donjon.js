@@ -22,6 +22,8 @@ import { resumeTaille, tailleEnMetres } from './dimensions.js';
 import { creerSection } from './section.js';
 import { creerListe } from './liste.js';
 import { creerChampChoix } from './champ-choix.js';
+import { dessiner } from '../rendu/moteur.js';
+import { themeParNom } from '../rendu/themes/index.js';
 import { libelleSelection, nomCase } from '../coordonnees.js';
 import { descripteur } from '../donjon.js';
 import { telephone } from '../telephone.js';
@@ -61,9 +63,17 @@ export function enregistrerInspecteursDonjon(coquille, ctx) {
 
   // Apparence de la salle : quatre rangées à popover (sol, ambiance, état, éclairage) devant les <select> d'origine, qui restent la source.
   const COULEURS_SOL = { pierre: '#55555c', bois: '#7a5a36', terre: '#6b4e35', sable: '#cdb98a', herbe: '#4f7a3f', marbre: '#d8d6d2', glace: '#a8d4e6' };
+  /** La miniature d'un choix : une petite salle de 4 × 4 dessinée par le vrai moteur (thème de l'utilisateur), avec ce seul réglage changé. */
+  const miniatureSalle = (champ) => (valeur) => {
+    const plan = { ...ctx.salle().plan, largeur: 4, longueur: 4, forme: 'rectangle', bras: undefined, position: undefined, portes: [], objets: [], creatures: [], [champ]: valeur };
+    const canvas = document.createElement('canvas');
+    dessiner(canvas, plan, { taille: 14, grille: false, reperes: false, theme: themeParNom(etat.reglages.theme), details: etat.reglages.details, relief: etat.reglages.relief, vue: champ === 'eclairage' ? 'table' : 'mj' }); // à la table, la pénombre est pleine : c'est là que l'éclairage change quelque chose
+    canvas.setAttribute('aria-hidden', 'true');
+    return canvas;
+  };
   const blocApparence = $('bloc-apparence');
-  blocApparence.append(...[['salle-sol', 'sol', 'Sol', COULEURS_SOL], ['salle-ambiance', 'ambiance', 'Ambiance'], ['salle-etat', 'état', 'État'], ['salle-eclairage', 'éclairage', 'Éclairage']]
-    .map(([id, detail, titre, couleurs]) => creerChampChoix({ select: $(id), detail, titre, couleurs }).element));
+  blocApparence.append(...[['salle-sol', 'sol', 'Sol', 'sol', COULEURS_SOL], ['salle-ambiance', 'ambiance', 'Ambiance', 'ambiance'], ['salle-etat', 'état', 'État', 'etat'], ['salle-eclairage', 'éclairage', 'Éclairage', 'eclairage']]
+    .map(([id, detail, titre, champ, couleurs]) => creerChampChoix({ select: $(id), detail, titre, couleurs, miniature: miniatureSalle(champ) }).element));
 
   const donjonDe = (sel) => etat.donjons[sel.contexte?.donjon ?? sel.id] ?? ctx.donjon();
   /** Le nom de l'en-tête écrit dans le champ historique (dont les écouteurs enregistrent, nettoient et sauvegardent). */

@@ -3,7 +3,8 @@
  * ouvre, au clic, la liste des choix en popover ancré dessous. Il pilote un <select> existant : le <select> reste la source de vérité
  * (ses écouteurs, ses valeurs, son remplissage) et sort de l'écran ; la rangée le reflète.
  *
- *   const champ = creerChampChoix({ select, detail: 'sol', couleurs?: { valeur: '#hex' }, titre?: 'Sol' });   → { element, maj }
+ *   const champ = creerChampChoix({ select, detail: 'sol', couleurs?: { valeur: '#hex' }, miniature?: (valeur) => <canvas>|null, titre?: 'Sol' });   → { element, maj }
+ * `miniature(valeur)` : un aperçu dessiné (un canvas) de ce choix ; sans elle, ou si elle ne rend rien, un carré de la couleur de `couleurs`.
  *
  * `maj()` relit la valeur du <select> ; elle est rappelée toute seule quand le <select> reçoit l'événement « synchro » (js/mj/salle-forme.js
  * l'envoie après chaque rendu) ou « change ». Choisir une ligne écrit la valeur du <select> et y déclenche « change ».
@@ -11,8 +12,11 @@
  */
 import { h } from '../dom.js';
 
-export function creerChampChoix({ select, detail, couleurs = {}, titre = detail }) {
+export function creerChampChoix({ select, detail, couleurs = {}, miniature = null, titre = detail }) {
   const apercu = (valeur) => {
+    let dessin = null;
+    try { dessin = miniature?.(valeur) ?? null; } catch (err) { console.error(`Miniature de « ${titre} » :`, err); } // une miniature ratée ne casse pas le champ
+    if (dessin) return h('span', { className: 'rang-aperce rang-rendu' }, dessin);
     const a = h('span', { className: 'rang-aperce rang-couleur' });
     if (couleurs[valeur]) a.style.background = couleurs[valeur];
     return a;
