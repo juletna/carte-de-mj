@@ -160,7 +160,7 @@ Nettoyage fait : les règles mortes des anciens panneaux (`.insp-section`, `.aid
 
 ## Idées pour plus tard (nice to have, non décidées)
 
-Tirées du panneau « Design » de Figma, le 6 novembre 2026. Rien n'est à faire tant que Julien ne les relance pas.
+Tirées du panneau « Design » de Figma, le 6 novembre 2026 (maquette avant / après : [`maquettes/inspecteur-figma.html`](maquettes/inspecteur-figma.html)). Rien n'est à faire tant que Julien ne les relance pas.
 
 - **Rien de sélectionné, dit explicitement** : l'inspecteur montre déjà la salle ou le donjon actif par défaut ; l'en-tête pourrait le dire (« Salle 1 · rien de sélectionné »).
 - **Œil et « − » par ligne dans les listes** : sur chaque rangée (éléments d'une salle, points d'un lieu), un œil (caché aux joueurs) et un « − » (supprimer) visibles au survol, pour agir sans ouvrir l'élément.

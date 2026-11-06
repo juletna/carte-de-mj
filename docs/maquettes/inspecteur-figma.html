@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Inspecteur à la Figma</title>
+<style>
+/* Maquette avant / après de l'inspecteur du Donjon, inspirée du panneau « Design » de Figma. Statique : rien n'est branché.
+   Les jetons reprennent css/base.css et docs/design-panneaux.md. « Avant » = l'inspecteur tel qu'il est livré ; « Après » = la proposition
+   (idées de docs/design-panneaux.md : rangée d'icônes d'action, champs compacts à deux colonnes, ordre de sections fixe, icône de type). */
+:root {
+  color-scheme: dark;
+  --fond: #16151a; --panneau: #1f1e24; --bord: #34323b; --champ: #121116; --accent: #d9a929; --erreur: #e06c5a;
+  --t1: #ece8e0; --t2: #c3beb4; --t3: #97928a; --t4: #67635d; --s1: #26252c; --survol: #2d2c34; --filet: #2f2d35; --filet-fort: #3d3a44;
+  --police: system-ui, -apple-system, "Segoe UI", sans-serif; --mono: ui-monospace, "SF Mono", Menlo, monospace;
+}
+* { box-sizing: border-box; }
+body { margin: 0; padding: 40px max(16px, env(safe-area-inset-left)) 80px; background: var(--fond); color: var(--t1); font: 15px/1.5 var(--police); }
+.page { max-width: 1000px; margin: 0 auto; display: flex; flex-direction: column; gap: 48px; }
+h1, h2 { margin: 0; text-wrap: balance; }
+h1 { font-size: 32px; line-height: 1.15; }
+h2 { font-size: 22px; }
+p { margin: 0; }
+.chapeau { max-width: 64ch; margin-top: 10px; color: var(--t2); }
+.sur { margin-bottom: 8px; font-size: 12px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); }
+.paire { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 24px; align-items: start; }
+.cote > .etiquette { margin-bottom: 10px; font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--t3); }
+.cote.apres > .etiquette { color: var(--accent); }
+.notes { max-width: 66ch; margin-top: 14px; color: var(--t2); font-size: 14px; }
+.notes li { margin-bottom: 4px; }
+
+/* --- Le panneau (330 px, comme la colonne de droite) --- */
+.panneau { width: 100%; max-width: 330px; background: var(--panneau); border: 1px solid var(--bord); border-radius: 8px; overflow: hidden; font-size: 14px; color: var(--t2); }
+.onglets { display: flex; padding: 0 8px; border-bottom: 1px solid var(--filet-fort); }
+.onglet { flex: 1; min-height: 40px; background: none; border: 0; border-bottom: 2px solid transparent; color: var(--t3); font: 600 13.5px var(--police); }
+.onglet[aria-selected="true"] { color: var(--t1); border-bottom-color: var(--accent); }
+.tete { display: flex; align-items: flex-start; gap: 8px; padding: 14px 16px 12px; border-bottom: 1px solid var(--filet-fort); }
+.tete .id { flex: 1; min-width: 0; }
+.type { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--accent); }
+.type svg { width: 14px; height: 14px; }
+.nom { margin: 2px 0 0; font-size: 18px; font-weight: 650; color: var(--t1); }
+.meta { font-size: 12.5px; color: var(--t3); font-variant-numeric: tabular-nums; }
+.ib { display: inline-grid; place-items: center; width: 32px; height: 32px; padding: 0; background: none; border: 1px solid transparent; border-radius: 6px; color: var(--t2); cursor: default; }
+.ib svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.ib:hover { background: var(--survol); }
+.ib.danger { color: var(--erreur); }
+
+/* Avant : bouton en corps, sections avec chevron */
+.corps { display: flex; flex-direction: column; }
+.sec { border-bottom: 1px solid var(--filet); }
+.sec > .bandeau { display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 16px; font-size: 13px; font-weight: 650; color: var(--t1); }
+.sec > .bandeau .chev { color: var(--t4); font-size: 11px; }
+.sec > .bandeau .droite { margin-left: auto; display: flex; gap: 2px; }
+.sec > .contenu { display: flex; flex-direction: column; gap: 12px; padding: 0 16px 16px; }
+.btn { display: inline-flex; align-items: center; gap: 8px; min-height: 32px; padding: 0 12px; background: var(--s1); color: var(--t1); border: 1px solid var(--filet-fort); border-radius: 6px; font: 500 13px var(--police); align-self: flex-start; }
+.btn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.7; }
+.etiq { display: block; margin-bottom: 5px; font-size: 12.5px; color: var(--t3); }
+.champ, select, textarea { width: 100%; min-height: 32px; padding: 6px 10px; background: var(--champ); color: var(--t1); border: 1px solid var(--bord); border-radius: 6px; font: 14px var(--police); }
+textarea { min-height: 72px; resize: none; }
+
+/* Après : champs à icône intégrée, deux colonnes */
+.grille2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.num { display: flex; align-items: center; gap: 8px; min-height: 32px; padding: 0 10px; background: var(--champ); border: 1px solid var(--bord); border-radius: 6px; color: var(--t1); font-variant-numeric: tabular-nums; }
+.num .pre { width: 14px; color: var(--t3); font-size: 12px; font-weight: 600; cursor: ew-resize; user-select: none; }
+.num .pre svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.7; vertical-align: -2px; }
+.num .unite { margin-left: auto; color: var(--t4); font-size: 12px; }
+.num:hover { border-color: var(--filet-fort); }
+.actions { display: flex; gap: 2px; padding: 8px 12px; border-bottom: 1px solid var(--filet); }
+.actions .sep { width: 1px; margin: 4px 6px; background: var(--filet-fort); }
+.pastilles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.pastille { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 2px 5px; background: var(--s1); border: 1px solid var(--filet); border-radius: 6px; font-size: 11px; color: var(--t2); }
+.pastille[aria-pressed="true"] { border-color: var(--accent); background: rgba(217, 169, 41, .13); color: var(--accent); }
+.pastille i { display: block; width: 32px; height: 32px; border-radius: 4px; background: #3a3128; border: 1px solid #5a4a36; }
+.pastille i.ouvert { background: #4a3a24; border-style: dashed; }
+.pastille i.vide { background: #2a2622; }
+.pastille i.brise { background: repeating-linear-gradient(45deg, #3a3128, #3a3128 4px, #2a2218 4px, #2a2218 8px); }
+.aide { margin-left: 4px; color: var(--t4); font-size: 12px; border: 1px solid var(--filet-fort); border-radius: 50%; width: 18px; height: 18px; display: inline-grid; place-items: center; }
+.compte { padding: 0 7px; background: var(--s1); border-radius: 999px; color: var(--t3); font: 500 11.5px var(--police); }
+.oeil { margin-left: auto; color: var(--t3); }
+.formes { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; }
+.formes span { aspect-ratio: 1; background: var(--s1); border: 1px solid var(--filet); border-radius: 5px; }
+.formes span.on { border-color: var(--accent); background: rgba(217, 169, 41, .13); }
+</style>
+</head>
+<body>
+<!-- Icônes, définies une fois -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-objet" viewBox="0 0 24 24"><path d="M3.5 10.5a8.5 5.5 0 0 1 17 0V19a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1z M3.5 14h17"/><rect x="10.5" y="12" width="3" height="4" rx=".6"/></symbol>
+  <symbol id="i-salle" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="1.5"/><path d="M4 10h16M10 4v16"/></symbol>
+  <symbol id="i-pivoter" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.6-5.9M20 4v5h-5"/></symbol>
+  <symbol id="i-miroir" viewBox="0 0 24 24"><path d="M12 3v18M8 7 3 12l5 5zM16 7l5 5-5 5z"/></symbol>
+  <symbol id="i-dupliquer" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></symbol>
+  <symbol id="i-oeil" viewBox="0 0 24 24"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-corbeille" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-actions" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></symbol>
+</svg>
+
+<main class="page">
+  <header>
+    <p class="sur">Maquette · inspecteur du Donjon</p>
+    <h1>L'inspecteur, avant et après Figma</h1>
+    <p class="chapeau">Deux sélections : un coffre posé sur la carte, puis une salle. À gauche, l'inspecteur livré ; à droite, la même information avec les idées de Figma : rangée d'icônes d'action, champs compacts à deux colonnes, ordre de sections fixe, icône de type. Rien n'est branché : c'est pour juger du résultat avant de coder.</p>
+  </header>
+
+  <!-- ===== Coffre ===== -->
+  <section>
+    <h2>1. Un objet posé : le coffre</h2>
+    <div class="paire" style="margin-top:20px">
+      <div class="cote">
+        <p class="etiquette">Avant</p>
+        <div class="panneau">
+          <div class="onglets" role="tablist"><button class="onglet" role="tab" aria-selected="true">Salle</button><button class="onglet" role="tab" aria-selected="false">Ajouter</button></div>
+          <div class="tete"><div class="id"><p class="type">Objet</p><p class="nom">Coffre</p><p class="meta">Case B4</p></div>
+            <button class="ib" aria-label="Actions"><svg><use href="#i-actions"/></svg></button></div>
+          <div class="corps">
+            <div class="sec"><div class="contenu" style="padding-top:16px"><button class="btn"><svg viewBox="0 0 24 24"><use href="#i-oeil"/></svg>Marquer comme caché</button></div></div>
+            <div class="sec"><div class="bandeau"><span class="chev">▾</span>Aspect</div>
+              <div class="contenu"><select aria-label="Aspect"><option>fermé</option></select></div></div>
+          </div>
+        </div>
+        <ul class="notes"><li>Les actions (pivoter, dupliquer, supprimer) sont cachées dans « ⋯ ».</li><li>Position (la case) seulement en texte dans l'en-tête, non modifiable ici.</li><li>L'aspect est une liste déroulante : on ne voit pas à quoi ressemble le choix.</li></ul>
+      </div>
+
+      <div class="cote apres">
+        <p class="etiquette">Après</p>
+        <div class="panneau">
+          <div class="onglets" role="tablist"><button class="onglet" role="tab" aria-selected="true">Salle</button><button class="onglet" role="tab" aria-selected="false">Ajouter</button></div>
+          <div class="tete"><div class="id"><p class="type"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><use href="#i-objet"/></svg>Objet</p><p class="nom">Coffre</p><p class="meta">Salle 1 · case B4</p></div>
+            <button class="ib" aria-label="Plus d'actions"><svg viewBox="0 0 24 24"><use href="#i-actions"/></svg></button></div>
+          <div class="actions" role="toolbar" aria-label="Actions de l'objet">
+            <button class="ib" title="Pivoter"><svg viewBox="0 0 24 24"><use href="#i-pivoter"/></svg></button>
+            <button class="ib" title="Miroir"><svg viewBox="0 0 24 24"><use href="#i-miroir"/></svg></button>
+            <button class="ib" title="Dupliquer"><svg viewBox="0 0 24 24"><use href="#i-dupliquer"/></svg></button>
+            <span class="sep"></span>
+            <button class="ib" title="Caché aux joueurs"><svg viewBox="0 0 24 24"><use href="#i-oeil"/></svg></button>
+            <button class="ib danger" title="Supprimer" style="margin-left:auto"><svg viewBox="0 0 24 24"><use href="#i-corbeille"/></svg></button>
+          </div>
+          <div class="corps">
+            <div class="sec"><div class="bandeau"><span class="chev">▾</span>Position</div>
+              <div class="contenu"><div class="grille2">
+                <div class="num"><span class="pre">X</span>B</div><div class="num"><span class="pre">Y</span>4</div>
+                <div class="num"><span class="pre"><svg viewBox="0 0 24 24"><use href="#i-pivoter"/></svg></span>0<span class="unite">°</span></div>
+              </div></div></div>
+            <div class="sec"><div class="bandeau"><span class="chev">▾</span>Aspect</div>
+              <div class="contenu"><div class="pastilles">
+                <div class="pastille" aria-pressed="true"><i></i>Fermé</div><div class="pastille" aria-pressed="false"><i class="ouvert"></i>Ouvert</div>
+                <div class="pastille" aria-pressed="false"><i class="vide"></i>Vide</div><div class="pastille" aria-pressed="false"><i class="brise"></i>Brisé</div>
+              </div></div></div>
+            <div class="sec"><div class="bandeau"><span class="chev">▸</span>Notes du MJ</div></div>
+          </div>
+        </div>
+        <ul class="notes"><li>Une rangée d'icônes sous les onglets : pivoter, miroir, dupliquer, caché, supprimer (en rouge, à part).</li><li>Position : X et Y en champs compacts ; on peut tirer sur la lettre pour changer la valeur.</li><li>Aspect en vignettes : on voit le choix.</li><li>Même ordre pour porte, objet, créature : Position, Aspect, Liaison, Notes.</li></ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Salle ===== -->
+  <section>
+    <h2>2. Une salle</h2>
+    <div class="paire" style="margin-top:20px">
+      <div class="cote">
+        <p class="etiquette">Avant</p>
+        <div class="panneau">
+          <div class="onglets" role="tablist"><button class="onglet" role="tab" aria-selected="true">Salle</button><button class="onglet" role="tab" aria-selected="false">Ajouter</button></div>
+          <div class="tete"><div class="id"><p class="type">Salle</p><p class="nom">Salle 1</p><p class="meta">6 × 6 cases · 9 × 9 m · pierre</p></div>
+            <button class="ib" aria-label="Actions"><svg><use href="#i-actions"/></svg></button></div>
+          <div class="corps">
+            <div class="sec"><div class="bandeau"><span class="chev">▾</span>Description</div>
+              <div class="contenu"><textarea aria-label="Description">De 6 par 6 cases, une porte au mur est en 3.</textarea></div></div>
+            <div class="sec"><div class="bandeau"><span class="chev">▾</span>Notes du MJ</div>
+              <div class="contenu"><textarea aria-label="Notes" placeholder="Secrets, pièges, trésors…"></textarea></div></div>
+            <div class="sec"><div class="bandeau"><span class="chev">▾</span>Forme et ambiance</div>
+              <div class="contenu"><div><span class="etiq">Forme</span><div class="formes"><span class="on"></span><span></span><span></span><span></span><span></span><span></span></div></div>
+                <div><span class="etiq">Largeur</span><input class="champ" value="6"></div><div><span class="etiq">Longueur</span><input class="champ" value="6"></div>
+                <div><span class="etiq">Sol</span><select><option>Pierre</option></select></div><div><span class="etiq">Ambiance</span><select><option>Neutre</option></select></div></div></div>
+          </div>
+        </div>
+        <ul class="notes"><li>Largeur, longueur, sol et ambiance : quatre lignes pleines, l'une sous l'autre.</li><li>La description passe avant la taille et la forme.</li></ul>
+      </div>
+
+      <div class="cote apres">
+        <p class="etiquette">Après</p>
+        <div class="panneau">
+          <div class="onglets" role="tablist"><button class="onglet" role="tab" aria-selected="true">Salle</button><button class="onglet" role="tab" aria-selected="false">Ajouter</button></div>
+          <div class="tete"><div class="id"><p class="type"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><use href="#i-salle"/></svg>Salle</p><p class="nom">Salle 1</p><p class="meta">9 × 9 m · pierre</p></div>
+            <button class="ib" aria-label="Plus d'actions"><svg viewBox="0 0 24 24"><use href="#i-actions"/></svg></button></div>
+          <div class="actions" role="toolbar" aria-label="Actions de la salle">
+            <button class="ib" title="Pivoter la salle"><svg viewBox="0 0 24 24"><use href="#i-pivoter"/></svg></button>
+            <button class="ib" title="Dupliquer"><svg viewBox="0 0 24 24"><use href="#i-dupliquer"/></svg></button>
+            <button class="ib" title="Caché aux joueurs"><svg viewBox="0 0 24 24"><use href="#i-oeil"/></svg></button>
+            <button class="ib danger" title="Supprimer" style="margin-left:auto"><svg viewBox="0 0 24 24"><use href="#i-corbeille"/></svg></button>
+          </div>
+          <div class="corps">
+            <div class="sec"><div class="bandeau"><span class="chev">▾</span>Taille</div>
+              <div class="contenu"><div class="grille2">
+                <div class="num"><span class="pre">L</span>6<span class="unite">cases</span></div><div class="num"><span class="pre">H</span>6<span class="unite">cases</span></div>
+              </div><div class="formes" aria-label="Forme"><span class="on"></span><span></span><span></span><span></span><span></span><span></span></div></div></div>
+            <div class="sec"><div class="bandeau"><span class="chev">▾</span>Apparence</div>
+              <div class="contenu"><div class="grille2"><select aria-label="Sol"><option>Sol : pierre</option></select><select aria-label="Ambiance"><option>Neutre</option></select></div></div></div>
+            <div class="sec"><div class="bandeau"><span class="chev">▾</span>Description</div>
+              <div class="contenu"><textarea aria-label="Description">De 6 par 6 cases, une porte au mur est en 3.</textarea></div></div>
+            <div class="sec"><div class="bandeau"><span class="chev">▸</span>Notes du MJ</div></div>
+            <div class="sec"><div class="bandeau"><span class="chev">▸</span>Éléments <span class="compte">3</span><span class="droite"><button class="ib" title="Ajouter un élément" style="width:24px;height:24px"><svg viewBox="0 0 24 24"><use href="#i-plus"/></svg></button></span></div></div>
+          </div>
+        </div>
+        <ul class="notes"><li>Largeur et longueur côte à côte (L / H) avec leur lettre dans le champ ; la forme juste dessous.</li><li>Sol et ambiance sur une seule ligne.</li><li>Même rangée d'actions qu'un objet : l'inspecteur a toujours le même gabarit.</li><li>Les sections rares (notes, éléments) restent repliées avec leur compteur.</li></ul>
+      </div>
+    </div>
+  </section>
+</main>
+</body>
+</html>
