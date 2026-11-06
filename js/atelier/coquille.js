@@ -40,6 +40,7 @@ import { selection as creerSelection, selectionValide, meme } from '../atelier-s
 import { creerArbreVue } from './arbre-vue.js';
 import { creerInspecteur } from './inspecteur.js';
 import { marquerCourant } from '../navigation.js';
+import { CLE_DERNIERE_ROUTE } from '../navigation-donnees.js';
 import { creerGrilleAffichage } from './grille-affichage.js';
 
 const CLE_ARBRE_REPLIE = 'carte-de-mj:atelier-arbre-replie';
@@ -175,6 +176,7 @@ export function creerCoquille({
     if (pos.monde === undefined && pos.donjon === undefined) return; // rien de précis : on ne force pas d'adresse
     if (location.hash !== hash) history.replaceState(null, '', `${location.pathname}${location.search}${hash}`);
     derniereRoute = route;
+    if (hash) ecrire(CLE_DERNIERE_ROUTE, hash); // le lien « Préparer » de la barre rouvre cet élément
     marquerCourant();
   }
 

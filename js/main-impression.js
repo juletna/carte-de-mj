@@ -34,7 +34,7 @@ function lireDonjons() {
   } catch {
     return { erreur: 'Le stockage du navigateur est indisponible (navigation privée, ou données de site bloquées) : impossible de lire tes donjons. Autorise le stockage pour ce site, ou imprime depuis un navigateur normal.' };
   }
-  if (!brut) return { erreur: 'Aucun donjon enregistré dans ce navigateur. Prépare-en un dans l’outil Donjon, puis reviens ici.' };
+  if (!brut) return { erreur: 'Aucun donjon enregistré dans ce navigateur. Prépare-en un dans Préparer, puis reviens ici.' };
   const etat = chargerDonjons();
   if (!etat) return { erreur: 'Les donjons enregistrés dans ce navigateur sont illisibles ou vides : rien à imprimer. Rien n’a été modifié.' };
   return etat;

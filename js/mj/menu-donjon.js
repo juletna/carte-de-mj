@@ -170,6 +170,7 @@ export function creerMenu(ctx) {
       etat.donjons[d.id] = d;
     }
     etat.actif = Object.keys(etat.donjons)[0];
+    stockage.sauverDonjons(etat); // écrit d'abord : un souci d'affichage ensuite ne doit jamais ressusciter le donjon supprimé
     afficherSalleActive();
   }
 

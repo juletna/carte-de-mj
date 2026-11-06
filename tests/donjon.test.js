@@ -10,6 +10,7 @@ import { analyser } from '../js/parseur/index.js';
 import { decrire } from '../js/parseur/decrire.js';
 import { validerPlan } from '../js/schema.js';
 import { chargerTout, chargerDonjons, sauverDonjons, CLE_DONJONS, CLE_REGLAGES } from '../js/stockage.js';
+import { hrefPreparer } from '../js/navigation-donnees.js';
 import { verifier, egal, fauxStock, executerSuite } from './mini-test.js';
 
 function leve(f, morceau, quoi) {
@@ -319,6 +320,20 @@ const TESTS = [
       const x = convertirImport(entree, { idsPris: [d.id] });
       verifier(x.ok && /^donjon-/.test(x.donjon.id) && x.donjon.id !== d.id, 'identifiant neuf');
     }
+  }],
+  ['supprimer tous les donjons : rien ne ressuscite, même avec une partie en cours ou une ancienne clé', () => {
+    const a = m.creerDonjon({ nom: 'Repaire gobelin', texte: 'Salle de 6 par 6' }), b = m.creerDonjon({ nom: 'Autre', texte: 'Salle de 6 par 6' });
+    const stock = fauxStock({ 'jdr-carte:v1': JSON.stringify({ texte: 'Salle de 5 par 5' }) });
+    sauverDonjons({ actif: a.id, donjons: { [a.id]: a, [b.id]: b } }, stock);
+    stock.donnees['carte-de-mj:presentations-v1'] = JSON.stringify({ presentations: { [a.id]: { donjon: a } } });
+    stock.donnees['carte-de-mj:atelier-derniere-route'] = `#donjon=${a.id}`;
+    // Le MJ supprime tout : le dernier est remplacé par un donjon vide, qui est écrit tout de suite.
+    const vide = m.creerDonjon({ nom: 'Donjon' });
+    sauverDonjons({ actif: vide.id, donjons: { [vide.id]: vide } }, stock);
+    const relu = chargerTout({ stock });
+    egal(Object.keys(relu.donjons), [vide.id], 'un seul donjon, le vide');
+    verifier(!(a.id in relu.donjons) && !(b.id in relu.donjons) && relu.migre === false, 'ni les supprimés, ni la migration de l’ancienne clé');
+    egal(hrefPreparer((cle) => stock.donnees[cle] ?? null).startsWith('donjon.html#donjon='), true, 'la route périmée est seulement une adresse : l’atelier retombe sur le donjon actif');
   }],
   ['estDebutant : vrai tant qu’aucun donjon n’a de liaison ni plus d’une salle', () => {
     const un = m.creerDonjon({ texte: 'Salle de 6 par 6' });

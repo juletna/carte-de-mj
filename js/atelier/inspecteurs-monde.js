@@ -188,7 +188,7 @@ export function enregistrerInspecteursMonde(coquille, U) {
       choisir('donjon', 'Donjon', 'g-donjon', () => {
         if (genre === 'donjon') return;
         const d = Object.values(donjons)[0];
-        if (d) { U.saisie.cle = 'g-donjon'; U.changerDestination({ donjon: d.id }); } else U.dire('Aucun donjon dans ce navigateur : crée-en un d’abord, dans Donjons.', { erreur: true });
+        if (d) { U.saisie.cle = 'g-donjon'; U.changerDestination({ donjon: d.id }); } else U.dire('Aucun donjon dans ce navigateur : crée-en un d’abord, dans Préparer.', { erreur: true });
       }),
       choisir('', 'Rien', 'g-rien', () => { U.saisie.cle = 'g-rien'; U.changerDestination(null); }));
     const lignes = [];

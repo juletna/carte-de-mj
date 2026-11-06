@@ -1,12 +1,12 @@
 /**
  * Barre de navigation commune à toutes les pages : chaque élément `[data-navigation]` est rempli avec la même barre
- * (accueil, Monde, Donjons, Jouer, Bibliothèque, puis à droite Fiche joueur et Sauvegarde). Sous 760 px, elle se réduit au nom
- * et à un bouton menu qui ouvre ces mêmes liens. La page courante porte aria-current="page" (Monde : quand le hash est #monde).
+ * (accueil, Préparer, Jouer, Bibliothèque, puis à droite Fiche joueur et Sauvegarde). Sous 760 px, elle se réduit au nom
+ * et à un bouton menu qui ouvre ces mêmes liens. La page courante porte aria-current="page" (Préparer : donjon.html et impression.html, quel que soit le hash).
  * Chaque emplacement est un <header class="menu-site" data-navigation> posé tout en haut de la page, hors de toute colonne : la barre est
  * donc au même endroit partout. Elle n'est jamais montée dans la vue table (?vue=table) : l'emplacement vide reste caché.
  * La Sauvegarde ouvre un dialogue chargé à la demande (mj/sauvegarde-ui.js).
  */
-import { LIENS, LIEN_ACCUEIL, LIEN_FICHE, pageCourante } from './navigation-donnees.js';
+import { LIENS, LIEN_ACCUEIL, LIEN_FICHE, pageCourante, hrefPreparer } from './navigation-donnees.js';
 import { icone } from './icones.js';
 import { installerMiroir } from './dossier-travail.js';
 
@@ -20,8 +20,9 @@ function el(tag, attrs = {}, ...enfants) {
   e.append(...enfants);
   return e;
 }
-const ICONE_LIEN = { monde: 'monde', donjons: 'donjon', jouer: 'jouer', bibliotheque: 'bibliotheque', fiche: 'fiche' };
-const lien = (l, classe) => el('a', { class: classe, href: l.href, ...(l.titre ? { title: l.titre } : {}), 'data-nav': l.id },
+const ICONE_LIEN = { preparer: 'crayon', jouer: 'jouer', bibliotheque: 'bibliotheque', fiche: 'fiche' };
+const lireLocal = (cle) => { try { return localStorage.getItem(cle); } catch { return null; } };
+const lien = (l, classe) => el('a', { class: classe, href: l.id === 'preparer' ? hrefPreparer(lireLocal) : l.href, ...(l.titre ? { title: l.titre } : {}), 'data-nav': l.id },
   ...(ICONE_LIEN[l.id] ? [icone(ICONE_LIEN[l.id]), el('span', { class: 'menu-texte' }, l.texte)] : [l.texte]));
 
 function monter(conteneur) {
@@ -50,6 +51,8 @@ function monter(conteneur) {
 /** Pose aria-current sur le lien de la page (et le retire des autres) dans toutes les barres. */
 export function marquerCourant() {
   const courant = pageCourante(location.pathname, location.hash);
+  const preparer = hrefPreparer(lireLocal); // « Préparer » rouvre le dernier élément ouvert
+  for (const a of document.querySelectorAll('[data-navigation] [data-nav="preparer"], a[data-preparer]')) a.setAttribute('href', preparer);
   for (const a of document.querySelectorAll('[data-navigation] [data-nav]')) {
     if (a.dataset.nav === courant) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
   }
@@ -63,5 +66,6 @@ export function monterNavigation() {
 
 if (typeof document !== 'undefined') {
   addEventListener('hashchange', marquerCourant);
+  addEventListener('pageshow', marquerCourant); // retour arrière : le dernier élément a pu changer
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', monterNavigation); else monterNavigation();
 }

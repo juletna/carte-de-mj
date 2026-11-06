@@ -95,7 +95,7 @@ export function creerRegieUnivers(ctx) {
       const infos = h('div', { className: 'infos' }, h('b', { textContent: u.nom }), h('span', { textContent: pluriel(n, 'lieu', 'lieux') }));
       if (partie) infos.append(h('br'), h('span', { className: 'en-cours', textContent: `En cours : ${partie.dans ? 'dans un donjon, ' : ''}${u.lieux[partie.lieuCourant]?.nom ?? 'lieu disparu'}` }));
       const boutons = h('div', { className: 'boutons' });
-      if (!n) infos.append(h('br'), h('span', { textContent: 'Aucune carte : prépare-la dans Monde.' }));
+      if (!n) infos.append(h('br'), h('span', { textContent: 'Aucune carte : prépare-la dans Préparer.' }));
       else if (partie) {
         const recommencer = h('button', { type: 'button', className: 'btn btn-danger' });
         deuxTemps(recommencer, 'Recommencer', 'Effacer la partie ?', () => ouvrir(u, pu.creerPartieUnivers(u)));

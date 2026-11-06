@@ -5,7 +5,7 @@ Un agent qui doit changer un contrat le dit dans son compte rendu au lieu de le 
 
 ## But et décisions prises avec Julien
 
-- **PRÉPARER** (`donjon.html`, entrées Monde et Donjons de la barre) : un seul atelier à trois colonnes. Gauche : **arbre** (monde, lieux,
+- **PRÉPARER** (`donjon.html`, entrée Préparer de la barre) : un seul atelier à trois colonnes. Gauche : **arbre** (monde, lieux,
   donjons, salles). Centre : **scène** (carte de lieu, salle, ou vue d'ensemble du donjon) sous une **barre d'outils**. Droite : **inspecteur**
   qui ne montre que la sélection, actions destructives dans un « ⋯ ».
 - **JOUER** (`presentation.html`) : même arbre en lecture (pastilles découvert / à la table), carte de régie au centre avec **un seul bandeau
@@ -129,10 +129,10 @@ rend le focus au déclencheur.
 ### Routage par URL
 
 - `donjon.html#monde` · `#monde=<id>` · `#monde=<id>&lieu=<id>` · `#donjon=<id>` · `#donjon=<id>&salle=<id>`.
-- Rétrocompatibilité : `analyserHash` et `hashMonde` (`js/univers-vue.js`) et `pageCourante` (`js/navigation-donnees.js`, qui marque Monde ou
-  Donjons dans la barre) gardent leurs sorties ; `lireRoute` les complète. `#monde…` marque Monde ; `#donjon…` et l'absence de hash marquent Donjons.
-- Barre commune : Monde mène à `donjon.html#monde` (dernier monde actif), Donjons à `donjon.html` (dernier donjon actif) ; les deux ouvrent la
-  **même** coquille, focalisée (arbre déplié sur ce monde, ou sur « Donjons hors monde »).
+- Rétrocompatibilité : `analyserHash` et `hashMonde` (`js/univers-vue.js`) et `pageCourante` (`js/navigation-donnees.js`, qui marque Préparer
+  dans la barre) gardent leurs sorties ; `lireRoute` les complète. `donjon.html` marque Préparer quel que soit le hash.
+- Barre commune : une seule entrée, Préparer (`hrefPreparer`, `js/navigation-donnees.js`). Elle mène au dernier élément ouvert (la coquille garde
+  son hash dans `carte-de-mj:atelier-derniere-route`) ; sans historique, au premier monde (le monde actif), sinon à `donjon.html` (donjon actif).
 - La coquille écrit la route par `history.replaceState` à chaque navigation (comme `univers-ui.js` aujourd'hui), la lit au chargement et sur
   `hashchange` ; une route périmée (donjon ou salle disparus) retombe sur l'actif sans erreur. F5 retrouve donc le même nœud.
 

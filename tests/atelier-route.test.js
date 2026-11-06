@@ -42,12 +42,12 @@ const TESTS = [
     egal(hashMonde('u-1'), ecrireRoute({ page: 'monde', monde: 'u-1' }), 'hashMonde = ecrireRoute');
     egal(hashMonde(null), ecrireRoute({ page: 'monde' }), 'sans id');
   }],
-  ['barre de navigation : #monde… marque Monde, #donjon… et l’absence de hash marquent Donjons', () => {
-    egal(pageCourante('/donjon.html', '#monde'), 'monde', '#monde');
-    egal(pageCourante('/donjon.html', '#monde=u-1&lieu=l-2'), 'monde', 'monde + lieu');
-    egal(pageCourante('/donjon.html', '#donjon=d-1&salle=s'), 'donjons', 'donjon + salle');
-    egal(pageCourante('/donjon.html', ''), 'donjons', 'sans hash');
-    egal(pageCourante('/donjon.html', '#mondes'), 'donjons', 'préfixe trompeur');
+  ['barre de navigation : #monde… marquent Préparer, quel que soit le hash', () => {
+    egal(pageCourante('/donjon.html', '#monde'), 'preparer', '#monde');
+    egal(pageCourante('/donjon.html', '#monde=u-1&lieu=l-2'), 'preparer', 'monde + lieu');
+    egal(pageCourante('/donjon.html', '#donjon=d-1&salle=s'), 'preparer', 'donjon + salle');
+    egal(pageCourante('/donjon.html', ''), 'preparer', 'sans hash');
+    egal(pageCourante('/donjon.html', '#mondes'), 'preparer', 'préfixe trompeur');
   }],
   ['route d’une position', () => {
     egal(routeDe({ monde: 'u', lieu: 'l' }), { page: 'monde', monde: 'u', lieu: 'l' }, 'lieu');

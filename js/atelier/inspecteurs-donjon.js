@@ -33,7 +33,13 @@ export function enregistrerInspecteursDonjon(coquille, ctx) {
   const blocs = [...BLOCS_SALLE, ...BLOCS_DONJON, ...AUTRES_BLOCS].map((id) => $(id));
 
   // Avant chaque effacement du corps de l'inspecteur, les blocs retournent dans la réserve (hors écran, mais dans la page).
-  inspecteur.surEffacement(() => { for (const b of blocs) if (b.parentElement !== reserve) reserve.append(b); });
+  // Le compteur « Personnages » est déplacé dans le bandeau de sa section : il retourne aussi à sa place, sinon `$('personnages-compte')` ne répond plus
+  // et l'enregistrement qui suit une suppression (rendre → personnages.maj) échouait avant d'écrire.
+  const compte = $('personnages-compte'), hoteCompte = compte.parentElement;
+  inspecteur.surEffacement(() => {
+    for (const b of blocs) if (b.parentElement !== reserve) reserve.append(b);
+    if (compte.parentElement !== hoteCompte) hoteCompte.append(compte);
+  });
   /**
    * Les blocs de la réserve, rangés en sections (js/atelier/section.js, docs/design-panneaux.md) : la section porte le titre et le pli ;
    * un bloc qui était un <details> est gardé ouvert (son résumé est masqué en CSS), un titre interne fait doublon et est masqué de même.
@@ -102,7 +108,7 @@ export function enregistrerInspecteursDonjon(coquille, ctx) {
       return `${pluriel(salles, 'salle', 'salles')} · ${persos ? pluriel(persos, 'personnage', 'personnages') : 'aucun personnage'}`;
     },
     rendre: (conteneur) => conteneur.append(
-      section('donjon-personnages', 'Personnages', ['bloc-personnages'], { compte: $('personnages-compte') }),
+      section('donjon-personnages', 'Personnages', ['bloc-personnages'], { compte }),
       section('donjon-affichage', 'Affichage', ['bloc-reglages'], { repliee: true })),
     menu: () => [
       { libelle: 'Exporter', icone: 'exporter', titre: 'Enregistre le donjon entier (salles, notes, liaisons, éléments cachés)', executer: () => ctx.menu.exporter() },
