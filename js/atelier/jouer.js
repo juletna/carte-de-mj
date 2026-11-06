@@ -14,9 +14,8 @@
 import { $ } from '../dom.js';
 import { telephone } from '../telephone.js';
 import { creerCoquille } from './coquille.js';
-import { etatJeu, parcourir } from '../atelier-arbre.js';
+import { etatJeu } from '../atelier-arbre.js';
 
-const TYPES = ['monde', 'lieu', 'donjon', 'salle'];
 const ONGLETS = {
   donjon: ['salle', 'joueurs', 'table'],
   monde: ['lieu', 'table'],
@@ -26,23 +25,17 @@ export function creerJouer({ racine, donnees, partie, surChoix }) {
   let enCours = false;
   let modeCourant = 'donjon';
   let derniere = null;
-  let signature = '';
 
   const coquille = creerCoquille({
     racine, mode: 'jouer', donnees, scene: $('principal'), bouton: $('arbre-bouton'),
     pastille: (n) => etatJeu(n, partie()),
     surNavigation: (route, noeud) => {
       if (enCours || !noeud) return;
-      // La coquille écrit l'adresse après ce rappel : on la retire ensuite (la régie se rouvre par le stockage, pas par l'adresse).
-      queueMicrotask(() => { if (location.hash) history.replaceState(null, '', `${location.pathname}${location.search}`); });
       enCours = true;
       try { surChoix(noeud); } finally { enCours = false; }
       synchroniser();
     },
   });
-
-  // L'inspecteur de l'atelier n'a rien à montrer en jeu : chaque onglet a son contenu. Un type enregistré à vide évite que la colonne se cache.
-  for (const type of TYPES) coquille.inspecteur.enregistrer(type, { titre: () => '', rendre: () => {} });
 
   const defs = [['salle', 'Salle'], ['joueurs', 'Joueurs'], ['lieu', 'Lieu'], ['table', 'Table']];
   for (const [id, libelle] of defs) coquille.onglets.ajouter({ id, libelle, contenu: $(`onglet-${id}`) });
@@ -73,15 +66,6 @@ export function creerJouer({ racine, donnees, partie, surChoix }) {
     afficherOnglets();
   }
 
-  function changements() {
-    const arbre = coquille.donneesArbre();
-    if (!arbre) return false;
-    const s = [...parcourir(arbre)].map((n) => `${n.cle}:${n.type === 'groupe' ? '' : etatJeu(n, partie())}`).join('|') + `|${arbre.actif?.cle}`;
-    if (s === signature) return false;
-    signature = s;
-    return true;
-  }
-
   /** `pos` : { donjon, salle } ou { monde, lieu } (par défaut la dernière position donnée). Redessine l'arbre si une pastille a changé. */
   function synchroniser(pos = derniere) {
     if (!pos) return;
@@ -91,11 +75,8 @@ export function creerJouer({ racine, donnees, partie, surChoix }) {
     try {
       coquille.rafraichir();
       const route = pos.donjon ? { page: 'donjon', donjon: pos.donjon, salle: pos.salle } : { page: 'monde', monde: pos.monde, lieu: pos.lieu };
-      coquille.naviguer(route, { ecrireHash: false });
-      if (changements()) coquille.arbre.vue.maj({ arbre: coquille.donneesArbre() });
+      coquille.naviguer(route); // l'adresse reste vierge : la coquille du mode jouer n'en écrit pas
     } finally { enCours = deja; }
-    colonne.hidden = false; // la coquille cache la colonne quand aucun inspecteur ne répond : ici les onglets répondent toujours
-    document.body.classList.add('atelier-avec-inspecteur');
   }
 
   return { coquille, mode, synchroniser, choisirOnglet: (id) => coquille.onglets.choisir(id), position: () => derniere };

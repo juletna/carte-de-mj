@@ -70,11 +70,22 @@ body.atelier-avec-inspecteur { --largeur-inspecteur: 330px; }
 .atelier-onglet { flex: 1 1 0; min-width: 0; }
 .atelier-onglet[aria-selected="true"] { border-color: var(--accent); color: var(--accent); background: rgba(217, 169, 41, 0.16); font-weight: 600; }
 
-/* --- Ordinateur : l'arbre à gauche, l'inspecteur à droite (le Monde est une scène de l'atelier : css/univers.css) --- */
+/* Mode jouer (data-atelier="jouer" sur la racine, posé par la coquille) : l'inspecteur n'a que ses onglets, pas d'en-tête ni de corps génériques. */
+.atelier-inspecteur.sans-generique { padding: 0; gap: 0; }
+.atelier-inspecteur.sans-generique > .atelier-inspecteur-tete, .atelier-inspecteur.sans-generique > .atelier-inspecteur-corps, .atelier-inspecteur.sans-generique > .atelier-inspecteur-plier { display: none; }
+.atelier-onglets { background: var(--panneau); }
+[data-atelier="jouer"] > .atelier-voile { display: none; }
+
+/* --- Ordinateur : l'arbre à gauche, l'inspecteur à droite (le Monde est une scène de l'atelier : css/univers.css) ---
+   Préparer : la grille du body (donjon.css), l'arbre sur les rangées 2 à 3, l'inspecteur sur la 3.
+   Jouer : la grille de la régie (#regie), une seule rangée, la barre d'onglets collée en haut de l'inspecteur. */
 @media not all and (max-width: 760px) { /* complément exact de (max-width: 760px) */
-  .atelier-arbre { grid-column: 1; grid-row: 2 / 4; }
+  [data-atelier="preparer"] > .atelier-arbre { grid-column: 1; grid-row: 2 / 4; }
+  [data-atelier="jouer"] > .atelier-arbre { grid-column: 1; grid-row: 1; }
   body.arbre-replie .atelier-arbre { display: none; }
-  .atelier-inspecteur { grid-column: 3; grid-row: 3; }
+  [data-atelier="preparer"] > .atelier-inspecteur { grid-column: 3; grid-row: 3; }
+  [data-atelier="jouer"] > .atelier-inspecteur { grid-column: 3; grid-row: 1; }
+  [data-atelier="jouer"] .atelier-onglets { position: sticky; top: 0; z-index: 3; padding: var(--esp-2); border-bottom: 1px solid var(--bord); }
   .atelier-arbre-bouton { display: none; }
   body.arbre-replie .atelier-arbre-bouton { display: inline-flex; }
 }

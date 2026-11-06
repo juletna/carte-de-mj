@@ -179,15 +179,9 @@ details.bloc > .aide, .defilement > .aide { display: block; margin-bottom: 6px; 
 
 /* ================================================================================================================
    Régie sur la coquille de l'atelier (js/atelier/jouer.js) : arbre de lecture · carte · onglets Salle / Joueurs / Table.
-   Ces règles passent devant celles de css/atelier.css (qui place les colonnes pour donjon.html) grâce à #regie.
+   Les colonnes de l'arbre et de l'inspecteur se placent dans css/atelier.css, selon data-atelier="jouer".
    ================================================================================================================ */
-#regie > .atelier-arbre { grid-column: 1; grid-row: 1; }
 #regie > #principal { grid-column: 2; grid-row: 1; }
-#regie > .atelier-inspecteur { grid-column: 3; grid-row: 1; padding: 0; gap: 0; }
-#regie > .atelier-voile { display: none; }
-/* En jeu, l'en-tête générique et le corps de l'inspecteur sont vides : chaque onglet a son contenu. */
-#regie .atelier-inspecteur-tete, #regie .atelier-inspecteur-corps, #regie .atelier-inspecteur-plier { display: none; }
-#regie .atelier-onglets { position: sticky; top: 0; z-index: 3; padding: var(--esp-2); background: var(--panneau); border-bottom: 1px solid var(--bord); }
 .onglet-contenu { display: flex; flex-direction: column; gap: var(--esp-3); padding: var(--esp-3); }
 .onglet-contenu[hidden], .atelier-onglet[hidden] { display: none; }
 .onglet-contenu h2 { margin: 0 0 var(--esp-1); font-size: 16px; }

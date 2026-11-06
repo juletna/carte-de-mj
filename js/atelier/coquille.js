@@ -9,9 +9,15 @@
  *   coquille.barreOutils    la barre d'outils de la scène (vide et cachée tant que personne n'y met rien)
  *   coquille.inspecteur     { enregistrer(type, définition), afficher(sel), rafraichir(), a(type) } (js/atelier/inspecteur.js)
  *   coquille.selectionner(sel) / selection()   la sélection commune (js/atelier-selection.js) ; jamais en double ailleurs
- *   coquille.naviguer(route)   va à un nœud ({ page: 'monde'|'donjon', monde?, lieu?, donjon?, salle? }), écrit l'adresse et prévient
+ *   coquille.naviguer(route, { ecrireHash? })   va à un nœud ({ page: 'monde'|'donjon', monde?, lieu?, donjon?, salle? }), écrit l'adresse et prévient
  *                              `surNavigation(route, noeud)` : c'est lui qui change la scène
- *   coquille.positionner(pos)  la scène a changé d'elle-même (pos : { monde?, lieu?, donjon?, salle? }) : l'arbre et l'adresse suivent, sans rappel
+ *   coquille.positionner(pos, { ecrireHash? })  la scène a changé d'elle-même (pos : { monde?, lieu?, donjon?, salle? }) : l'arbre et l'adresse suivent, sans rappel
+ *                              `ecrireHash` (vrai par défaut, faux si l'option `adresse` de la coquille est fausse) : n'écrit pas l'adresse ce coup-ci
+ *
+ * Options : `inspecteurToujoursVisible` (la colonne de droite reste affichée même sans type enregistré : le mode jouer, dont les onglets ont leur
+ * contenu), `inspecteurGenerique: false` (masque l'en-tête et le corps génériques de l'inspecteur : seuls les onglets restent), `adresse: false`
+ * (la coquille n'écrit ni ne lit l'adresse : la régie se rouvre par le stockage). Par défaut, le mode jouer prend les trois : voir plus bas.
+ * La racine porte `data-atelier="preparer"|"jouer"` : css/atelier.css place les colonnes selon ce mode.
  *   coquille.position()        la position courante
  *   coquille.rafraichir({ inspecteur? })   les données ont changé : l'arbre (si ses noms ont changé) et la validité de la sélection ; l'inspecteur seulement si `inspecteur: true`
  *   coquille.surSelection(f)   f(sel) après chaque changement de sélection
@@ -38,7 +44,11 @@ const ecrire = (cle, v) => { try { localStorage.setItem(cle, v); } catch { /* st
 /** La sélection d'un nœud de l'arbre (monde, lieu, donjon ou salle). */
 export const selectionDuNoeud = (n) => (n && n.type !== 'groupe' ? creerSelection(n.type, n.id, n.contexte) : null);
 
-export function creerCoquille({ racine, mode = 'preparer', donnees, scene = null, bouton = null, surNavigation = null, pastille = null } = {}) {
+export function creerCoquille({
+  racine, mode = 'preparer', donnees, scene = null, bouton = null, surNavigation = null, pastille = null,
+  inspecteurToujoursVisible = mode === 'jouer', inspecteurGenerique = mode !== 'jouer', adresse = mode !== 'jouer',
+} = {}) {
+  racine.dataset.atelier = mode;
   let pos = {};
   let sel = null;
   let arbre = null;
@@ -70,7 +80,8 @@ export function creerCoquille({ racine, mode = 'preparer', donnees, scene = null
   function ajouterAction(a) { actionsArbre.push(a); majMenu(); }
 
   // --- Colonne de droite : l'inspecteur ----------------------------------------------------------------------------
-  const colonneInspecteur = h('aside', { className: 'atelier-inspecteur', 'aria-label': 'Inspecteur : la sélection', hidden: true });
+  const colonneInspecteur = h('aside', { className: `atelier-inspecteur${inspecteurGenerique ? '' : ' sans-generique'}`, 'aria-label': 'Inspecteur : la sélection', hidden: !inspecteurToujoursVisible });
+  if (inspecteurToujoursVisible) document.body.classList.add('atelier-avec-inspecteur');
   const plier = h('button', { type: 'button', className: 'btn btn-icone btn-discret atelier-inspecteur-plier', 'aria-label': 'Replier le panneau', 'aria-expanded': 'true', title: 'Replier le panneau : la carte reste visible' }, icone('chevron-bas'));
   colonneInspecteur.append(plier);
   plier.addEventListener('click', () => {
@@ -84,8 +95,10 @@ export function creerCoquille({ racine, mode = 'preparer', donnees, scene = null
   });
   const appliquerInspecteur = () => {
     const type = inspecteur.afficher(sel);
-    colonneInspecteur.hidden = type === null;
-    document.body.classList.toggle('atelier-avec-inspecteur', type !== null);
+    if (!inspecteurToujoursVisible) {
+      colonneInspecteur.hidden = type === null;
+      document.body.classList.toggle('atelier-avec-inspecteur', type !== null);
+    }
     return type;
   };
 
@@ -119,7 +132,7 @@ export function creerCoquille({ racine, mode = 'preparer', donnees, scene = null
       panneaux.set(id, { bouton: b, contenu });
       liste.append(b);
       colonneInspecteur.append(contenu);
-      if (mode === 'jouer') { colonneInspecteur.prepend(liste); colonneInspecteur.hidden = false; document.body.classList.add('atelier-avec-inspecteur'); }
+      if (mode === 'jouer') colonneInspecteur.prepend(liste);
       choisir(courant ?? id);
     }
     liste.addEventListener('keydown', (e) => {
@@ -153,10 +166,10 @@ export function creerCoquille({ racine, mode = 'preparer', donnees, scene = null
     marquerCourant();
   }
 
-  /** Redessine l'arbre ; rend faux si rien n'avait changé (mêmes nœuds, mêmes noms, même nœud actif) et que rien n'a été fait. */
+  /** Redessine l'arbre ; rend faux si rien n'avait changé (mêmes nœuds, mêmes noms, même nœud actif, mêmes pastilles) et que rien n'a été fait. */
   let signature = '';
   function peindre({ force = false } = {}) {
-    const s = `${arbre.actif?.cle}\n${[...parcourir(arbre)].map((n) => `${n.cle}|${n.nom}|${(n.aussiDepuis ?? []).join(',')}`).join('\n')}`;
+    const s = `${arbre.actif?.cle}\n${[...parcourir(arbre)].map((n) => `${n.cle}|${n.nom}|${(n.aussiDepuis ?? []).join(',')}|${pastille && n.type !== 'groupe' ? pastille(n) : ''}`).join('\n')}`;
     if (!force && s === signature) return false;
     signature = s;
     vue.maj({ arbre });
@@ -196,7 +209,7 @@ export function creerCoquille({ racine, mode = 'preparer', donnees, scene = null
    * Va quelque part. `route` : { page, monde?, lieu?, donjon?, salle? } (ce que rend `lireRoute`). Une route périmée retombe sur le niveau
    * au-dessus (puis sur le donjon actif) sans erreur. `surNavigation(routeEffective, noeud)` change la scène.
    */
-  function naviguer(route, { ecrireHash = true } = {}) {
+  function naviguer(route, { ecrireHash = adresse } = {}) {
     const d = etatDonnees();
     let demande = route?.page === 'monde' ? { monde: route.monde ?? d.mondeActif ?? undefined, lieu: route.lieu } : { donjon: route?.donjon, salle: route?.salle };
     if (route?.page !== 'monde' && !route?.donjon && d.donjonActif) demande = { ...d.donjonActif };
@@ -213,12 +226,12 @@ export function creerCoquille({ racine, mode = 'preparer', donnees, scene = null
   }
 
   /** La scène a changé d'elle-même : l'arbre, la sélection et l'adresse suivent, sans rappeler `surNavigation`. */
-  function positionner(p) {
+  function positionner(p, { ecrireHash = adresse } = {}) {
     const avant = JSON.stringify(pos);
     const noeud = definirPosition(p);
     peindre();
     if (JSON.stringify(pos) !== avant || !sel) suivreNoeud(noeud);
-    ecrireAdresse();
+    if (ecrireHash) ecrireAdresse();
   }
 
   /**
@@ -279,7 +292,7 @@ export function creerCoquille({ racine, mode = 'preparer', donnees, scene = null
   }, true);
 
   // --- Adresse : lue au chargement par l'appelant (`naviguer(lireRoute(location.hash))`), et sur hashchange ------------
-  addEventListener('hashchange', () => {
+  if (adresse) addEventListener('hashchange', () => {
     const route = lireRoute(location.hash);
     if (derniereRoute && memeRoute(route, derniereRoute)) return; // nous l'avons écrite nous-mêmes
     naviguer(route, { ecrireHash: false });
