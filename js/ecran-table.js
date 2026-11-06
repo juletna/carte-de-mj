@@ -179,7 +179,11 @@ export function creerEcranTable({ affichage = { ...AFFICHAGE_PAR_DEFAUT }, surCo
   }
   $('plein-ecran-table').addEventListener('click', basculerPleinEcran);
   document.addEventListener('fullscreenchange', () => {
-    $('plein-ecran-table').textContent = document.fullscreenElement ? '⛶ Quitter le plein écran' : '⛶ Plein écran';
+    const plein = !!document.fullscreenElement;
+    const libelle = plein ? 'Quitter le plein écran' : 'Plein écran';
+    $('plein-ecran-table').setAttribute('aria-label', libelle);
+    $('plein-ecran-table').title = libelle;
+    $('ecran-table').classList.toggle('plein-ecran', plein); // en plein écran, le bouton retrouve sa discrétion complète (css/presentation.css)
   });
 
   return {

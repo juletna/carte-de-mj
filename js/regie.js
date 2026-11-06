@@ -27,8 +27,9 @@ import { nomAffiche } from './parseur/lexique.js';
 import { creerMicro } from './voix.js';
 import { affichageDeReglages, optionsRendu } from './affichage.js';
 import { telephone, activerOnglets, marquerDefilement, tailleQuiTient } from './telephone.js';
-import { $, h, bouton, deuxTemps } from './dom.js';
-import { pluriel, libelleMicro } from './format.js';
+import { $, h, bouton } from './dom.js';
+import { icone } from './icones.js';
+import { pluriel } from './format.js';
 import { ouvrirCanal, messageEtat, messageDefiler, MESSAGES } from './protocole-table.js';
 import { creerEcranTable } from './ecran-table.js';
 import { creerDepart } from './regie-depart.js';
@@ -36,6 +37,7 @@ import { creerSelection } from './regie-selection.js';
 import { creerReglages } from './regie-reglages.js';
 import { creerRegieUnivers } from './regie-univers.js';
 import { lierPanneau } from './regie-panneau.js';
+import { poserIcones, iconeEtTexte, deuxTempsIcone } from './regie-icones.js';
 import * as pu from './univers-partie.js';
 
 export function demarrerRegie() {
@@ -326,7 +328,7 @@ export function demarrerRegie() {
       const texte = h('div', { className: 'texte' }, h('span', { className: 'pastille', textContent: 'En retrait' }),
         commande.titulaireParti ? 'La régie qui avait la main a été fermée : la table n’est plus servie.' : 'Une autre régie commande la table : les joueurs ne voient pas ce que tu fais ici.');
       texte.title = texte.textContent;
-      bandeau.replaceChildren(texte, h('div', { className: 'actions' }, bouton('Reprendre la main', reprendreLaMain)));
+      bandeau.replaceChildren(texte, h('div', { className: 'actions' }, bouton('Reprendre la main', reprendreLaMain, 'btn')));
       return;
     }
     const meme = consultee.id === courante.id;
@@ -340,9 +342,10 @@ export function demarrerRegie() {
     }
     const actions = h('div', { className: 'actions' });
     if (!meme) {
-      const afficher = h('button', { type: 'button', id: 'afficher-table', textContent: 'Afficher à la table' });
+      // Seul bouton doré de l'écran Carte, dans la zone à part du bandeau (la régie n'a pas d'autre action principale à cet endroit).
+      const afficher = h('button', { type: 'button', id: 'afficher-table', className: 'btn btn-primaire' }, icone('oeil'), ' Afficher à la table');
       afficher.addEventListener('click', afficherConsulteeATable);
-      const retour = h('button', { type: 'button', className: 'discret', textContent: 'Revenir à la salle de la table' });
+      const retour = h('button', { type: 'button', className: 'btn', textContent: 'Revenir à la salle de la table' });
       retour.addEventListener('click', () => consulter(courante.id));
       actions.append(afficher, retour);
     }
@@ -357,7 +360,7 @@ export function demarrerRegie() {
     $('projection-titre').textContent = sur ? 'À la table :' : 'Une fois à la table :';
     for (const b of $('projection').querySelectorAll('button')) {
       const categorie = b.dataset.categorie, masque = pres.estMasque(etat.p, etat.consultee, categorie);
-      b.textContent = `${NOMS_MASQUE[categorie]} ${masque ? 'masqués' : 'visibles'}`;
+      iconeEtTexte(b, masque ? 'oeil-barre' : 'oeil', `${NOMS_MASQUE[categorie]} ${masque ? 'masqués' : 'visibles'}`);
       b.classList.toggle('masque', masque);
       b.title = `${masque ? 'Montrer' : 'Masquer'} à la table les ${categorie === 'monstres' ? 'monstres et les PNJ' : 'objets'} de cette salle. Cette régie les montre toujours.`;
     }
@@ -382,7 +385,7 @@ export function demarrerRegie() {
     const choisi = (genre, id) => etat.selection?.genre === genre && etat.selection.id === id;
     /** Bouton de liste (portes et éléments) : sélectionne au clavier comme à la souris, `aria-pressed` = élément sélectionné. */
     const boutonListe = (genre, e, texte, cachee) => {
-      const b = bouton(texte, () => selection.selectionner(genre, e.id, { clavier: true }), `discret${cachee ? ' cachee' : ''}`);
+      const b = bouton(texte, () => selection.selectionner(genre, e.id, { clavier: true }), `btn btn-discret${cachee ? ' cachee' : ''}`);
       b.dataset.el = `${genre}:${e.id}`;
       b.setAttribute('aria-pressed', String(choisi(genre, e.id)));
       return h('li', {}, b);
@@ -434,7 +437,7 @@ export function demarrerRegie() {
   });
   const microCommande = creerMicro({
     onTexte: (texte) => { $('commande').value = texte; },
-    onEtat: (actif) => { $('micro-commande').textContent = libelleMicro(actif); },
+    onEtat: (actif) => { iconeEtTexte($('micro-commande'), 'micro', actif ? 'Arrêter' : 'Dicter'); $('micro-commande').setAttribute('aria-pressed', String(actif)); },
     onErreur: (texte) => { etat.messageCommande = { texte, ok: false }; majCommande(); },
   });
   if (!microCommande) {
@@ -473,9 +476,9 @@ export function demarrerRegie() {
       reprendreLaMain();
     };
     return h('div', { className: 'reglage-pv' }, champ,
-      bouton('Dégâts', () => appliquer(-1), 'discret'),
-      bouton('Soins', () => appliquer(1), 'discret'),
-      ...(enJeu ? [bouton('PV de la fiche', () => { pres.oublierPV(etat.p, perso.id); etat.message = `${perso.fiche.nom} reprend les PV de sa fiche.`; modifie(); reprendreLaMain(); }, 'discret')] : []));
+      bouton('Dégâts', () => appliquer(-1), 'btn'),
+      bouton('Soins', () => appliquer(1), 'btn'),
+      ...(enJeu ? [bouton('PV de la fiche', () => { pres.oublierPV(etat.p, perso.id); etat.message = `${perso.fiche.nom} reprend les PV de sa fiche.`; modifie(); reprendreLaMain(); }, 'btn btn-discret')] : []));
   }
 
   /** Les fiches du donjon et les joueurs sans fiche, et de quoi poser le pion de chacun dans la salle regardée. */
@@ -489,7 +492,7 @@ export function demarrerRegie() {
         const res = pres.poserPersonnage(p, etat.consultee, id);
         etat.message = res.ok ? `${pres.nomPersonnage(p, id)} est dans « ${salleConsultee().nom} ». Glisse son pion sur la carte pour le déplacer.` : res.message;
         modifie();
-      }, 'discret');
+      }, 'btn btn-discret');
       return dessiner(ici ? [] : [poser], mention);
     };
     const persos = p.donjon.personnages || [], joueurs = p.joueurs || [];
@@ -576,7 +579,7 @@ export function demarrerRegie() {
     deplacer: deplacerDepuisTable,
     viser: (x, y) => { if (etat.p) viserCase(etat.p.salleCourante, x, y); },
   });
-  reinitialiserRetour = deuxTemps($('retour-regie'), '← Retour à la régie', 'Appuie encore pour revenir', quitterPleinIci);
+  reinitialiserRetour = deuxTempsIcone($('retour-regie'), 'retour', 'Retour à la régie', 'Appuie encore pour revenir', quitterPleinIci);
   document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && etat.pleinIci) quitterPleinIci(); });
 
   // Échap : UN SEUL écouteur, dans l'ordre de priorité qu'avaient les trois d'avant (enregistrés dans cet ordre, sans stopPropagation :
@@ -614,6 +617,7 @@ export function demarrerRegie() {
   // --- Câblage des modules de la régie ---------------------------------------------------------------
   // Tout ce qui précède est déclaré (fonctions) ou défini (constantes) : on peut le donner aux modules. Ils ne l'appellent
   // qu'une fois la page démarrée, jamais pendant leur création.
+  poserIcones();
   lierPanneau();
   const ctx = { etat, r, commande, canal, affichageTable, prendreLaMain, annoncer, rendre, modifie, salleCourante, salleConsultee, entrer, viderSauvegarde, noterRetrait, quitterPleinIci, diffuser, montrerIci };
   const depart = creerDepart(ctx);

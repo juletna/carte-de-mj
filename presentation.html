@@ -43,7 +43,7 @@
     <section aria-labelledby="titre-fichier">
       <h2 id="titre-fichier">Ou ouvrir un fichier exporté</h2>
       <p class="note">Le fichier n'est pas ajouté à tes donjons : il sert seulement à cette partie.</p>
-      <div class="actions"><label class="bouton">Choisir un fichier… <input id="fichier" type="file" accept=".json,application/json" hidden></label></div>
+      <div class="actions"><label class="btn" id="choisir-fichier" data-icone="importer">Choisir un fichier… <input id="fichier" type="file" accept=".json,application/json" hidden></label></div>
       <ul id="liste-fichier" class="liste-depart"></ul>
       <p id="erreur-fichier" class="note erreur" hidden></p>
     </section>
@@ -79,8 +79,8 @@
       </section>
 
       <div class="actions">
-        <button id="lancer-joueurs" type="submit"></button>
-        <button id="annuler-joueurs" type="button" class="discret">← Liste des parties</button>
+        <button id="lancer-joueurs" type="submit" class="btn btn-primaire"></button>
+        <button id="annuler-joueurs" type="button" class="btn btn-discret" data-icone="retour">Liste des parties</button>
       </div>
     </form>
   </main>
@@ -100,9 +100,9 @@
         <p id="alerte-stockage" class="note erreur" role="alert" hidden></p>
         <div id="alerte-retrait" role="alert" hidden>
           <p id="texte-retrait" class="note erreur"></p>
-          <button id="reprendre-main" type="button">Reprendre la main</button>
+          <button id="reprendre-main" type="button" class="btn">Reprendre la main</button>
         </div>
-        <p class="note"><button id="quitter" type="button" class="discret petit">← Liste des parties</button></p>
+        <p class="note"><button id="quitter" type="button" class="btn btn-discret" data-icone="retour">Liste des parties</button></p>
       </header>
 
       <section class="commande" aria-label="Commande rapide">
@@ -111,8 +111,8 @@
           <label for="commande">Faire évoluer la salle regardée <span id="nom-salle-commande" class="doux"></span></label>
           <input id="commande" type="text" spellcheck="false" placeholder="ajoute trois gobelins">
           <div class="actions">
-            <button id="executer-commande" type="submit">Exécuter</button>
-            <button id="micro-commande" type="button" class="discret" title="Dicter la commande, puis la valider avec Exécuter">🎙️ Dicter</button>
+            <button id="executer-commande" type="submit" class="btn">Exécuter</button>
+            <button id="micro-commande" type="button" class="btn btn-discret" title="Dicter la commande, puis la valider avec Exécuter" data-icone="micro">Dicter</button>
           </div>
         </form>
         <p id="message-commande" class="note" role="status" aria-live="polite" hidden></p>
@@ -134,7 +134,7 @@
       <section class="cette-salle" aria-label="Cette salle">
         <h2>Cette salle</h2>
         <p id="comptage-caches" class="note"></p>
-        <div class="actions"><button id="reveler-tout" type="button" class="discret">Révéler toute la salle</button></div>
+        <div class="actions"><button id="reveler-tout" type="button" class="btn btn-discret" data-icone="oeil">Révéler toute la salle</button></div>
         <p class="note">Portes de la salle :</p>
         <ul id="liste-portes" class="liste-portes"></ul>
         <details id="elements-salle" class="elements-salle">
@@ -157,17 +157,20 @@
             <input id="ajout-race" type="text" maxlength="80">
             <label for="ajout-classe">Classe</label>
             <input id="ajout-classe" type="text" maxlength="80">
-            <div class="actions"><button type="submit">Ajouter et poser dans cette salle</button></div>
+            <div class="actions"><button type="submit" class="btn">Ajouter et poser dans cette salle</button></div>
             <p class="note">Sans fiche : rien n’est obligatoire. Son pion est posé dans la salle que tu regardes.</p>
           </form>
         </details>
       </details>
 
       <details class="bloc" data-memo="salles" open>
-        <summary><h2>Salles</h2><button type="button" class="aide-bouton" aria-expanded="false" aria-controls="aide-salles" aria-label="Aide : lire le plan des salles" title="Lire le plan des salles">?</button></summary>
+        <summary><h2>Salles</h2></summary>
+        <details class="aide">
+          <summary class="btn btn-icone btn-discret" aria-label="Aide : lire le plan des salles" title="Lire le plan des salles">?</summary>
+          <div class="aide-texte">Salle assombrie : non découverte. Cadre vert : salle à la table. Cadre doré : salle que tu regardes. Trait rouge : porte pas encore ouverte.
+            Cliquer une salle la consulte seulement ; elle n'est montrée aux joueurs qu'avec « Afficher à la table ».</div>
+        </details>
         <div id="minicarte" class="minicarte" role="region" aria-label="Plan du donjon"></div>
-        <p id="aide-salles" class="note aide-texte" hidden>Salle assombrie : non découverte. Cadre vert : salle à la table. Cadre doré : salle que tu regardes. Trait rouge : porte pas encore ouverte.
-          Cliquer une salle la consulte seulement ; elle n'est montrée aux joueurs qu'avec « Afficher à la table ».</p>
       </details>
 
       <details class="bloc" data-memo="notes">
@@ -181,8 +184,8 @@
       <details class="bloc bloc-table" data-memo="table">
         <summary><h2>Table</h2></summary>
         <div class="actions">
-          <button id="ouvrir-table" type="button" title="Ouvre presentation.html?vue=table dans une nouvelle fenêtre, à glisser sur l'écran de la table">Ouvrir la fenêtre table</button>
-          <button id="plein-ici" type="button" class="discret" title="Montre la vue table en plein écran sur cet écran">Plein écran ici</button>
+          <button id="ouvrir-table" type="button" class="btn btn-primaire" data-icone="plein-ecran" title="Ouvre presentation.html?vue=table dans une nouvelle fenêtre, à glisser sur l'écran de la table">Ouvrir la fenêtre table</button>
+          <button id="plein-ici" type="button" class="btn" title="Montre la vue table en plein écran sur cet écran" data-icone="plein-ecran">Plein écran ici</button>
         </div>
         <fieldset class="mode-table">
           <legend>Taille de la carte à la table</legend>
@@ -192,12 +195,15 @@
         </fieldset>
         <label class="ligne case"><input id="mini-active" type="checkbox" checked> Mini-carte à la table (salles découvertes seulement)</label>
         <details class="defilement">
-          <summary>Régler l'écran de table <button type="button" class="aide-bouton" aria-expanded="false" aria-controls="aide-ecran-table" aria-label="Aide : régler l'écran de table" title="Comment régler l'écran de table ?">?</button></summary>
-          <div id="aide-ecran-table" class="aide-texte" hidden>
+          <summary>Régler l'écran de table</summary>
+          <details class="aide">
+            <summary class="btn btn-icone btn-discret" aria-label="Aide : régler l'écran de table" title="Comment régler l'écran de table ?">?</summary>
+            <div class="aide-texte">
             <p class="note">Rotation et miroir : pour un projecteur sous la table dont le montage n'a pas de miroir, si le projecteur n'a pas lui-même de mode « rétroprojection ».</p>
             <p class="note">Taille réelle d'une case : 25 mm pour les figurines courantes, 25,4 mm pour 1 pouce.</p>
             <p class="note">Ouvre d'abord la fenêtre table et glisse-la sur l'écran de la table (sur un seul écran, ouvre-la sur celui-ci), puis « Calibrer sur la table » : pose une carte bancaire sur le rectangle affiché et ajuste jusqu'à ce qu'elle coïncide. Le calibrage vaut pour tous les donjons et tous les lieux.</p>
-          </div>
+            </div>
+          </details>
           <label class="ligne">Rotation
             <select id="rotation-table">
               <option value="0">Aucune</option>
@@ -210,33 +216,38 @@
           <label class="ligne">Taille réelle d'une case (mm)
             <input id="case-mm" type="number" inputmode="decimal" min="10" max="50" step="0.1">
           </label>
-          <div class="actions"><button id="calibrer-table" type="button" class="discret">Calibrer sur la table</button></div>
+          <div class="actions"><button id="calibrer-table" type="button" class="btn btn-discret">Calibrer sur la table</button></div>
           <div id="reglage-calibrage" hidden>
             <div class="pas-calibrage" role="group" aria-label="Ajuster la taille d'une case">
-              <button type="button" class="discret" data-pas-taille="-1">−1</button>
-              <button type="button" class="discret" data-pas-taille="-0.1">−0,1</button>
+              <button type="button" class="btn btn-discret" data-pas-taille="-1">−1</button>
+              <button type="button" class="btn btn-discret" data-pas-taille="-0.1">−0,1</button>
               <output id="calibrage-val" aria-live="polite">48 px</output>
-              <button type="button" class="discret" data-pas-taille="0.1">+0,1</button>
-              <button type="button" class="discret" data-pas-taille="1">+1</button>
+              <button type="button" class="btn btn-discret" data-pas-taille="0.1">+0,1</button>
+              <button type="button" class="btn btn-discret" data-pas-taille="1">+1</button>
             </div>
-            <div class="actions"><button id="calibrage-fini" type="button">Terminer le calibrage</button></div>
+            <div class="actions"><button id="calibrage-fini" type="button" class="btn">Terminer le calibrage</button></div>
           </div>
         </details>
         <details class="defilement">
           <summary>Faire défiler la vue table</summary>
           <p class="note">Utile si la carte dépasse l'écran de la table. Tu peux aussi réduire la taille d'une case dans les réglages.</p>
           <div class="croix" role="group" aria-label="Faire défiler la vue table">
-            <button type="button" class="discret" data-defiler="0,-1" aria-label="Vers le haut">↑</button>
-            <button type="button" class="discret" data-defiler="-1,0" aria-label="Vers la gauche">←</button>
-            <button type="button" class="discret" data-defiler="0,0" aria-label="Recentrer" title="Recentrer">⌖</button>
-            <button type="button" class="discret" data-defiler="1,0" aria-label="Vers la droite">→</button>
-            <button type="button" class="discret" data-defiler="0,1" aria-label="Vers le bas">↓</button>
+            <button type="button" class="btn btn-icone btn-discret" data-defiler="0,-1" aria-label="Vers le haut" data-icone="remonter"></button>
+            <button type="button" class="btn btn-icone btn-discret" data-defiler="-1,0" aria-label="Vers la gauche" data-icone="retour"></button>
+            <button type="button" class="btn btn-icone btn-discret" data-defiler="0,0" aria-label="Recentrer" title="Recentrer" data-icone="recentrer"></button>
+            <button type="button" class="btn btn-icone btn-discret fleche-inverse" data-defiler="1,0" aria-label="Vers la droite" data-icone="retour"></button>
+            <button type="button" class="btn btn-icone btn-discret fleche-inverse" data-defiler="0,1" aria-label="Vers le bas" data-icone="remonter"></button>
           </div>
         </details>
       </details>
 
       <details class="bloc reglages" data-memo="reglages">
-        <summary><h2>Réglages</h2><button type="button" class="aide-bouton" aria-expanded="false" aria-controls="aide-reglages" aria-label="Aide : les réglages" title="À quoi servent ces réglages ?">?</button></summary>
+        <summary><h2>Réglages</h2></summary>
+        <details class="aide">
+          <summary class="btn btn-icone btn-discret" aria-label="Aide : les réglages" title="À quoi servent ces réglages ?">?</summary>
+          <div class="aide-texte">La taille d'une case sert à la table en « échelle réelle » (on la calibre une fois pour toutes dans « Régler l'écran de table », bloc Table) et de plafond à la régie.
+            « Adapter » ne change que l'affichage de cette régie.</div>
+        </details>
         <label class="ligne">Taille d'une case
           <span><input id="taille" type="range" min="16" max="160" step="0.1" value="48"> <output id="taille-val">48 px</output></span>
         </label>
@@ -256,8 +267,6 @@
         <label class="ligne case"><input id="flammes" type="checkbox" checked> Flammes animées (à la table)</label>
         <label class="ligne case"><input id="reperes" type="checkbox" checked> Afficher les repères (A, B… et 1, 2…)</label>
         <label class="ligne case"><input id="ajuster" type="checkbox" checked> Adapter la carte de la régie à la fenêtre</label>
-        <p id="aide-reglages" class="note aide-texte" hidden>La taille d'une case sert à la table en « échelle réelle » (on la calibre une fois pour toutes dans « Régler l'écran de table », bloc Table) et de plafond à la régie.
-          « Adapter » ne change que l'affichage de cette régie.</p>
       </details>
 
       <footer class="note">Projet libre (MIT) · fonctionne hors ligne</footer>
@@ -268,8 +277,8 @@
       <!-- Ce que la table montre de la salle regardée. La carte de la régie, elle, montre toujours tout. -->
       <div id="projection" role="group" aria-labelledby="projection-titre">
         <span id="projection-titre"></span>
-        <button id="montrer-monstres" type="button" class="discret" data-categorie="monstres"></button>
-        <button id="montrer-objets" type="button" class="discret" data-categorie="objets"></button>
+        <button id="montrer-monstres" type="button" class="btn" data-categorie="monstres"></button>
+        <button id="montrer-objets" type="button" class="btn" data-categorie="objets"></button>
       </div>
       <div id="scene">
         <div id="support">
@@ -304,8 +313,8 @@
         <p id="texte-calibrage"></p>
       </div>
     </div>
-    <button id="retour-regie" type="button" class="coin coin-gauche" hidden>← Retour à la régie</button>
-    <button id="plein-ecran-table" type="button" class="coin coin-droite">⛶ Plein écran</button>
+    <button id="retour-regie" type="button" class="btn coin coin-gauche" data-icone="retour" hidden>Retour à la régie</button>
+    <button id="plein-ecran-table" type="button" class="btn btn-icone btn-discret coin coin-droite" aria-label="Plein écran" title="Plein écran" data-icone="plein-ecran"></button>
   </div>
 
   <script type="module" src="js/navigation.js"></script>

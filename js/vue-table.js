@@ -13,11 +13,13 @@ import { affichageDeReglages } from './affichage.js';
 import { TYPE_UNIVERS, lireVueUnivers } from './univers-protocole.js';
 import { creerTableUnivers } from './univers-table.js';
 import { $ } from './dom.js';
+import { poserIcones } from './regie-icones.js';
 
 export function demarrerTable() {
   document.body.classList.add('vue-table');
   document.title = 'Table · Carte de MJ';
   $('ecran-table').hidden = false;
+  poserIcones(); // l'icône du bouton plein écran
   const reglages = stockage.chargerReglages(); // seuls les réglages d'affichage : jamais les présentations
   const ecran = creerEcranTable({ affichage: affichageDeReglages(reglages) });
   const universTable = creerTableUnivers(); // une carte d'univers à la place de la salle (js/univers-table.js)

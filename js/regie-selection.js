@@ -9,7 +9,8 @@ import { niveaux, nomNiveau } from './niveaux.js';
 import { libelleSelection } from './coordonnees.js';
 import { nomAffiche } from './parseur/lexique.js';
 import { h, bouton, $ } from './dom.js';
-import { pluriel, LIBELLE_FERMER } from './format.js';
+import { pluriel } from './format.js';
+import { icone } from './icones.js';
 
 export function creerSelection(ctx) {
   const { etat, r } = ctx;
@@ -111,7 +112,7 @@ export function creerSelection(ctx) {
           : 'Même langage que dans Donjons. Laisse vide pour une salle de 6 × 6 cases. Une porte de retour est ajoutée sur le mur opposé si la description n’en place pas.' }),
         nom),
       caseGroupe(s),
-      h('div', { className: 'actions' }, bouton('Créer la salle et y passer', () => creerEtPasser(porte))),
+      h('div', { className: 'actions' }, bouton('Créer la salle et y passer', () => creerEtPasser(porte), 'btn')),
     ];
   }
 
@@ -140,7 +141,8 @@ export function creerSelection(ctx) {
     if (!trouve) { etat.selection = null; zone.hidden = true; zone.replaceChildren(); return; }
     zone.hidden = false;
     const el = trouve.element;
-    const fermer = bouton(LIBELLE_FERMER, deselectionner, 'discret petit');
+    const fermer = h('button', { type: 'button', className: 'btn btn-discret' }, icone('fermer'), ' Fermer');
+    fermer.addEventListener('click', deselectionner);
     fermer.setAttribute('aria-label', 'Fermer la sélection (Échap)');
     const contenu = [h('div', { className: 'selection-entete' }, h('h2', { textContent: 'Sélection' }), fermer),
       h('p', { className: 'selection-titre', textContent: libelleElement(trouve) })];
@@ -153,8 +155,8 @@ export function creerSelection(ctx) {
         ? `Révélé${masquee ? '' : ` : visible sur la table${sur ? '' : ' dès que la salle y sera affichée'}`}.`
         : 'Caché : les joueurs ne le voient pas. Tu le vois ici en translucide, contour en pointillés.' }));
       contenu.push(h('div', { className: 'actions' }, revele
-        ? bouton('Recacher', () => { pres.recacherElement(p, s.id, el.id); etat.message = 'Recaché : il disparaît de la table.'; modifie(); }, 'discret')
-        : bouton('Révéler', () => { pres.revelerElement(p, s.id, el.id); etat.message = `Révélé${masquee ? `, mais les ${masquee} sont masqués à la table` : sur ? ' : il apparaît sur la table' : ', mais cette salle n’est pas à la table'}.`; modifie(); })));
+        ? bouton('Recacher', () => { pres.recacherElement(p, s.id, el.id); etat.message = 'Recaché : il disparaît de la table.'; modifie(); }, 'btn btn-discret')
+        : bouton('Révéler', () => { pres.revelerElement(p, s.id, el.id); etat.message = `Révélé${masquee ? `, mais les ${masquee} sont masqués à la table` : sur ? ' : il apparaît sur la table' : ', mais cette salle n’est pas à la table'}.`; modifie(); }, 'btn')));
     }
     if (masquee) contenu.push(h('p', { className: 'note', textContent: `Les ${masquee} de cette salle sont masqués à la table : les joueurs ne le voient pas.` }));
 
@@ -166,7 +168,7 @@ export function creerSelection(ctx) {
       boutons.setAttribute('aria-label', 'État du pion');
       for (const valeur of pres.ETATS_DE_PION) {
         const libelle = pres.LIBELLES_ETAT[valeur];
-        const b = bouton(libelle.charAt(0).toUpperCase() + libelle.slice(1), () => changerEtat(el, valeur), 'discret');
+        const b = bouton(libelle.charAt(0).toUpperCase() + libelle.slice(1), () => changerEtat(el, valeur), 'btn btn-discret');
         b.setAttribute('aria-pressed', String(actuel === valeur));
         boutons.append(b);
       }
@@ -182,7 +184,7 @@ export function creerSelection(ctx) {
         contenu.push(h('p', {}, 'Mène à ', h('strong', { textContent: dest.salle.nom }), `${niveau}${pres.estDecouverte(p, dest.salle.id) ? ' (déjà découverte).' : ' (non découverte).'}`));
         contenu.push(caseGroupe(s));
         const action = escalier ? `${el.sens === 'monte' ? 'Monter' : 'Descendre'} à « ${dest.salle.nom} »` : `Passer dans la salle « ${dest.salle.nom} »`;
-        contenu.push(h('div', { className: 'actions' }, bouton(action, () => passer(el), '')));
+        contenu.push(h('div', { className: 'actions' }, bouton(action, () => passer(el), 'btn')));
       } else {
         contenu.push(...formulaireNouvelleSalle(s, el));
       }

@@ -105,10 +105,21 @@ const TESTS = (pages) => [
   }],
   ['libellés communs : le micro et le bouton fermer ; les boutons micro des pages HTML portent le libellé de repos', () => {
     egal([libelleMicro(false), libelleMicro(true), LIBELLE_FERMER], ['🎙️ Dicter', '⏹ Arrêter', '✕ Fermer'], 'libellés');
-    for (const [page, id] of [['donjon.html', 'micro'], ['presentation.html', 'micro-commande']]) {
+    for (const [page, id] of [['donjon.html', 'micro']]) {
       const texte = pages[page].match(new RegExp(`<button id="${id}"[^>]*>([^<]*)</button>`))?.[1];
       egal(texte, libelleMicro(false), `${page} : bouton #${id}`);
     }
+    // Jouer : icône SVG commune (posée au démarrage par data-icone) et « Dicter », plus d'emoji.
+    const micro = pages['presentation.html'].match(/<button id="micro-commande"([^>]*)>([^<]*)<\/button>/);
+    verifier(micro && /data-icone="micro"/.test(micro[1]) && micro[2].trim() === 'Dicter', 'presentation.html : bouton #micro-commande = icône micro + « Dicter »');
+  }],
+  ['Jouer : plus d’emoji ni de caractère-icône dans le HTML, aides en <details class="aide">, un seul bouton doré par écran statique', () => {
+    const html = pages['presentation.html'];
+    verifier(!/[\u{1F300}-\u{1FAFF}\u2190-\u21FF\u2300-\u23FF\u2715\u22EF\u2B1A]/u.test(html.replace(/<!--[\s\S]*?-->/g, '')), 'aucun emoji ni flèche-caractère');
+    verifier(!/aide-bouton/.test(html), 'plus de « ? » maison');
+    egal((html.match(/<details class="aide">/g) || []).length, 3, 'trois aides repliables');
+    const ecrans = { depart: /<main id="depart"[\s\S]*?<\/main>/, choix: /<main id="choix-joueurs"[\s\S]*?<\/main>/, regie: /<div id="regie"[\s\S]*?<\/aside>/ };
+    egal(Object.fromEntries(Object.entries(ecrans).map(([nom, re]) => [nom, (html.match(re)?.[0].match(/btn-primaire/g) || []).length])), { depart: 0, choix: 1, regie: 1 }, 'dorés statiques');
   }],
   ['fichierChoisi : rend le premier fichier et vide le champ (même fichier rechoisi = nouvel événement)', () => {
     const champ = { files: ['a.json'], value: 'a.json' };
