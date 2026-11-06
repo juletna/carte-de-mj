@@ -9,7 +9,7 @@ import { analyser } from '../js/parseur/index.js';
 import { nomAffiche } from '../js/parseur/lexique.js';
 import { CREATURES } from '../js/catalogue.js';
 import { disposerPlan } from '../js/plan-donjon.js';
-import { surLeSol, retraitPorte } from '../js/formes.js';
+import { surLeSol, retraitPorte, nombreCases as nombreCasesDe } from '../js/formes.js';
 import { vueTable, creerPresentation } from '../js/presentation.js';
 import { verifier, egal, executerSuite } from './mini-test.js';
 
@@ -186,6 +186,61 @@ const TESTS = [
       }
     }
   }],
+  ['une salle au hasard : tout automatique par défaut, valide et contenu dans la salle', () => {
+    const depart = [SALLE_PORTES, 'Salle en croix de 14 par 14 cases, bras de 4 cases, une porte au mur nord en G, 3 caisses.', 'Salle de 9 par 9 cases.', 'Salle de 4 par 4 cases, une porte au mur sud en B, un escalier en A1.'];
+    const vus = new Set();
+    for (const texte of depart) {
+      const plan = analyser(texte).plan;
+      for (let graine = 1; graine <= 30; graine++) {
+        const r = genererSalle({ plan, reliee: true, graine });
+        const quoi = `${texte} / graine ${graine}`;
+        verifier(r.ok, `pas de texte pour ${quoi}`);
+        egal(r.mode, 'remplir', quoi);
+        const relu = analyser(r.texte);
+        egal(relu.ignores, [], `mots non compris dans « ${r.texte} »`);
+        egal(ancres(relu.plan), ancres(plan), `portes, escaliers, forme et dimensions de ${quoi}`);
+        egal([relu.plan.creatures.length, relu.plan.objets.filter((o) => o.type === 'coffre').length, relu.plan.objets.filter((o) => o.type === 'fosse' && o.cache).length], [r.resume.monstres, r.resume.coffres, r.resume.pieges], `contenu relu de ${quoi}`);
+        verifier(r.resume.coffres <= 2 && r.resume.pieges <= 2, 'coffres et pièges : 0 à 2');
+        verifier(r.resume.monstres * 3 * 2.2 <= Math.max(1, nombreCasesDe(plan)), `monstres dans la plage auto (${quoi})`);
+        for (const e of [...relu.plan.objets, ...relu.plan.creatures]) verifier(surLeSol(relu.plan, e.x, e.y, e.taille ?? e.l, e.taille ?? e.h), `${e.type} hors du sol (${quoi})`);
+        egal(genererSalle({ plan, reliee: true, graine }).texte, r.texte, `déterministe (${quoi})`);
+        vus.add(`${r.resume.monstres}/${r.resume.coffres}/${r.resume.pieges}`);
+      }
+    }
+    verifier(vus.size > 10, 'des quantités variées');
+    const grande = analyser('Salle de 14 par 14 cases, une porte au mur sud en C.').plan;
+    const zero = [], plus = [];
+    for (let graine = 1; graine <= 60; graine++) { const n = genererSalle({ plan: grande, reliee: true, graine }).resume.monstres; (n === 0 ? zero : plus).push(n); }
+    verifier(zero.length > 0 && zero.length < plus.length, '0 monstre possible mais pas dominant');
+    verifier(Math.max(...plus) > 3, 'une grande salle peut recevoir plusieurs monstres');
+    // Nouvelle forme, tout auto : dimensions réellement tirées, rien n'est fixé.
+    const libre = analyser('Salle de 8 par 8 cases, une porte au mur sud en C.').plan;
+    const dims = new Set();
+    for (let graine = 1; graine <= 40; graine++) {
+      const r = genererSalle({ plan: libre, reliee: false, nouvelleForme: true, graine });
+      egal(r.mode, 'nouvelle', 'nouvelle forme permise');
+      egal(analyser(r.texte).ignores, [], 'texte compris');
+      const p = analyser(r.texte).plan;
+      dims.add(`${p.largeur}x${p.longueur}`);
+    }
+    verifier(dims.size > 5, 'dimensions variées');
+  }],
+  ['une salle au hasard : un nombre imposé (0 compris) est exactement respecté, le reste reste automatique', () => {
+    const plan = analyser('Salle de 14 par 14 cases, une porte au mur sud en C.').plan;
+    const quantites = new Set();
+    for (let graine = 1; graine <= 30; graine++) {
+      const zero = genererSalle({ plan, reliee: true, monstres: 0, coffres: 0, pieges: 0, graine });
+      egal([zero.resume.monstres, zero.resume.coffres, zero.resume.pieges], [0, 0, 0], 'tout à 0');
+      const relu = analyser(zero.texte).plan;
+      egal(relu.creatures.length + relu.objets.filter((o) => o.type === 'coffre').length, 0, 'rien posé');
+      const mixte = genererSalle({ plan, reliee: true, monstres: 3, graine });
+      egal(mixte.resume.monstres, 3, 'monstres imposés');
+      quantites.add(`${mixte.resume.coffres}/${mixte.resume.pieges}`);
+      const c = genererSalle({ plan, reliee: true, coffres: 2, graine });
+      egal(c.resume.coffres, 2, 'coffres imposés');
+    }
+    verifier(quantites.size > 1, 'coffres et pièges tirés quand ils ne sont pas imposés');
+  }],
   ['une salle au hasard : le contenu est réduit plutôt que la salle agrandie', () => {
     const plan = analyser('Salle de 4 par 4 cases, une porte au mur sud en B, un escalier en A1.').plan;
     const r = genererSalle({ plan, monstres: 100, coffres: 20, pieges: 20, graine: 3 });
@@ -205,7 +260,7 @@ const TESTS = [
   ['une salle au hasard : nouvelle forme seulement sans liaison ni escalier', () => {
     const libre = analyser('Salle de 8 par 8 cases, sol en marbre, une porte au mur sud en C, une arche au mur nord en B, une porte secrète au mur est en 3.').plan;
     let formes = 0, dimensions = 0;
-    for (let graine = 1; graine <= 20; graine++) {
+    for (let graine = 1; graine <= 60; graine++) {
       const r = genererSalle({ plan: libre, reliee: false, nouvelleForme: true, monstres: 4, coffres: 1, pieges: 1, graine });
       egal(r.mode, 'nouvelle', `salle libre : nouvelle forme (graine ${graine})`);
       const relu = analyser(r.texte).plan;
@@ -241,7 +296,8 @@ const TESTS = [
   }],
   ['une salle au hasard : options, nom par défaut, contenu', () => {
     const o = normaliserOptionsSalle({ monstres: 9999, coffres: -3, pieges: '', familles: ['betes', 'x'], graine: 'z' });
-    egal([o.monstres, o.coffres, o.pieges, o.familles, o.graine, o.reliee, o.nouvelleForme], [BORNES_SALLE.monstres[2], 0, BORNES_SALLE.pieges[0], ['betes'], null, true, false], 'bornes');
+    egal([o.monstres, o.coffres, o.pieges, o.familles, o.graine, o.reliee, o.nouvelleForme], [BORNES_SALLE.monstres[2], 0, null, ['betes'], null, true, false], 'bornes : un champ vide est automatique');
+    egal([normaliserOptionsSalle({}).monstres, normaliserOptionsSalle({ monstres: null, coffres: undefined }).coffres, normaliserOptionsSalle({ pieges: 0 }).pieges], [null, null, 0], 'absent, null ou vide : auto ; 0 : imposé');
     verifier(estNomParDefaut('Salle 4') && estNomParDefaut('Salle') && !estNomParDefaut('Cuisine') && !estNomParDefaut('Salle 4 bis'), 'noms par défaut');
     const d = m.creerDonjon({});
     verifier(!salleAUnContenu(d.salles[d.salleActive]), 'salle neuve : vide');

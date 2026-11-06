@@ -19,7 +19,7 @@ import { nomAffiche } from './parseur/lexique.js';
 import { CREATURES } from './catalogue.js';
 import { reperePorte } from './coordonnees.js';
 import { OPPOSE, VECTEUR, longueurMur, portesEntreeDabord } from './murs.js';
-import { POSITIONS_FORMES, brasMax, retraitPorte } from './formes.js';
+import { POSITIONS_FORMES, brasMax, retraitPorte, nombreCases } from './formes.js';
 import { generateur, lireGraine, nouvelleGraine, melanger, GRAINE_MAX } from './alea.js';
 
 export { GRAINE_MAX };
@@ -307,12 +307,34 @@ export function genererDonjon(brut = {}) {
 
 // --- Une seule salle au hasard ------------------------------------------------------------------------------------------------
 
-/** Valeurs de départ d'une salle seule : [défaut, minimum, maximum] (les bornes sont celles du donjon entier). */
+/**
+ * Bornes d'une salle seule : [valeur de départ, minimum, maximum] (les bornes sont celles du donjon entier). La valeur de départ n'est
+ * plus appliquée : un nombre absent (ou vide) est « automatique », tiré par `quantitesAuto` ; elle reste là pour la forme du tableau.
+ */
 export const BORNES_SALLE = {
   monstres: [4, BORNES.monstres[1], BORNES.monstres[2]],
   coffres: [1, BORNES.coffres[1], BORNES.coffres[2]],
   pieges: [1, BORNES.pieges[1], BORNES.pieges[2]],
 };
+
+/**
+ * Plages du tirage automatique, selon `cases` de sol disponibles (une salle imposée dans un mode « remplir » n'est pas agrandie) :
+ *  - monstres : de 0 à un tiers de ce que la salle peut accueillir (cases hors mobilier / place par case de pion), au plus la borne ;
+ *    0 n'est tiré qu'une fois sur dix, pour que la salle ne soit pas vide le plus souvent ;
+ *  - coffres, pièges : de 0 à 2 (à 1 dans une petite salle, 0 dans une toute petite), de façon uniforme.
+ * Un réglage imposé (y compris 0) n'est jamais touché ; seules les valeurs `null` sont tirées. Ne tire rien d'autre.
+ */
+export function quantitesAuto(imposees, cases, alea) {
+  const libre = Math.max(0, cases - PLACE_DECOR);
+  const maxMonstres = Math.min(BORNES_SALLE.monstres[2], Math.floor(libre / PLACE_PAR_MONSTRE / 3));
+  const maxDecor = Math.min(2, cases >= 30 ? 2 : cases >= 15 ? 1 : 0);
+  const decor = (cle) => Math.min(BORNES_SALLE[cle][2], Math.floor(alea() * (maxDecor + 1)));
+  return {
+    monstres: imposees.monstres ?? (maxMonstres > 0 && alea() >= 0.1 ? 1 + Math.floor(alea() * maxMonstres) : 0),
+    coffres: imposees.coffres ?? decor('coffres'),
+    pieges: imposees.pieges ?? decor('pieges'),
+  };
+}
 
 /** Un nom de salle que l'outil a donné lui-même (« Salle 3 ») : il peut être remplacé par le nom du rôle tiré. */
 export const estNomParDefaut = (nom) => /^Salle( \d+)?$/.test(String(nom ?? '').trim());
@@ -333,12 +355,12 @@ export function famillesPresentes(types) {
   return compte.filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1] || a[2] - b[2]).slice(0, 2).map(([cle]) => cle);
 }
 
-/** Bornes appliquées pour une salle seule ; `graine` reste null si elle n'est pas valable. */
+/** Bornes appliquées pour une salle seule : monstres, coffres et pièges valent `null` (automatique) s'ils sont absents ou vides ; `graine` reste null si elle n'est pas valable. */
 export function normaliserOptionsSalle(brut = {}) {
   const nombre = (cle) => {
-    const [defaut, min, max] = BORNES_SALLE[cle];
+    const [, min, max] = BORNES_SALLE[cle];
     const v = Math.round(Number(brut[cle]));
-    return Number.isFinite(v) && brut[cle] !== '' && brut[cle] !== null && brut[cle] !== undefined ? Math.max(min, Math.min(max, v)) : defaut;
+    return Number.isFinite(v) && brut[cle] !== '' && brut[cle] !== null && brut[cle] !== undefined ? Math.max(min, Math.min(max, v)) : null; // null : automatique
   };
   return {
     ...Object.fromEntries(Object.keys(BORNES_SALLE).map((cle) => [cle, nombre(cle)])),
@@ -397,11 +419,15 @@ export function genererSalle(brut = {}) {
   const familles = o.familles.length ? o.familles : presentes.length ? presentes : melanger(Object.keys(FAMILLES), alea).slice(0, 2);
   const troupe = familles.flatMap((f) => FAMILLES[f].troupe);
   const role = melanger(ROLES, alea)[0];
-  const monstres = peupler(o.monstres, troupe, alea, {});
-  const spec = { role, monstres, coffres: o.coffres, pieges: o.pieges, formes: o.formes };
+  // Les quantités : imposées, ou tirées selon la place (`quantitesAuto`) une fois la salle connue ; `spec` est refait à chaque salle envisagée.
+  let demande = { monstres: 0, coffres: 0, pieges: 0 }, spec = null;
+  const preparer = (cases) => {
+    demande = quantitesAuto(o, cases, alea);
+    spec = { role, monstres: peupler(demande.monstres, troupe, alea, {}), coffres: demande.coffres, pieges: demande.pieges, formes: o.formes };
+  };
   const bilan = (texte, mode, refus, s, ok = true) => ({
     ok, texte, nom: ok ? role.nom : null, graine, mode, refus,
-    resume: { monstres: nombreMonstres(s), coffres: s.coffres, pieges: s.pieges, familles, reduit: nombreMonstres(s) < o.monstres || s.coffres < o.coffres || s.pieges < o.pieges },
+    resume: { monstres: nombreMonstres(s), coffres: s.coffres, pieges: s.pieges, familles, reduit: nombreMonstres(s) < demande.monstres || s.coffres < demande.coffres || s.pieges < demande.pieges },
   });
 
   // Nouvelle forme : seulement si rien de ce qui compte pour les autres salles ne peut se perdre.
@@ -414,8 +440,10 @@ export function genererSalle(brut = {}) {
       const portes = portesEntreeDabord(plan).map((p) => ({ mur: p.mur, type: p.type, secrete: !!p.cache }));
       // Ce qui n'est pas du contenu garde son aspect : sol (sauf s'il est resté « pierre », que le rôle peut changer), ambiance, état, éclairage.
       const ambiance = ['ambiance', 'etat', 'eclairage'].map((c) => MOTS_AMBIANCE[c][plan[c]]).filter(Boolean);
-      const tirerCote = () => 5 + Math.floor(alea() * 5);
-      const neuve = { ...spec, largeur: tirerCote(), longueur: tirerCote(), sol: plan.sol && plan.sol !== 'pierre' ? plan.sol : undefined, ambiance };
+      const tirerCote = () => 5 + Math.floor(alea() * 5); // 5 à 9 cases, tirées à chaque fois : jamais une valeur par défaut
+      const [largeur, longueur] = [tirerCote(), tirerCote()];
+      preparer(largeur * longueur);
+      const neuve = { ...spec, largeur, longueur, sol: plan.sol && plan.sol !== 'pierre' ? plan.sol : undefined, ambiance };
       const { texte } = construireSalle(neuve, portes, alea);
       const relu = analyser(texte).plan;
       // Chaque porte doit avoir survécu (deux portes tombées sur la même case n'en feraient qu'une) : sinon on remplit seulement.
@@ -425,7 +453,8 @@ export function genererSalle(brut = {}) {
   }
 
   // Remplir : le plan sans son contenu (les escaliers restent), décrit tel quel ; le nouveau contenu s'ajoute à la fin.
-  if (!plan) return bilan(null, 'remplir', 'Il n’y a pas de plan à remplir.', reduire(spec, 0), false);
+  if (!plan) { preparer(0); return bilan(null, 'remplir', 'Il n’y a pas de plan à remplir.', reduire(spec, 0), false); }
+  preparer(nombreCases(plan)); // même après une nouvelle forme manquée : le tirage suit la place de la salle qui reste
   const debut = decrire({ ...plan, objets: escaliersDe(plan), creatures: [] }).replace(/\.$/, '');
   const essais = [[1, true], [1, false], ...[0.8, 0.6, 0.4, 0.2, 0].map((f) => [f, false])];
   for (const [f, avecDecor] of essais) {

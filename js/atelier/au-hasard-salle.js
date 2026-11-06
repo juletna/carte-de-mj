@@ -6,8 +6,10 @@
  *   const sectionAuHasard = creerSectionAuHasard(ctx);   // `ctx` : celui de main-mj.js (etat, donjon, salle, modifierPlan, annoncerCarte, activerSalle, salles, coquille)
  *   conteneur.append(sectionAuHasard(sel));
  *
- * Deux modes (voir `genererSalle`) : « Remplir » (défaut) garde la forme, les dimensions et TOUTES les portes et escaliers ; « Nouvelle
- * forme et dimensions » n'est offert qu'à une salle sans liaison. Le texte tiré passe par `ctx.modifierPlan` (le chemin de toute
+ * Tout est automatique par défaut : un champ vide (nombre de monstres, de coffres, de pièges), la famille « Auto », la forme et les
+ * dimensions tirées ; on ne renseigne un réglage que pour l'imposer. Deux modes (voir `genererSalle`) : « Remplir » garde la forme, les
+ * dimensions et TOUTES les portes et escaliers ; « Nouvelle forme et dimensions » n'est offert qu'à une salle sans liaison, et n'est le
+ * défaut que pour une salle vide (une salle déjà soignée garde sa forme tant qu'on n'a pas activé la case). Le texte tiré passe par `ctx.modifierPlan` (le chemin de toute
  * modification du plan : description, carte, sauvegarde, historique). Une salle qui avait déjà un contenu est annulable (« Annuler »).
  * Les réglages et le dernier tirage vivent le temps de la page : rien n'est enregistré.
  */
@@ -22,11 +24,26 @@ const CHAMPS = [['monstres', 'Monstres'], ['coffres', 'Coffres'], ['pieges', 'Pi
 
 export function creerSectionAuHasard(ctx) {
   // Gardés le temps de la page.
-  const reglages = { famille: '', monstres: BORNES_SALLE.monstres[0], coffres: BORNES_SALLE.coffres[0], pieges: BORNES_SALLE.pieges[0], nouvelleForme: false };
+  // monstres, coffres, pièges : null = automatique ; nouvelleForme : null = pas choisi (voir `formeVoulue`).
+  const reglages = { famille: '', monstres: null, coffres: null, pieges: null, nouvelleForme: null };
   /** Le dernier tirage appliqué : sert à « Relancer » et à « Tirage N », tant que la description est encore celle qu'il a écrite. */
   let dernier = null;
 
   const donjon = () => ctx.donjon();
+
+  /** Une nouvelle forme est-elle permise à cette salle ? (sans liaison, sans escalier, portes ordinaires : `genererSalle` revérifie) */
+  const formePermise = (d, id) => {
+    const plan = d.salles[id]?.plan;
+    if (!plan || salleReliee(d, id) || (plan.objets || []).some((o) => o.type === 'escalier')) return false;
+    return (plan.portes || []).every((p) => p.type === 'porte' || p.type === 'arche');
+  };
+  /** Le mode effectif : le choix du MJ s'il y en a un ; sinon « nouvelle forme » pour une salle vide ou déjà tirée ici, « remplir » pour une salle soignée. */
+  const formeVoulue = (d, id) => {
+    if (!formePermise(d, id)) return false;
+    if (reglages.nouvelleForme !== null) return reglages.nouvelleForme;
+    const s = d.salles[id];
+    return (dernier && dernier.salle === id && s.texte === dernier.texte) || !salleAUnContenu(s);
+  };
 
   /** Applique un tirage à la salle `id` (affichée d'abord). `relancer` : remplace le tirage précédent au lieu de s'empiler dessus. */
   function generer(id, relancer = false) {
@@ -34,6 +51,7 @@ export function creerSectionAuHasard(ctx) {
     const d = donjon();
     const s = d.salles[id];
     if (!s) return;
+    const nouvelleForme = formeVoulue(d, id); // avant l'éventuel retour en arrière d'une relance
     const reprise = relancer && dernier && dernier.salle === id && s.texte === dernier.texte;
     let annulable = salleAUnContenu(s);
     if (reprise) {
@@ -45,7 +63,7 @@ export function creerSectionAuHasard(ctx) {
     const salle = d.salles[id];
     const reliee = salleReliee(d, id);
     const options = {
-      plan: salle.plan, reliee, formes: true, nouvelleForme: reglages.nouvelleForme,
+      plan: salle.plan, reliee, formes: true, nouvelleForme,
       familles: reglages.famille ? [reglages.famille] : [], typesPresents: typesDesAutresSalles(d, id),
       monstres: reglages.monstres, coffres: reglages.coffres, pieges: reglages.pieges,
     };
@@ -80,42 +98,48 @@ export function creerSectionAuHasard(ctx) {
     const reliee = salleReliee(d, sel.id);
     const escalier = (s?.plan?.objets || []).some((o) => o.type === 'escalier');
     const figee = reliee || escalier;
-    if (figee) reglages.nouvelleForme = false;
+    let activee = formeVoulue(d, sel.id);
 
     // Famille : « comme le donjon » quand les autres salles en ont, sinon le hasard.
     const presentes = famillesPresentes(typesDesAutresSalles(d, sel.id));
     const famille = h('select', { 'aria-label': 'Type de monstres' },
-      h('option', { value: '', textContent: presentes.length ? `Comme le donjon (${presentes.map((f) => FAMILLES[f].libelle).join(', ')})` : 'Au hasard' }),
+      h('option', { value: '', textContent: presentes.length ? `Auto · comme le donjon (${presentes.map((f) => FAMILLES[f].libelle).join(', ')})` : 'Auto' }),
       ...Object.entries(FAMILLES).map(([cle, f]) => h('option', { value: cle, textContent: f.libelle })));
     famille.value = reglages.famille;
     famille.addEventListener('change', () => { reglages.famille = famille.value; });
 
     const champs = h('div', { className: 'hasard-salle-champs' }, ...CHAMPS.map(([cle, libelle]) => {
       const [, min, max] = BORNES_SALLE[cle];
-      const entree = h('input', { type: 'number', inputMode: 'numeric', min: String(min), max: String(max), step: '1', value: String(reglages[cle]), 'aria-label': `${libelle} (de ${min} à ${max})` });
-      entree.addEventListener('change', () => { reglages[cle] = normaliserOptionsSalle({ [cle]: entree.value })[cle]; entree.value = String(reglages[cle]); });
-      return h('label', { className: 'hasard-salle-champ', title: `De ${min} à ${max}` }, h('span', { className: 'hasard-salle-etiquette', textContent: libelle }), h('span', { className: 'champ-num' }, entree));
+      const entree = h('input', { type: 'number', inputMode: 'numeric', min: String(min), max: String(max), step: '1', placeholder: 'Auto', value: reglages[cle] === null ? '' : String(reglages[cle]), 'aria-label': `${libelle} (de ${min} à ${max}, vide : automatique)` });
+      // Vide = automatique ; un nombre est imposé (0 compris) ; vider le champ le remet en automatique.
+      entree.addEventListener('change', () => { reglages[cle] = normaliserOptionsSalle({ [cle]: entree.value })[cle]; entree.value = reglages[cle] === null ? '' : String(reglages[cle]); });
+      return h('label', { className: 'hasard-salle-champ', title: `Vide : automatique. Sinon de ${min} à ${max}` }, h('span', { className: 'hasard-salle-etiquette', textContent: libelle }), h('span', { className: 'champ-num' }, entree));
     }));
 
     const forme = h('button', {
-      type: 'button', className: 'rang-champ rang-interrupteur', role: 'switch', 'aria-checked': String(reglages.nouvelleForme), disabled: figee,
+      type: 'button', className: 'rang-champ rang-interrupteur', role: 'switch', 'aria-checked': String(activee), disabled: figee,
       title: figee ? 'Impossible : la salle a des portes ou des escaliers reliés' : 'Tire aussi une nouvelle forme et de nouvelles dimensions',
     },
     h('span', { className: 'rang-aperce rang-icone' }, icone('salle')),
     h('span', { className: 'rang-texte' }, h('span', { className: 'rang-valeur', textContent: 'Nouvelle forme et dimensions' })),
     h('span', { className: 'interrupteur', 'aria-hidden': 'true' }));
-    forme.addEventListener('click', () => {
-      reglages.nouvelleForme = !reglages.nouvelleForme;
-      forme.setAttribute('aria-checked', String(reglages.nouvelleForme));
-    });
-    const aide = h('p', { className: 'note', textContent: reliee ? 'Cette salle a des portes reliées à d’autres salles : sa forme, ses dimensions et ses portes restent, seul son contenu change.'
+    const texteAide = () => (reliee ? 'Cette salle a des portes reliées à d’autres salles : sa forme, ses dimensions et ses portes restent, seul son contenu change.'
       : escalier ? 'Cette salle a un escalier : sa forme, ses dimensions et ses portes restent, seul son contenu change.'
-        : 'Sans la case, la forme, les dimensions et les portes restent : seul le contenu change.' });
+        : activee ? 'La forme et les dimensions sont tirées aussi ; les portes gardent leur mur. Décoche pour les garder.'
+          : 'La forme, les dimensions et les portes restent : seul le contenu change.');
+    const aide = h('p', { className: 'note', textContent: texteAide() });
+    forme.addEventListener('click', () => {
+      activee = !activee;
+      reglages.nouvelleForme = activee;
+      forme.setAttribute('aria-checked', String(activee));
+      aide.textContent = texteAide();
+    });
+    const noteAuto = h('p', { className: 'note', textContent: 'Vide = automatique : le tirage choisit.' });
 
     const generee = dernier && dernier.salle === sel.id && s?.texte === dernier.texte ? dernier : null;
     const corps = [
       h('label', { className: 'hasard-salle-champ' }, h('span', { className: 'hasard-salle-etiquette', textContent: 'Type de monstres' }), famille),
-      champs, forme, aide,
+      champs, noteAuto, forme, aide,
     ];
     const bouton = h('button', { type: 'button', className: 'btn' }, icone('de'), 'Générer');
     bouton.addEventListener('click', () => generer(sel.id));
