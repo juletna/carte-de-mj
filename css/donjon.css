@@ -6,12 +6,13 @@
 /* --- Barre du haut (nom, liens, menu du donjon, Imprimer, Présenter) --- */
 #barre { margin: 0; background: var(--panneau); border-bottom: 1px solid var(--bord); }
 #barre .menu-int { flex: 1 1 auto; min-width: 0; }
-.bouton.principal { background: var(--accent); color: var(--accent-texte); border-color: var(--accent); font-weight: 700; padding: 7px 16px; }
-.bouton.principal:hover { filter: brightness(1.1); }
+/* Le doré est réservé à « Jouer » : un seul .btn-primaire par écran (système visuel, css/base.css). Les états « choisi »
+   (onglet, outil, bouton à bascule) s'écrivent en teinte dorée légère, comme .btn[aria-pressed="true"]. */
+#presenter { flex: none; }
 
 .menu-donjon { position: relative; flex: none; }
-#menu-donjon-bouton { display: inline-flex; align-items: center; gap: 6px; max-width: 320px; padding: 5px 10px; font-weight: 400; }
-#menu-donjon-bouton[aria-expanded="true"] { border-color: var(--accent); }
+#menu-donjon-bouton { max-width: 320px; gap: 6px; color: var(--texte); font-weight: 400; }
+#menu-donjon-bouton[aria-expanded="true"] { border-color: var(--accent); color: var(--accent); }
 #menu-donjon-nom { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 220px; font-weight: 600; }
 #menu-donjon-nom::before { content: '· '; font-weight: 400; color: var(--texte-doux); }
 .menu-panneau {
@@ -22,23 +23,22 @@
 }
 .menu-panneau label { font-weight: 600; margin-bottom: 4px; }
 .menu-panneau label.doux { margin: 10px 0 4px; font-weight: 400; font-size: 13px; }
-.menu-panneau label.bouton { margin: 0; }
+.menu-panneau label.btn { margin: 0; font-weight: 600; }
 .menu-panneau .plan-json { margin-top: 12px; }
-.menu-panneau .zone-danger { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--bord); }
-.menu-panneau .zone-danger button { color: var(--erreur); border-color: var(--erreur); }
+.menu-panneau .zone-danger { margin-top: 14px; }
+/* Actions destructives : à part, sous un filet, loin des actions courantes (menu du donjon, bulle de sélection). */
+.zone-danger { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--bord); }
 .menu-panneau .pied { margin-top: 12px; }
 
 /* --- Onglets des salles : fine bande au-dessus de la carte, quel que soit l'outil ouvert --- */
 .salles-barre { display: flex; align-items: center; gap: 6px; min-width: 0; padding: 5px 12px; background: var(--panneau); border-bottom: 1px solid var(--bord); }
 .salles-onglets { list-style: none; margin: 0; padding: 0 0 2px; display: flex; gap: 4px; flex: 1 1 auto; min-width: 0; overflow-x: auto; scrollbar-width: thin; }
 .salles-onglets li { flex: none; }
-.onglet-salle { max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 4px 10px; font-size: 13px; font-weight: 400; min-height: max(var(--cible), 30px); background: transparent; color: var(--texte); border: 1px solid var(--bord); }
-.onglet-salle.actif { background: var(--accent); color: var(--accent-texte); border-color: var(--accent); font-weight: 600; }
+.onglet-salle { max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; padding: 0 10px; font-size: 13px; font-weight: 400; line-height: max(var(--cible), 30px); min-height: max(var(--cible), 30px); color: var(--texte); border-color: var(--bord); }
+.onglet-salle.actif { background: rgba(217, 169, 41, 0.16); color: var(--accent); border-color: var(--accent); font-weight: 600; }
 /* Bouton Plan : avant les onglets ; pressé, la scène montre tout le donjon. */
-.bouton-plan { flex: none; display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; min-height: max(var(--cible), 30px); font-size: 13px; font-weight: 600; }
-.bouton-plan svg { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-.bouton-plan[aria-pressed="true"] { background: var(--accent); color: var(--accent-texte); border-color: var(--accent); }
-#salle-ajouter { flex: none; padding: 4px 12px; min-height: max(var(--cible), 30px); font-size: 16px; line-height: 1; }
+.bouton-plan { flex: none; gap: 6px; min-height: max(var(--cible), 30px); font-size: 13px; font-weight: 600; color: var(--texte); border-color: var(--bord); }
+#salle-ajouter { flex: none; min-height: max(var(--cible), 30px); width: max(var(--cible), 30px); }
 
 /* --- Rail d'outils (icône + libellé, à la Canva) --- */
 .rail { display: flex; flex-direction: column; gap: 2px; padding: 8px 4px; background: var(--panneau); border-right: 1px solid var(--bord); overflow-y: auto; scrollbar-width: none; }
@@ -53,7 +53,10 @@
 /* --- Panneau contextuel : le contenu de l'outil choisi --- */
 .panneau-tete { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex: none; }
 .panneau-tete h2 { margin: 0; font-size: 13px; }
-#panneau-replier { padding: 2px 10px; font-size: 16px; line-height: 1; }
+.ligne-aide { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: var(--esp-2); }
+.ligne-aide .note { margin: 0; align-self: center; flex: 1 1 0; }
+.ligne-aide .aide { flex: none; }
+.ligne-aide .aide[open] { flex-basis: 100%; }
 .outil { display: flex; flex-direction: column; gap: 8px; }
 .outil-etiquette { font-weight: 600; font-size: 13px; }
 .saisie textarea { padding: 6px 8px; }
@@ -78,7 +81,8 @@ details.exemples summary { font-size: 13px; }
 .palette-vignette canvas { display: block; pointer-events: none; }
 .palette-nom { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; line-height: 1.2; }
 .palette-vide { margin: 8px 0 0; font-size: 13px; color: var(--texte-doux); }
-.palette-aide { flex: none; margin: 0; font-size: 12px; line-height: 1.35; color: var(--texte-doux); }
+.palette-aide { flex: none; align-self: flex-start; }
+.palette-aide .aide-texte { max-width: none; font-size: 12px; line-height: 1.35; }
 .palette-fantome { position: fixed; z-index: 100; pointer-events: none; transform: translate(-50%, -110%); padding: 3px; line-height: 0; background: rgba(0, 0, 0, 0.85); border: 1px dashed var(--texte-doux); border-radius: var(--rayon); opacity: 0.92; }
 .palette-fantome canvas { display: block; }
 .palette-fantome.sur-carte { background: var(--accent); border: 1px solid var(--accent); }
@@ -86,7 +90,7 @@ body.palette-glisse, body.palette-glisse * { cursor: grabbing !important; user-s
 #carte.arme { cursor: crosshair !important; }
 
 /* Pastille d'état de la pose, en haut au centre de la carte (sous la bande du nord), quel que soit l'outil ouvert. */
-.pose-pastille { position: absolute; z-index: 28; top: 40px; left: 50%; transform: translateX(-50%); max-width: calc(100% - 24px); min-height: max(var(--cible), 30px); padding: 4px 14px; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: var(--panneau); color: var(--accent); border: 1px solid var(--accent); border-radius: 999px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45); }
+.pose-pastille { position: absolute; z-index: 28; top: 40px; left: 50%; transform: translateX(-50%); max-width: calc(100% - 24px); min-height: max(var(--cible), 30px); padding: 0 var(--esp-3); font-size: 13px; overflow: hidden; text-overflow: ellipsis; background: var(--panneau); color: var(--accent); border-color: var(--accent); border-radius: 999px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45); }
 .bouton-ajouter { display: none; }
 
 /* --- Bandes de dimensions autour de la carte : on les glisse, ou on utilise leurs boutons − et + --- */
@@ -99,7 +103,8 @@ body.palette-glisse, body.palette-glisse * { cursor: grabbing !important; user-s
 .bord-salle[data-cote="ouest"], .bord-salle[data-cote="est"] { top: var(--bande-salle); bottom: var(--bande-salle); width: 30px; flex-direction: column; cursor: ew-resize; }
 .bord-salle[data-cote="ouest"] { left: 3px; }
 .bord-salle[data-cote="est"] { right: 3px; }
-.bord-salle button { width: 28px; height: 28px; min-height: 0; padding: 0; font-size: 15px; line-height: 1; touch-action: manipulation; }
+.bord-salle .btn { width: 28px; height: 28px; min-height: 0; padding: 0; background: rgba(31, 30, 36, 0.7); border-color: var(--bord); color: var(--texte); }
+.bord-salle .btn .icone { width: 16px; height: 16px; }
 .bord-salle .lettre-cote { min-width: 14px; text-align: center; font-size: 12px; font-weight: 600; color: var(--texte-doux); }
 #scene:fullscreen .bord-salle { display: none; }
 
@@ -116,9 +121,8 @@ body.vue-plan #aide-carte { display: none; }
 .flottant { position: absolute; z-index: 20; background: rgba(31, 30, 36, 0.95); border: 1px solid var(--bord); border-radius: var(--rayon); box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45); }
 
 #zoom { right: 24px; bottom: 24px; display: flex; align-items: center; gap: 4px; padding: 4px; }
-#zoom button { padding: 3px 10px; font-size: 13px; font-weight: 600; min-height: max(var(--cible), 30px); }
 #zoom output { min-width: 50px; text-align: center; font-size: 13px; font-variant-numeric: tabular-nums; }
-#zoom button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+#zoom .btn { font-size: 13px; }
 
 
 .message-carte { position: absolute; z-index: 30; left: 50%; bottom: 48px; transform: translateX(-50%); max-width: min(560px, calc(100% - 24px)); margin: 0; padding: 8px 14px; font-size: 14px; background: var(--panneau); border: 1px solid var(--accent); border-radius: var(--rayon); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5); pointer-events: none; }
@@ -148,26 +152,27 @@ body.vue-plan #aide-carte { display: none; }
 
   /* Bulle d'actions : posée à côté de l'élément (js/main-mj.js, placerBulle). */
   #selection { position: absolute; z-index: 25; width: 292px; max-width: calc(100% - 16px); overflow: auto; margin: 0; padding: 10px 12px; font-size: 14px; background: var(--panneau); box-shadow: 0 8px 28px rgba(0, 0, 0, 0.6); }
-  #selection .fermer-selection { display: inline-flex; position: absolute; top: 4px; right: 4px; min-height: 26px; padding: 2px 8px; }
-  #selection .selection-titre { margin-top: 0; padding-right: 76px; }
+  #selection .fermer-selection { display: inline-flex; position: absolute; top: 4px; right: 4px; width: 30px; min-height: 30px; height: 30px; }
+  #selection .selection-titre { margin-top: 0; padding-right: 36px; }
   #selection .actions { margin-top: 8px; }
   #selection .ligne-relier { margin-top: 8px; }
 }
 
 /* --- Écran étroit (sous 760 px) : une seule barre, carte et commandes au doigt --- */
 @media (max-width: 760px) {
-  :root { --bande-salles: 53px; } /* bande des salles : boutons de 44 px + marges + filet */
+  :root { --bande-salles: 53px; --h-zoom: 60px; } /* --h-zoom : la rangée du zoom, sous la carte (elle ne recouvre plus les − et + du côté sud) */ /* bande des salles : boutons de 44 px + marges + filet */
   body[data-onglet] #barre { position: sticky; top: 0; z-index: 50; display: flex; align-items: center; gap: var(--esp-2); min-height: var(--barre-onglets); padding: var(--esp-2) var(--esp-4); }
   /* Les onglets prennent la place laissée par les deux boutons, dans la même barre. */
   body[data-onglet] #barre .onglets { position: static; z-index: auto; flex: 1 1 0; min-width: 0; padding: 0; border: 0; background: none; }
   #barre .onglets .libelle { display: none; }
   #barre .onglets button { padding-left: var(--esp-1); padding-right: var(--esp-1); font-size: 15px; }
   #barre .onglets #annuler-carte { flex: 0 0 44px; }
-  #menu-donjon-bouton { padding: 0 var(--esp-3); }
+  /* Onglets Texte / Carte : l'onglet choisi en teinte dorée légère (le doré plein est celui de « Jouer »). */
+  #barre .onglets button[aria-pressed="true"] { background: rgba(217, 169, 41, 0.16); color: var(--accent); border: 1px solid var(--accent); font-weight: 700; }
+  #barre .onglets button[aria-pressed="false"] { background: var(--panneau); color: var(--texte); border: 1px solid var(--bord); font-weight: 600; }
   #menu-donjon-nom { display: none; }
   .menu-donjon { position: static; }
   .menu-panneau { position: fixed; left: var(--esp-2); right: var(--esp-2); top: calc(var(--barre-onglets) + var(--h-barre)); width: auto; max-height: calc(100vh - var(--barre-onglets) - var(--h-barre) - 8px); max-height: calc(100dvh - var(--barre-onglets) - var(--h-barre) - 8px); }
-  .bouton.principal { padding: 0 var(--esp-3); }
 
   /* Bande des salles : collée sous la barre, visible dans les deux onglets ; elle défile à l'horizontale. */
   .salles-barre { position: sticky; top: var(--barre-onglets); z-index: 39; min-height: var(--bande-salles); padding: 4px var(--esp-2); }
@@ -186,8 +191,8 @@ body.vue-plan #aide-carte { display: none; }
   /* La carte n'existe que dans l'onglet Carte ; ses commandes avec elle. */
   body[data-onglet="texte"] #cadre-scene { display: none; }
   #cadre-scene { position: relative; }
-  body:not(.presentation)[data-onglet="carte"] #scene { height: calc(100vh - var(--h-barre) - var(--barre-onglets) - var(--bande-salles) - var(--reserve-selection)); height: calc(100dvh - var(--h-barre) - var(--barre-onglets) - var(--bande-salles) - var(--reserve-selection)); }
-  .bouton-ajouter { display: inline-flex; align-items: center; top: var(--esp-2); right: var(--esp-2); min-height: 44px; padding: 0 var(--esp-4); font-size: 14px; font-weight: 600; background: var(--accent); color: var(--accent-texte); border-color: var(--accent); }
+  body:not(.presentation)[data-onglet="carte"] #scene { height: calc(100vh - var(--h-barre) - var(--barre-onglets) - var(--bande-salles) - var(--reserve-selection) - var(--h-zoom)); height: calc(100dvh - var(--h-barre) - var(--barre-onglets) - var(--bande-salles) - var(--reserve-selection) - var(--h-zoom)); }
+  .bouton-ajouter { display: inline-flex; top: var(--esp-2); right: var(--esp-2); padding: 0 var(--esp-4); font-size: 14px; background: var(--panneau); color: var(--texte); border-color: var(--accent); }
   /* À côté de « + Ajouter » plutôt qu'au centre : au centre, elle serait rognée par le bouton. */
   .pose-pastille { top: var(--esp-2); left: var(--esp-2); transform: none; min-height: 44px; max-width: calc(100% - 144px); }
   #zoom { left: var(--esp-2); right: auto; bottom: var(--esp-2); flex-wrap: wrap; max-width: calc(100% - 2 * var(--esp-2)); }
@@ -197,12 +202,10 @@ body.vue-plan #aide-carte { display: none; }
   #palette { display: none; }
   body:not(.presentation)[data-onglet="carte"] #panneau > #palette.tiroir-ouvert { display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 45; height: min(66vh, 500px); height: min(66dvh, 500px); padding: var(--esp-3) var(--esp-3) max(var(--esp-3), env(safe-area-inset-bottom)); gap: var(--esp-2); background: var(--panneau); border-top: 1px solid var(--accent); border-radius: 12px 12px 0 0; box-shadow: 0 -8px 28px rgba(0, 0, 0, 0.6); }
   .palette-tete { display: flex; align-items: center; justify-content: space-between; flex: none; }
-  .palette-fermer { padding: 0 var(--esp-3); }
   .palette-groupes { display: flex; flex: none; gap: var(--esp-1); }
   .palette-groupes button { flex: 1 1 0; min-width: 0; min-height: 44px; padding: 0 var(--esp-1); font-size: 14px; font-weight: 500; }
-  .palette-groupes button[aria-pressed="true"] { background: var(--accent); color: var(--accent-texte); border-color: var(--accent); font-weight: 600; }
+  .palette-groupes button[aria-pressed="true"] { background: rgba(217, 169, 41, 0.16); color: var(--accent); border-color: var(--accent); font-weight: 600; }
   .palette-recherche { min-height: 44px; font-size: 16px; } /* 16 px : iOS ne zoome pas la page à la saisie */
-  .palette-aide { display: none; }
   .palette-grille { grid-template-columns: repeat(auto-fill, minmax(86px, 1fr)); }
   .palette-item { min-height: 88px; }
 }
@@ -212,7 +215,14 @@ body.vue-plan #aide-carte { display: none; }
    Même seuil que les autres règles de téléphone (760 px compris, comme telephone.js). `:not(.presentation)` ne sélectionne rien
    de plus ici (donjon.css ne se charge que dans donjon.html), mais donne à cette règle la spécificité de celle de style.css qu'elle bat. */
 @media (max-width: 760px) {
+  :root { --bande-salle: 52px; } /* 44 px de bouton + marge : les − et + des côtés de la salle restent des cibles tactiles */
   body:not(.presentation)[data-onglet="carte"] #support { padding: var(--bande-salle); }
+  .bord-salle[data-cote="nord"], .bord-salle[data-cote="sud"] { height: var(--cible); }
+  .bord-salle[data-cote="ouest"], .bord-salle[data-cote="est"] { width: var(--cible); }
+  .bord-salle .btn { width: var(--cible); height: var(--cible); }
+  /* La barre de zoom prend sa propre rangée sous la scène : elle ne cache plus les boutons du côté sud. */
+  body:not(.presentation)[data-onglet="carte"] #cadre-scene { padding-bottom: var(--h-zoom); }
+  #zoom { bottom: var(--esp-2); }
 }
 
 /* --- Forme de la salle (onglet Salle) --- */

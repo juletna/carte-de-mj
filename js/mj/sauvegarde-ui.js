@@ -5,6 +5,7 @@
  * le localStorage, IndexedDB et le téléchargement. Avant de remplacer quoi que ce soit, l'état actuel est téléchargé.
  */
 import { $, h, deuxTemps, fichierChoisi } from '../dom.js';
+import { icone } from '../icones.js';
 import { lireZip, creerZip } from '../zip.js';
 import { contenuSauvegarde, lireSauvegarde, entreesImages, resumeSauvegarde, restaurer, bibliothequeManquante, nomSauvegarde, nomAvantRestauration, TAILLE_MAX_SAUVEGARDE } from '../sauvegarde.js';
 import { listerImages, remplacerToutesImages } from '../bibliotheque/images.js';
@@ -40,14 +41,14 @@ export function ouvrirSauvegarde() {
       h('h2', { id: 'sauvegarde-titre', textContent: 'Sauvegarde complète' }),
       h('p', { className: 'note', textContent: 'Un seul fichier pour tout garder ou tout retrouver : donjons, personnages, mondes, modèles, parties, réglages et images importées.' }),
       h('div', { className: 'actions' },
-        h('button', { id: 'sauvegarder-tout', type: 'button', textContent: 'Tout sauvegarder', title: 'Télécharge un fichier .zip' }),
-        h('label', { className: 'bouton', title: 'Remplace tout ce que ce navigateur garde par le contenu d\'une sauvegarde .zip' }, 'Tout restaurer… ',
+        h('button', { id: 'sauvegarder-tout', type: 'button', className: 'btn btn-primaire', title: 'Télécharge un fichier .zip' }, icone('sauvegarde'), 'Tout sauvegarder'),
+        h('label', { className: 'btn', title: 'Remplace tout ce que ce navigateur garde par le contenu d\'une sauvegarde .zip' }, icone('importer'), 'Tout restaurer… ',
           h('input', { id: 'restaurer', type: 'file', accept: '.zip,application/zip', hidden: true }))),
       h('p', { id: 'restaurer-detail', className: 'note', hidden: true }),
-      h('div', { className: 'actions' }, h('button', { id: 'restaurer-confirmer', type: 'button', className: 'discret', hidden: true })),
+      h('div', { className: 'actions' }, h('button', { id: 'restaurer-confirmer', type: 'button', className: 'btn btn-danger', hidden: true })),
       h('p', { id: 'sauvegarde-etat', className: 'note', role: 'status', hidden: true }),
       h('p', { id: 'sauvegarde-erreur', className: 'note erreur', role: 'alert', hidden: true }),
-      h('div', { className: 'actions' }, h('button', { type: 'button', className: 'discret', textContent: 'Fermer', onclick: () => dialogue.close() })));
+      h('div', { className: 'actions' }, h('button', { type: 'button', className: 'btn btn-discret', textContent: 'Fermer', onclick: () => dialogue.close() })));
     document.body.append(dialogue);
     dialogue.addEventListener('click', (e) => { if (e.target === dialogue) dialogue.close(); });
     brancherSauvegarde();

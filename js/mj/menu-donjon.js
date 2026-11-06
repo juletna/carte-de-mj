@@ -83,7 +83,7 @@ export function creerMenu(ctx) {
   $('nouveau-modele').addEventListener('click', () => choixNouveau($('modeles').hidden ? 'modele' : null));
 
   function ligneModele(nom, description, partir, supprimer) {
-    const bouton = h('button', { type: 'button', className: 'discret modele-choix' }, h('b', { textContent: nom }), h('span', { className: 'doux', textContent: description }));
+    const bouton = h('button', { type: 'button', className: 'btn btn-discret modele-choix' }, h('b', { textContent: nom }), h('span', { className: 'doux', textContent: description }));
     bouton.addEventListener('click', partir);
     return h('li', {}, bouton, ...(supprimer ? [supprimer] : []));
   }
@@ -93,7 +93,7 @@ export function creerMenu(ctx) {
     $('modeles-liste').replaceChildren(
       ...MODELES.map((m) => ligneModele(m.nom, m.description, () => accueillirDonjon(donjonDepuisModele(m)))),
       ...gardes.map((g) => {
-        const retirer = h('button', { type: 'button', className: 'discret petit' });
+        const retirer = h('button', { type: 'button', className: 'btn btn-danger' });
         deuxTemps(retirer, 'Retirer', 'Confirmer', () => {
           stockage.sauverModeles(stockage.chargerModeles().filter((x) => x.id !== g.id));
           majModeles();
@@ -200,9 +200,9 @@ export function creerMenu(ctx) {
     $('copies-titre').textContent = `Copies mises de côté (${copies.length})`;
     $('copies-liste').replaceChildren(...copies.map((copie) => {
       const date = new Date(copie.le);
-      const telecharger = h('button', { type: 'button', textContent: 'Télécharger' });
+      const telecharger = h('button', { type: 'button', className: 'btn', textContent: 'Télécharger' });
       telecharger.addEventListener('click', () => stockage.telechargerCopie(copie));
-      const supprimer = h('button', { type: 'button', className: 'discret' });
+      const supprimer = h('button', { type: 'button', className: 'btn btn-danger' });
       deuxTemps(supprimer, 'Supprimer', 'Supprimer pour de bon ?', () => {
         if (!stockage.supprimerCopie(copie)) messageFichier('', ['Copie non supprimée : le navigateur a refusé l’écriture.']);
         majCopies();

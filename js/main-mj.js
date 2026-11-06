@@ -27,7 +27,10 @@ import { creerVuePlan } from './mj/vue-plan.js';
 import { creerUniversUI } from './mj/univers-ui.js';
 import { lierReglagesRendu } from './reglages-rendu.js';
 import { $, h } from './dom.js';
-import { libelleMicro } from './format.js';
+import { icone } from './icones.js';
+
+// Icônes SVG communes (js/icones.js) : chaque <span data-icone="nom"> du HTML statique est remplacé par l'icône.
+for (const marque of document.querySelectorAll('[data-icone]')) marque.replaceWith(icone(marque.dataset.icone));
 
 const EXEMPLES = [
   'Grande salle de 4 m par 12, quatre piliers, deux coffres au fond de la salle, une statue immobile devant une porte',
@@ -305,7 +308,11 @@ ctx.salles = creerSalles(ctx); // la bulle appelle majListe
 const messageMicro = $('message-micro');
 const micro = creerMicro({
   onTexte: (texte) => { salle().texte = texte; $('description').value = texte; genererBientot(); },
-  onEtat: (actif) => { $('micro').classList.toggle('actif', actif); $('micro').textContent = libelleMicro(actif); },
+  onEtat: (actif) => {
+    $('micro').classList.toggle('actif', actif);
+    $('micro').setAttribute('aria-pressed', String(actif));
+    $('micro').replaceChildren(icone('micro'), actif ? 'Arrêter' : 'Dicter');
+  },
   onErreur: (msg) => { messageMicro.hidden = false; messageMicro.textContent = msg; },
 });
 if (!voixDisponible) {

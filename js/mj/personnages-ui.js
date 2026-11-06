@@ -24,7 +24,7 @@ export function creerPersonnages(ctx) {
     const persos = d.personnages || [];
     $('personnages-vide').hidden = persos.length > 0;
     $('personnages-liste').replaceChildren(...persos.map((p) => {
-      const retirer = h('button', { type: 'button', className: 'discret petit' });
+      const retirer = h('button', { type: 'button', className: 'btn btn-danger' });
       deuxTemps(retirer, 'Retirer', 'Confirmer', () => { retirerPersonnage(d, p.id); messagePersonnages(`${p.fiche.nom} retiré de ce donjon.`); rendre(); });
       return carteFiche(p.fiche, [retirer]);
     }));

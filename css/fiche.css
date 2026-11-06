@@ -9,6 +9,12 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 button,input,textarea,select{font:inherit;color:inherit}
 button{cursor:pointer;border:1px solid var(--bord);background:transparent;border-radius:var(--rayon);min-height:44px;padding:0 12px;font-weight:700}
 button:disabled{opacity:.45;cursor:default}
+/* Système visuel (css/base.css) : la Fiche garde 44 px de haut partout, ordinateur compris. */
+.btn{min-height:44px;font-weight:700}
+.btn-icone{width:44px}
+.btn-primaire{font-weight:700}
+.grid2>.btn,.grid3>.btn{min-width:0;padding:0 8px;white-space:normal;line-height:1.15}
+.qty button,.step button,.keys button,.x{display:inline-flex;align-items:center;justify-content:center}
 button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:var(--focus);outline-offset:var(--focus-decalage)}
 button:active{transform:scale(.97)}
 ::placeholder{color:var(--texte-doux);opacity:1}
@@ -120,7 +126,7 @@ main{display:flex;flex-direction:column;gap:12px;padding-block:12px 190px}
 .qty{display:flex;align-items:center;gap:6px}
 .qty b{min-width:2.4ch;text-align:center;font-size:1.25rem;font-variant-numeric:tabular-nums}
 .qty button{width:44px;padding:0;font-size:1.2rem}
-.x{background:transparent;border-color:transparent;color:var(--texte-doux);min-width:44px;padding:0}
+.x{min-width:44px;padding:0}
 .heal{background:var(--succes);border-color:var(--succes);color:var(--accent-texte)}
 
 .chips{display:flex;flex-wrap:wrap;gap:6px}
@@ -141,6 +147,9 @@ main{display:flex;flex-direction:column;gap:12px;padding-block:12px 190px}
 .edit .head input{flex:1}
 .danger-btn{background:transparent;border-color:var(--erreur);color:var(--erreur)}
 .danger-btn.armed{background:var(--erreur);color:var(--accent-texte);font-weight:700;height:auto;padding-block:8px}
+/* Action destructive : à part, sous un filet. Armée (premier toucher), elle se remplit et peut passer à la ligne. */
+.zone-danger{display:flex;flex-direction:column;gap:8px;margin-top:6px;padding-top:12px;border-top:1px solid var(--bord)}
+.btn-danger.armed{background:var(--erreur);color:var(--accent-texte);white-space:normal;height:auto;padding-block:8px}
 .card h2 small a{color:inherit}
 .plist{display:flex;flex-direction:column;gap:6px}
 .pc{display:flex;justify-content:space-between;align-items:baseline;gap:8px;text-align:left;font-weight:400;padding:6px 12px}

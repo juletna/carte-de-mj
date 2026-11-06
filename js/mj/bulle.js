@@ -11,7 +11,7 @@ import { hauteurMaxBulle, positionBulle } from '../mise-en-page.js';
 import { telephone } from '../telephone.js';
 import { $, h, bouton, deuxTemps } from '../dom.js';
 import { OPPOSE } from '../murs.js';
-import { LIBELLE_FERMER } from '../format.js';
+import { icone } from '../icones.js';
 
 export function creerBulle(ctx) {
   const { etat } = ctx;
@@ -23,6 +23,13 @@ export function creerBulle(ctx) {
   // --- Bulle d'actions de l'élément sélectionné -------------------------------------------------
   // Sur ordinateur, `#selection` est une bulle posée à côté de l'élément, dans `#support` (elle défile avec la carte) ;
   // sous 760 px, c'est le bandeau fixe en bas de l'écran (CSS). Le contenu est le même.
+  /** Un bouton à icône seule : `aria-label` et `title` portent le libellé. */
+  function iconeBouton(nom, libelle, onClick, classe) {
+    const b = h('button', { type: 'button', className: classe, title: libelle, 'aria-label': libelle }, icone(nom));
+    b.addEventListener('click', onClick);
+    return b;
+  }
+
   /** Supprime l'élément sélectionné (une porte reliée perd d'abord sa liaison) ; annulable avec « Annuler ». */
   function supprimerSelection() {
     const s = salle();
@@ -44,13 +51,14 @@ export function creerBulle(ctx) {
     zone.hidden = false;
     const el = trouve.element;
     const contenu = [
-      bouton(LIBELLE_FERMER, () => { ctx.deselectionner(); rendre(); }, 'discret petit fermer-selection'),
+      iconeBouton('fermer', 'Fermer', () => { ctx.deselectionner(); rendre(); }, 'btn btn-icone btn-discret fermer-selection'),
       h('p', { className: 'selection-titre', textContent: libelleSelection(trouve) }),
     ];
 
     // Une porte relie deux salles du même niveau, un escalier deux niveaux voisins : les mêmes actions pour les deux.
     const escalier = modele.estEscalier(el);
     const reliable = trouve.genre === 'porte' || escalier;
+    let delier = null; // action destructive : rangée à part, après les actions courantes
     const lien = reliable ? modele.liaisonDePorte(d, s.id, el) : null;
     if (reliable) {
       if (lien) {
@@ -61,9 +69,9 @@ export function creerBulle(ctx) {
         if (modele.liaisonsOrphelines(d).some((o) => o.liaison === lien.liaison && o.cote !== lien.cote)) {
           contenu.push(h('p', { className: 'note erreur', textContent: `${escalier ? 'L’escalier' : 'La porte'} de retour a disparu dans cette salle : la liaison est orpheline là-bas.` }));
         }
-        contenu.push(h('div', { className: 'actions' },
-          bouton(`Aller à « ${autre.nom} »`, () => ctx.activerSalle(autre.id)),
-          bouton('Délier', () => { modele.delier(d, lien.liaison.id); etat.message = 'Liaison retirée.'; rendre(); }, 'discret')));
+        contenu.push(h('div', { className: 'actions' }, bouton(`Aller à « ${autre.nom} »`, () => ctx.activerSalle(autre.id), 'btn')));
+        delier = bouton('Délier', () => { modele.delier(d, lien.liaison.id); etat.message = 'Liaison retirée.'; rendre(); }, 'btn btn-danger');
+        delier.title = `Retire la liaison avec « ${autre.nom} » (les deux portes restent)`;
       } else {
         const depuis = modele.extremite(s.id, el);
         const ou = escalier ? (el.sens === 'monte' ? 'en haut de cet escalier' : 'en bas de cet escalier') : 'derrière cette porte';
@@ -75,7 +83,7 @@ export function creerBulle(ctx) {
             ctx.salles.majListe();
           } catch (err) { etat.message = err.message; }
           rendre();
-        });
+        }, 'btn');
         const actions = [creer];
         if (escalier) {
           // Le sens se change tant que l'escalier n'est pas relié : ensuite, il fixe le niveau de la salle d'arrivée.
@@ -86,7 +94,7 @@ export function creerBulle(ctx) {
               return el.sens === 'monte' ? sans : { ...sans, sens: 'monte' };
             });
             ctx.modifierPlan({ ...s.plan, objets }, { garderSelection: true });
-          }, 'discret');
+          }, 'btn btn-discret');
           actions.push(sens);
         }
         contenu.push(h('div', { className: 'actions' }, ...actions));
@@ -107,7 +115,7 @@ export function creerBulle(ctx) {
                 : `Reliée à « ${cible.nom} » : une porte a été ajoutée sur son mur ${OPPOSE[el.mur]}.`;
             } catch (err) { etat.message = err.message; }
             rendre();
-          }, 'discret');
+          }, 'btn');
           relier.title = escalier
             ? 'Relier cet escalier à une salle existante (un escalier de retour y est ajouté)'
             : 'Relier cette porte à une salle existante (une porte est ajoutée sur son mur opposé)';
@@ -122,16 +130,18 @@ export function creerBulle(ctx) {
       const nouveau = modele.basculerCache(s.plan, etat.selection);
       if (!nouveau) return;
       ctx.modifierPlan(nouveau, { garderSelection: true });
-    }, 'discret');
+    }, 'btn btn-discret');
     let supprimer;
     if (lien) {
-      supprimer = h('button', { type: 'button', className: 'discret', title: `Supprime ${escalier ? 'cet escalier' : 'cette porte'} et retire sa liaison (annulable)` });
+      supprimer = h('button', { type: 'button', className: 'btn btn-danger', title: `Supprime ${escalier ? 'cet escalier' : 'cette porte'} et retire sa liaison (annulable)` });
       deuxTemps(supprimer, 'Supprimer', 'Retirer la liaison et supprimer ?', supprimerSelection);
     } else {
-      supprimer = bouton('Supprimer', supprimerSelection, 'discret');
+      supprimer = bouton('Supprimer', supprimerSelection, 'btn btn-danger');
       supprimer.title = 'Supprime cet élément (annulable)';
     }
-    contenu.push(h('div', { className: 'actions' }, basculer, supprimer));
+    contenu.push(h('div', { className: 'actions' }, basculer));
+    // Les actions destructives (délier, supprimer) à part, sous un filet : un doigt qui vise « caché » n'efface rien.
+    contenu.push(h('div', { className: 'actions zone-danger' }, ...(delier ? [delier] : []), supprimer));
     if (el.cache === true) contenu.push(h('p', { className: 'note', textContent: 'Caché aux joueurs. Tu le vois ici, en translucide avec un contour en pointillés.' }));
     if (etat.message) contenu.push(h('p', { className: 'note', textContent: etat.message }));
     zone.replaceChildren(...contenu);

@@ -28,7 +28,7 @@ export function creerSalles(ctx) {
     zone.replaceChildren(...orphelines.map((o) => {
       const autreExt = o.liaison[o.cote === 'a' ? 'b' : 'a'];
       const autre = d.salles[autreExt.salle];
-      const b = h('button', { type: 'button', className: 'discret', textContent: 'Retirer la liaison' });
+      const b = h('button', { type: 'button', className: 'btn btn-danger', textContent: 'Retirer la liaison' });
       b.addEventListener('click', () => { modele.delier(d, o.liaison.id); rendre(); });
       return h('div', { className: 'orpheline' },
         h('p', { className: 'note erreur' },
@@ -45,7 +45,7 @@ export function creerSalles(ctx) {
     const d = donjon();
     $('salles-onglets').replaceChildren(...modele.listerSalles(d).map((s) => {
       const actif = s.id === d.salleActive;
-      const b = h('button', { type: 'button', className: `onglet-salle${actif ? ' actif' : ''}`, textContent: s.nom, title: s.nom, role: 'tab', 'aria-selected': String(actif) });
+      const b = h('button', { type: 'button', className: `btn btn-discret onglet-salle${actif ? ' actif' : ''}`, textContent: s.nom, title: s.nom, role: 'tab', 'aria-selected': String(actif) });
       b.addEventListener('click', () => { if (!actif || etat.plan) activerSalle(s.id); }); // cliquer un onglet quitte aussi le plan
       return h('li', { role: 'presentation' }, b);
     }));
@@ -64,9 +64,9 @@ export function creerSalles(ctx) {
         majOnglets();
         rendre(); // le titre de la salle affichée suit
       });
-      const aller = h('button', { type: 'button', className: 'discret', textContent: actif ? 'Affichée' : 'Afficher', disabled: actif });
+      const aller = h('button', { type: 'button', className: 'btn', textContent: actif ? 'Affichée' : 'Afficher', disabled: actif });
       aller.addEventListener('click', () => activerSalle(s.id));
-      const suppr = h('button', { type: 'button', className: 'discret' });
+      const suppr = h('button', { type: 'button', className: 'btn btn-danger' });
       deuxTemps(suppr, 'Supprimer', 'Confirmer ?', () => {
         const etaitActive = actif;
         modele.supprimerSalle(d, s.id, { echelle: r.echelle });

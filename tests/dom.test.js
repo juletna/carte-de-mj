@@ -106,8 +106,9 @@ const TESTS = (pages) => [
   ['libellés communs : le micro et le bouton fermer ; les boutons micro des pages HTML portent le libellé de repos', () => {
     egal([libelleMicro(false), libelleMicro(true), LIBELLE_FERMER], ['🎙️ Dicter', '⏹ Arrêter', '✕ Fermer'], 'libellés');
     for (const [page, id] of [['donjon.html', 'micro']]) {
-      const texte = pages[page].match(new RegExp(`<button id="${id}"[^>]*>([^<]*)</button>`))?.[1];
-      egal(texte, libelleMicro(false), `${page} : bouton #${id}`);
+      const texte = pages[page].match(new RegExp(`<button id="${id}"[^>]*>([\\s\\S]*?)</button>`))?.[1];
+      // Le Donjon porte l'icône du micro (<span data-icone>, remplacée par le SVG commun) : seul le mot compte.
+      egal(texte?.replace(/<span data-icone="[^"]*"><\/span>/g, ''), 'Dicter', `${page} : bouton #${id}`);
     }
     // Jouer : icône SVG commune (posée au démarrage par data-icone) et « Dicter », plus d'emoji.
     const micro = pages['presentation.html'].match(/<button id="micro-commande"([^>]*)>([^<]*)<\/button>/);

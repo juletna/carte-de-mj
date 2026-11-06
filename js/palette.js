@@ -15,7 +15,7 @@
 import { filtrerElements } from './pose.js';
 import { creerVignette, copierVignette } from './vignettes.js';
 import { h as el } from './dom.js';
-import { LIBELLE_FERMER } from './format.js';
+import { icone } from './icones.js';
 
 const SEUIL_GLISSEMENT_PALETTE = 5; // px : en dessous, c'est un clic
 
@@ -42,18 +42,21 @@ export function creerPalette(racine, { elements, groupes, sousGroupes = {}, past
   const dessines = new Set(); // groupes dont les vignettes sont déjà dessinées (au premier affichage, une seule fois)
 
   // --- Structure ---
-  const fermer = el('button', { type: 'button', className: 'discret palette-fermer', textContent: LIBELLE_FERMER, title: 'Fermer la palette' });
+  const fermer = el('button', { type: 'button', className: 'btn btn-icone btn-discret palette-fermer', title: 'Fermer la palette', 'aria-label': 'Fermer la palette' }, icone('fermer'));
   fermer.addEventListener('click', () => onFermer?.());
   const tete = el('div', { className: 'palette-tete' }, el('strong', { textContent: 'Ajouter à la carte' }), fermer);
   const onglets = el('div', { className: 'palette-groupes', role: 'group', 'aria-label': 'Catégorie' });
   const recherche = el('input', { type: 'search', className: 'palette-recherche', placeholder: 'Rechercher…', autocomplete: 'off', spellcheck: false, 'aria-label': 'Rechercher un élément' });
   const vide = el('p', { className: 'palette-vide', textContent: 'Aucun élément ne correspond.', hidden: true });
   const liste = el('div', { className: 'palette-liste' });
-  const aide = el('p', { className: 'palette-aide', textContent: 'Clique une vignette puis une case de la carte (elle reste armée : pose-en plusieurs), ou glisse-la sur la carte. Une porte se pose sur le mur le plus proche.' });
-  racine.replaceChildren(tete, onglets, recherche, liste, vide, aide);
+  // Mode pose : l'explication est repliée derrière un « ? » (système visuel : aides longues repliées).
+  const aide = el('details', { className: 'aide palette-aide' },
+    el('summary', { className: 'btn btn-icone btn-discret', 'aria-label': 'Aide : poser un élément', textContent: '?' }),
+    el('div', { className: 'aide-texte', textContent: 'Clique une vignette puis une case de la carte (elle reste armée : pose-en plusieurs), ou glisse-la sur la carte. Une porte se pose sur le mur le plus proche.' }));
+  racine.replaceChildren(tete, onglets, recherche, aide, liste, vide);
 
   const boutonsGroupes = groupes.map((g) => {
-    const b = el('button', { type: 'button', className: 'discret', textContent: g.titre, 'data-groupe': g.id });
+    const b = el('button', { type: 'button', className: 'btn btn-discret', textContent: g.titre, 'data-groupe': g.id });
     b.addEventListener('click', () => afficherGroupe(g.id));
     onglets.append(b);
     return b;
@@ -119,7 +122,7 @@ export function creerPalette(racine, { elements, groupes, sousGroupes = {}, past
   function majEtat() {
     for (const { b, item } of boutons) b.setAttribute('aria-pressed', String(!!arme && item.type === arme.type && item.groupe === arme.groupe));
     pastille.hidden = !arme;
-    pastille.textContent = arme ? `Pose : ${arme.libelle} ✕` : '';
+    pastille.replaceChildren(...(arme ? [`Pose : ${arme.libelle}`, icone('fermer')] : []));
     racine.classList.toggle('arme', !!arme);
     document.body.classList.toggle('pose-armee', !!arme);
   }

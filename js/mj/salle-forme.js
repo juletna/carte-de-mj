@@ -8,6 +8,7 @@ import { SOLS, NOMS_SOLS, CHAMPS_AMBIANCE, NOMS_AMBIANCES, NOMS_ETATS_SALLE, NOM
 import { redimensionner, changerForme } from '../pose.js';
 import { FORMES, LIBELLES_FORMES, POSITIONS_FORMES, LIBELLES_POSITIONS, NOMS_POSITIONS, libelleDesBras, casesRetirees, brasDe, brasMax, nombreCases } from '../formes.js';
 import { $, h } from '../dom.js';
+import { icone } from '../icones.js';
 
 /** Champ du plan → sélecteur de l'onglet Salle (donjon.html). */
 const SELECTEURS_AMBIANCE = { ambiance: 'salle-ambiance', etat: 'salle-etat', eclairage: 'salle-eclairage' };
@@ -30,7 +31,7 @@ export function creerSalleForme(ctx) {
   }
 
   for (const forme of FORMES) {
-    const b = h('button', { type: 'button', className: 'discret', title: LIBELLES_FORMES[forme] });
+    const b = h('button', { type: 'button', className: 'btn', title: LIBELLES_FORMES[forme] });
     b.dataset.forme = forme;
     b.innerHTML = iconeForme(forme); // uniquement nos propres rectangles
     b.append(h('span', { textContent: LIBELLES_FORMES[forme] }));
@@ -118,16 +119,16 @@ export function creerSalleForme(ctx) {
   const NOMS_COTES = { nord: 'au nord', sud: 'au sud', ouest: 'à l’ouest', est: 'à l’est' };
   for (const bande of document.querySelectorAll('.bord-salle')) {
     const cote = bande.dataset.cote;
-    const bouton = (texte, delta, titre) => {
-      const b = h('button', { type: 'button', className: 'discret', textContent: texte, title: titre, 'aria-label': titre });
+    const bouton = (nom, delta, titre) => {
+      const b = h('button', { type: 'button', className: 'btn btn-icone btn-discret', title: titre, 'aria-label': titre }, icone(nom));
       b.addEventListener('click', () => appliquerDimensions(cote, delta));
       return b;
     };
     bande.title = `Glisse pour changer la taille de la salle ${NOMS_COTES[cote]}`;
     bande.append(
-      bouton('−', -1, `Retirer une rangée ${NOMS_COTES[cote]}`),
+      bouton('moins', -1, `Retirer une rangée ${NOMS_COTES[cote]}`),
       h('span', { className: 'lettre-cote', textContent: bande.dataset.lettre }),
-      bouton('+', 1, `Ajouter une rangée ${NOMS_COTES[cote]}`),
+      bouton('plus', 1, `Ajouter une rangée ${NOMS_COTES[cote]}`),
     );
 
     // Glisser : aperçu sans rien enregistrer, à taille de case constante ; le lâcher applique. Si la réduction est

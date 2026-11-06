@@ -36,6 +36,11 @@ export const ICONES = {
   recentrer: '<circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><path d="M12 2.5V6M12 18v3.5M2.5 12H6M18 12h3.5"/>',
   fleches: '<path d="M12 3v18M3 12h18M9 6l3-3 3 3M9 18l3 3 3-3M6 9l-3 3 3 3M18 9l3 3-3 3"/>',
   aide: '<circle cx="12" cy="12" r="8.5"/><path d="M9.5 9.5a2.6 2.6 0 0 1 5 .9c0 1.7-2.5 2.1-2.5 3.8"/><circle cx="12" cy="17" r="0.9" fill="currentColor" stroke="none"/>',
+  // Ajoutées avec la migration du Donjon et de la Fiche.
+  moins: '<path d="M5 12h14"/>',
+  annuler: '<path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>',
+  'chevron-bas': '<path d="M6 9.5l6 6 6-6"/>',
+  'chevron-gauche': '<path d="M14.5 5.5l-6.5 6.5 6.5 6.5"/>',
 };
 
 /** Les noms disponibles, dans l'ordre de déclaration. */

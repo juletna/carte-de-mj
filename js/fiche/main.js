@@ -13,6 +13,7 @@ import { STATS } from './regles.js';
 import { lireBrut, mettreDeCote } from '../mise-de-cote.js';
 import { EDITIONS, reglesDe } from './regles.js';
 import { rnd, mod, sg, profFor, rollExpr } from './des.js';
+import { iconeHtml as I } from '../icones.js';
 import { SKILLS, CONDS, SCOPES, KINDS_FX, PRESETS, presetDispo, TYPES_OBJET, ITYPES, IACTS, ACT_L, KINDS, freshTurn, uid, sample, blank, complete,
   ETAT_INTERFACE, snapP, relireBase } from './base.js';
 import { skB, svB, hdLeft, hasHaste, fxOf, negFx, acTotal, speedNow, hpMaxNow, effetsEpuisement, soinDV, dvRendus, changerEdition, note, fxVal, manualFx, dropFx, d20, push, spend,
@@ -49,7 +50,7 @@ function avertir(n,ok){const e=document.getElementById('avis'),au=n>1?'Certaines
 /* ---------- Rendu ---------- */
 function vHeader(){
  const C=S.mode==='combat',pct=Math.max(0,Math.min(100,S.hp/Math.max(1,hpMaxNow(S))*100)),ac=acTotal(S);
- return`<div class="idrow"><h1><button class="who" data-a="sheet" data-v="perso" aria-haspopup="dialog" aria-label="${esc((S.name||'Sans nom')+' : changer de personnage ou en créer un')}"><span>${esc(S.name||'Sans nom')}</span><i aria-hidden="true">▾</i></button></h1><p>${esc([S.cls&&`${S.cls} niv. ${S.lvl}`,S.race,S.guild].filter(Boolean).join(' · '))}</p></div>
+ return`<div class="idrow"><h1><button class="who" data-a="sheet" data-v="perso" aria-haspopup="dialog" aria-label="${esc((S.name||'Sans nom')+' : changer de personnage ou en créer un')}"><span>${esc(S.name||'Sans nom')}</span><i aria-hidden="true">${I('chevron-bas')}</i></button></h1><p>${esc([S.cls&&`${S.cls} niv. ${S.lvl}`,S.race,S.guild].filter(Boolean).join(' · '))}</p></div>
  <div class="vitals ${C?'':'two'}">
   <button class="hpbtn" data-a="sheet" data-v="hp" aria-label="Modifier les points de vie">
    <span class="n"><b>${S.hp}</b>/ ${hpMaxNow(S)} PV${S.tmp?` <em>+${S.tmp} temp</em>`:''}<small>± PV</small></span>
@@ -80,13 +81,13 @@ function fxSummary(f){
 
 function vAlerts(){
  const out=[];
- if(S.example)out.push(`<div class="notice"><span>Personnage d'exemple. Crée le tien, ou modifie celui-ci dans l'onglet Fiche.</span><span class="row"><button class="primary" data-a="newp">Créer mon personnage</button><button data-tab="fiche">Fiche</button></span></div>`);
+ if(S.example)out.push(`<div class="notice"><span>Personnage d'exemple. Crée le tien, ou modifie celui-ci dans l'onglet Fiche.</span><span class="row"><button class="btn" data-a="newp">Créer mon personnage</button><button class="btn" data-tab="fiche">Fiche</button></span></div>`);
  if(S.hp===0)out.push(`<section class="card alert danger"><h2>À terre, 0 PV <small>jets contre la mort</small></h2>
   <div class="lines"><div class="ln"><span class="t">Succès</span><div class="pips">${[0,1,2].map(i=>`<button class="pip s ${i<S.saves.s?'on':''}" data-a="ds" data-k="s" data-i="${i}" aria-label="Succès ${i+1}"></button>`).join('')}</div></div>
   <div class="ln"><span class="t">Échecs</span><div class="pips">${[0,1,2].map(i=>`<button class="pip f ${i<S.saves.f?'on':''}" data-a="ds" data-k="f" data-i="${i}" aria-label="Échec ${i+1}"></button>`).join('')}</div></div></div>
   <button class="red" data-a="dsroll">Jet contre la mort</button></section>`);
  if(S.concDD)out.push(`<section class="card alert"><h2>Concentration <small>sauvegarde CON DD ${S.concDD}</small></h2>
-  <div class="grid3"><button class="primary" data-a="concroll">Lancer ${sg(svB(S,'CON'))}</button><button data-a="concok">Maintenue</button><button data-a="conclost">Perdue</button></div></section>`);
+  <div class="grid3"><button class="btn" data-a="concroll">Lancer ${sg(svB(S,'CON'))}</button><button data-a="concok">Maintenue</button><button data-a="conclost">Perdue</button></div></section>`);
  if(S.pick&&S.mode==='explo'){const sp=S.ammo.filter(a=>a.spent);if(sp.length)out.push(`<section class="card alert"><h2>Après le combat</h2>
   ${sp.map(a=>{const i=S.ammo.indexOf(a);return`<button data-a="pick" data-i="${i}">Ramasser la moitié : +${Math.floor(a.spent/2)} ${esc(a.n.toLowerCase())}</button>`}).join('')}
   <button class="linkbtn" data-a="nopick">Ignorer</button></section>`)}
@@ -126,10 +127,10 @@ function vMine(){
  <section class="card"><h2>Attaques <small>${S.crit?'critique : dégâts ×2':'toucher · dégâts'}</small></h2>
   ${advSeg()}
   <div>${atks||'<small class="muted">Ajoute tes armes dans l\'onglet Fiche.</small>'}</div>
-  ${linked.map(am=>{const i=S.ammo.indexOf(am);return`<div class="spread"><span class="muted">${esc(am.n)}</span><div class="qty"><button data-a="aq" data-i="${i}" data-v="-1" aria-label="Retirer">−</button><b>${am.q}</b><button data-a="aq" data-i="${i}" data-v="1" aria-label="Ajouter">+</button></div></div>`}).join('')}
+  ${linked.map(am=>{const i=S.ammo.indexOf(am);return`<div class="spread"><span class="muted">${esc(am.n)}</span><div class="qty"><button data-a="aq" data-i="${i}" data-v="-1" aria-label="Retirer">${I('moins')}</button><b>${am.q}</b><button data-a="aq" data-i="${i}" data-v="1" aria-label="Ajouter">${I('plus')}</button></div></div>`}).join('')}
  </section>
  ${vRes()}
- <button class="primary big" data-a="endturn">Fin de mon tour</button>`;
+ <button class="btn btn-primaire big" data-a="endturn">Fin de mon tour</button>`;
 }
 function vWait(){
  return`<button class="red big" data-a="newturn">Début de mon tour</button>
@@ -146,12 +147,12 @@ function vWait(){
 function vExplo(){
  const quickSk=[...new Set([...SKILLS.filter(([n])=>S.skills[n]).map(s=>s[0]),'Perception','Investigation','Intuition'])];
  return`<button class="red big" data-a="fight">Combat ! · initiative ${sg(S.init)}</button>
- <section class="card"><h2>Tests rapides <small><button class="linkbtn mini" data-tab="jets">Tous les jets →</button></small></h2>
+ <section class="card"><h2>Tests rapides <small><button class="linkbtn mini" data-tab="jets">Tous les jets</button></small></h2>
   <div class="sk">${quickSk.map(n=>`<button class="${S.skills[n]?'pr':''} ${S.skills[n]===2?'ex':''}" data-a="skill" data-n="${n}"><span>${n}</span><b>${sg(skB(S,n))}</b></button>`).join('')}</div>
  </section>
  ${vRes()}
  ${S.ammo.length?`<section class="card"><h2>Munitions</h2><div class="lines">${S.ammo.map((a,i)=>`<div class="ln"><span class="t">${esc(a.n)}${a.spent?`<small>${a.spent} tirée${a.spent>1?'s':''} · <button class="linkbtn mini" style="text-decoration:underline" data-a="pick" data-i="${i}">ramasser ½</button></small>`:''}</span>
-   <div class="qty"><button data-a="aq" data-i="${i}" data-v="-1" aria-label="Retirer">−</button><b>${a.q}</b><button data-a="aq" data-i="${i}" data-v="1" aria-label="Ajouter">+</button></div></div>`).join('')}</div></section>`:''}
+   <div class="qty"><button data-a="aq" data-i="${i}" data-v="-1" aria-label="Retirer">${I('moins')}</button><b>${a.q}</b><button data-a="aq" data-i="${i}" data-v="1" aria-label="Ajouter">${I('plus')}</button></div></div>`).join('')}</div></section>`:''}
  <section class="card"><h2>Repos</h2>
   <div class="spread"><span><span class="lbl">Dés de vie</span><br><b style="font-size:1.2rem">${hdLeft(S)}/${S.lvl}</b> <span class="muted">d${S.hd.die} ${sg(mod(S.stats.CON))}</span></span>
    <button data-a="hd" ${hdLeft(S)&&S.hp<hpMaxNow(S)?'':'disabled'}>Dépenser 1 DV</button></div>
@@ -179,8 +180,8 @@ function vJets(){
  </section>
  <section class="card"><h2>Dés libres</h2>
   <div class="grid2">
-   <div class="field"><span class="lbl">Nombre de dés</span><div class="step"><button data-a="dc" data-v="-1">−</button><b>${S.dc}</b><button data-a="dc" data-v="1">+</button></div></div>
-   <div class="field"><span class="lbl">Modificateur</span><div class="step"><button data-a="dm" data-v="-1">−</button><b>${sg(S.dm)}</b><button data-a="dm" data-v="1">+</button></div></div>
+   <div class="field"><span class="lbl">Nombre de dés</span><div class="step"><button data-a="dc" data-v="-1" aria-label="Moins">${I('moins')}</button><b>${S.dc}</b><button data-a="dc" data-v="1" aria-label="Plus">${I('plus')}</button></div></div>
+   <div class="field"><span class="lbl">Modificateur</span><div class="step"><button data-a="dm" data-v="-1" aria-label="Moins">${I('moins')}</button><b>${sg(S.dm)}</b><button data-a="dm" data-v="1" aria-label="Plus">${I('plus')}</button></div></div>
   </div>
   <div class="dice">${[4,6,8,10,12,100].map(d=>`<button data-a="roll" data-d="${d}">d${d}</button>`).join('')}<button class="d20" data-a="roll" data-d="20">d20</button></div>
  </section>
@@ -219,19 +220,19 @@ function vFiche(){
  </section>
  <section class="card"><h2>Attaques</h2>
   ${S.attacks.map((a,i)=>`<div class="edit">
-   <div class="head"><input id="f_at_${i}_n" data-f="attacks.${i}.n" value="${esc(a.n)}" aria-label="Nom de l'arme"><button class="x" data-a="atdel" data-i="${i}" aria-label="Supprimer">✕</button></div>
+   <div class="head"><input id="f_at_${i}_n" data-f="attacks.${i}.n" value="${esc(a.n)}" aria-label="Nom de l'arme"><button class="btn btn-icone btn-danger x" data-a="atdel" data-i="${i}" aria-label="Supprimer" title="Supprimer">${I('supprimer')}</button></div>
    <div class="grid3">${fld('Toucher','attacks.'+i+'.hit',a.hit,'number')}${fld('Dégâts','attacks.'+i+'.dmg',a.dmg,'text','placeholder="1d8+3"')}${sel('Munition','attacks.'+i+'.ammo',a.ammo,ammoOpts)}</div>
    ${fld('Note','attacks.'+i+'.note',a.note||'','text','placeholder="Portée, propriétés…"')}
   </div>`).join('')}
   <button data-a="atadd">Ajouter une attaque</button>
  </section>
  <section class="card"><h2>Munitions</h2>
-  <div class="lines">${S.ammo.map((a,i)=>`<div class="ln"><span class="t">${esc(a.n)} <span class="muted">× ${a.q}</span></span><button class="x" data-a="adel" data-i="${i}" aria-label="Supprimer">✕</button></div>`).join('')}</div>
+  <div class="lines">${S.ammo.map((a,i)=>`<div class="ln"><span class="t">${esc(a.n)} <span class="muted">× ${a.q}</span></span><button class="btn btn-icone btn-danger x" data-a="adel" data-i="${i}" aria-label="Supprimer" title="Supprimer">${I('supprimer')}</button></div>`).join('')}</div>
   <div class="row"><input id="newAmmo" placeholder="Flèches, carreaux, billes…" aria-label="Nouvelle munition"><button data-a="aadd">Ajouter</button></div>
  </section>
  <section class="card"><h2>Capacités à charges</h2>
   ${S.res.map((r,i)=>`<div class="edit">
-   <div class="head"><input id="f_rs_${i}_n" data-f="res.${i}.n" value="${esc(r.n)}" aria-label="Nom de la capacité"><button class="x" data-a="rsdel" data-i="${i}" aria-label="Supprimer">✕</button></div>
+   <div class="head"><input id="f_rs_${i}_n" data-f="res.${i}.n" value="${esc(r.n)}" aria-label="Nom de la capacité"><button class="btn btn-icone btn-danger x" data-a="rsdel" data-i="${i}" aria-label="Supprimer" title="Supprimer">${I('supprimer')}</button></div>
    <div class="grid2">${fld('Charges','res.'+i+'.max',r.max,'number','min="0" max="20"')}${sel('Recharge','res.'+i+'.rest',r.rest,[['court','Repos court'],['long','Repos long']])}</div>
   </div>`).join('')}
   <button data-a="rsadd">Ajouter une capacité</button>
@@ -241,11 +242,13 @@ function vFiche(){
  </section>
  <section class="card"><h2>Personnage</h2>
   <div class="plist">${plist()}</div>
-  <div class="grid2"><button data-a="newp">Nouveau personnage</button><button data-a="hasard">🎲 Au hasard</button></div>
-  <button data-a="demo">Ajouter l'exemple</button>
-  <div class="grid2"><button data-a="exp">Exporter</button><button data-a="imp">Importer</button></div>
-  <button class="danger-btn ${armed?'armed':''}" data-a="pdel">${armed?`Confirmer : supprimer « ${esc(S.name||'Sans nom')} »`:'Supprimer ce personnage'}</button>
+  <div class="grid2"><button class="btn" data-a="newp">${I('plus')} Nouveau personnage</button><button class="btn" data-a="hasard">${I('de')} Au hasard</button></div>
+  <button class="btn" data-a="demo">Ajouter l'exemple</button>
+  <div class="grid2"><button class="btn" data-a="exp">${I('exporter')} Exporter</button><button class="btn" data-a="imp">${I('importer')} Importer</button></div>
+  <div class="zone-danger">
+  <button class="btn btn-danger ${armed?'armed':''}" data-a="pdel">${I('supprimer')} ${armed?`Confirmer : supprimer « ${esc(S.name||'Sans nom')} »`:'Supprimer ce personnage'}</button>
   ${armed?'<small class="confirm">Touche encore une fois pour confirmer. Tu pourras annuler quelques secondes.</small>':''}
+  </div>
   <small class="muted">Les données restent sur cet appareil, dans ce navigateur. « Exporter » enregistre ce personnage dans un fichier.</small>
  </section>`;
 }
@@ -266,8 +269,8 @@ function vSac(){
  <section class="card"><h2>Équipement <small>touche un objet pour régler son usage</small></h2>
   <div>${S.inv.map((it,i)=>{const t=it.type||'objet',open=S.openItem===i,tag=itemTag(it);return`<div class="item">
    <button class="nm" data-a="iopen" data-i="${i}" aria-expanded="${open}"><span>${esc(it.n)}</span>${tag?`<small class="${t==='equip'&&it.eq?'eq':''}">${esc(tag)}</small>`:''}</button>
-   ${t==='equip'?`<button data-a="ieq" data-i="${i}">${it.eq?'Retirer':'Équiper'}</button>`:`<div class="qty"><button data-a="iq" data-i="${i}" data-v="-1" aria-label="Moins">−</button><b>${it.q}</b><button data-a="iq" data-i="${i}" data-v="1" aria-label="Plus">+</button></div>`}
-   <button class="x" data-a="idel" data-i="${i}" aria-label="Supprimer">✕</button>
+   ${t==='equip'?`<button data-a="ieq" data-i="${i}">${it.eq?'Retirer':'Équiper'}</button>`:`<div class="qty"><button data-a="iq" data-i="${i}" data-v="-1" aria-label="Moins">${I('moins')}</button><b>${it.q}</b><button data-a="iq" data-i="${i}" data-v="1" aria-label="Plus">${I('plus')}</button></div>`}
+   <button class="btn btn-icone btn-danger x" data-a="idel" data-i="${i}" aria-label="Supprimer" title="Supprimer">${I('supprimer')}</button>
    ${open?`<div class="edit">
     ${fld('Nom','inv.'+i+'.n',it.n)}
     <div class="grid2">${sel('Type','inv.'+i+'.type',t,ITYPES)}${TYPES_OBJET[t]?.sansCout?'<span></span>':sel('Coûte','inv.'+i+'.act',it.act||'action',IACTS)}</div>
@@ -285,20 +288,20 @@ function vJournal(){
  return `<section class="card"><h2>Noter</h2>
   <div class="chips">${KINDS.map(k=>`<button class="chip ${S.jk===k?'on':''}" data-a="jk" data-n="${k}">${k}</button>`).join('')}</div>
   <textarea id="jtxt" placeholder="Une idée, un nom de PNJ, un indice…">${esc(S.draft)}</textarea>
-  <button class="primary" data-a="jadd">Ajouter au journal</button>
+  <button class="btn btn-primaire" data-a="jadd">Ajouter au journal</button>
  </section>
  <section class="card"><h2>Journal <small>${S.log.length} entrée${S.log.length>1?'s':''}</small></h2>
-  ${S.log.map((e,i)=>`<article class="entry" data-k="${esc(e.k)}"><div class="eh"><span><b>${esc(e.k)}</b> · ${hhmm(e.t)}</span><button class="x" data-a="jdel" data-i="${i}" aria-label="Supprimer">✕</button></div><p>${esc(e.x)}</p></article>`).join('')||'<small class="muted">Rien pour l\'instant.</small>'}
+  ${S.log.map((e,i)=>`<article class="entry" data-k="${esc(e.k)}"><div class="eh"><span><b>${esc(e.k)}</b> · ${hhmm(e.t)}</span><button class="btn btn-icone btn-danger x" data-a="jdel" data-i="${i}" aria-label="Supprimer" title="Supprimer">${I('supprimer')}</button></div><p>${esc(e.x)}</p></article>`).join('')||'<small class="muted">Rien pour l\'instant.</small>'}
  </section>`;
 }
 
 /* Feuilles : pavé PV et « Sur moi » */
 function vSheetHp(){
  const v=S.pad;
- return`<h2>Points de vie <button class="x" data-a="close" aria-label="Fermer">✕</button></h2>
+ return`<h2>Points de vie <button class="btn btn-icone btn-discret x" data-a="close" aria-label="Fermer" title="Fermer">${I('fermer')}</button></h2>
  <div class="muted" style="text-align:center">${S.hp} / ${hpMaxNow(S)} PV${S.tmp?` · ${S.tmp} temporaires`:''}</div>
  <div class="padv ${v?'':'ph'}">${v||'0'}</div>
- <div class="keys">${[1,2,3,4,5,6,7,8,9].map(n=>`<button data-a="key" data-v="${n}">${n}</button>`).join('')}<button data-a="key" data-v="c" aria-label="Effacer tout">C</button><button data-a="key" data-v="0">0</button><button data-a="key" data-v="b" aria-label="Effacer un chiffre">⌫</button></div>
+ <div class="keys">${[1,2,3,4,5,6,7,8,9].map(n=>`<button data-a="key" data-v="${n}">${n}</button>`).join('')}<button data-a="key" data-v="c" aria-label="Effacer tout">C</button><button data-a="key" data-v="0">0</button><button data-a="key" data-v="b" aria-label="Effacer un chiffre">${I('retour')}</button></div>
  <div class="padact"><button class="red" data-a="padgo" data-v="dmg">Dégâts</button><button class="heal" data-a="padgo" data-v="heal">Soins</button><button data-a="padgo" data-v="tmp">Temp</button></div>`;
 }
 /* Personnage au hasard (js/fiche-hasard.js, le même que dans le Donjon) : chargé à la demande, le reste de la page n'en dépend pas. */
@@ -311,41 +314,41 @@ function vTirage(){if(!tirage.ouvert||!H)return'';
   <div class="grid2"><label class="field"><span class="lbl">Niveau</span><input id="tg_niveau" type="number" inputmode="numeric" min="${H.BORNES.niveau[1]}" max="${H.BORNES.niveau[2]}" value="${esc(tirage.niveau)}"></label>
   <label class="field"><span class="lbl">Numéro de tirage</span><input id="tg_graine" type="number" inputmode="numeric" min="1" max="${H.GRAINE_MAX}" placeholder="Vide : un nouveau" value="${esc(tirage.graine)}"></label></div>
   <small class="muted">Tirage aux règles de D&amp;D 2014.</small>
-  <button class="primary" data-a="tgo">Générer</button>
+  <button class="btn" data-a="tgo">Générer</button>
   ${tirage.msg?`<small class="muted" role="status">${esc(tirage.msg)}</small>`:''}
  </div>`}
 function vSheetPerso(){
- return`<h2>Personnages <button class="x" data-a="close" aria-label="Fermer">✕</button></h2>
+ return`<h2>Personnages <button class="btn btn-icone btn-discret x" data-a="close" aria-label="Fermer" title="Fermer">${I('fermer')}</button></h2>
  <div class="plist">${plist()}</div>
- <button class="primary" data-a="newp">+ Nouveau personnage</button>
- <button data-a="hasard" aria-expanded="${tirage.ouvert}">🎲 Au hasard</button>
+ <button class="btn btn-primaire" data-a="newp">${I('plus')} Nouveau personnage</button>
+ <button class="btn" data-a="hasard" aria-expanded="${tirage.ouvert}">${I('de')} Au hasard</button>
  ${vTirage()}
- <button data-a="imp">Importer un fichier</button>
+ <button class="btn" data-a="imp">${I('importer')} Importer un fichier</button>
  <small class="muted">Exporter et supprimer : onglet Fiche, tout en bas.</small>`;
 }
 function vSheetAdd(){
  const D=S.fxD;
- return`<h2>Sur moi <button class="x" data-a="close" aria-label="Fermer">✕</button></h2>
+ return`<h2>Sur moi <button class="btn btn-icone btn-discret x" data-a="close" aria-label="Fermer" title="Fermer">${I('fermer')}</button></h2>
  ${S.fx.length?`<span class="lbl">Effets actifs</span>${S.fx.map(f=>`<div class="fx ${negFx(f)?'neg':''}"><b>${esc(f.n)}${f.src?` <span class="muted">· ${esc(f.src)}</span>`:''}</b>
-   <button class="x" data-a="fxdel" data-id="${f.id}" aria-label="Retirer ${esc(f.n)}">✕</button><small>${esc(fxSummary(f))}${f.note?' · '+esc(f.note):''}</small></div>`).join('')}`:''}
+   <button class="btn btn-icone btn-danger x" data-a="fxdel" data-id="${f.id}" aria-label="Retirer ${esc(f.n)}" title="Retirer">${I('supprimer')}</button><small>${esc(fxSummary(f))}${f.note?' · '+esc(f.note):''}</small></div>`).join('')}`:''}
  <span class="lbl">Ajouter un effet</span>
  <input id="fx_src" data-f="fxSrc" value="${esc(S.fxSrc)}" placeholder="De la part de (facultatif)" aria-label="De la part de">
  <div class="presets">${PRESETS.map((p,i)=>presetDispo(p,S.edition)?`<button class="${['dieneg','dis'].includes(p.kind)?'neg':''}" data-a="fxpre" data-i="${i}">${p.n}</button>`:'').join('')}
-  <button data-a="custom" aria-expanded="${S.showCustom}">${S.showCustom?'− Personnalisé':'+ Personnalisé'}</button></div>
+  <button data-a="custom" aria-expanded="${S.showCustom}">${I(S.showCustom?'moins':'plus')} Personnalisé</button></div>
  ${S.showCustom?`<div class="edit">
   <input id="fx_n" data-f="fxD.n" value="${esc(D.n)}" placeholder="Nom de l'effet" aria-label="Nom de l'effet">
   <div class="chips">${SCOPES.map(([k,l])=>`<button class="chip ${D.sc.includes(k)?'on':''}" data-a="fxsc" data-k="${k}">${l}</button>`).join('')}</div>
   <div class="grid2">${sel('Type','fxD.kind',D.kind,KINDS_FX)}${['adv','dis','reroll'].includes(D.kind)?'<span></span>':fld(D.kind==='flat'?'Valeur':'Dé','fxD.val',D.val,'text',D.kind==='flat'?'placeholder="2 ou -2"':'placeholder="1d4"')}</div>
   <div class="grid2">${sel('Durée','fxD.dur',D.dur,[['rounds','En rounds'],['once','Un seul usage'],['conc','Jusqu\'à retrait']])}${D.dur==='rounds'?fld('Rounds','fxD.left',D.left,'number','min="1"'):'<span></span>'}</div>
-  <button class="primary" data-a="fxcustom">Ajouter cet effet</button>
+  <button class="btn" data-a="fxcustom">Ajouter cet effet</button>
  </div>`:''}
  <span class="lbl">États</span>
  <div class="chips">${CONDS.map(c=>`<button class="chip ${S.conds.includes(c)?'on':''}" data-a="cond" data-n="${c}">${c}</button>`).join('')}
   <button class="chip ${S.conc?'on':''}" data-a="conc">Concentration</button></div>
  <div class="spread"><span><span class="lbl">Épuisement</span><br><small class="muted">${reglesDe(S.edition).epuisement?(S.exh?effetsEpuisement(S.exh,S.edition).join(' · '):'Les effets s’ajoutent à chaque niveau'):'Aucun effet automatique'}</small></span>
-  <div class="step"><button data-a="exh" data-v="-1">−</button><b>${S.exh}</b><button data-a="exh" data-v="1">+</button></div></div>
+  <div class="step"><button data-a="exh" data-v="-1" aria-label="Moins">${I('moins')}</button><b>${S.exh}</b><button data-a="exh" data-v="1" aria-label="Plus">${I('plus')}</button></div></div>
  <small class="muted">${reglesDe(S.edition).auto?'Les états à avantage ou désavantage (Empoisonné, À terre, Invisible…) s\'appliquent tout seuls à tes jets.':'Règles libres : les états servent de pense-bête et ne changent aucun jet.'}</small>
- <button class="primary" data-a="close">Terminé</button>`;
+ <button class="btn btn-primaire" data-a="close">Terminé</button>`;
 }
 
 function render(){
