@@ -7,7 +7,7 @@
  *   coquille.arbre          { element, ajouterAction({ libelle, icone?, executer, groupe?, ordre?, aide?, danger? }), rafraichir() }  (menu « + Nouveau » de l'en-tête)
  *   coquille.scene          l'élément du centre (les cartes s'y posent)
  *   coquille.barreOutils    la barre d'outils de la scène : UNE seule ligne (vide et cachée tant que personne n'y met rien) ; le bouton de l'arbre
- *                           au début, les outils au milieu, puis `barreFin` (le bouton « Grille » et le seul bouton doré, « Jouer »)
+ *                           au début, les outils au milieu, puis `barreFin` (le bouton « Affichage » et le seul bouton doré, « Jouer »)
  *   coquille.barreFin       le groupe de droite de cette ligne (caché tant qu'il est vide)
  *   coquille.inspecteur     { enregistrer(type, définition), afficher(sel), rafraichir(), a(type) } (js/atelier/inspecteur.js)
  *   coquille.selectionner(sel) / selection()   la sélection commune (js/atelier-selection.js) ; jamais en double ailleurs
@@ -19,8 +19,8 @@
  * Options : `inspecteurToujoursVisible` (la colonne de droite reste affichée même sans type enregistré : le mode jouer, dont les onglets ont leur
  * contenu), `inspecteurGenerique: false` (masque l'en-tête et le corps génériques de l'inspecteur : seuls les onglets restent), `adresse: false`
  * (la coquille n'écrit ni ne lit l'adresse : la régie se rouvre par le stockage). Par défaut, le mode jouer prend les trois : voir plus bas.
- * `grille: { lire, surChangement }` pose le bouton « Grille » (opacité des lignes, commune aux salles et aux cartes) dans la barre d'outils ;
- * `coquille.grille.maj()` le remet d'accord avec les réglages relus.
+ * `affichage: { lire, surChangement }` pose le bouton « Affichage » (grille, thème, détails, relief, pénombre, flammes, repères : une préférence commune) dans la barre d'outils ;
+ * `coquille.affichage.maj()` le remet d'accord avec les réglages relus.
  * La racine porte `data-atelier="preparer"|"jouer"` : css/atelier.css place les colonnes selon ce mode.
  *   coquille.position()        la position courante
  *   coquille.rafraichir({ inspecteur? })   les données ont changé : l'arbre (si ses noms ont changé) et la validité de la sélection ; l'inspecteur seulement si `inspecteur: true`
@@ -41,7 +41,7 @@ import { creerArbreVue } from './arbre-vue.js';
 import { creerInspecteur } from './inspecteur.js';
 import { marquerCourant } from '../navigation.js';
 import { CLE_DERNIERE_ROUTE } from '../navigation-donnees.js';
-import { creerGrilleAffichage } from './grille-affichage.js';
+import { creerAffichagePopover } from './affichage-popover.js';
 
 const CLE_ARBRE_REPLIE = 'carte-de-mj:atelier-arbre-replie';
 const lire = (cle) => { try { return localStorage.getItem(cle); } catch { return null; } };
@@ -52,7 +52,7 @@ export const selectionDuNoeud = (n) => (n && n.type !== 'groupe' ? creerSelectio
 
 export function creerCoquille({
   racine, mode = 'preparer', donnees, scene = null, bouton = null, surNavigation = null, pastille = null,
-  inspecteurToujoursVisible = mode === 'jouer', inspecteurGenerique = mode !== 'jouer', adresse = mode !== 'jouer', grille = null,
+  inspecteurToujoursVisible = mode === 'jouer', inspecteurGenerique = mode !== 'jouer', adresse = mode !== 'jouer', affichage = null,
 } = {}) {
   racine.dataset.atelier = mode;
   let pos = {};
@@ -126,12 +126,12 @@ export function creerCoquille({
   const barreOutils = h('div', { className: 'atelier-barre', role: 'toolbar', 'aria-label': 'Outils de la scène' });
   const sceneEl = scene ?? h('div', { className: 'atelier-scene' });
   sceneEl.prepend(barreOutils);
-  // Le bouton « Grille » : la préférence d'affichage commune (js/atelier/grille-affichage.js). `grille: { lire, surChangement }` ; absent, pas de bouton.
-  const grilleAffichage = grille ? creerGrilleAffichage(grille) : null;
-  // Le bout droit de la ligne : « Grille », puis ce que la page y range (le bouton doré « Jouer »).
+  // Le bouton « Affichage » : la préférence d'affichage commune (js/atelier/affichage-popover.js). `affichage: { lire, surChangement }` ; absent, pas de bouton.
+  const affichagePopover = affichage ? creerAffichagePopover(affichage) : null;
+  // Le bout droit de la ligne : « Affichage », puis ce que la page y range (le bouton doré « Jouer »).
   const barreFin = h('div', { className: 'atelier-barre-fin' });
   barreOutils.append(barreFin);
-  if (grilleAffichage) barreFin.append(grilleAffichage.element);
+  if (affichagePopover) barreFin.append(affichagePopover.element);
 
   racine.prepend(colonneArbre, voile);
   racine.append(colonneInspecteur);
@@ -332,7 +332,7 @@ export function creerCoquille({
     arbre: { element: colonneArbre, ajouterAction, rafraichir, vue }, scene: sceneEl, barreOutils, barreFin, inspecteur, onglets,
     selectionner, selection: () => sel, naviguer, positionner, position: () => ({ ...pos }), rafraichir,
     surSelection: (f) => { ecouteursSelection.push(f); },
-    ouvrirTiroir, fermerTiroir, tiroirOuvert, mode, grille: grilleAffichage,
+    ouvrirTiroir, fermerTiroir, tiroirOuvert, mode, affichage: affichagePopover,
     donneesArbre: () => arbre,
   };
   calculer();

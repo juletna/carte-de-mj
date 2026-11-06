@@ -44,6 +44,7 @@ export const ICONES = {
   'chevron-gauche': '<path d="M14.5 5.5l-6.5 6.5 6.5 6.5"/>',
   'tout-replier': '<path d="M7.5 4l4.5 4.5L16.5 4M7.5 20l4.5-4.5 4.5 4.5M5 12h14"/>',
   alerte: '<path d="M12 4.5l9 15.5H3z"/><path d="M12 10v4.5"/><circle cx="12" cy="17.2" r="0.9" fill="currentColor" stroke="none"/>',
+  affichage: '<path d="M4 7h8.5M17.5 7H20M4 17h2.5M11.5 17H20"/><circle cx="15" cy="7" r="2.5"/><circle cx="9" cy="17" r="2.5"/>',
 };
 
 /** Les noms disponibles, dans l'ordre de déclaration. */

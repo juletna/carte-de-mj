@@ -81,7 +81,7 @@ export function inscrireMonde(coquille, ctx) {
   U.surChangement(majCartouche);
   majCartouche();
 
-  // --- « Jouer ce monde » : le seul bouton doré, au bout de la ligne d'outils (après « Grille »), à la place du « Jouer » du donjon ---------------
+  // --- « Jouer ce monde » : le seul bouton doré, au bout de la ligne d'outils (après « Affichage »), à la place du « Jouer » du donjon ---------------
   // Plus d'en-tête « Monde · nom » : le nom est déjà dans l'arbre (nœud surligné) et dans l'en-tête de l'inspecteur.
   const jouer = lienBtn('Jouer ce monde', null, { icone: 'jouer', classe: 'btn-primaire barre-monde-jouer', titre: 'Ouvre la Présentation sur ce monde, pour le jouer à la table' });
   jouer.replaceChildren(icone('jouer'), h('span', { className: 'libelle' }, 'Jouer', h('span', { className: 'suite', textContent: ' ce monde' }))); // sous 760 px : « Jouer » seul

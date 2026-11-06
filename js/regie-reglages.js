@@ -1,6 +1,7 @@
 /**
- * Les réglages de la régie (partagés avec le Donjon : carte-de-mj:reglages-v1) : taille de case, thème, cases, relief, repères, mini-carte et
- * mode de la table, adaptation de la carte de la régie à la fenêtre. Fabrique `creerReglages(ctx)` ; `ctx` est celui de regie.js
+ * Les réglages de la régie (partagés avec le Donjon : carte-de-mj:reglages-v1) : taille de case, mini-carte, mode de la table, rotation, miroir,
+ * calibrage, adaptation de la carte de la régie à la fenêtre. Le rendu de la carte (grille, thème, détails, relief, pénombre, flammes, repères)
+ * n'est plus ici : un seul bouton « Affichage » le règle (js/atelier/affichage-popover.js). Fabrique `creerReglages(ctx)` ; `ctx` est celui de regie.js
  * (`etat`, `r`, `commande`, `rendre`, `diffuser`, `montrerIci`), lu au moment de l'appel. Renvoie `sauver` (à rappeler quand la régie reprend la main).
  *
  * Plusieurs régies peuvent être ouvertes : en retrait, un réglage reste propre à cet onglet, rien n'est enregistré. La régie qui a la main n'écrit
@@ -8,7 +9,6 @@
  */
 import * as stockage from './stockage.js';
 import { modeTable, ajusterTaille, caseMmValide, CASE_MM_PAR_DEFAUT } from './affichage.js';
-import { lierReglagesRendu } from './reglages-rendu.js';
 import { $ } from './dom.js';
 
 export function creerReglages(ctx) {
@@ -16,7 +16,7 @@ export function creerReglages(ctx) {
   const rendre = () => ctx.rendre();
   const diffuser = () => ctx.diffuser();
   const montrerIci = () => ctx.montrerIci();
-  let lu, reglagesRendu;
+  let lu;
   function sauverReglages() {
     if (commande.retrait) return;
     const frais = stockage.enregistrerReglages(lu, r).reglages;
@@ -30,8 +30,6 @@ export function creerReglages(ctx) {
   function majControles() {
     if (r.reperes === undefined) r.reperes = true;
     lu = { ...r };
-    reglagesRendu?.maj();
-    $('reperes').checked = r.reperes !== false;
     $('mini-active').checked = r.miniTable !== false;
     majModeTable();
     majTaille();
@@ -59,7 +57,6 @@ export function creerReglages(ctx) {
     $('calibrage-val').textContent = `${r.taille} px`;
   }
   majControles();
-  reglagesRendu = lierReglagesRendu(r, () => { sauverReglages(); rendre(); });
   $('taille').addEventListener('input', (e) => { r.taille = Number(e.target.value); majTaille(); sauverReglages(); majModeTable(); rendre(); });
 
   // --- L'écran de table : orientation et calibrage ------------------------------------------------------
@@ -92,7 +89,6 @@ export function creerReglages(ctx) {
   for (const b of document.querySelectorAll('[data-pas-taille]')) {
     b.addEventListener('click', () => { r.taille = ajusterTaille(r.taille, Number(b.dataset.pasTaille)); majTaille(); sauverReglages(); majModeTable(); rendre(); });
   }
-  $('reperes').addEventListener('change', (e) => { r.reperes = e.target.checked; sauverReglages(); rendre(); });
   $('ajuster').addEventListener('change', (e) => { etat.ajuster = e.target.checked; rendre(); });
   return { sauver: sauverReglages };
 }

@@ -266,23 +266,11 @@
         <details class="aide">
           <summary class="btn btn-icone btn-discret" aria-label="Aide : les réglages" title="À quoi servent ces réglages ?">?</summary>
           <div class="aide-texte">La taille d'une case sert à la table en « échelle réelle » (on la calibre une fois pour toutes dans « Régler l'écran de table », bloc Table) et de plafond à la régie.
-            « Adapter » ne change que l'affichage de cette régie.</div>
+            « Adapter » ne change que l'affichage de cette régie. Le thème, la grille, le relief, la pénombre, les flammes et les repères se règlent avec le bouton « Affichage » de la barre de la carte.</div>
         </details>
         <label class="ligne">Taille d'une case
           <span><input id="taille" type="range" min="16" max="160" step="0.1" value="48"> <output id="taille-val">48 px</output></span>
         </label>
-        <label class="ligne">Thème
-          <select id="theme"><option value="peint">Peint</option><option value="vectoriel">Vectoriel</option></select>
-        </label>
-        <label class="ligne" title="Sols dessinés et détaillés, ou sols simples (thème peint).">Détails des sols
-          <select id="details"><option value="riches">Riches</option><option value="sobres">Sobres</option></select>
-        </label>
-        <label class="ligne case"><input id="relief" type="checkbox" checked> Relief des murs</label>
-        <label class="ligne" title="Obscurité de la salle à la table. La vue du MJ (ici) n'en garde qu'une part, pour tout voir.">Pénombre
-          <span><input id="penombre" type="range" min="0" max="100" step="5" value="45"> <output id="penombre-val">45 %</output></span>
-        </label>
-        <label class="ligne case"><input id="flammes" type="checkbox" checked> Flammes animées (à la table)</label>
-        <label class="ligne case"><input id="reperes" type="checkbox" checked> Afficher les repères (A, B… et 1, 2…)</label>
         <label class="ligne case"><input id="ajuster" type="checkbox" checked> Adapter la carte de la régie à la fenêtre</label>
       </details>
       <p class="note">Projet libre (MIT) · fonctionne hors ligne</p>

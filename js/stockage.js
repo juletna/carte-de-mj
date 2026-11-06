@@ -75,7 +75,7 @@ export function chargerReglages(stock = stockParDefaut()) {
     // Rendu de la carte, seulement s'il diffère du défaut : `cases` (opacité des lignes, 0–100 %, remplace le oui/non de `grille` qui reste écrit
     // pour les versions précédentes), `theme` (vectoriel ; le thème peint est le défaut), `details` (sobres ; les sols riches sont le défaut) et `relief` (faux : vue à plat).
     ...(casesValides(r.cases) ? { cases: r.cases } : {}),
-    // `casesAvant` : la dernière opacité visible, gardée pendant que la grille est masquée (js/atelier/grille-affichage.js) ; absente si c'est la valeur par défaut.
+    // `casesAvant` : la dernière opacité visible, gardée pendant que la grille est masquée (js/atelier/affichage-popover.js) ; absente si c'est la valeur par défaut.
     ...(casesValides(r.casesAvant) && r.casesAvant > 0 && r.casesAvant !== CASES_PAR_DEFAUT ? { casesAvant: r.casesAvant } : {}),
     ...(THEMES_RENDU.includes(r.theme) && r.theme !== THEME_PAR_DEFAUT ? { theme: r.theme } : {}),
     ...(DETAILS_SOLS.includes(r.details) && r.details !== DETAILS_PAR_DEFAUT ? { details: r.details } : {}),

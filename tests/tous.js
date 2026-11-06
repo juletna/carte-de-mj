@@ -64,7 +64,7 @@ import { executer as executerAtelierSelection } from './atelier-selection.test.j
 import { executer as executerSection } from './section.test.js';
 import { executer as executerListe } from './liste.test.js';
 import { executer as executerAtelierRoute } from './atelier-route.test.js';
-import { executer as executerGrilleAffichage } from './grille-affichage.test.js';
+import { executer as executerAffichagePopover } from './affichage-popover.test.js';
 import { executer as executerCartouche } from './cartouche.test.js';
 import { executer as executerFilCompact } from './fil-compact.test.js';
 import { executer as executerDossierTravail } from './dossier-travail.test.js';
@@ -84,7 +84,7 @@ export const SUITES = [
   executerZip, executerSauvegarde,
   executerUniversGrille,
   executerUniversVue, executerIcones,
-  executerAtelierArbre, executerAtelierSelection, executerAtelierRoute, executerGrilleAffichage, executerCartouche, executerFilCompact,
+  executerAtelierArbre, executerAtelierSelection, executerAtelierRoute, executerAffichagePopover, executerCartouche, executerFilCompact,
   executerSection, executerListe, executerDossierTravail,
 ];
 

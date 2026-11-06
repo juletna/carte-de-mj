@@ -8,7 +8,7 @@ import { OUTILS, OUTILS_CATALOGUE, TITRES_OUTILS } from '../js/rail.js';
 import { verifier, egal, executerSuite } from './mini-test.js';
 
 const MODULES = [
-  'js/main-mj.js', 'js/reglages-rendu.js', 'js/atelier/barre-salle.js', 'js/atelier/inspecteurs-donjon.js', 'js/atelier/inscrire-donjon.js',
+  'js/main-mj.js', 'js/atelier/barre-salle.js', 'js/atelier/inspecteurs-donjon.js', 'js/atelier/inscrire-donjon.js',
   'js/mj/bulle.js', 'js/mj/menu-donjon.js', 'js/mj/personnages-ui.js', 'js/mj/salle-forme.js', 'js/mj/salles-liste.js', 'js/mj/vue-carte.js',
   'js/mj/vue-plan.js', 'js/mj/zoom.js',
 ];

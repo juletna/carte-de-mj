@@ -198,22 +198,11 @@
         </div>
       </section>
       <details id="bloc-reglages" class="bloc-inspecteur">
-        <summary>Affichage</summary>
+        <summary>Échelle</summary>
         <div class="reglages">
           <label class="ligne">Échelle
             <span><input id="echelle" type="number" min="0.5" max="5" step="0.5" value="1.5"> m par case</span>
           </label>
-          <label class="ligne">Thème
-            <select id="theme"><option value="peint">Peint</option><option value="vectoriel">Vectoriel</option></select>
-          </label>
-          <label class="ligne" title="Sols dessinés et détaillés, ou sols simples (thème peint).">Détails des sols
-            <select id="details"><option value="riches">Riches</option><option value="sobres">Sobres</option></select>
-          </label>
-          <label class="ligne case"><input id="relief" type="checkbox" checked> Relief des murs</label>
-          <label class="ligne" title="Obscurité de la salle à la table. La vue du MJ (ici) n'en garde qu'une part, pour tout voir.">Pénombre
-            <span><input id="penombre" type="range" min="0" max="100" step="5" value="45"> <output id="penombre-val">45 %</output></span>
-          </label>
-          <label class="ligne case"><input id="flammes" type="checkbox" checked> Flammes animées (à la table)</label>
           <div class="actions">
             <button id="plein-ecran" type="button" class="btn"><span data-icone="plein-ecran"></span>Plein écran (table)</button>
           </div>

@@ -64,8 +64,8 @@ body.atelier-avec-inspecteur { --largeur-inspecteur: 330px; }
 /* --- Barre d'outils de la scène (vide et cachée tant que personne n'y met rien) --- */
 .atelier-barre { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: var(--esp-2); padding: var(--esp-1) var(--esp-3); background: var(--panneau); border-bottom: 1px solid var(--bord); }
 .atelier-barre:empty { display: none; }
-/* Le bouton « Grille » (js/atelier/grille-affichage.js) : toujours au bout de la barre, son popover s'ouvre dessous. */
-/* UNE seule ligne : le bouton de l'arbre (replié ou écran étroit), les outils, puis au bout « Grille » et le seul bouton doré (« Jouer ») : js/atelier/coquille.js. */
+/* Le bouton « Affichage » (js/atelier/affichage-popover.js) : toujours au bout de la barre, son popover s'ouvre dessous. */
+/* UNE seule ligne : le bouton de l'arbre (replié ou écran étroit), les outils, puis au bout « Affichage » et le seul bouton doré (« Jouer ») : js/atelier/coquille.js. */
 .atelier-barre { flex-wrap: nowrap; }
 .atelier-barre > .atelier-arbre-bouton { order: -1; }
 .atelier-barre-fin { order: 99; margin-left: auto; flex: none; display: flex; align-items: center; gap: var(--esp-2); }
@@ -83,7 +83,7 @@ body.atelier-avec-inspecteur { --largeur-inspecteur: 330px; }
   #plan-bouton, #annuler-carte, #salle-ajouter { padding: 0; width: 44px; }
 }
 @media (max-width: 760px) {
-  /* Même ligne, compacte : arbre, outils en icônes seules, Grille, puis « Jouer » (icône + mot). Aucune cible sous 44 px, aucun débordement. */
+  /* Même ligne, compacte : arbre, outils en icônes seules, Affichage, puis « Jouer » (icône + mot). Aucune cible sous 44 px, aucun débordement. */
   .atelier-barre { gap: var(--esp-1); padding: var(--esp-1) var(--esp-2); }
   .atelier-barre .btn { min-width: 44px; min-height: 44px; }
   .outil-lieu .libelle, .barre-monde-jouer .suite, .atelier-barre .bouton-ajouter .libelle { display: none; }
@@ -95,16 +95,23 @@ body.atelier-avec-inspecteur { --largeur-inspecteur: 330px; }
   /* La consigne d'une action armée se pose sur la carte, sous la barre : la ligne d'outils reste à une seule rangée. */
   .barre-lieu-etat { position: absolute; z-index: 28; top: calc(100% + var(--esp-2)); left: var(--esp-2); background: var(--panneau); box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45); }
 }
-.atelier-grille { position: relative; }
-.atelier-grille-panneau { position: absolute; right: 0; top: calc(100% + 4px); z-index: 45; width: 260px; display: flex; flex-direction: column; gap: var(--esp-2); padding: var(--esp-3); background: var(--panneau); border: 1px solid var(--bord); border-radius: var(--rayon); box-shadow: 0 8px 24px rgba(0, 0, 0, .55); }
-.atelier-grille-panneau[hidden] { display: none; }
-.atelier-grille-titre { margin: 0; font-weight: 600; }
-.atelier-grille-interrupteur { justify-content: flex-start; }
-.atelier-grille-interrupteur[aria-checked="true"] { border-color: var(--accent); color: var(--accent); }
-.atelier-grille-ligne { display: grid; grid-template-columns: 1fr auto; gap: var(--esp-1) var(--esp-2); align-items: center; font-size: 13px; }
-.atelier-grille-ligne > span { grid-column: 1 / -1; }
-.atelier-grille-ligne input { grid-column: 1; width: 100%; min-height: var(--cible); }
-.atelier-grille-valeur { grid-column: 2; min-width: 4ch; text-align: right; font-variant-numeric: tabular-nums; }
+.atelier-affichage { position: relative; }
+.atelier-affichage-panneau { position: absolute; right: 0; top: calc(100% + 4px); z-index: 45; width: 300px; max-height: calc(100dvh - 120px); overflow-y: auto; display: flex; flex-direction: column; gap: var(--esp-3); padding: var(--esp-3); background: var(--panneau); border: 1px solid var(--bord); border-radius: var(--rayon); box-shadow: 0 8px 24px rgba(0, 0, 0, .55); }
+.atelier-affichage-panneau[hidden] { display: none; }
+.atelier-affichage-titre { margin: 0; font-weight: 600; }
+.atelier-affichage-groupe { display: flex; flex-direction: column; gap: var(--esp-2); }
+.atelier-affichage-sous-titre { margin: 0; color: var(--texte-doux); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
+.atelier-affichage-interrupteur { justify-content: flex-start; }
+.atelier-affichage-interrupteur { color: var(--texte-doux); }
+.atelier-affichage-interrupteur[aria-checked="true"] { border-color: var(--texte); color: var(--texte); } /* pas de doré ici : le seul doré de la barre est « Jouer » */
+.atelier-affichage-ligne { display: grid; grid-template-columns: 1fr auto; gap: var(--esp-1) var(--esp-2); align-items: center; font-size: 13px; }
+.atelier-affichage-ligne > span:first-child { grid-column: 1 / -1; }
+.atelier-affichage-ligne input[type="range"] { grid-column: 1; width: 100%; min-height: var(--cible); }
+.atelier-affichage-choix { grid-template-columns: 1fr 9.5rem; }
+.atelier-affichage-choix > span:first-child { grid-column: 1; }
+.atelier-affichage-choix select { width: 100%; min-height: var(--cible); }
+.atelier-affichage-case { display: flex; align-items: center; gap: var(--esp-2); min-height: var(--cible); font-size: 13px; cursor: pointer; }
+.atelier-affichage-valeur { grid-column: 2; min-width: 4ch; text-align: right; font-variant-numeric: tabular-nums; }
 
 /* --- Inspecteur : un en-tête collé en haut (type, nom, résumé, « ⋯ »), puis le corps en sections sobres (js/atelier/inspecteur.js) --- */
 .atelier-inspecteur { display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow-y: auto; padding: 0; background: var(--panneau); border-left: 1px solid var(--bord); }
@@ -185,10 +192,12 @@ body.atelier-avec-inspecteur { --largeur-inspecteur: 330px; }
   /* Arbre : la zone du chevron fait 44 px de large (plier sans choisir). */
   .atelier-bascule { width: 44px; margin-left: -6px; }
   .atelier-bascule.vide { width: 16px; margin-left: 0; }
-  /* « Grille » : une feuille du bas, aux cibles de 44 px. */
-  .atelier-grille { position: static; }
-  .atelier-grille-panneau { position: fixed; left: 0; right: 0; bottom: 0; top: auto; width: auto; z-index: 95; border-width: 1px 0 0; border-radius: 12px 12px 0 0; padding: var(--esp-4) var(--esp-4) max(var(--esp-4), env(safe-area-inset-bottom)); }
-  .atelier-grille-interrupteur, .atelier-grille-ligne input { min-height: 44px; }
+  /* « Affichage » : une feuille du bas, aux cibles de 44 px. */
+  .atelier-affichage { position: static; }
+  .atelier-affichage-panneau { position: fixed; left: 0; right: 0; bottom: 0; top: auto; width: auto; z-index: 95; border-width: 1px 0 0; border-radius: 12px 12px 0 0; padding: var(--esp-4) var(--esp-4) max(var(--esp-4), env(safe-area-inset-bottom)); }
+  .atelier-affichage-interrupteur, .atelier-affichage-ligne input, .atelier-affichage-choix select, .atelier-affichage-case { min-height: 44px; }
+  .atelier-affichage-case input { width: 24px; height: 24px; margin: 0 10px 0 0; }
+  .atelier-affichage-panneau { max-height: 80dvh; }
   /* Onglets du mode jouer : barre du bas. */
   .atelier-onglets { position: sticky; bottom: 0; }
 }

@@ -11,7 +11,7 @@
  *
  *   salle   « 6 × 8 cases · pierre » ; description (dictée, « Compris »), liaisons orphelines, forme / sol / ambiance, notes, exemples.
  *           « ⋯ » : plan JSON, signaler une erreur de lecture, — , supprimer la salle.
- *   donjon  « 3 salles · 2 personnages » ; les personnages (liste, ajouter, au hasard) et, repliés, les réglages d'affichage.
+ *   donjon  « 3 salles · 2 personnages » ; les personnages (liste, ajouter, au hasard) et, repliée, l'échelle (m par case) avec le plein écran. Le rendu (thème, grille…) est le bouton « Affichage » de la barre.
  *           « ⋯ » : exporter, imprimer, copier, — , supprimer le donjon. (L'arbre liste les salles ; la vue d'ensemble est celle du donjon.)
  *   porte, objet, creature, pion   js/mj/bulle.js (relier, créer la salle derrière, cacher, aspect). « ⋯ » : fermer, délier, supprimer.
  */
@@ -109,7 +109,7 @@ export function enregistrerInspecteursDonjon(coquille, ctx) {
     },
     rendre: (conteneur) => conteneur.append(
       section('donjon-personnages', 'Personnages', ['bloc-personnages'], { compte }),
-      section('donjon-affichage', 'Affichage', ['bloc-reglages'], { repliee: true })),
+      section('donjon-echelle', 'Échelle', ['bloc-reglages'], { repliee: true })),
     menu: () => [
       { libelle: 'Exporter', icone: 'exporter', titre: 'Enregistre le donjon entier (salles, notes, liaisons, éléments cachés)', executer: () => ctx.menu.exporter() },
       { libelle: 'Imprimer', icone: 'fiche', titre: 'Plans de ce donjon à l’échelle des figurines, version MJ ou joueurs', executer: () => { ctx.sauvegarder(); location.href = 'impression.html'; } },

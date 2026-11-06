@@ -35,7 +35,7 @@ Un agent qui doit changer un contrat le dit dans son compte rendu au lieu de le 
 | Panneau Personnages (fiches du donjon, Au hasard) | `js/mj/personnages-ui.js`, `js/fiche-hasard.js` | **Inspecteur « donjon »**, section Personnages. |
 | Panneau Notes | `#notes` dans `donjon.html`, `main-mj.js` | **Inspecteur « salle »**, section Notes. |
 | Panneau Salles (mini-plan, liste, orphelines, vue d'ensemble) | `js/mj/salles-liste.js`, `js/miniplan.js`, `js/mj/vue-plan.js` | Liste → **arbre** (nœuds salle). Mini-plan et orphelines → **inspecteur « donjon »**. Vue d'ensemble = scène du nœud donjon (`vue-plan.js`, `plan-donjon.js`). |
-| Panneau Réglages (échelle, thème, détails, grille, relief, pénombre, flammes, plein écran) | `js/reglages-rendu.js` (`lierReglagesRendu`) | **Inspecteur « donjon »**, section Affichage (mêmes `etat.reglages`). |
+| Panneau Réglages (échelle, thème, détails, grille, relief, pénombre, flammes, plein écran) | `js/atelier/affichage-popover.js` | Bouton « Affichage » de la barre de la scène (même popover en Préparer et en Jouer) ; l'échelle reste dans l'inspecteur « donjon », section Échelle. |
 | Bulle d'actions (porte, objet, pion) | `js/mj/bulle.js` (`#selection`) | **Inspecteur** (porte, objet, creature). Plus de bulle flottante sur ordinateur ; sur mobile le bandeau bas actuel devient l'inspecteur. |
 | Onglets Texte / Carte mobile | `js/telephone.js` (`activerOnglets`), `#barre` | Remplacés par tiroir de l'arbre et panneau bas. La description reste dans l'inspecteur « salle ». |
 | Menu du donjon (changer, renommer, nouveau, hasard, modèle, exporter, importer, imprimer, copier, coller, copies mises de côté) | `js/mj/menu-donjon.js` | **Inspecteur « donjon »** (renommer, exporter, imprimer, copier) et **« ⋯ » de l'en-tête de l'arbre** (nouveau, hasard, modèle, importer, coller, copies de côté). Le `<select>` « changer de donjon » disparaît : l'arbre le remplace. |
@@ -160,7 +160,7 @@ clavier de l'arbre.
 Possède : `js/atelier/inscrire-donjon.js`, `js/atelier/inspecteurs-donjon.js` (types salle, porte, objet, creature, pion, donjon),
 `js/atelier/barre-salle.js` (Portes/Mobilier/Créatures, pose, annuler, zoom) ; **modifie** (sorties DOM seulement, logique intacte)
 `js/mj/bulle.js`, `js/mj/salles-liste.js`, `js/mj/menu-donjon.js`, `js/mj/personnages-ui.js`, `js/mj/salle-forme.js`, `js/rail.js`,
-`js/reglages-rendu.js`, `tests/rail.test.js`, et les `<template>` de `donjon.html` de ces zones (B n'écrit que dans les siens, jamais dans la
+`tests/rail.test.js`, et les `<template>` de `donjon.html` de ces zones (B n'écrit que dans les siens, jamais dans la
 coquille). Ne touche ni `vue-carte.js`, ni `vue-plan.js`, ni le contenu de `js/palette.js`, ni `js/rendu/`.
 Livre : tout l'inventaire « Donjon » du §1 ; l'arbre montre donjons et salles (clic = `naviguer` + sélection) ; suppression d'une salle, d'un donjon
 et d'un élément dans « ⋯ » avec l'annulation existante ; tiroir et panneau bas sur mobile.

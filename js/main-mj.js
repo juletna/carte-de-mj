@@ -25,7 +25,6 @@ import { creerZoom } from './mj/zoom.js';
 import { creerVueCarte } from './mj/vue-carte.js';
 import { creerVuePlan } from './mj/vue-plan.js';
 import { creerUniversUI } from './mj/univers-ui.js';
-import { lierReglagesRendu } from './reglages-rendu.js';
 import { creerCoquille } from './atelier/coquille.js';
 import { inscrireDonjon } from './atelier/inscrire-donjon.js';
 import { inscrireMonde } from './atelier/inscrire-monde.js';
@@ -333,7 +332,6 @@ $('echelle').addEventListener('change', (e) => {
   const v = parseFloat(e.target.value);
   if (v > 0) { r.echelle = v; generer(); }
 });
-lierReglagesRendu(r, rendre);
 
 // --- Plein écran (vue table) --------------------------------------------------
 $('plein-ecran').addEventListener('click', () => $('scene').requestFullscreen?.());
@@ -372,8 +370,8 @@ ctx.coquille = creerCoquille({
     donjons: etat.donjons, donjonActif: { donjon: etat.actif, salle: donjon().salleActive },
   }),
   surNavigation: allerALaRoute,
-  // La grille, préférence d'affichage commune aux salles et aux cartes : un bouton dans la barre (js/atelier/grille-affichage.js).
-  grille: { lire: () => r, surChangement: () => { rendre(); ctx.univers.redessinerGrille(); } },
+  // L'affichage (grille, thème, détails, relief, pénombre, flammes, repères), préférence commune aux salles et aux cartes : un bouton dans la barre (js/atelier/affichage-popover.js).
+  affichage: { lire: () => r, surChangement: () => { rendre(); ctx.univers.redessinerGrille(); } },
 });
 ctx.univers.surChangement(() => {
   if (!ctx.univers.ouvert()) { ctx.coquille.rafraichir(); return; }
