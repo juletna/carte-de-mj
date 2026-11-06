@@ -10,7 +10,7 @@
  * Rien ici ne retire une destination en silence : un lieu ou un donjon supprimé laisse des points orphelins, signalés.
  *
  * La carte n'a pas d'outil à choisir pour ses points (`mode()` : 'carte') : un clic dans le vide pose un point et ouvre sa bulle, accrochée à lui,
- * le nom prêt à taper (Entrée : fini ; pendant qu'on enchaîne des points neufs, le clic suivant pose le suivant) ; un clic sur un point ouvre sa
+ * le nom prêt à taper (Entrée : fini ; un clic hors d'une bulle ouverte la referme seulement, sans poser de point) ; un clic sur un point ouvre sa
  * bulle (nom, destination, visible, Entrer, Supprimer ; contenu fourni par `definirBulle`), le glisser le déplace, Échap ferme la bulle, Suppr
  * supprime le point (« Annuler » le remet). Le panneau de droite ne change donc pas quand on choisit un point. Seul le calage est un mode.
  * Sous 760 px, pas de bulle : le point choisi devient la sélection commune de la coquille (type 'point', le panneau bas) ; `surPoint(f)`
@@ -43,7 +43,6 @@ export function creerUniversUI(ctx) {
   let lieuId = null;        // lieu affiché
   let fil = [];             // lieux traversés pour y arriver (fil d'Ariane), lieu affiché compris
   let pointId = null;       // point choisi (son inspecteur est ouvert)
-  let pointNeuf = null;     // le point qu'on vient de poser : tant que sa bulle est ouverte, un clic dans le vide pose le suivant
   let focusApres = null;    // le point à qui rendre le focus clavier au prochain dessin de la carte
   let contenuBulle = null;  // (conteneur, point, univers) → remplit la bulle d'un point (js/atelier/inspecteurs-monde.js, `definirBulle`)
   let sequence = 0;         // pour ignorer une URL d'image qui arrive après un changement de lieu
@@ -84,15 +83,14 @@ export function creerUniversUI(ctx) {
       const maintenant = Date.now();
       const double = dernierClic.id === id && maintenant - dernierClic.t < DELAI_DOUBLE_CLIC;
       dernierClic = { id, t: double ? 0 : maintenant };
-      if (id !== pointNeuf) pointNeuf = null;
       selectionner(id);
       if (double) entrerDansPoint(); else rendre();
     },
-    // Poser un point est le geste principal : un clic dans le vide le fait. Seule exception, la bulle d'un point déjà là (ouvert pour le
-    // modifier) : ce clic la referme d'abord. Pendant qu'on enchaîne des points neufs, chaque clic pose le suivant.
+    // Poser un point est le geste principal : un clic dans le vide le fait. Mais une bulle ouverte se referme d'abord, comme toute bulle :
+    // ce clic-là ne pose rien (le suivant, si). Pour enchaîner : clic, nom, Entrée, clic…
     onVide: (x, y) => {
       if (calage.actif()) return;
-      if (bulleOuverte() && pointId !== pointNeuf) { selectionner(null); rendre(); return; }
+      if (bulleOuverte()) { selectionner(null); rendre(); return; }
       poserPoint(x, y);
     },
     onDeplace: (id, x, y) => { modele.deplacerPoint(univ(), lieuId, id, x, y); selectionner(id); sauver(); rendre(); },
@@ -130,7 +128,6 @@ export function creerUniversUI(ctx) {
   /** Choisit (ou lâche) un point ; l'atelier est prévenu pour que l'inspecteur suive. */
   function selectionner(id) {
     if (id !== pointId) { saisie.choixGenre = null; saisie.cle = null; }
-    if (!id) pointNeuf = null;
     const change = id !== pointId;
     pointId = id;
     if (change) surPoint?.(id);
@@ -279,7 +276,7 @@ export function creerUniversUI(ctx) {
   function poserPoint(x, y) {
     try {
       const p = modele.ajouterPoint(univ(), lieuId, { x, y, nom: '' });
-      selectionner(p.id); pointNeuf = p.id; saisie.cle = 'nom';
+      selectionner(p.id); saisie.cle = 'nom';
       sauver(); rendre();
     } catch (err) { dire(err.message, { erreur: true }); }
   }
@@ -539,7 +536,6 @@ export function creerUniversUI(ctx) {
       if (id === pointId) return;
       if (id !== pointId) { saisie.choixGenre = null; saisie.cle = null; }
       pointId = id;
-      if (!id) pointNeuf = null;
       if (ouvertEcran) { rendreCarte(); rendreBulle(); }
     },
     creerMondeNeuf, renommerMonde, supprimerLeMonde, exporterMonde, importerMonde, importerMondeLu,
