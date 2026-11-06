@@ -7,6 +7,7 @@ import { kpDeSalle, kpObjets, kpObjetsEn, KP_OBJETS_MAX, vueDeSalle, haut, echel
 import { MARGE } from '../js/rendu/geometrie.js';
 import { segmentsDeMurs } from '../js/rendu/themes/peint/segments.js';
 import { SOLS_PEINTS, PERIODE, couleurSol, calculerTuile, cleTuile, resolutionTuile, RESOLUTION_MIN, RESOLUTION_MAX, CASES_PAR_TUILE } from '../js/rendu/themes/peint/sols.js';
+import { SOLS_RELIEF, calculerTuileRelief } from '../js/rendu/themes/peint/sols-relief.js';
 import { h2, vbp, fbmp, voroP, alea, graineDeTexte } from '../js/rendu/themes/peint/bruit.js';
 import { creerVolumes, volumesLocaux } from '../js/rendu/themes/peint/volumes.js';
 import { graineDePlan, idPublic } from '../js/rendu/graine.js';
@@ -215,6 +216,19 @@ const TESTS = [
           proche(a[c], loin[c], `${nom} canal ${c} : de plusieurs périodes`, 1e-6);
         }
       }
+    }
+  }],
+  ['sols en relief (prototype) : périodiques eux aussi, et la tuile est opaque et de la bonne taille', () => {
+    const tirage = alea(11), a = [0, 0, 0], d = [0, 0, 0], b = [0, 0, 0];
+    for (const [nom, def] of Object.entries(SOLS_RELIEF)) {
+      for (let i = 0; i < 40; i++) {
+        const X = 3 + tirage() * (PERIODE - 6), Y = 3 + tirage() * (PERIODE - 6);
+        def.fn(X, Y, def.o, a); def.fn(X + PERIODE, Y, def.o, d); def.fn(X, Y - 2 * PERIODE, def.o, b);
+        for (let c = 0; c < 3; c++) { proche(a[c], d[c], `${nom} canal ${c} : vers la droite`, 1e-6); proche(a[c], b[c], `${nom} canal ${c} : vers le haut`, 1e-6); }
+      }
+      const { cote, data } = calculerTuileRelief(nom, RESOLUTION_MIN);
+      egal(cote, CASES_PAR_TUILE * RESOLUTION_MIN, `${nom} : côté de la tuile`);
+      verifier(data.every((v, i) => i % 4 !== 3 || v === 255), `${nom} : tuile opaque`);
     }
   }],
   ['bruits périodiques : indices de réseau pris modulo la période', () => {

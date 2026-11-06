@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Comparaison des sols</title>
+<style>
+  :root { color-scheme: dark; --fond: #1b1d1f; --texte: #e8e4dc; --doux: #a29d93; --accent: #e0b450; }
+  body { margin: 0; padding: 16px; background: var(--fond); color: var(--texte); font: 15px/1.4 system-ui, sans-serif; }
+  h1 { font-size: 18px; margin: 0 0 4px; }
+  p { margin: 0 0 12px; color: var(--doux); }
+  .reglages { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; margin-bottom: 16px; }
+  label { display: flex; gap: 6px; align-items: center; }
+  .cotes { display: flex; flex-wrap: wrap; gap: 16px; }
+  figure { margin: 0; }
+  figcaption { margin-bottom: 6px; font-weight: 600; }
+  figcaption span { font-weight: 400; color: var(--doux); }
+  canvas { display: block; max-width: 100%; border: 1px solid #333; }
+</style>
+</head>
+<body>
+<h1>Sol de pierre : actuel ou en relief</h1>
+<p>Prototype : la même surface de 6 × 6 cases, rendue par les deux méthodes.</p>
+<div class="reglages">
+  <label>Taille d'une case
+    <select id="case"><option>48</option><option selected>96</option><option>128</option></select> px
+  </label>
+  <label><input type="checkbox" id="grille"> Grille</label>
+  <span id="temps"></span>
+</div>
+<div class="cotes">
+  <figure><figcaption>Actuel <span>(sols.js)</span></figcaption><canvas id="actuel"></canvas></figure>
+  <figure><figcaption>En relief <span>(sols-relief.js)</span></figcaption><canvas id="relief"></canvas></figure>
+</div>
+<script type="module">
+import { calculerTuile } from '../js/rendu/themes/peint/sols.js';
+import { calculerTuileRelief } from '../js/rendu/themes/peint/sols-relief.js';
+
+const CASES = 6;
+const choixCase = document.getElementById('case'), choixGrille = document.getElementById('grille'), temps = document.getElementById('temps');
+
+function toileDe({ cote, data }) {
+  const c = document.createElement('canvas');
+  c.width = c.height = cote;
+  const g = c.getContext('2d'), img = g.createImageData(cote, cote);
+  img.data.set(data);
+  g.putImageData(img, 0, 0);
+  return c;
+}
+
+function peindre(id, tuile, t) {
+  const c = document.getElementById(id), g = c.getContext('2d');
+  c.width = c.height = CASES * t;
+  g.fillStyle = g.createPattern(toileDe(tuile), 'repeat');
+  g.fillRect(0, 0, c.width, c.height);
+  if (choixGrille.checked) {
+    g.strokeStyle = 'rgba(0,0,0,0.35)';
+    g.lineWidth = 1;
+    for (let i = 1; i < CASES; i++) {
+      g.beginPath(); g.moveTo(i * t + 0.5, 0); g.lineTo(i * t + 0.5, c.height); g.stroke();
+      g.beginPath(); g.moveTo(0, i * t + 0.5); g.lineTo(c.width, i * t + 0.5); g.stroke();
+    }
+  }
+}
+
+function rendre() {
+  const t = Number(choixCase.value);
+  const d0 = performance.now(), actuel = calculerTuile('pierre', t);
+  const d1 = performance.now(), relief = calculerTuileRelief('pierre', t);
+  const d2 = performance.now();
+  peindre('actuel', actuel, t);
+  peindre('relief', relief, t);
+  temps.textContent = `Calcul d'une tuile de 8 × 8 cases : ${Math.round(d1 - d0)} ms (actuel), ${Math.round(d2 - d1)} ms (relief)`;
+}
+
+choixCase.addEventListener('change', rendre);
+choixGrille.addEventListener('change', rendre);
+rendre();
+</script>
+</body>
+</html>
