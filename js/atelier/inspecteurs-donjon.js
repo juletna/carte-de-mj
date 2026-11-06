@@ -22,7 +22,7 @@ import { resumeTaille, tailleEnMetres } from './dimensions.js';
 import { creerSection } from './section.js';
 import { creerListe } from './liste.js';
 import { creerChampChoix } from './champ-choix.js';
-import { libelleSelection } from '../coordonnees.js';
+import { libelleSelection, nomCase } from '../coordonnees.js';
 import { descripteur } from '../donjon.js';
 import { telephone } from '../telephone.js';
 import { LISTES } from '../schema.js';
@@ -105,6 +105,29 @@ export function enregistrerInspecteursDonjon(coquille, ctx) {
     }).element;
   };
 
+  /** La section « Liaisons » : les salles que les portes et escaliers de celle-ci relient, en liste ; un clic va à la salle liée. */
+  const sectionLiaisons = (sel) => {
+    const d = donjonDe(sel);
+    const rangees = [];
+    for (const l of d.liaisons) {
+      const ici = l.a.salle === sel.id ? l.a : l.b.salle === sel.id ? l.b : null;
+      if (!ici) continue;
+      const autre = ici === l.a ? l.b : l.a;
+      const voisine = d.salles[autre.salle];
+      if (!voisine) continue;
+      rangees.push({
+        nom: voisine.nom, vide: 'Salle sans nom', icone: 'liaison', compacte: true,
+        position: ici.escalier ? `par l’escalier en ${nomCase(ici.x, ici.y)}` : `par la porte ${ici.mur}`,
+        titre: `Aller à « ${voisine.nom} »`,
+        surChoix: () => ctx.activerSalle(autre.salle),
+      });
+    }
+    return creerSection({
+      cle: 'donjon:salle-liaisons', titre: 'Liaisons', compte: String(rangees.length),
+      enfants: [rangees.length ? creerListe(rangees) : h('p', { className: 'note', textContent: 'Aucune porte reliée : une porte se relie à une autre salle depuis son inspecteur.' })],
+    }).element;
+  };
+
   inspecteur.enregistrer('salle', {
     titre: (sel) => donjonDe(sel).salles[sel.id]?.nom ?? 'Salle',
     renommer: renommerVia('salle-nom'),
@@ -119,6 +142,7 @@ export function enregistrerInspecteursDonjon(coquille, ctx) {
         section('salle-apparence', 'Apparence', ['bloc-apparence']),
         section('salle-description', 'Description', ['bloc-description', 'bloc-orphelines']),
         section('salle-notes', 'Notes du MJ', ['bloc-notes'], { repliee: true }),
+        sectionLiaisons(sel),
         sectionElements(sel),
         section('salle-exemples', 'Exemples', ['bloc-exemples'], { repliee: true }),
         ...(avanceDemande ? [section('salle-avance', 'Avancé', ['bloc-avance'])] : []));
