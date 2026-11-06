@@ -9,7 +9,7 @@
  *     nomCle?, nomVide?,                                    // clé de focus du champ du nom ; texte d'invite quand il est vide
  *     resume?(sel, ctx) → string,                           // une ligne sous le nom (« 3 salles · 2 personnages »)
  *     rendre(conteneur, sel, ctx),                          // remplit le corps ; rappelée à chaque changement de sélection ou de données
- *     actions?(sel, ctx) → [{ libelle, icone?, executer }], // actions courantes, en boutons en tête du corps
+ *     actions?(sel, ctx) → [{ libelle, icone?, iconeApres?, executer }], // actions courantes, en boutons en tête du corps
  *     menu?(sel, ctx) → [{ libelle, icone?, executer }],    // actions secondaires du menu « ⋯ »
  *     destructives?(sel, ctx) → [{ libelle, executer }]     // en dernier dans le menu « ⋯ », après un séparateur, en rouge
  *   });
@@ -118,6 +118,7 @@ export function creerInspecteur({ racine, ctx = () => ({}), parDefaut = () => nu
     if (a.titre) b.title = a.titre;
     const texte = h('span', { textContent: a.libelle });
     b.append(texte);
+    if (a.iconeApres) { try { b.append(icone(a.iconeApres)); } catch { /* icône inconnue : le libellé suffit */ } } // à droite du libellé (« Aller à … → »)
     const agir = () => { if (dansMenu) fermerMenu(); a.executer(); };
     if (!a.confirmation) { b.addEventListener('click', agir); return b; }
     // Avec `confirmation` : le premier clic arme la ligne (elle change de libellé et le menu reste ouvert), le second, dans les 4 secondes, agit.

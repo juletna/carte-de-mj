@@ -28,6 +28,7 @@ export const ICONES = {
   fermer: '<path d="M6 6l12 12M18 6L6 18"/>',
   'plus-d-actions': '<circle cx="5.5" cy="12" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="18.5" cy="12" r="1.2" fill="currentColor"/>',
   retour: '<path d="M20 12H5M11 6l-6 6 6 6"/>',
+  'fleche-droite': '<path d="M5 12h14M13 6l6 6-6 6"/>',
   remonter: '<path d="M12 20V5M6 11l6-6 6 6"/>',
   micro: '<rect x="9" y="3.5" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v2.5M8.5 20.5h7"/>',
   stop: '<rect x="6.5" y="6.5" width="11" height="11" rx="1.5"/>',
