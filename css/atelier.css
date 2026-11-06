@@ -106,8 +106,13 @@ body.atelier-avec-inspecteur { --largeur-inspecteur: 330px; }
 .atelier-affichage-titre { margin: 0; font-weight: 600; }
 .atelier-affichage-groupe { display: flex; flex-direction: column; gap: var(--esp-2); }
 .atelier-affichage-sous-titre { margin: 0; color: var(--texte-doux); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
-/* L'interrupteur de la grille : le composant « univers-interrupteur » (css/univers.css), sans doré. */
-.atelier-affichage-interrupteur { justify-content: flex-start; }
+/* La grille : un bouton direct (pressé = visible, sans doré) collé à son chevron ; le panneau d'opacité s'ouvre dessous. */
+.atelier-grille { display: flex; align-items: center; }
+.atelier-grille-bouton { border-radius: var(--rayon) 0 0 var(--rayon); }
+.atelier-grille-chevron { border-radius: 0 var(--rayon) var(--rayon) 0; width: 28px; padding: 0; }
+.atelier-grille-bouton[aria-pressed="true"] { background: var(--champ); color: var(--texte); }
+.atelier-grille-bouton[aria-pressed="false"] { color: var(--texte-doux); }
+.atelier-grille-panneau { width: 260px; }
 .atelier-affichage-ligne { display: grid; grid-template-columns: 1fr auto; gap: var(--esp-1) var(--esp-2); align-items: center; font-size: 13px; }
 .atelier-affichage-ligne > span:first-child { grid-column: 1 / -1; }
 .atelier-affichage-ligne input[type="range"] { grid-column: 1; width: 100%; min-height: var(--cible); }

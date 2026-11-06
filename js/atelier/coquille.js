@@ -132,7 +132,7 @@ export function creerCoquille({
   // Le bout droit de la ligne : « Affichage », puis ce que la page y range (le bouton doré « Jouer »).
   const barreFin = h('div', { className: 'atelier-barre-fin' });
   barreOutils.append(barreFin);
-  if (affichagePopover) barreFin.append(affichagePopover.element);
+  if (affichagePopover) barreFin.append(affichagePopover.elementGrille, affichagePopover.element);
 
   racine.prepend(colonneArbre, voile);
   racine.append(colonneInspecteur);

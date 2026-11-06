@@ -2,14 +2,14 @@
  * L'AFFICHAGE est UNE préférence, commune aux salles de donjon, aux cartes image et à la régie, réglable à tout moment : les champs de
  * carte-de-mj:reglages-v1 (aucune nouvelle clé). Un seul contrôle les règle, le bouton « Affichage » de la barre d'outils de la scène
  * (js/atelier/coquille.js, option `affichage`) : un popover, le même en Préparer et en Jouer, avec
- *   Grille          interrupteur Afficher / Masquer et opacité des lignes (`cases`, 0–100 %) ;
+ *   Grille          (bouton direct à côté, `elementGrille`) afficher / masquer d'un clic, et le chevron : opacité des lignes (`cases`, 0–100 %) ;
  *   Carte           thème (peint / vectoriel), détails des sols (riches / sobres), relief des murs ;
  *   À la table      pénombre (0–100 %), flammes animées, repères de cases (A, B… et 1, 2…).
  * Ce qui touche à la table physique (mode remplir / échelle réelle, rotation, miroir, calibrage, mini-carte, défilement) reste dans l'onglet
  * Table de la régie ; l'échelle (m par case) reste dans l'inspecteur du donjon, car elle sert à écrire et à créer les salles.
  *
  *   const a = creerAffichagePopover({ lire: () => r, surChangement: () => { sauver; redessiner; diffuser } });
- *   a.element  le bouton et son popover (à poser dans la barre) ; a.maj()  relit `lire()` ; a.fermer()
+ *   a.element  le bouton et son popover ; a.elementGrille  le bouton de grille et son chevron (à poser dans la barre) ; a.maj()  relit `lire()` ; a.fermer()
  *
  * `lire()` rend l'objet des réglages de la page : un contrôle y écrit (une valeur par défaut n'est pas écrite, voir stockage.js), puis appelle
  * `surChangement`. Sous 760 px, le popover est une feuille du bas aux cibles de 44 px (css/atelier.css).
@@ -71,10 +71,7 @@ export function appliquerRendu(r, champ, valeur) {
 
 export function creerAffichagePopover({ lire, surChangement }) {
   let derniere = 0; // la dernière opacité visible vue ici ; `casesAvant` (réglages) la garde d'une page à l'autre
-  const bouton = h('button', { type: 'button', className: 'btn btn-icone btn-discret atelier-affichage-bouton', 'aria-label': 'Affichage', title: 'Affichage : grille, thème, détails, relief, pénombre, flammes, repères', 'aria-haspopup': 'dialog', 'aria-expanded': 'false' }, icone('affichage'));
-  // Le même interrupteur que « Départ de la partie » (css/univers.css) : une glissière, et le libellé à côté.
-  const interrupteur = h('input', { type: 'checkbox', role: 'switch', checked: true, 'aria-label': 'Afficher la grille' });
-  const interrupteurLigne = h('label', { className: 'univers-interrupteur atelier-affichage-interrupteur' }, interrupteur, h('span', { className: 'univers-glissiere', 'aria-hidden': 'true' }), h('span', { textContent: 'Afficher la grille' }));
+  const bouton = h('button', { type: 'button', className: 'btn btn-icone btn-discret atelier-affichage-bouton', 'aria-label': 'Affichage', title: 'Affichage : thème, détails, relief, pénombre, flammes, repères', 'aria-haspopup': 'dialog', 'aria-expanded': 'false' }, icone('affichage'));
   const curseur = h('input', { type: 'range', min: '0', max: '100', step: '5', id: 'cases', 'aria-label': 'Opacité des lignes de la grille' });
   const valeur = h('output', { className: 'atelier-affichage-valeur' });
   const theme = h('select', { id: 'theme' }, h('option', { value: 'peint', textContent: 'Peint' }), h('option', { value: 'vectoriel', textContent: 'Vectoriel' }));
@@ -93,16 +90,23 @@ export function creerAffichagePopover({ lire, surChangement }) {
     groupe('À la table',
       h('label', { className: 'atelier-affichage-ligne', title: 'Obscurité de la salle à la table. La vue du MJ n’en garde qu’une part, pour tout voir.' },
         h('span', { textContent: 'Pénombre' }), penombre, penombreVal),
-      caseACocher('Flammes animées', flammes), caseACocher('Repères (A, B… et 1, 2…)', reperes)),
-    groupe('Grille', interrupteurLigne,
-      h('label', { className: 'atelier-affichage-ligne' }, h('span', { textContent: 'Opacité des lignes' }), curseur, valeur)));
+      caseACocher('Flammes animées', flammes), caseACocher('Repères (A, B… et 1, 2…)', reperes)));
   const racine = h('div', { className: 'atelier-affichage' }, bouton, panneau);
+
+  // La grille : un bouton direct (afficher / masquer, en temps réel) et, à côté, un chevron qui ouvre l'opacité des lignes.
+  const boutonGrille = h('button', { type: 'button', className: 'btn btn-icone btn-discret atelier-grille-bouton', 'aria-label': 'Afficher la grille', title: 'Afficher ou masquer la grille', 'aria-pressed': 'true' }, icone('grille'));
+  const chevronGrille = h('button', { type: 'button', className: 'btn btn-icone btn-discret atelier-grille-chevron', 'aria-label': 'Réglages de la grille', title: 'Réglages de la grille', 'aria-haspopup': 'dialog', 'aria-expanded': 'false' }, icone('chevron-bas'));
+  const panneauGrille = h('div', { className: 'atelier-affichage-panneau atelier-grille-panneau', role: 'dialog', 'aria-label': 'Grille', hidden: true },
+    h('p', { className: 'atelier-affichage-titre', textContent: 'Grille' }),
+    h('label', { className: 'atelier-affichage-ligne' }, h('span', { textContent: 'Opacité des lignes' }), curseur, valeur));
+  const racineGrille = h('div', { className: 'atelier-affichage atelier-grille' }, boutonGrille, chevronGrille, panneauGrille);
 
   function maj() {
     const r = lire() ?? {};
     const n = casesDeReglages(r);
     if (n > 0) derniere = n;
-    interrupteur.checked = n > 0;
+    boutonGrille.setAttribute('aria-pressed', String(n > 0));
+    boutonGrille.title = n > 0 ? 'Masquer la grille' : 'Afficher la grille';
     curseur.value = String(n);
     valeur.textContent = `${n} %`;
     theme.value = themeDeReglages(r);
@@ -116,14 +120,23 @@ export function creerAffichagePopover({ lire, surChangement }) {
   function ecrire(v) { appliquerCases(lire(), v); maj(); surChangement(); }
   /** Un réglage de rendu : écrit dans les réglages de la page, les contrôles se remettent d'accord, la page enregistre et redessine. */
   function ecrireRendu(champ, v) { appliquerRendu(lire(), champ, v); maj(); surChangement(); }
-  function ouvrir() { maj(); panneau.hidden = false; bouton.setAttribute('aria-expanded', 'true'); }
+  function ouvrir() { fermerGrille(); maj(); panneau.hidden = false; bouton.setAttribute('aria-expanded', 'true'); }
   function fermer({ rendreFocus = false } = {}) {
     if (panneau.hidden) return;
     panneau.hidden = true; bouton.setAttribute('aria-expanded', 'false');
     if (rendreFocus) bouton.focus();
   }
   bouton.addEventListener('click', () => { if (panneau.hidden) ouvrir(); else fermer(); });
-  interrupteur.addEventListener('change', () => ecrire(casesApresBascule(lire() ?? {}, derniere)));
+  function fermerGrille({ rendreFocus = false } = {}) {
+    if (panneauGrille.hidden) return;
+    panneauGrille.hidden = true; chevronGrille.setAttribute('aria-expanded', 'false');
+    if (rendreFocus) chevronGrille.focus();
+  }
+  chevronGrille.addEventListener('click', () => {
+    if (!panneauGrille.hidden) { fermerGrille(); return; }
+    fermer(); maj(); panneauGrille.hidden = false; chevronGrille.setAttribute('aria-expanded', 'true');
+  });
+  boutonGrille.addEventListener('click', () => ecrire(casesApresBascule(lire() ?? {}, derniere)));
   curseur.addEventListener('input', () => ecrire(curseur.value));
   theme.addEventListener('change', () => ecrireRendu('theme', theme.value));
   details.addEventListener('change', () => ecrireRendu('details', details.value));
@@ -131,8 +144,12 @@ export function creerAffichagePopover({ lire, surChangement }) {
   penombre.addEventListener('input', () => ecrireRendu('penombre', penombre.value));
   flammes.addEventListener('change', () => ecrireRendu('flammes', flammes.checked));
   reperes.addEventListener('change', () => ecrireRendu('reperes', reperes.checked));
-  document.addEventListener('pointerdown', (e) => { if (!panneau.hidden && !racine.contains(e.target)) fermer(); });
+  document.addEventListener('pointerdown', (e) => {
+    if (!panneau.hidden && !racine.contains(e.target)) fermer();
+    if (!panneauGrille.hidden && !racineGrille.contains(e.target)) fermerGrille();
+  });
   racine.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !panneau.hidden) { e.preventDefault(); e.stopPropagation(); fermer({ rendreFocus: true }); } });
+  racineGrille.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !panneauGrille.hidden) { e.preventDefault(); e.stopPropagation(); fermerGrille({ rendreFocus: true }); } });
   maj();
-  return { bouton, element: racine, maj, fermer };
+  return { bouton, element: racine, elementGrille: racineGrille, maj, fermer: (o) => { fermer(o); fermerGrille(); } };
 }
