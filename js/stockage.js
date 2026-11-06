@@ -10,6 +10,8 @@
  *   dd-fiche-personnages-v1   { actif, persos }  (outil Fiche : lue ici seulement, jamais écrite)
  *   carte-de-mj:regie-retrait-v1  { partie }  (dans le sessionStorage, propre à l'onglet : régie en retrait, voir commande-table.js)
  *   carte-de-mj:mis-de-cote-v1    { entrees: [{ cle, le, raison, valeur }] }  (copies de ce qui ne se relit pas : voir « Mise de côté »)
+ *   carte-de-mj:univers-v1    { actif, univers: { <id>: univers } }  (univers de cartes imbriquées : voir univers.js)
+ *   carte-de-mj:univers-parties-v1  { parties: { <idUnivers>: partie } }  (où en est la table dans chaque univers : voir univers-partie.js)
  *   jdr-carte:v1              ANCIENNE clé (une salle) : lue une fois pour la migration, jamais supprimée
  *
  * Rien de ce qui est enregistré ne se perd en silence : un donjon ou un modèle qui ne se relit pas (écrit par une version plus
@@ -26,12 +28,16 @@ import { CLE_FICHES } from './fiche/format.js';
 import { TAILLE_PAR_DEFAUT, ECHELLE_PAR_DEFAUT, MODES_TABLE, tailleReglable, ROTATIONS_TABLE, caseMmValide, casesValides, THEMES_RENDU, THEME_PAR_DEFAUT, PENOMBRE_PAR_DEFAUT, penombreValide } from './affichage.js';
 import { sansAccents, estObjet } from './format.js';
 import { CLE_MIS_DE_COTE, lireBrut, ecrireJson, mettreDeCote } from './mise-de-cote.js';
+import { validerUnivers } from './univers-validation.js';
+import { validerPartieUnivers } from './univers-partie.js';
 
 export const CLE_DONJONS = 'carte-de-mj:donjons-v1';
 export const CLE_REGLAGES = 'carte-de-mj:reglages-v1';
 export const CLE_PRESENTATIONS = 'carte-de-mj:presentations-v1';
 export const CLE_PARTIE_OUVERTE = 'carte-de-mj:partie-ouverte-v1';
 export const CLE_MODELES = 'carte-de-mj:modeles-v1';
+export const CLE_UNIVERS = 'carte-de-mj:univers-v1';
+export const CLE_UNIVERS_PARTIES = 'carte-de-mj:univers-parties-v1';
 export { CLE_FICHES };
 export const CLE_RETRAIT = 'carte-de-mj:regie-retrait-v1';
 export { CLE_MIS_DE_COTE };
@@ -117,7 +123,7 @@ export function misDeCote(stock = stockParDefaut()) {
   return Array.isArray(entrees) ? entrees : [];
 }
 /** Ce qu'une copie était, d'après la clé d'où elle vient. */
-export const libelleCopie = (cle) => ({ [CLE_DONJONS]: 'Donjon', [CLE_MODELES]: 'Modèle', [CLE_PRESENTATIONS]: 'Partie', [CLE_FICHES]: 'Fiche' })[cle] || 'Donnée';
+export const libelleCopie = (cle) => ({ [CLE_DONJONS]: 'Donjon', [CLE_MODELES]: 'Modèle', [CLE_PRESENTATIONS]: 'Partie', [CLE_UNIVERS]: 'Univers', [CLE_UNIVERS_PARTIES]: 'Partie d’univers', [CLE_FICHES]: 'Fiche' })[cle] || 'Donnée';
 /** Le contenu d'une copie, tel qu'il sera téléchargé : un texte illisible reste ce texte, le reste est du JSON. */
 export const texteCopie = ({ valeur }) => (typeof valeur === 'string' ? valeur : JSON.stringify(valeur, null, 2));
 export const nomCopie = ({ cle, le, valeur }) => `copie-${sansAccents(libelleCopie(cle))}-${String(le).slice(0, 10)}.${typeof valeur === 'string' ? 'txt' : 'json'}`;
@@ -235,6 +241,74 @@ export function supprimerPartie(idDonjon, stock = stockParDefaut()) {
 export function empreintePartie(idDonjon, stock = stockParDefaut()) {
   const toutes = presentationsBrutes(stock);
   return Object.prototype.hasOwnProperty.call(toutes, idDonjon) ? JSON.stringify(toutes[idDonjon]) : null;
+}
+
+// --- Univers de cartes imbriquées (js/univers.js, js/univers-partie.js) ---------------------
+
+/** Relit une clé qui contient un dictionnaire d'éléments (`champ`), un par entrée, sans rien écrire : { elements, ecartes }. `valider(brut)` rend { x, erreurs, avertissements }. */
+function relireDictionnaire(stock, cle, champ, valider) {
+  const { texte, brut } = lireBrut(stock, cle);
+  if (texte === null || brut === null) return { brut, elements: [], ecartes: [] };
+  if (brut === undefined) return { brut, elements: [], ecartes: [{ valeur: texte, raison: 'texte illisible' }] };
+  if (!estObjet(brut) || !estObjet(brut[champ])) return { brut, elements: [], ecartes: [{ valeur: brut, raison: 'forme inconnue' }] };
+  const elements = [], ecartes = [];
+  for (const e of Object.values(brut[champ])) {
+    const v = valider(e);
+    if (v.x) {
+      elements.push(v.x);
+      if (v.avertissements.length) ecartes.push({ valeur: e, raison: v.avertissements.join(' · ') });
+    } else ecartes.push({ valeur: e, raison: v.erreurs.join(' · ') });
+  }
+  return { brut, elements, ecartes };
+}
+const lireUniversEnregistres = (stock) => {
+  const { brut, elements, ecartes } = relireDictionnaire(stock, CLE_UNIVERS, 'univers', (e) => { const v = validerUnivers(e); return { ...v, x: v.univers }; });
+  const univers = {};
+  for (const u of elements) { if (u.id in univers) ecartes.push({ valeur: univers[u.id], raison: 'identifiant déjà pris par un autre univers' }); univers[u.id] = u; }
+  const ids = Object.keys(univers);
+  return { etat: ids.length ? { actif: ids.includes(brut?.actif) ? brut.actif : ids[0], univers } : null, ecartes };
+};
+/**
+ * Les univers enregistrés, validés un à un : { actif, univers: { <id>: univers } } ou null s'il n'y en a pas.
+ * Même règle de mise de côté que les donjons : ce qui ne se relit pas (en entier) est copié AVANT que la clé soit réécrite ;
+ * si la copie échoue, la clé n'est plus écrite de la session. `miseDeCote` : null si tout se relisait, sinon { nombre, ok }.
+ */
+export function chargerUnivers(stock = stockParDefaut()) {
+  const { etat, ecartes } = lireUniversEnregistres(stock);
+  let miseDeCote = null;
+  if (ecartes.length) {
+    const ok = mettreDeCote(stock, CLE_UNIVERS, ecartes);
+    if (!ok) verrouiller(stock, CLE_UNIVERS);
+    miseDeCote = { nombre: ecartes.length, ok };
+  }
+  return { etat, miseDeCote };
+}
+/** Enregistre les univers. Faux (rien n'est écrit) si ce qui ne se relisait pas n'a pas pu être mis de côté au chargement. */
+export const sauverUnivers = (etat, stock = stockParDefaut()) => !verrouillee(stock, CLE_UNIVERS) && ecrireJson(stock, CLE_UNIVERS, { actif: etat.actif, univers: etat.univers });
+
+const lirePartiesUnivers = (stock) => {
+  const { elements, ecartes } = relireDictionnaire(stock, CLE_UNIVERS_PARTIES, 'parties', (e) => { const v = validerPartieUnivers(e); return { ...v, x: v.partie }; });
+  const parties = {};
+  for (const p of elements) parties[p.univers] = p;
+  return { parties, ecartes };
+};
+/** Les parties d'univers enregistrées : { <idUnivers>: partie }. Ne modifie rien. */
+export const chargerPartiesUnivers = (stock = stockParDefaut()) => lirePartiesUnivers(stock).parties;
+const partiesUniversBrutes = (stock) => {
+  const toutes = lireJson(stock, CLE_UNIVERS_PARTIES)?.parties;
+  return toutes && typeof toutes === 'object' ? toutes : {};
+};
+/** Met de côté les parties d'univers qui ne se relisent pas en entier : null si tout se relit, sinon { nombre, ok }. */
+export function mettreDeCotePartiesUnivers(stock = stockParDefaut()) {
+  const { ecartes } = lirePartiesUnivers(stock);
+  return ecartes.length ? { nombre: ecartes.length, ok: mettreDeCote(stock, CLE_UNIVERS_PARTIES, ecartes) } : null;
+}
+/** Enregistre une partie d'univers sur ce qui est enregistré à cet instant (plusieurs régies peuvent être ouvertes). Faux si rien n'a été écrit. */
+export const enregistrerPartieUnivers = (p, stock = stockParDefaut()) => (mettreDeCotePartiesUnivers(stock)?.ok ?? true) && ecrireJson(stock, CLE_UNIVERS_PARTIES, { parties: { ...partiesUniversBrutes(stock), [p.univers]: p } });
+export function supprimerPartieUnivers(idUnivers, stock = stockParDefaut()) {
+  if (!(mettreDeCotePartiesUnivers(stock)?.ok ?? true)) return false;
+  const { [idUnivers]: _s, ...reste } = partiesUniversBrutes(stock);
+  return ecrireJson(stock, CLE_UNIVERS_PARTIES, { parties: reste });
 }
 
 /** Les fiches de l'outil Fiche dans ce navigateur : [{ source, fiche }]. Rien n'y est jamais écrit depuis le Donjon. */
