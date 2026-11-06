@@ -20,7 +20,7 @@ import { volumesLocaux } from './volumes.js';
 import { etat } from './etat.js';
 import { alea, graineDeTexte } from './bruit.js';
 import { chemin, cercle, encre, trait, dl, dr, ton, centre, rectPts, arrondi, ENCRE } from './trait.js';
-import { sensDuCoin } from '../commun.js';
+import { sensDuCoin, enLong } from '../commun.js';
 import { DESSINS as DETAILS } from './details.js';
 import * as vectoriel from '../vectoriel.js';
 import { RICHES } from './objets-dessines.js';
@@ -697,6 +697,8 @@ const sobres = {
   inconnu: vectoriel.objets.inconnu,
 };
 
+const TYPES_EN_LONG = new Set(['autel']);
+
 /**
  * Les dessins d'objets du thème. Le réglage « Détails des sols » ('riches' par défaut, `etat.details`) choisit le style : 'riches' passe par
  * `RICHES[type]` (objets-dessines.js) quand l'objet en a une version ; sinon, et toujours en 'sobres', c'est le dessin historique ci-dessus,
@@ -704,6 +706,6 @@ const sobres = {
  */
 export const objets = Object.fromEntries(Object.keys(sobres).map((type) => [type, (ctx, w, h, t, o, plan) => {
   const riche = etat.details === 'riches' ? RICHES[type] : undefined;
-  if (riche) return riche(ctx, w, h, t, o, plan);
-  return (etatPeint(false, type, o) ?? sobres[type])(ctx, w, h, t, o, plan); // une variante (coffre ouvert…) : objets-etats.js ; sinon le dessin d'origine, tel quel
+  const dessin = riche ?? etatPeint(false, type, o) ?? sobres[type]; // une variante (coffre ouvert…) : objets-etats.js ; sinon le dessin d'origine, tel quel
+  return TYPES_EN_LONG.has(type) ? enLong(dessin)(ctx, w, h, t, o, plan) : dessin(ctx, w, h, t, o, plan);
 }]));

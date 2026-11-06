@@ -12,7 +12,7 @@
 import { varianteDe, varianteParDefaut } from '../../../catalogue.js';
 import { chemin, encre, trait, dl, rectPts, centre, ENCRE } from './trait.js';
 import {
-  preparerObjet, face, poly, milieu, COTES, traits, bande, rocher,
+  preparerObjet, face, poly, milieu, ordonner, COTES, traits, bande, rocher,
   PIERRE, PIERRE_SOMBRE, MARBRE, BOIS, BOIS_SOMBRE, BOIS_CLAIR,
 } from './objets.js';
 import { BRIQUES as B } from './objets-dessines.js';
@@ -141,8 +141,19 @@ function tasDOr(ctx, V, r, K, x, y, w, h, z, R) {
 
 /** Le coffre sans son couvercle fermé : le corps ouvert (intérieur sombre, planches du fond) et le couvercle relevé contre le dos, doublé de velours. */
 function coffreOuvert(K, vide) {
-  return (ctx, w, h, t, o) => {
+  /** `plat` : sans relief (KP = 0), un couvercle relevé ne se verrait pas : il est alors dessiné à plat derrière le coffre (côté mur, −y), vu du dessus. */
+  const corps = (ctx, w, h, t, o, plat) => {
     const { V, r } = preparerObjet(ctx, o), cw = w * 0.8, ch = h * 0.6, x = -cw / 2, y = -ch / 2, m = t * 0.07, e = 0.17;
+    if (plat) {
+      const ld = t * 0.24, ly = y - t * 0.03 - ld; // le couvercle ouvert à plat : planches, doublure de velours à l'intérieur, deux ferrures et leurs clous
+      K.poly2(ctx, rectPts(x, ly, cw, ld), K.pal.bois, K.riche ? 1.2 : 1);
+      K.poly2(ctx, rectPts(x + m * 0.8, ly + m * 0.8, cw - 1.6 * m, ld - 1.6 * m), K.pal.velours, 0.6);
+      for (const u of [0.2, 0.8]) {
+        K.ligne(ctx, [[x + cw * u, ly], [x + cw * u, ly + ld]], K.pal.fer, K.riche ? 3.4 : 3);
+        for (const dy of [0.2, 0.8]) K.disque(ctx, x + cw * u, ly + ld * dy, Math.max(1, t * 0.016), K.pal.ferClair, 0.4);
+      }
+      K.ligne(ctx, [[x + cw * 0.08, ly + ld * 0.5], [x + cw * 0.92, ly + ld * 0.5]], 'rgba(255,230,200,0.3)', 1);
+    }
     K.bloc(ctx, V, r, rectPts(x, y, cw, ch), 0, e, 'bois', () => {
       K.poly2(ctx, rectPts(x + m, y + m, cw - 2 * m, ch - 2 * m), K.pal.fond, K.ep);
       K.poly2(ctx, rectPts(x + m, y + m, cw - 2 * m, ch * 0.2), K.pal.paroi, 0.5);
@@ -152,15 +163,17 @@ function coffreOuvert(K, vide) {
     });
     K.faces(ctx, V, r, x, y, cw, ch, 0, e, 3);
     K.bandes(ctx, V, x, y, cw, ch, 0, e);
-    // Le couvercle, relevé : un panneau debout contre le dos, sa face interne (doublée de velours) tournée vers le centre.
+    // Le couvercle, relevé : un panneau debout contre le dos, sa face interne (doublée de velours) tournée vers le centre (sans relief : voir `plat`).
     const th = ch * 0.16, z1 = 0.5;
-    K.bloc(ctx, V, r, rectPts(x, y, cw, th), e, z1, 'boisClair', () => {
-      for (const u of [0.2, 0.8]) K.ligne(ctx, [[x + cw * (u - 0.05), y], [x + cw * (u - 0.05), y + th]], K.pal.fer, 2.4);
-    });
-    const F = face(V, x, y, cw, th, 'sud');
-    if (F.visible) {
-      K.bandeUnie(ctx, F, 0.05, 0.95, e + 0.03, z1 - 0.03, K.pal.velours);
-      for (const u of [0.2, 0.8]) K.bandeUnie(ctx, F, u - 0.045, u + 0.045, e + 0.01, z1 - 0.01, K.pal.fer);
+    if (!plat) {
+      K.bloc(ctx, V, r, rectPts(x, y, cw, th), e, z1, 'boisClair', () => {
+        for (const u of [0.2, 0.8]) K.ligne(ctx, [[x + cw * (u - 0.05), y], [x + cw * (u - 0.05), y + th]], K.pal.fer, 2.4);
+      });
+      const F = face(V, x, y, cw, th, 'sud');
+      if (F.visible) {
+        K.bandeUnie(ctx, F, 0.05, 0.95, e + 0.03, z1 - 0.03, K.pal.velours);
+        for (const u of [0.2, 0.8]) K.bandeUnie(ctx, F, u - 0.045, u + 0.045, e + 0.01, z1 - 0.01, K.pal.fer);
+      }
     }
     if (vide) { // vide : une seule pièce oubliée au fond, un peu de poussière
       V.auNiveau(ctx, e + 0.004, () => K.piece(ctx, x + cw * 0.7, y + ch * 0.62, t * 0.04));
@@ -168,6 +181,12 @@ function coffreOuvert(K, vide) {
     }
     tasDOr(ctx, V, r, K, x + m * 1.5, y + ch * 0.28, cw - 3 * m, ch * 0.62, e + 0.01, t * 0.05);
     for (let i = 0; i < 4; i++) K.piece(ctx, x + cw * (0.2 + 0.2 * i) + (r() - 0.5) * 3, y + ch + t * (0.05 + 0.04 * r()), t * 0.045); // ce qui a débordé sur le sol
+  };
+  return (ctx, w, h, t, o) => {
+    if (preparerObjet(ctx, o).V.KP > 0) return corps(ctx, w, h, t, o, false);
+    ctx.save(); ctx.translate(0, t * 0.07); // sans relief : le coffre descend un peu pour laisser la place du couvercle à plat, côté mur
+    corps(ctx, w, h, t, o, true);
+    ctx.restore();
   };
 }
 
@@ -380,76 +399,112 @@ function sarcophageOuvert(K) {
       const [cx, cy] = A(0.1, 0); crane(ctx, K, cx, cy, Math.min(sw, sh) * 0.13);
     });
     for (const c of COTES) { const F = face(V, x, y, sw, sh, c); if (K.riche) { B.joints(ctx, F, 0, 0.14, 2, 3); B.aretes(ctx, V, F, c, 0, 0.2, 0.05); } else traits(ctx, F, 0, 0.2, 3, 'rgba(20,18,14,0.5)', 0.9); }
-    // Le couvercle, de travers, glissé vers les pieds : un peu plus court que le coffre, tourné de 9° ; à plat, il dépasse à peine.
-    const ac = 0.66, an = (long ? 1 : -1) * 0.16, [lx, ly] = A(ac, 0.04), lid = tourner(long ? rectPts(lx - E * 0.47, ly - L * 0.36, E * 0.94, L * 0.72) : rectPts(lx - L * 0.36, ly - E * 0.47, L * 0.72, E * 0.94), an, lx, ly);
+    // Le couvercle, de travers, glissé vers les pieds, ENTIÈREMENT dans l'emprise du sarcophage : un peu plus court que lui et tourné de 8° ; le rectangle tourné est
+    // réduit puis recentré jusqu'à ce que sa boîte englobante tienne dans la cuve (à toutes les rotations, l'objet ayant son repère propre).
+    const an = (long ? 1 : -1) * 0.14, ca = Math.cos(an), sa = Math.abs(Math.sin(an)), marge = m * 0.4;
+    let lw = E * 0.84, ll = L * 0.6;
+    const demi = (a, b) => [(a / 2) * ca + (b / 2) * sa, (b / 2) * ca + (a / 2) * sa]; // demi-boîte englobante d'un rectangle a × b tourné
+    const k = Math.min(1, (E / 2 - marge) / demi(lw, ll)[0], (L / 2 - marge) / demi(lw, ll)[1]);
+    lw *= k; ll *= k;
+    const dL = demi(lw, ll)[1], centreL = Math.max(-L / 2 + dL + marge, Math.min(L / 2 - dL - marge, -L / 2 + 0.62 * L)), [lx, ly] = long ? [0, centreL] : [centreL, 0];
+    const hw = lw / 2, hl = ll / 2, lid = rectC(lx, ly, long ? lw : ll, long ? ll : lw, an);
     K.bloc(ctx, V, r, lid, 0.2, 0.3, 'pierreClaire', (S) => {
-      const g = centre(S), d = (u, v) => { const [px, py] = tourner([[(long ? v * E * 0.8 : u * L * 0.6), (long ? u * L * 0.6 : v * E * 0.8)]], an)[0]; return [g[0] + px, g[1] + py]; };
-      if (K.riche) { K.ligne(ctx, [d(-1, -0.7), d(1, -0.7), d(1, 0.7), d(-1, 0.7), d(-1, -0.7)], 'rgba(120,104,80,0.7)', 1); }
-      K.disque(ctx, ...d(-0.62, 0), E * 0.12, K.riche ? '#fbf7ee' : '#ebe6da', 1);
-      for (const [a0, b0, a1, b1] of [[-0.3, -0.45, -0.3, 0.45], [-0.45, 0, 0.7, 0]]) {
+      const g = centre(S), d = (u, v) => { const [px, py] = tourner([[long ? v * hw : u * hl, long ? u * hl : v * hw]], an)[0]; return [g[0] + px, g[1] + py]; }; // u le long du couvercle, v en travers : −1 à 1
+      if (K.riche) { K.ligne(ctx, [d(-0.92, -0.86), d(0.92, -0.86), d(0.92, 0.86), d(-0.92, 0.86), d(-0.92, -0.86)], 'rgba(120,104,80,0.7)', 1); }
+      K.disque(ctx, ...d(-0.62, 0), E * 0.1, K.riche ? '#fbf7ee' : '#ebe6da', 1);
+      for (const [a0, b0, a1, b1] of [[-0.25, -0.62, -0.25, 0.62], [-0.45, 0, 0.7, 0]]) {
         K.ligne(ctx, [d(a0, b0), d(a1, b1)], K.riche ? ENCRE : '#5f5b53', K.riche ? 4 : 3.4); K.ligne(ctx, [d(a0, b0), d(a1, b1)], K.riche ? '#bdb6a4' : '#c9c4b8', K.riche ? 2.4 : 1.6);
       }
     }, 1);
   };
 }
 
-/** La statue brisée : le socle intact (plaque dorée), un moignon de marbre à la cassure dentelée, la tête tombée sur le socle, des éclats au pied. */
+/**
+ * La statue brisée : un socle plus petit que celui de la statue (plaque dorée), un moignon de marbre à la cassure dentelée, et AU PIED du socle des gros
+ * morceaux lisibles à l'échelle de la case : la tête tombée (visage tourné de côté), un bras couché dont le poing émerge, trois éclats de torse.
+ */
 function statueBrisee(K) {
   return (ctx, w, h, t, o) => {
-    const { V, r } = preparerObjet(ctx, o), s = Math.min(w, h), a = s * 0.38;
-    K.bloc(ctx, V, r, rectPts(-a, -a, a * 2, a * 2), 0, 0.13, 'pierre', undefined);
-    const F = face(V, -a, -a, a * 2, a * 2, 'sud');
-    K.bandeUnie(ctx, F, 0.3, 0.7, 0.035, 0.095, K.pal.or);
-    if (K.riche) for (const c of COTES) B.aretes(ctx, V, face(V, -a, -a, a * 2, a * 2, c), c, 0, 0.13, 0.05);
-    // Les éclats au sol, devant le socle, puis ceux posés dessus.
-    K.caillou(ctx, V, r, a * 1.2, a * 1.14, s * 0.085, 0.09);
-    K.caillou(ctx, V, r, -a * 1.12, a * 1.2, s * 0.06, 0.07);
-    K.caillou(ctx, V, r, a * 0.6, a * 0.5, s * 0.075, 0.1);
-    // Le moignon : un cylindre de marbre à la cassure dentelée, légèrement de biais.
-    const R = s * 0.19;
-    V.cylindre(ctx, r, 0, -s * 0.02, R, 0.13, 0.4, K.MAT.marbre.f, () => {
-      const dents = [];
-      for (let i = 0; i < 11; i++) { const an = (i / 11) * Math.PI * 2, rr = R * (i % 2 ? 0.72 : 1.02) * (0.94 + r() * 0.1); dents.push([Math.cos(an) * rr, -s * 0.02 + Math.sin(an) * rr]); }
-      K.poly2(ctx, dents, K.riche ? '#e8e2d2' : '#cfcabc', K.riche ? 1.2 : 1.3);
-      K.ligne(ctx, [[-R * 0.5, -s * 0.06], [-R * 0.05, s * 0.0], [R * 0.25, -s * 0.05], [R * 0.55, s * 0.03]], K.riche ? B.MARBRE_VEINE : 'rgba(70,64,56,0.6)', 1);
-      K.disque(ctx, R * 0.05, -s * 0.02, R * 0.22, K.riche ? '#d5ccb4' : '#a7a295', 0.7); // le cœur de la pierre, à nu
-    });
-    // La tête, tombée sur le socle : un disque de marbre, le regard tourné de côté.
-    const hx = -a * 0.5, hy = a * 0.48, Rh = s * 0.115;
-    V.cylindre(ctx, r, hx, hy, Rh, 0.13, 0.22, K.MAT.marbre.f, () => {
+    const { V, r } = preparerObjet(ctx, o), s = Math.min(w, h), a = s * 0.27, R = s * 0.15;
+    const veine = K.riche ? B.MARBRE_VEINE : 'rgba(70,64,56,0.55)';
+    const socle = () => {
+      K.bloc(ctx, V, r, rectPts(-a, -a, a * 2, a * 2), 0, 0.13, 'pierre', undefined);
+      const F = face(V, -a, -a, a * 2, a * 2, 'sud');
+      K.bandeUnie(ctx, F, 0.3, 0.7, 0.035, 0.095, K.pal.or);
+      if (K.riche) for (const c of COTES) B.aretes(ctx, V, face(V, -a, -a, a * 2, a * 2, c), c, 0, 0.13, 0.05);
+      // Le moignon : un cylindre de marbre à la cassure dentelée, légèrement de biais.
+      V.cylindre(ctx, r, 0, -s * 0.02, R, 0.13, 0.36, K.MAT.marbre.f, () => {
+        const dents = [];
+        for (let i = 0; i < 11; i++) { const an = (i / 11) * Math.PI * 2, rr = R * (i % 2 ? 0.72 : 1.02) * (0.94 + r() * 0.1); dents.push([Math.cos(an) * rr, -s * 0.02 + Math.sin(an) * rr]); }
+        K.poly2(ctx, dents, K.riche ? '#e8e2d2' : '#cfcabc', K.riche ? 1.2 : 1.3);
+        K.ligne(ctx, [[-R * 0.5, -s * 0.06], [-R * 0.05, s * 0.0], [R * 0.25, -s * 0.05], [R * 0.55, s * 0.03]], veine, 1);
+        K.disque(ctx, R * 0.05, -s * 0.02, R * 0.22, K.riche ? '#d5ccb4' : '#a7a295', 0.7); // le cœur de la pierre, à nu
+      });
+    };
+    // La tête, tombée à terre devant le socle : un disque de marbre bas, le visage (yeux, nez) tourné de côté, une fêlure.
+    const hx = -s * 0.3, hy = s * 0.3, Rh = s * 0.14;
+    const tete = () => V.cylindre(ctx, r, hx, hy, Rh, 0, 0.1, K.MAT.marbre.f, () => {
       K.disque(ctx, hx, hy, Rh, K.riche ? '#fbf7ee' : '#f2eee4', 1.2);
-      K.poly2(ctx, [[hx + Rh * 0.5, hy - Rh * 0.12], [hx + Rh * 1.02, hy + Rh * 0.12], [hx + Rh * 0.5, hy + Rh * 0.3]], K.riche ? '#e2dccd' : '#c9c4b8', 0.7);
-      for (const sg of [-1, 1]) { ctx.beginPath(); ctx.arc(hx + Rh * 0.18, hy + sg * Rh * 0.32, Rh * 0.1, 0, 7); ctx.fillStyle = K.riche ? '#7c8aa0' : '#4a4a4a'; ctx.fill(); }
+      K.poly2(ctx, [[hx + Rh * 0.5, hy - Rh * 0.14], [hx + Rh * 1.04, hy + Rh * 0.12], [hx + Rh * 0.5, hy + Rh * 0.32]], K.riche ? '#e2dccd' : '#c9c4b8', 0.7);
+      for (const sg of [-1, 1]) { ctx.beginPath(); ctx.arc(hx + Rh * 0.18, hy + sg * Rh * 0.36, Rh * 0.11, 0, 7); ctx.fillStyle = K.riche ? '#7c8aa0' : '#4a4a4a'; ctx.fill(); }
+      K.ligne(ctx, [[hx - Rh * 0.7, hy - Rh * 0.2], [hx - Rh * 0.2, hy - Rh * 0.6]], veine, 1);
     });
+    // Le bras, couché à droite du socle : un fuseau de marbre, le poing fermé au bout.
+    const bx = s * 0.3, by = s * 0.22, an = 0.9, L = s * 0.2, W = s * 0.07;
+    const bras = () => {
+      K.bloc(ctx, V, r, fuseau(L, W, an).map(([x, y]) => [x + bx, y + by]), 0, 0.07, 'marbre', () => {
+        K.ligne(ctx, tourner([[-L * 0.9, -W * 0.2], [L * 0.5, -W * 0.15]], an).map(([x, y]) => [x + bx, y + by]), veine, 0.9);
+      });
+      K.caillou(ctx, V, r, bx + Math.cos(an) * L * 1.05, by + Math.sin(an) * L * 1.05, s * 0.085, 0.1); // le poing
+    };
+    // Des éclats de torse, gros : un bloc de marbre à la cassure franche.
+    const eclat = (cx, cy, Re) => () => K.caillou(ctx, V, r, cx, cy, Re, 0.14);
+    ordonner(V, [
+      { x: 0, y: 0, dessiner: socle },
+      { x: hx, y: hy, dessiner: tete },
+      { x: bx, y: by, dessiner: bras },
+      { x: s * 0.34, y: -s * 0.2, dessiner: eclat(s * 0.34, -s * 0.2, s * 0.135) },
+      { x: -s * 0.35, y: -s * 0.15, dessiner: eclat(-s * 0.35, -s * 0.15, s * 0.115) },
+      { x: s * 0.04, y: s * 0.38, dessiner: eclat(s * 0.04, s * 0.38, s * 0.1) },
+    ]);
   };
 }
 
-/** La caisse ouverte : le dessus béant, la paille qui déborde, le couvercle appuyé contre le flanc (une rampe de planches) ; quelques brins au sol. */
+/**
+ * La caisse ouverte : le couvercle posé À CÔTÉ, de biais sur le sol (planches, deux traverses clouées, ombre au sol), puis la caisse au dessus béant,
+ * pleine de paille hérissée qui déborde, et quelques brins retombés dehors. Tout reste dans l'emprise de la case (à quelques pixels près).
+ */
 function caisseOuverte(K) {
   return (ctx, w, h, t, o) => {
-    const { V, r } = preparerObjet(ctx, o), s = Math.min(w, h) * 0.64, x = -s / 2 - t * 0.08, y = -s / 2, e = 0.27, m = t * 0.07, lw = t * 0.2;
+    const { V, r } = preparerObjet(ctx, o), s = Math.min(w, h) * 0.54, x = -s / 2 - t * 0.15, y = -s / 2 + t * 0.02, e = 0.27, m = t * 0.07;
+    // Le couvercle, d'abord (il est au sol, la caisse le recouvre en partie) : un plateau bas de planches, de biais, avec son ombre.
+    const lwd = t * 0.28, lln = s * 0.92, lx = x + s + lwd / 2 + t * 0.07, ly = y + s * 0.52, an = 0.22, lid = rectC(lx, ly, lwd, lln, an);
+    K.bloc(ctx, V, r, lid, 0, 0.045, 'boisClair', (S) => {
+      const P = K.riche ? pQ(S) : (u, v) => pQ(S)(v, u);
+      K.planchesDessus(ctx, r, P, 3, K.riche ? B.PLANCHES : undefined);
+      const Q = pQ(S);
+      for (const v of [0.18, 0.82]) { // deux traverses en travers des planches, clouées
+        K.ligne(ctx, [Q(0, v), Q(1, v)], K.riche ? ENCRE : '#3a2210', K.riche ? 5.4 : 4.6);
+        K.ligne(ctx, [Q(0, v), Q(1, v)], K.pal.boisFonce, K.riche ? 3.4 : 2.8);
+        for (const u of [0.22, 0.78]) { const [cx, cy] = Q(u, v); if (K.riche) B.clou(ctx, [cx, cy], Math.max(0.8, t * 0.016)); else K.disque(ctx, cx, cy, 1, K.pal.ferClair, 0.4); }
+      }
+    });
     K.bloc(ctx, V, r, rectPts(x, y, s, s), 0, e, 'bois', () => {
-      K.poly2(ctx, rectPts(x + m, y + m, s - 2 * m, s - 2 * m), K.pal.fond, K.ep);
+      K.poly2(ctx, rectPts(x + m, y + m, s - 2 * m, s - 2 * m), K.riche ? '#b98a2e' : '#8a6a22', K.ep); // le fond de paille, tassée
       for (const [px, py] of [[x + m * 0.5, y + m * 0.5], [x + s - m * 0.5, y + m * 0.5], [x + m * 0.5, y + s - m * 0.5], [x + s - m * 0.5, y + s - m * 0.5]]) if (K.riche) B.clou(ctx, [px, py], Math.max(0.8, t * 0.016));
     });
     K.faces(ctx, V, r, x, y, s, s, 0, e, 3);
     for (const c of COTES) { const Fc = face(V, x, y, s, s, c); K.bandeUnie(ctx, Fc, 0.04, 0.12, 0, e, K.riche ? B.BOIS_FONCE[0] : '#6b4524'); K.bandeUnie(ctx, Fc, 0.88, 0.96, 0, e, K.riche ? B.BOIS_FONCE[0] : '#6b4524'); }
-    // Le couvercle : une rampe de planches, du bord du coffre (en haut) jusqu'au sol.
-    const A0 = V.haut(x + s, y + s * 0.04, e), A1 = V.haut(x + s, y + s * 0.96, e), B0 = V.haut(x + s + lw, y + s * 0.04, 0), B1 = V.haut(x + s + lw, y + s * 0.96, 0);
-    const S = [A0, B0, B1, A1];
-    if (K.riche) B.plaque(ctx, V, B.polygone(S), B.PLANCHES[2], { dedans: () => { B.planches(ctx, r, (u, v) => pQ(S)(v, u), 4, B.PLANCHES); } });
-    else { poly(ctx, S); encre(ctx, dl(ctx, A0[0], A0[1], B0[0], B0[1], '#c1915c', '#8a5e30'), 1.4); ctx.beginPath(); for (let k = 1; k < 4; k++) { ctx.moveTo(...milieu(A0, A1, k / 4)); ctx.lineTo(...milieu(B0, B1, k / 4)); } trait(ctx, 'rgba(40,22,8,0.5)', 0.9); }
-    for (const u of [0.18, 0.82]) K.ligne(ctx, [milieu(A0, A1, u), milieu(B0, B1, u)], K.riche ? '#a8702f' : '#5a3818', 2.4);
-    // La paille : une botte hérissée au-dessus du bord, des brins retombés dehors.
+    // La paille : une botte dense, hérissée au-dessus du bord (trois tons, brins cernés d'un trait sombre), et des brins retombés dehors.
     V.auNiveau(ctx, e + 0.02, () => {
-      for (let i = 0; i < 26; i++) {
-        const px = x + s / 2 + (r() - 0.5) * (s - 2 * m) * 0.9, py = y + s / 2 + (r() - 0.5) * (s - 2 * m) * 0.9, an = r() * 6.28, l = t * (0.1 + r() * 0.1);
-        K.ligne(ctx, [[px, py], [px + Math.cos(an) * l, py + Math.sin(an) * l]], i % 3 ? K.pal.paille[i % 3] : ENCRE, i % 3 ? 1.7 : 0.7);
+      for (let i = 0; i < 44; i++) {
+        const px = x + s / 2 + (r() - 0.5) * (s - 2 * m) * 0.95, py = y + s / 2 + (r() - 0.5) * (s - 2 * m) * 0.95, ang = r() * 6.28, l = t * (0.1 + r() * 0.1);
+        K.ligne(ctx, [[px, py], [px + Math.cos(ang) * l, py + Math.sin(ang) * l]], i % 4 === 3 ? ENCRE : K.pal.paille[i % 3], i % 4 === 3 ? 0.8 : 2.1);
       }
     });
-    for (let i = 0; i < 5; i++) {
-      const px = x + s * (0.1 + r() * 0.8), py = y + s + t * (0.02 + r() * 0.05), an = r() * 3, l = t * (0.08 + r() * 0.07);
-      K.ligne(ctx, [[px, py], [px + Math.cos(an) * l, py + Math.sin(an) * l * 0.5]], K.pal.paille[i % 3], 1.6);
+    for (let i = 0; i < 6; i++) {
+      const px = x + s * (0.1 + r() * 0.8), py = y + s + t * (0.02 + r() * 0.05), ang = r() * 3, l = t * (0.08 + r() * 0.07);
+      K.ligne(ctx, [[px, py], [px + Math.cos(ang) * l, py + Math.sin(ang) * l * 0.5]], K.pal.paille[i % 3], 1.8);
     }
   };
 }

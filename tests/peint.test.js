@@ -66,11 +66,11 @@ const SOBRES_DE_REFERENCE = {
   'pilier': 'a8075b8b',
   'colonne': '54dc6d5b',
   'coffre/ferme': 'e73353d3',
-  'coffre/ouvert': '26aea53',
-  'coffre/vide': 'b294a807',
+  'coffre/ouvert': 'dd22812f',
+  'coffre/vide': '7eb2058b',
   'coffre/brise': 'bc694b9f',
   'statue/intacte': '6fc812e7',
-  'statue/brisee': 'efb54a43',
+  'statue/brisee': '5c36d1eb',
   'table': 'aefd5fdb',
   'chaise': '75d09fab',
   'autel/nu': '29767c67',
@@ -82,7 +82,7 @@ const SOBRES_DE_REFERENCE = {
   'tonneau/couche': 'dcb53f87',
   'tonneau/eventre': '6c3d52ff',
   'caisse/fermee': 'c1cbb29f',
-  'caisse/ouverte': 'e239cdd3',
+  'caisse/ouverte': '4f8463ab',
   'escalier': '50766173',
   'fosse': '5e7143bb',
   'lit': 'e378430d',
@@ -100,13 +100,13 @@ const SOBRES_DE_REFERENCE = {
   'debris': '45ec83bf',
   'puits/ouvert': 'c3344c13',
   'puits/couvert': '46004fe3',
-  'puits/treuil': '93a44a0b',
+  'puits/treuil': '6f4f5f3',
   'fontaine/eau': '7a53d2b3',
   'fontaine/asec': '76bc85bb',
   'fontaine/sombre': 'f9b6a953',
   'fontaine/sacree': '5f43b20b',
   'sarcophage/ferme': '37bf0b6b',
-  'sarcophage/ouvert': 'a081f45b',
+  'sarcophage/ouvert': '57e1ba7b',
   'brasero/normale': '3ddb4c9b',
   'brasero/eteinte': 'bd2e38bf',
   'brasero/bleue': '1b256093',
@@ -631,6 +631,20 @@ const TESTS = [
     // La liste des objets à faire ne ment pas : tout objet hors liste a sa version riche, aucun objet de la liste n'en a une.
     for (const { type } of OBJETS) verifier((type in RICHES) === !RICHES_A_FAIRE.includes(type), `${type} : RICHES_A_FAIRE et RICHES ne concordent pas`);
     verifier(Object.keys(RICHES).every((type) => OBJETS.some((o) => o.type === type)), 'RICHES : un type inconnu du catalogue');
+  }],
+  ['objets allongés : un autel au repère de 1 × 2 (emprise de 2 × 1, regard à l’est ou à l’ouest) est dessiné tourné dans un repère de 2 × 1 ; sans relief, le coffre ouvert dessine son couvercle à plat', () => {
+    for (const details of ['riches', 'sobres']) for (const relief of [true, false]) for (const rotation of [90, 270]) for (const variante of [undefined, 'rituel', 'ensanglante', 'sacre']) {
+      const { ctx, lignes } = ctxJournal();
+      THEMES.peint.preparer(ctx, rect(9, 7, { id: 'essai' }), 48, { relief, details });
+      objetsPeints.autel(ctx, 48, 96, 48, { type: 'autel', x: 2, y: 3, l: 2, h: 1, rotation, ...(variante ? { variante } : {}) }); // repère de 1 × 2 : tourné
+      const tourne = lignes.join('|'), { ctx: c2, lignes: l2 } = ctxJournal();
+      THEMES.peint.preparer(c2, rect(9, 7, { id: 'essai' }), 48, { relief, details });
+      objetsPeints.autel(c2, 96, 48, 48, { type: 'autel', x: 2, y: 3, l: 2, h: 1, rotation, ...(variante ? { variante } : {}) }); // repère de 2 × 1 : tel quel
+      verifier(tourne.includes('rotate(') && !l2.join('|').includes('rotate('), `autel ${variante ?? 'nu'} ${details} ${rotation}° : tourné seulement quand le repère est de 1 × 2`);
+      verifier(!/NaN|undefined|Infinity/.test(tourne), `autel ${variante ?? 'nu'} : valeurs valides`);
+    }
+    const plat = (relief) => { const { ctx, lignes } = ctxJournal(); THEMES.peint.preparer(ctx, rect(9, 7, { id: 'essai' }), 48, { relief, details: 'riches' }); objetsPeints.coffre(ctx, 48, 48, 48, { type: 'coffre', x: 2, y: 3, l: 1, h: 1, rotation: 180, variante: 'ouvert' }); return lignes.join('|'); };
+    verifier(plat(false).includes('translate(0.000,3.360)') && !plat(true).includes('translate(0.000,3.360)'), 'coffre ouvert sans relief : descendu pour laisser la place du couvercle à plat');
   }],
   ['peint : le même objet, à une autre place de la salle, ne se dessine pas pareil (les aléas viennent de sa place) ; la salle change la graine', () => {
     const tracer = (id, x) => { const { ctx, lignes } = ctxJournal(); THEMES.peint.preparer(ctx, rect(9, 7, { id }), 48, { relief: true }); objetsPeints.debris(ctx, 48, 48, 48, { type: 'debris', x, y: 1 }); return lignes.join('|'); };

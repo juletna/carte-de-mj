@@ -9,7 +9,7 @@
  */
 import { casesRetirees } from '../../formes.js';
 import { tracerSol, dessinerMursDecoupes } from '../trace.js';
-import { rect, rectArrondi, rond, sensDuCoin, contourIrregulier, toileDans, hasard } from './commun.js';
+import { rect, rectArrondi, rond, sensDuCoin, contourIrregulier, toileDans, hasard, enLong } from './commun.js';
 import { EPAISSEUR_MUR, ancragePorte } from '../geometrie.js';
 import { CREATURES, varianteDe, aUneVariante } from '../../catalogue.js';
 import { TEINTES_TISSU } from '../teintes-tissu.js';
@@ -550,8 +550,8 @@ const ETATS = {
       rectArrondi(ctx, -sw / 2, -sh / 2, sw, sh, t * 0.15, CLAIR, NOIR, trait(t, 0.03));
       creux(ctx, rectTourne(0, 0, sw * 0.8, sh * 0.84, 0), t);
       rond(ctx, 0, -sh * 0.3, sw * 0.14, '#fff', NOIR, trait(t, 0.015));
-      ctx.save(); ctx.translate(sw * 0.02, sh * 0.2); ctx.rotate(0.15);
-      rectArrondi(ctx, -sw * 0.42, -sh * 0.28, sw * 0.84, sh * 0.56, t * 0.1, TRES_CLAIR, NOIR, trait(t, 0.03));
+      ctx.save(); ctx.translate(0, sh * 0.2); ctx.rotate(0.12); // le couvercle glissé reste dans l'emprise (boîte englobante comprise)
+      rectArrondi(ctx, -sw * 0.38, -sh * 0.25, sw * 0.76, sh * 0.5, t * 0.1, TRES_CLAIR, NOIR, trait(t, 0.03));
       ligne(ctx, 0, -sh * 0.2, 0, sh * 0.2, trait(t, 0.02), GRIS); ligne(ctx, -sw * 0.2, -sh * 0.06, sw * 0.2, -sh * 0.06, trait(t, 0.02), GRIS);
       ctx.restore();
     },
@@ -562,8 +562,14 @@ const ETATS = {
       rond(ctx, 0, 0, r, CLAIR, NOIR, trait(t, 0.03));
       for (let i = 0; i < 11; i++) { const a = (i / 11) * Math.PI * 2, rr = r * (i % 2 ? 0.34 : 0.5); dents.push([Math.cos(a) * rr, Math.sin(a) * rr]); }
       polygone(ctx, dents, '#fff', trait(t, 0.02));
-      rond(ctx, -r * 0.5, r * 0.5, r * 0.2, '#fff', NOIR, trait(t, 0.015)); // la tête tombée
-      polygone(ctx, [[r * 0.5, r * 0.45], [r * 0.7, r * 0.6], [r * 0.45, r * 0.7]], '#fff', trait(t, 0.012));
+      // Les morceaux tombés au pied du socle, gros : la tête (visage), un bras couché (poing au bout), des éclats de torse.
+      rond(ctx, -r * 0.55, r * 0.5, r * 0.3, '#fff', NOIR, trait(t, 0.015));
+      rond(ctx, -r * 0.5, r * 0.46, r * 0.04, NOIR); rond(ctx, -r * 0.5, r * 0.58, r * 0.04, NOIR);
+      ctx.save(); ctx.translate(r * 0.62, r * 0.5); ctx.rotate(0.9);
+      rectArrondi(ctx, -r * 0.4, -r * 0.11, r * 0.8, r * 0.22, r * 0.1, '#fff', NOIR, trait(t, 0.012)); rond(ctx, r * 0.45, 0, r * 0.14, '#fff', NOIR, trait(t, 0.012));
+      ctx.restore();
+      polygone(ctx, [[r * 0.45, -r * 0.62], [r * 0.85, -r * 0.45], [r * 0.62, -r * 0.18]], '#fff', trait(t, 0.012));
+      polygone(ctx, [[-r * 0.85, -r * 0.3], [-r * 0.55, -r * 0.6], [-r * 0.4, -r * 0.25]], '#fff', trait(t, 0.012));
     },
   },
   caisse: {
@@ -645,6 +651,7 @@ for (const type of Object.keys(ETATS)) {
   const origine = objets[type];
   objets[type] = (ctx, w, h, t, o, plan) => (ETATS[type][varianteDe(o)] ?? origine)(ctx, w, h, t, o, plan);
 }
+objets.autel = enLong(objets.autel); // l'autel, long selon x, reste 2 × 1 quand son repère est de 1 × 2 (regard à l'est ou à l'ouest)
 
 // --- Repères --------------------------------------------------------------------
 

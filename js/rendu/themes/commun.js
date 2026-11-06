@@ -66,3 +66,17 @@ export function contourIrregulier(ctx, rx, ry, o, n = 12, ecart = 0.2, rang = 0)
   }
   ctx.closePath();
 }
+
+/**
+ * Un objet allongé dessiné pour être long selon x (l'autel, 2 × 1) : si son repère local est plus haut que large (emprise de 2 × 1 cases mais regard
+ * à l'est ou à l'ouest, donc repère de 1 × 2), il est dessiné tourné d'un quart de tour dans un repère de 2 × 1, sa face de devant du côté de
+ * l'écran qui regarde le sud. Les décors (nappe, pentagramme, soleil, bougies, taches) en gardent leurs proportions à toutes les rotations.
+ * Le repère des volumes (volumesLocaux) lit la matrice du contexte : la fausse 3D suit la rotation.
+ */
+export const enLong = (dessin) => (ctx, w, h, t, o, plan) => {
+  if (h <= w) return dessin(ctx, w, h, t, o, plan);
+  ctx.save();
+  ctx.rotate(o?.rotation === 270 ? -Math.PI / 2 : Math.PI / 2);
+  dessin(ctx, h, w, t, o, plan);
+  ctx.restore();
+};

@@ -268,16 +268,18 @@ function puits(K, mode) {
       ctx.restore();
       ctx.beginPath(); ctx.arc(0, 0, ri, 0, TAU); trait(ctx, ENCRE, K.riche ? B.EP : 1.4);
     });
-    const xp = R * 0.9, p = t * 0.055, hp = 0.78;
+    // Vu depuis le centre de la salle, un portique haut se couche quand le puits est près d'un bord : sa hauteur est bornée pour que le décalage de son sommet reste
+    // sous 0,22 case (les montants restent à peu près droits), jamais sous 0,46 mur ; le seau et la corde gardent leurs proportions (`f`).
+    const [ux, uy] = V.haut(0, 0, 1), penche = Math.hypot(ux, uy), hp = penche > 0 ? Math.max(0.46, Math.min(0.78, (t * 0.22) / penche)) : 0.78, f = hp / 0.78, xp = R * 0.9, p = t * 0.055;
     for (const sg of [-1, 1]) K.bloc(ctx, V, r, rectPts(sg * xp - p, -p, p * 2, p * 2), H1, hp, 'bois', undefined); // les deux montants
-    const A = V.haut(-xp, 0, hp - 0.04), Bp = V.haut(xp, 0, hp - 0.04), M = V.haut(0, 0, hp - 0.04), T = V.haut(0, 0, 0.5);
+    const A = V.haut(-xp, 0, hp - 0.04), Bp = V.haut(xp, 0, hp - 0.04), M = V.haut(0, 0, hp - 0.04), T = V.haut(0, 0, 0.5 * f);
     ctx.lineCap = 'round';
     if (Math.hypot(T[0] - M[0], T[1] - M[1]) > 0.6) { ctx.beginPath(); ctx.moveTo(...M); ctx.lineTo(...T); trait(ctx, ENCRE, 2.4); trait(ctx, K.riche ? '#e8d8a8' : '#b09a68', 1.2); } // la corde
-    V.cylindre(ctx, r, 0, 0, R * 0.2, 0.34, 0.5, K.MAT.bois.f, () => { // le seau, vu du dessus : de l'eau jusqu'au bord, un cerceau de fer
+    V.cylindre(ctx, r, 0, 0, R * 0.2, 0.34 * f, 0.5 * f, K.MAT.bois.f, () => { // le seau, vu du dessus : de l'eau jusqu'au bord, un cerceau de fer
       K.disque(ctx, 0, 0, R * 0.2, K.pal.boisFonce, K.riche ? 0.9 : 0.8); K.disque(ctx, 0, 0, R * 0.14, K.riche ? '#6cbdee' : '#4f7f9a', 0.5);
       ctx.beginPath(); ctx.arc(-R * 0.05, -R * 0.05, R * 0.04, 0, TAU); ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.fill();
     });
-    V.cerclage(ctx, 0, 0, R * 0.2, 0.4, 0.5);
+    V.cerclage(ctx, 0, 0, R * 0.2, 0.4 * f, 0.5 * f);
     // La poutre, de montant à montant, au-dessus de tout, avec la manivelle au bout.
     ctx.beginPath(); ctx.moveTo(...A); ctx.lineTo(...Bp); trait(ctx, ENCRE, Math.max(5.4, t * 0.09)); trait(ctx, K.pal.bois, Math.max(3.4, t * 0.06)); ctx.beginPath(); ctx.moveTo(A[0], A[1] - 0.8); ctx.lineTo(Bp[0], Bp[1] - 0.8); trait(ctx, K.riche ? B.PLANCHES[2] : '#d6a56a', 1);
     const Ch = V.haut(xp + p * 1.4, 0, hp - 0.04);
