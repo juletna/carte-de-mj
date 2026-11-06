@@ -196,7 +196,7 @@ export function creerCoquille({
   /** Redessine l'arbre ; rend faux si rien n'avait changé (mêmes nœuds, mêmes noms, même nœud actif, mêmes pastilles) et que rien n'a été fait. */
   let signature = '';
   function peindre({ force = false } = {}) {
-    const s = `${arbre.actif?.cle}\n${[...parcourir(arbre)].map((n) => `${n.cle}|${n.nom}|${n.depart ? 'D' : ''}${n.racine ?? ''}|${(n.aussiDepuis ?? []).join(',')}|${pastille && n.type !== 'groupe' ? pastille(n) : ''}`).join('\n')}`;
+    const s = `${arbre.actif?.cle}\n${[...parcourir(arbre)].map((n) => `${n.cle}|${n.nom}|${n.depart ? 'D' : ''}${n.nonRelie ? 'N' : ''}${n.racine ?? ''}|${(n.aussiDepuis ?? []).join(',')}|${pastille && n.type !== 'groupe' ? pastille(n) : ''}`).join('\n')}`;
     if (!force && s === signature) return false;
     signature = s;
     vue.maj({ arbre });
