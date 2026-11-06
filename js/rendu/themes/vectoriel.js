@@ -24,11 +24,11 @@
  */
 import { casesRetirees } from '../../formes.js';
 import { dessinerMursDecoupes } from '../trace.js';
-import { rect, rectArrondi, rond, sensDuCoin, contourIrregulier, toileDans } from './commun.js';
+import { rect, rectArrondi, rond, sensDuCoin, contourIrregulier, toileDans, hasard } from './commun.js';
 import { EPAISSEUR_MUR, ancragePorte } from '../geometrie.js';
 import { dessinerPortrait } from '../portraits.js';
 import { COULEURS } from '../../parseur/lexique.js';
-import { CREATURES } from '../../catalogue.js';
+import { CREATURES, varianteDe } from '../../catalogue.js';
 import { teinteFlamme, fumee, cendres } from '../feu.js';
 
 const C = {
@@ -577,6 +577,152 @@ export const objets = {
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('?', 0, 0);
   },
 };
+
+// --- États du mobilier (variantes du catalogue : coffre ouvert, tonneau couché…) ---------------------------------
+
+/** Un polygone rempli puis cerné. */
+function polygone(ctx, pts, fond, trait, ep = 1) {
+  ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.closePath();
+  if (fond) { ctx.fillStyle = fond; ctx.fill(); }
+  if (trait) { ctx.strokeStyle = trait; ctx.lineWidth = ep; ctx.stroke(); }
+}
+/** Un rectangle centré en (cx, cy) de côtés l × h, tourné de `a` radians. */
+function rectTourne(cx, cy, l, h, a) {
+  const c = Math.cos(a), s = Math.sin(a);
+  return [[-l / 2, -h / 2], [l / 2, -h / 2], [l / 2, h / 2], [-l / 2, h / 2]].map(([x, y]) => [cx + x * c - y * s, cy + x * s + y * c]);
+}
+/** Un trait d'un point à l'autre. */
+function trace(ctx, pts, couleur, ep) {
+  ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+  ctx.strokeStyle = couleur; ctx.lineWidth = ep; ctx.stroke();
+}
+const PAILLE = '#d8b95a', VIN = '#8a2a3a', BIERE = '#c88a1c';
+
+/** Le coffre sans son couvercle fermé : intérieur sombre, couvercle relevé en bandeau au dos ; `contenu` : le trésor (pièces et gemmes), sinon vide. */
+function coffreOuvert(ctx, w, h, t, contenu) {
+  const cw = w * 0.78, ch = h * 0.56, x = -cw / 2, y = -ch / 2;
+  ombre(ctx, t, () => rectArrondi(ctx, x, y, cw, ch, t * 0.06, C.bois));
+  rectArrondi(ctx, x, y, cw, ch, t * 0.06, C.bois, C.boisFonce, 1.5);
+  rect(ctx, x + t * 0.06, y + t * 0.06, cw - t * 0.12, ch - t * 0.12, '#2a1a0e');
+  if (contenu) {
+    for (const [u, v] of [[0.2, 0.55], [0.35, 0.7], [0.5, 0.5], [0.65, 0.72], [0.8, 0.55], [0.42, 0.42], [0.6, 0.6], [0.28, 0.5]]) rond(ctx, x + cw * u, y + ch * v, t * 0.055, C.or, '#8a6a14', 0.8);
+    rond(ctx, x + cw * 0.5, y + ch * 0.62, t * 0.04, '#d8433a'); rond(ctx, x + cw * 0.36, y + ch * 0.55, t * 0.035, '#4d86c4');
+    for (const u of [0.25, 0.45, 0.7]) rond(ctx, x + cw * u, y + ch + t * 0.07, t * 0.04, C.or, '#8a6a14', 0.8); // des pièces tombées devant
+  }
+  rect(ctx, x, y, cw, ch * 0.2, C.boisClair, C.boisFonce, 1.5); // le couvercle relevé, vu par dessus
+  rect(ctx, x + cw * 0.18, y, cw * 0.08, ch * 0.2, 'rgba(0,0,0,0.25)'); rect(ctx, x + cw * 0.74, y, cw * 0.08, ch * 0.2, 'rgba(0,0,0,0.25)');
+}
+/** Le coffre fracassé : couvercle déchiqueté, trou sombre, éclats de planche au sol. */
+function coffreBrise(ctx, w, h, t) {
+  const cw = w * 0.78, ch = h * 0.56, x = -cw / 2, y = -ch / 2;
+  ombre(ctx, t, () => rectArrondi(ctx, x, y, cw, ch, t * 0.06, C.bois));
+  rectArrondi(ctx, x, y, cw, ch, t * 0.06, C.bois, C.boisFonce, 1.5);
+  polygone(ctx, [[x + cw * 0.12, y + ch * 0.5], [x + cw * 0.3, y + ch * 0.3], [x + cw * 0.5, y + ch * 0.55], [x + cw * 0.68, y + ch * 0.3], [x + cw * 0.9, y + ch * 0.55], [x + cw * 0.7, y + ch * 0.85], [x + cw * 0.3, y + ch * 0.85]], '#2a1a0e');
+  trace(ctx, [[x + cw * 0.08, y + ch * 0.05], [x + cw * 0.22, y + ch * 0.3], [x + cw * 0.12, y + ch * 0.5]], C.boisFonce, 1.5);
+  rect(ctx, x + cw * 0.2, y, cw * 0.08, ch * 0.3, 'rgba(0,0,0,0.3)');
+  for (const [u, v, a] of [[0.1, 1.12, 0.4], [0.4, 1.16, -0.5], [0.85, 1.1, 0.2]]) polygone(ctx, rectTourne(x + cw * u, y + ch * v, t * 0.16, t * 0.05, a), C.boisClair, C.boisFonce, 1);
+  rect(ctx, x + cw * 0.9 - t * 0.04, y + ch * 0.9, t * 0.08, t * 0.1, C.or, C.boisFonce, 1); // la serrure arrachée
+}
+/** Un meuble de livres : les dos, dont on retire la part `trous` (tirée de la place de l'objet). */
+function rayonnage(ctx, x0, y0, bw, bh, t, couleurs, largeur, trous, o) {
+  ombre(ctx, t, () => rect(ctx, x0, y0, bw, bh, C.boisFonce));
+  rect(ctx, x0, y0, bw, bh, C.boisFonce, '#2f1d0c', 1.5);
+  const n = Math.max(4, Math.round(bw / (t * largeur)));
+  for (let i = 0; i < n; i++) {
+    if (hasard(o, i) < trous) continue;
+    rect(ctx, x0 + 3 + ((bw - 6) * i) / n, y0 + bh * 0.3, (bw - 6) / n - 1, bh * 0.6, couleurs[i % couleurs.length]);
+  }
+}
+const ETATS = {
+  coffre: { ouvert: (ctx, w, h, t) => coffreOuvert(ctx, w, h, t, true), vide: (ctx, w, h, t) => coffreOuvert(ctx, w, h, t, false), brise: coffreBrise },
+  bibliotheque: {
+    clairsemee(ctx, w, h, t, o) {
+      const bw = w - t * 0.08, y0 = -h / 2 + t * 0.04, bh = h * 0.5;
+      rayonnage(ctx, -bw / 2, y0, bw, bh, t, ['#8e2323', '#2f5d8a', '#3f7a3a', '#a07a1f', '#5c3b72', '#7a4a2a'], 0.12, 0.5, o);
+      polygone(ctx, rectTourne(-bw * 0.2, y0 + bh * 0.8, t * 0.2, t * 0.06, 0.1), '#2f5d8a', '#2f1d0c', 0.8);
+    },
+    renversee(ctx, w, h, t, o) {
+      const bw = w - t * 0.1, prof = h * 0.46, y0 = -h / 2 + t * 0.04, c = ['#8e2323', '#2f5d8a', '#3f7a3a', '#a07a1f', '#5c3b72'];
+      ombre(ctx, t, () => polygone(ctx, rectTourne(0, y0 + prof / 2, bw * 0.97, prof, 0.05), C.boisFonce));
+      polygone(ctx, rectTourne(0, y0 + prof / 2, bw * 0.97, prof, 0.05), C.boisFonce, '#2f1d0c', 1.5);
+      for (const k of [0.3, 0.55, 0.8]) trace(ctx, [[-bw * 0.45, y0 + prof * k], [bw * 0.45, y0 + prof * k]], 'rgba(0,0,0,0.3)', 1);
+      for (let i = 0; i < 8; i++) polygone(ctx, rectTourne((hasard(o, i) - 0.5) * bw * 0.9, y0 + prof + t * 0.08 + hasard(o, i + 20) * (h / 2 - y0 - prof - t * 0.16), t * 0.13, t * 0.17, hasard(o, i + 40) * 3), c[i % c.length], '#2f1d0c', 0.8);
+    },
+    grimoires(ctx, w, h, t, o) {
+      const bw = w - t * 0.08, y0 = -h / 2 + t * 0.04;
+      rayonnage(ctx, -bw / 2, y0, bw, h * 0.5, t, ['#4a1f4e', '#1f3a5e', '#5a1f2a', '#1f4a3f'], 0.2, 0.03, o);
+      rond(ctx, -bw * 0.28, y0 + h * 0.12, t * 0.07, '#f1e9d2', '#7d7458', 1); rond(ctx, bw * 0.28, y0 + h * 0.12, t * 0.05, '#58c46a', '#1f5a2a', 1);
+      trace(ctx, [[-bw / 2, y0 + h * 0.3], [0, y0 + h * 0.36], [bw / 2, y0 + h * 0.3]], '#bfc3c9', 1.5);
+    },
+  },
+  tonneau: {
+    couche(ctx, w, h, t, o) {
+      const s = Math.min(w, h), L = s * 0.45, W = s * 0.34, a = (hasard(o, 1) - 0.5) * 0.35, pts = [];
+      for (let i = 0; i <= 10; i++) { const u = i / 5 - 1; pts.push([u * L, -W * (0.8 + 0.2 * Math.cos((u * Math.PI) / 2))]); }
+      for (let i = 10; i >= 0; i--) { const u = i / 5 - 1; pts.push([u * L, W * (0.8 + 0.2 * Math.cos((u * Math.PI) / 2))]); }
+      ctx.save(); ctx.rotate(a);
+      ombre(ctx, t, () => polygone(ctx, pts, C.bois));
+      polygone(ctx, pts, C.bois, C.boisFonce, 2);
+      for (const u of [-0.7, -0.05, 0.6]) trace(ctx, [[u * L, -W * 0.95], [u * L, W * 0.95]], '#4a4a4a', Math.max(1.5, t * 0.04));
+      for (const v of [-0.4, 0, 0.4]) trace(ctx, [[-L * 0.95, v * W], [L * 0.95, v * W]], 'rgba(0,0,0,0.18)', 1);
+      rond(ctx, L * 0.2, W * 0.1, t * 0.04, C.boisFonce);
+      ctx.restore();
+    },
+    eventre(ctx, w, h, t, o) {
+      const r = Math.min(w, h) * 0.34, liquide = hasard(o, 2) < 0.5 ? VIN : BIERE, fl = [], etoile = [];
+      for (let i = 0; i < 12; i++) { const a = (i / 12) * Math.PI * 2, k = 0.82 + hasard(o, 10 + i) * 0.3; fl.push([r * 0.3 + Math.cos(a) * r * 1.05 * k, r * 0.4 + Math.sin(a) * r * 0.72 * k]); }
+      polygone(ctx, fl, liquide, 'rgba(0,0,0,0.35)', 1);
+      ombre(ctx, t, () => rond(ctx, 0, 0, r, C.bois));
+      rond(ctx, 0, 0, r, C.bois, C.boisFonce, 2);
+      for (let i = 0; i < 10; i++) { const a = (i / 10) * Math.PI * 2, rr = r * (i % 2 ? 0.34 : 0.7); etoile.push([Math.cos(a) * rr, Math.sin(a) * rr]); }
+      polygone(ctx, etoile, '#2a1a0e', C.boisFonce, 1);
+      polygone(ctx, rectTourne(-r * 0.8, r * 0.75, r * 0.7, r * 0.14, 0.5), C.boisClair, C.boisFonce, 1);
+    },
+  },
+  sarcophage: {
+    ouvert(ctx, w, h, t) {
+      const sw = w * 0.74, sh = h - t * 0.14;
+      ombre(ctx, t, () => rectArrondi(ctx, -sw / 2, -sh / 2, sw, sh, t * 0.15, C.pierre));
+      rectArrondi(ctx, -sw / 2, -sh / 2, sw, sh, t * 0.15, C.pierre, C.pierreFonce, 2);
+      rectArrondi(ctx, -sw * 0.4, -sh * 0.42, sw * 0.8, sh * 0.84, t * 0.1, '#2a2017');
+      rond(ctx, 0, -sh * 0.3, sw * 0.14, '#f1e9d2', '#7d7458', 1);
+      for (const k of [-0.18, -0.08]) trace(ctx, [[-sw * 0.3, sh * k], [sw * 0.3, sh * k]], '#d8cfae', 2);
+      ctx.save(); ctx.translate(sw * 0.02, sh * 0.2); ctx.rotate(0.15);
+      ombre(ctx, t, () => rectArrondi(ctx, -sw * 0.42, -sh * 0.28, sw * 0.84, sh * 0.56, t * 0.1, C.pierreClair));
+      rectArrondi(ctx, -sw * 0.42, -sh * 0.28, sw * 0.84, sh * 0.56, t * 0.1, C.pierreClair, C.pierreFonce, 2);
+      trace(ctx, [[0, -sh * 0.2], [0, sh * 0.2]], C.pierreFonce, 2); trace(ctx, [[-sw * 0.2, -sh * 0.06], [sw * 0.2, -sh * 0.06]], C.pierreFonce, 2);
+      ctx.restore();
+    },
+  },
+  statue: {
+    brisee(ctx, w, h, t) {
+      const r = Math.min(w, h) * 0.42, dents = [];
+      ombre(ctx, t, () => rond(ctx, 0, 0, r, C.pierreFonce));
+      rond(ctx, 0, 0, r, C.pierreFonce, C.murFonce, 1.5);
+      for (let i = 0; i < 11; i++) { const a = (i / 11) * Math.PI * 2, rr = r * (i % 2 ? 0.34 : 0.5); dents.push([Math.cos(a) * rr, Math.sin(a) * rr]); }
+      polygone(ctx, dents, C.pierreClair, C.pierreFonce, 1);
+      rond(ctx, -r * 0.5, r * 0.5, r * 0.2, C.pierreClair, C.pierreFonce, 1); // la tête tombée
+      polygone(ctx, [[r * 0.5, r * 0.45], [r * 0.7, r * 0.6], [r * 0.45, r * 0.7]], C.pierreClair, C.pierreFonce, 1);
+      polygone(ctx, [[-r * 0.1, r * 0.75], [r * 0.15, r * 0.8], [r * 0.05, r * 0.95]], C.pierreClair, C.pierreFonce, 1);
+    },
+  },
+  caisse: {
+    ouverte(ctx, w, h, t, o) {
+      const s = Math.min(w, h) * 0.62, x = -s / 2 - t * 0.08, y = -s / 2;
+      ombre(ctx, t, () => rect(ctx, x, y, s, s, C.boisClair));
+      rect(ctx, x, y, s, s, C.boisClair, C.boisFonce, 2);
+      rect(ctx, x + t * 0.06, y + t * 0.06, s - t * 0.12, s - t * 0.12, '#2a1a0e');
+      for (let i = 0; i < 12; i++) { const px = x + s * (0.15 + 0.7 * hasard(o, i)), py = y + s * (0.15 + 0.7 * hasard(o, i + 30)), a = hasard(o, i + 60) * 6.28; trace(ctx, [[px, py], [px + Math.cos(a) * t * 0.14, py + Math.sin(a) * t * 0.14]], PAILLE, 1.8); }
+      rect(ctx, x + s + t * 0.01, y + s * 0.05, t * 0.2, s * 0.9, C.bois, C.boisFonce, 1.5); // le couvercle appuyé contre le flanc
+      trace(ctx, [[x + s + t * 0.1, y + s * 0.05], [x + s + t * 0.1, y + s * 0.95]], C.boisFonce, 1);
+    },
+  },
+};
+// Un état (variante non défaut) a son dessin ; l'état d'origine garde le dessin d'avant, appelé tel quel.
+for (const type of Object.keys(ETATS)) {
+  const origine = objets[type];
+  objets[type] = (ctx, w, h, t, o, plan) => (ETATS[type][varianteDe(o)] ?? origine)(ctx, w, h, t, o, plan);
+}
 
 // --- Repères d'interface -------------------------------------------------------
 

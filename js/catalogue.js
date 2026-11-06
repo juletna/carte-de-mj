@@ -52,26 +52,61 @@ const VARIANTES_FEU = [
   { id: 'infernale', nom: 'infernal', fem: 'infernale', pluriel: 'infernaux', mots: ['infernal', 'infernale', 'infernaux', 'demoniaque', 'cramoisi', 'cramoisie', 'rouge'] },
 ];
 
+/**
+ * Les états du mobilier : le dessin d'origine (premier) et ses variantes (coffre ouvert, bibliothèque renversée, tonneau couché…). Chaque entrée de ces listes
+ * est dessinée dans les quatre thèmes (peint riches et sobres : peint/objets-etats.js, peint/objets-etats-dessines.js ; vectoriel ; papier).
+ * Les mots sont ceux du texte libre (« coffre au trésor », « étagères à moitié vides », « statue en ruine ») : un mot ne désigne qu'une variante par type.
+ */
+const VARIANTES_COFFRE = [
+  { id: 'ferme', nom: 'fermé', mots: ['ferme', 'fermee', 'clos', 'close', 'verrouille', 'verrouillee'] },
+  { id: 'ouvert', nom: 'ouvert', mots: ['ouvert', 'ouverte', 'entrouvert', 'entrouverte', 'tresor', 'garni', 'garnie', 'plein', 'pleine'] },
+  { id: 'vide', nom: 'vide', fem: 'vide', mots: ['vide', 'pille', 'pillee', 'depouille', 'depouillee'] },
+  { id: 'brise', nom: 'brisé', mots: ['brise', 'brisee', 'fracasse', 'fracassee', 'fracture', 'fracturee', 'defonce', 'defoncee', 'eventre', 'eventree', 'fendu', 'fendue', 'force', 'forcee', 'casse', 'cassee', 'detruit', 'detruite'] },
+];
+const VARIANTES_BIBLIOTHEQUE = [
+  { id: 'pleine', nom: 'plein', fem: 'pleine', mots: ['plein', 'pleine', 'garni', 'garnie', 'rempli', 'remplie', 'fourni', 'fournie'] },
+  { id: 'clairsemee', nom: 'clairsemé', fem: 'clairsemée', mots: ['clairseme', 'clairsemee', 'vide', 'degarni', 'degarnie', 'depeuple', 'depeuplee', 'pille', 'pillee'] },
+  { id: 'renversee', nom: 'renversé', fem: 'renversée', mots: ['renverse', 'renversee', 'bascule', 'basculee', 'tombe', 'tombee', 'effondre', 'effondree', 'couche', 'couchee'] },
+  { id: 'grimoires', nom: 'de grimoires', fem: 'de grimoires', mots: ['grimoire', 'mage', 'magicien', 'sorcier', 'sorciere', 'arcane', 'arcanes', 'occulte', 'magique', 'enchante', 'enchantee'] },
+];
+const VARIANTES_TONNEAU = [
+  { id: 'debout', nom: 'debout', pluriel: 'debout', mots: ['debout', 'dresse', 'dressee'] },
+  { id: 'couche', nom: 'couché', mots: ['couche', 'couchee', 'renverse', 'renversee', 'allonge', 'allongee', 'tombe', 'tombee'] },
+  { id: 'eventre', nom: 'éventré', mots: ['eventre', 'eventree', 'defonce', 'defoncee', 'creve', 'crevee', 'perce', 'percee', 'fendu', 'fendue', 'brise', 'brisee'] },
+];
+const VARIANTES_SARCOPHAGE = [
+  { id: 'ferme', nom: 'fermé', mots: ['ferme', 'fermee', 'clos', 'close', 'scelle', 'scellee'] },
+  { id: 'ouvert', nom: 'ouvert', mots: ['ouvert', 'ouverte', 'entrouvert', 'entrouverte', 'profane', 'profanee', 'pille', 'pillee', 'viole', 'violee', 'force', 'forcee', 'vide'] },
+];
+const VARIANTES_STATUE = [
+  { id: 'intacte', nom: 'intact', mots: ['intact', 'intacte', 'entier', 'entiere'] },
+  { id: 'brisee', nom: 'brisé', mots: ['brise', 'brisee', 'renverse', 'renversee', 'ruine', 'ruinee', 'casse', 'cassee', 'fracasse', 'fracassee', 'decapite', 'decapitee', 'mutile', 'mutilee', 'effondre', 'effondree'] },
+];
+const VARIANTES_CAISSE = [
+  { id: 'fermee', nom: 'fermé', mots: ['ferme', 'fermee', 'clouee', 'cloue', 'close', 'clos'] },
+  { id: 'ouverte', nom: 'ouvert', mots: ['ouvert', 'ouverte', 'entrouvert', 'entrouverte', 'eventre', 'eventree', 'defonce', 'defoncee', 'pille', 'pillee', 'vide'] },
+];
+
 export const OBJETS = [
   { type: 'pilier',       mots: ['pilier'],                                   l: 1, h: 1, zone: 'grille',    lettre: 'P', symetrique: true, auLarge: true },
   { type: 'colonne',      mots: ['colonne'],                                  l: 1, h: 1, zone: 'grille',    lettre: 'C', feminin: true, symetrique: true, auLarge: true },
-  { type: 'coffre',       mots: ['coffre', 'malle'],                          l: 1, h: 1, zone: 'fond',      lettre: 'K' },
-  { type: 'statue',       mots: ['statue', 'gargouille', 'idole'],            l: 1, h: 1, zone: 'centre',    lettre: 'S', feminin: true, auLarge: true },
+  { type: 'coffre',       mots: ['coffre', 'malle'],                          l: 1, h: 1, zone: 'fond',      lettre: 'K', variantes: VARIANTES_COFFRE },
+  { type: 'statue',       mots: ['statue', 'gargouille', 'idole'],            l: 1, h: 1, zone: 'centre',    lettre: 'S', feminin: true, auLarge: true, variantes: VARIANTES_STATUE },
   { type: 'table',        mots: ['table'],                                    l: 2, h: 1, zone: 'centre',    lettre: 'T', feminin: true },
   { type: 'chaise',       mots: ['chaise', 'tabouret', 'banc'],               l: 1, h: 1, zone: 'centre',    lettre: 'h', feminin: true },
   { type: 'autel',        mots: ['autel'],                                    l: 2, h: 1, zone: 'fond',      lettre: 'A' },
   { type: 'trone',        mots: ['trone'],                                    l: 1, h: 1, zone: 'fond',      lettre: 'R', nom: 'trône' },
-  { type: 'tonneau',      mots: ['tonneau', 'baril', 'barrique', 'fut'],      l: 1, h: 1, zone: 'coins',     lettre: 'O', symetrique: true },
-  { type: 'caisse',       mots: ['caisse', 'caisson', 'cageot'],              l: 1, h: 1, zone: 'coins',     lettre: 'X', feminin: true, symetrique: true },
+  { type: 'tonneau',      mots: ['tonneau', 'baril', 'barrique', 'fut'],      l: 1, h: 1, zone: 'coins',     lettre: 'O', symetrique: true, variantes: VARIANTES_TONNEAU },
+  { type: 'caisse',       mots: ['caisse', 'caisson', 'cageot'],              l: 1, h: 1, zone: 'coins',     lettre: 'X', feminin: true, symetrique: true, variantes: VARIANTES_CAISSE },
   { type: 'escalier',     mots: ['escalier', 'marche'],                       l: 1, h: 2, zone: 'coins',     lettre: 'E' },
   { type: 'fosse',        mots: ['fosse', 'trou', 'gouffre', 'piege', 'trappe'], l: 1, h: 1, zone: 'centre', lettre: 'F', feminin: true, symetrique: true, couche: 0 },
   { type: 'lit',          mots: ['lit', 'couchette', 'paillasse'],            l: 1, h: 2, zone: 'cotes',     lettre: 'L' },
-  { type: 'bibliotheque', mots: ['bibliotheque', 'etagere', 'rayonnage'],     l: 2, h: 1, zone: 'fond',      lettre: 'B', nom: 'bibliothèque', feminin: true },
+  { type: 'bibliotheque', mots: ['bibliotheque', 'etagere', 'rayonnage'],     l: 2, h: 1, zone: 'fond',      lettre: 'B', nom: 'bibliothèque', feminin: true, variantes: VARIANTES_BIBLIOTHEQUE },
   { type: 'torche',       mots: ['torche', 'flambeau'], l: 1, h: 1, zone: 'perimetre', lettre: '*', feminin: true, bloquant: false, couche: 9, variantes: VARIANTES_FEU },
   { type: 'debris',       mots: ['debris', 'gravat', 'eboulis', 'decombre', 'ruine'], l: 1, h: 1, zone: 'aleatoire', lettre: '%', nom: 'débris', symetrique: true, couche: 1 },
   { type: 'puits',        mots: ['puits'],                                    l: 1, h: 1, zone: 'centre',    lettre: 'U', symetrique: true },
   { type: 'fontaine',     mots: ['fontaine', 'bassin'],                       l: 1, h: 1, zone: 'centre',    lettre: 'W', feminin: true, symetrique: true },
-  { type: 'sarcophage',   mots: ['sarcophage', 'tombeau', 'cercueil'],        l: 1, h: 2, zone: 'centre',    lettre: 'Z' },
+  { type: 'sarcophage',   mots: ['sarcophage', 'tombeau', 'cercueil'],        l: 1, h: 2, zone: 'centre',    lettre: 'Z', variantes: VARIANTES_SARCOPHAGE },
   { type: 'brasero',      mots: ['brasero', 'brasier', 'vasque de feu'],      l: 1, h: 1, zone: 'coins',     lettre: 'V', symetrique: true, variantes: VARIANTES_FEU },
   { type: 'bougies',      mots: ['bougie', 'chandelle', 'chandelier', 'cierge'], l: 1, h: 1, zone: 'aleatoire', lettre: '!', nom: 'bougie', feminin: true, symetrique: true, bloquant: false, couche: 6, variantes: VARIANTES_FEU },
   { type: 'tapis',        mots: ['tapis', 'carpette'],                        l: 3, h: 2, zone: 'centre',    lettre: '=', symetrique: true, bloquant: false, couche: -1 },

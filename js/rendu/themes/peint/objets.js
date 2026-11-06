@@ -24,10 +24,11 @@ import { sensDuCoin } from '../commun.js';
 import { DESSINS as DETAILS } from './details.js';
 import * as vectoriel from '../vectoriel.js';
 import { RICHES } from './objets-dessines.js';
+import { etatPeint } from './objets-etats.js';
 import { teinteFlamme, RAYON_MAGIQUE, fumee, cendres } from '../../feu.js';
 
-const PIERRE = [40, 6, 60], PIERRE_SOMBRE = [40, 5, 46], MARBRE = [40, 8, 74];
-const BOIS = [28, 45, 38], BOIS_SOMBRE = [26, 42, 26], BOIS_CLAIR = [30, 48, 50];
+export const PIERRE = [40, 6, 60], PIERRE_SOMBRE = [40, 5, 46], MARBRE = [40, 8, 74];
+export const BOIS = [28, 45, 38], BOIS_SOMBRE = [26, 42, 26], BOIS_CLAIR = [30, 48, 50];
 const FER = [20, 8, 24], OR = [43, 60, 50];
 
 // --- Briques communes -----------------------------------------------------------------------------------------
@@ -63,13 +64,13 @@ export const COTES = ['nord', 'sud', 'ouest', 'est'];
 const quad = (F, u0, u1, v0, v1) => [F.P(u0, v0), F.P(u1, v0), F.P(u1, v1), F.P(u0, v1)];
 
 /** Une bande pleine sur une face visible. */
-function bande(ctx, F, u0, u1, v0, v1, fond, ep = 0.7) {
+export function bande(ctx, F, u0, u1, v0, v1, fond, ep = 0.7) {
   if (!F.visible) return;
   poly(ctx, quad(F, u0, u1, v0, v1));
   encre(ctx, fond, ep);
 }
 /** `n - 1` traits horizontaux régulièrement répartis entre v0 et v1 sur une face visible (planches, joints). */
-function traits(ctx, F, v0, v1, n, couleur = 'rgba(30,18,8,0.55)', ep = 0.9) {
+export function traits(ctx, F, v0, v1, n, couleur = 'rgba(30,18,8,0.55)', ep = 0.9) {
   if (!F.visible) return;
   ctx.beginPath();
   for (let k = 1; k < n; k++) {
@@ -699,5 +700,6 @@ const sobres = {
  */
 export const objets = Object.fromEntries(Object.keys(sobres).map((type) => [type, (ctx, w, h, t, o, plan) => {
   const riche = etat.details === 'riches' ? RICHES[type] : undefined;
-  return riche ? riche(ctx, w, h, t, o, plan) : sobres[type](ctx, w, h, t, o, plan);
+  if (riche) return riche(ctx, w, h, t, o, plan);
+  return (etatPeint(false, type, o) ?? sobres[type])(ctx, w, h, t, o, plan); // une variante (coffre ouvert…) : objets-etats.js ; sinon le dessin d'origine, tel quel
 }]));

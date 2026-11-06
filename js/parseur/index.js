@@ -26,7 +26,7 @@ import { variantesDe, variantePourMot, varianteParDefaut } from '../catalogue.js
 
 // Quantité retenue pour un pluriel sans nombre (« des torches »), selon la zone par défaut.
 /** Mots qui introduisent la couleur d'un feu (« à flamme bleue », « de feu vert ») : lus avec elle, jamais signalés. */
-const LIAISONS_VARIANTE = new Set(['a', 'au', 'aux', 'de', 'd', 'en', 'flamme', 'flammes', 'feu', 'feux']);
+const LIAISONS_VARIANTE = new Set(['a', 'au', 'aux', 'de', 'd', 'en', 'flamme', 'flammes', 'feu', 'feux', 'moitie', 'demi']);
 const QUANTITE_PLURIEL = { grille: 4, perimetre: 4, aleatoire: 5 };
 
 /**

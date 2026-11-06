@@ -9,9 +9,9 @@
  */
 import { casesRetirees } from '../../formes.js';
 import { tracerSol, dessinerMursDecoupes } from '../trace.js';
-import { rect, rectArrondi, rond, sensDuCoin, contourIrregulier, toileDans } from './commun.js';
+import { rect, rectArrondi, rond, sensDuCoin, contourIrregulier, toileDans, hasard } from './commun.js';
 import { EPAISSEUR_MUR, ancragePorte } from '../geometrie.js';
-import { CREATURES } from '../../catalogue.js';
+import { CREATURES, varianteDe } from '../../catalogue.js';
 import { teinteFlamme, fumee, cendres } from '../feu.js';
 import { dessinerPortrait } from '../portraits.js';
 
@@ -456,6 +456,127 @@ export const objets = {
     texte(ctx, '?', 0, 0, t * 0.4);
   },
 };
+
+// --- États du mobilier (variantes du catalogue : coffre ouvert, tonneau couché…) ---------------------------------
+
+/** Un polygone rempli puis cerné. */
+function polygone(ctx, pts, fond, ep, couleur = NOIR) {
+  ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.closePath();
+  if (fond) { ctx.fillStyle = fond; ctx.fill(); }
+  if (ep) { ctx.strokeStyle = couleur; ctx.lineWidth = ep; ctx.stroke(); }
+}
+/** Un rectangle centré en (cx, cy) de côtés l × h, tourné de `a` radians. */
+function rectTourne(cx, cy, l, h, a) {
+  const c = Math.cos(a), s = Math.sin(a);
+  return [[-l / 2, -h / 2], [l / 2, -h / 2], [l / 2, h / 2], [-l / 2, h / 2]].map(([x, y]) => [cx + x * c - y * s, cy + x * s + y * c]);
+}
+/** Un creux : une forme claire rayée de hachures grises (pas d'aplat sombre sur le papier). */
+function creux(ctx, pts, t) {
+  polygone(ctx, pts, TRES_CLAIR, trait(t, 0.015), GRIS);
+  const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]), x = Math.min(...xs), y = Math.min(...ys);
+  hachures(ctx, () => pts.forEach(([px, py], i) => (i ? ctx.lineTo(px, py) : ctx.moveTo(px, py))), x, y, Math.max(...xs) - x, Math.max(...ys) - y, t * 0.07, trait(t, 0.01));
+}
+const pieces = (ctx, t, pts) => pts.forEach(([x, y]) => rond(ctx, x, y, t * 0.045, '#fff', NOIR, trait(t, 0.012)));
+
+function coffreOuvert(ctx, w, h, t, contenu) {
+  const cw = w * 0.78, ch = h * 0.56, x = -cw / 2, y = -ch / 2;
+  rectArrondi(ctx, x, y, cw, ch, t * 0.06, CLAIR, NOIR, trait(t, 0.03));
+  creux(ctx, rectTourne(0, ch * 0.08, cw * 0.84, ch * 0.7, 0), t);
+  if (contenu) {
+    pieces(ctx, t, [[-cw * 0.25, ch * 0.1], [-cw * 0.08, ch * 0.2], [cw * 0.1, ch * 0.05], [cw * 0.27, ch * 0.22], [0, ch * 0.0], [-cw * 0.3, ch * 0.28]]);
+    pieces(ctx, t, [[-cw * 0.2, ch * 0.62], [0, ch * 0.66], [cw * 0.25, ch * 0.6]]); // tombées devant
+  }
+  rect(ctx, x, y, cw, ch * 0.2, '#fff', NOIR, trait(t, 0.02)); // le couvercle relevé, vu par dessus
+}
+function coffreBrise(ctx, w, h, t) {
+  const cw = w * 0.78, ch = h * 0.56, x = -cw / 2, y = -ch / 2;
+  rectArrondi(ctx, x, y, cw, ch, t * 0.06, CLAIR, NOIR, trait(t, 0.03));
+  creux(ctx, [[x + cw * 0.12, y + ch * 0.5], [x + cw * 0.3, y + ch * 0.3], [x + cw * 0.5, y + ch * 0.55], [x + cw * 0.68, y + ch * 0.3], [x + cw * 0.9, y + ch * 0.55], [x + cw * 0.7, y + ch * 0.85], [x + cw * 0.3, y + ch * 0.85]], t);
+  ligne(ctx, x + cw * 0.08, y + ch * 0.05, x + cw * 0.22, y + ch * 0.3, trait(t, 0.02)); ligne(ctx, x + cw * 0.22, y + ch * 0.3, x + cw * 0.12, y + ch * 0.5, trait(t, 0.02));
+  for (const [u, v, a] of [[0.1, 1.12, 0.4], [0.4, 1.16, -0.5], [0.85, 1.1, 0.2]]) polygone(ctx, rectTourne(x + cw * u, y + ch * v, t * 0.16, t * 0.05, a), '#fff', trait(t, 0.012));
+}
+function livres(ctx, x0, y0, bw, bh, t, largeur, trous, o, gris) {
+  rect(ctx, x0, y0, bw, bh, CLAIR, NOIR, trait(t, 0.03));
+  const n = Math.max(4, Math.round(bw / (t * largeur)));
+  ctx.beginPath();
+  for (let i = 0; i < n; i++) { if (hasard(o, i) < trous) continue; const x = x0 + (bw * i) / n; ctx.moveTo(x, y0 + bh * 0.25); ctx.lineTo(x, y0 + bh * 0.9); }
+  ctx.strokeStyle = gris ? NOIR : GRIS; ctx.lineWidth = trait(t, gris ? 0.02 : 0.012); ctx.stroke();
+}
+const ETATS = {
+  coffre: { ouvert: (ctx, w, h, t) => coffreOuvert(ctx, w, h, t, true), vide: (ctx, w, h, t) => coffreOuvert(ctx, w, h, t, false), brise: coffreBrise },
+  bibliotheque: {
+    clairsemee(ctx, w, h, t, o) { const bw = w - t * 0.08; livres(ctx, -bw / 2, -h / 2 + t * 0.04, bw, h * 0.5, t, 0.12, 0.5, o, false); },
+    renversee(ctx, w, h, t, o) {
+      const bw = w - t * 0.1, prof = h * 0.46, y0 = -h / 2 + t * 0.04;
+      polygone(ctx, rectTourne(0, y0 + prof / 2, bw * 0.97, prof, 0.05), CLAIR, trait(t, 0.03));
+      for (const k of [0.3, 0.55, 0.8]) ligne(ctx, -bw * 0.45, y0 + prof * k, bw * 0.45, y0 + prof * k, trait(t, 0.012), GRIS);
+      for (let i = 0; i < 8; i++) polygone(ctx, rectTourne((hasard(o, i) - 0.5) * bw * 0.9, y0 + prof + t * 0.08 + hasard(o, i + 20) * (h / 2 - y0 - prof - t * 0.16), t * 0.13, t * 0.17, hasard(o, i + 40) * 3), '#fff', trait(t, 0.015));
+    },
+    grimoires(ctx, w, h, t, o) {
+      const bw = w - t * 0.08, y0 = -h / 2 + t * 0.04;
+      livres(ctx, -bw / 2, y0, bw, h * 0.5, t, 0.2, 0.03, o, true);
+      rond(ctx, -bw * 0.28, y0 + h * 0.12, t * 0.06, '#fff', NOIR, trait(t, 0.015)); rond(ctx, bw * 0.28, y0 + h * 0.12, t * 0.04, GRIS, NOIR, trait(t, 0.012));
+      ctx.setLineDash([t * 0.04, t * 0.03]); ligne(ctx, -bw / 2, y0 + h * 0.3, bw / 2, y0 + h * 0.3, trait(t, 0.015), GRIS); ctx.setLineDash([]); // la chaîne
+    },
+  },
+  tonneau: {
+    couche(ctx, w, h, t, o) {
+      const s = Math.min(w, h), L = s * 0.45, W = s * 0.34, a = (hasard(o, 1) - 0.5) * 0.35, pts = [];
+      for (let i = 0; i <= 10; i++) { const u = i / 5 - 1; pts.push([u * L, -W * (0.8 + 0.2 * Math.cos((u * Math.PI) / 2))]); }
+      for (let i = 10; i >= 0; i--) { const u = i / 5 - 1; pts.push([u * L, W * (0.8 + 0.2 * Math.cos((u * Math.PI) / 2))]); }
+      ctx.save(); ctx.rotate(a);
+      polygone(ctx, pts, TRES_CLAIR, trait(t, 0.03));
+      for (const u of [-0.7, -0.05, 0.6]) ligne(ctx, u * L, -W * 0.95, u * L, W * 0.95, trait(t, 0.02), GRIS);
+      for (const v of [-0.4, 0.4]) ligne(ctx, -L * 0.95, v * W, L * 0.95, v * W, trait(t, 0.01), GRIS);
+      rond(ctx, L * 0.2, W * 0.1, t * 0.04, NOIR);
+      ctx.restore();
+    },
+    eventre(ctx, w, h, t, o) {
+      const r = Math.min(w, h) * 0.34, fl = [], etoile = [];
+      for (let i = 0; i < 12; i++) { const a = (i / 12) * Math.PI * 2, k = 0.82 + hasard(o, 10 + i) * 0.3; fl.push([r * 0.3 + Math.cos(a) * r * 1.05 * k, r * 0.4 + Math.sin(a) * r * 0.72 * k]); }
+      ctx.setLineDash([t * 0.05, t * 0.04]); polygone(ctx, fl, CLAIR, trait(t, 0.015), GRIS); ctx.setLineDash([]); // la flaque
+      rond(ctx, 0, 0, r, TRES_CLAIR, NOIR, trait(t, 0.03));
+      for (let i = 0; i < 10; i++) { const a = (i / 10) * Math.PI * 2, rr = r * (i % 2 ? 0.34 : 0.7); etoile.push([Math.cos(a) * rr, Math.sin(a) * rr]); }
+      creux(ctx, etoile, t);
+      polygone(ctx, rectTourne(-r * 0.8, r * 0.75, r * 0.7, r * 0.14, 0.5), '#fff', trait(t, 0.012));
+    },
+  },
+  sarcophage: {
+    ouvert(ctx, w, h, t) {
+      const sw = w * 0.74, sh = h - t * 0.14;
+      rectArrondi(ctx, -sw / 2, -sh / 2, sw, sh, t * 0.15, CLAIR, NOIR, trait(t, 0.03));
+      creux(ctx, rectTourne(0, 0, sw * 0.8, sh * 0.84, 0), t);
+      rond(ctx, 0, -sh * 0.3, sw * 0.14, '#fff', NOIR, trait(t, 0.015));
+      ctx.save(); ctx.translate(sw * 0.02, sh * 0.2); ctx.rotate(0.15);
+      rectArrondi(ctx, -sw * 0.42, -sh * 0.28, sw * 0.84, sh * 0.56, t * 0.1, TRES_CLAIR, NOIR, trait(t, 0.03));
+      ligne(ctx, 0, -sh * 0.2, 0, sh * 0.2, trait(t, 0.02), GRIS); ligne(ctx, -sw * 0.2, -sh * 0.06, sw * 0.2, -sh * 0.06, trait(t, 0.02), GRIS);
+      ctx.restore();
+    },
+  },
+  statue: {
+    brisee(ctx, w, h, t) {
+      const r = Math.min(w, h) * 0.42, dents = [];
+      rond(ctx, 0, 0, r, CLAIR, NOIR, trait(t, 0.03));
+      for (let i = 0; i < 11; i++) { const a = (i / 11) * Math.PI * 2, rr = r * (i % 2 ? 0.34 : 0.5); dents.push([Math.cos(a) * rr, Math.sin(a) * rr]); }
+      polygone(ctx, dents, '#fff', trait(t, 0.02));
+      rond(ctx, -r * 0.5, r * 0.5, r * 0.2, '#fff', NOIR, trait(t, 0.015)); // la tête tombée
+      polygone(ctx, [[r * 0.5, r * 0.45], [r * 0.7, r * 0.6], [r * 0.45, r * 0.7]], '#fff', trait(t, 0.012));
+    },
+  },
+  caisse: {
+    ouverte(ctx, w, h, t, o) {
+      const s = Math.min(w, h) * 0.62, x = -s / 2 - t * 0.08, y = -s / 2;
+      rect(ctx, x, y, s, s, TRES_CLAIR, NOIR, trait(t, 0.03));
+      for (let i = 0; i < 12; i++) { const px = x + s * (0.15 + 0.7 * hasard(o, i)), py = y + s * (0.15 + 0.7 * hasard(o, i + 30)), a = hasard(o, i + 60) * 6.28; ligne(ctx, px, py, px + Math.cos(a) * t * 0.14, py + Math.sin(a) * t * 0.14, trait(t, 0.012), GRIS); } // la paille
+      rect(ctx, x + s + t * 0.01, y + s * 0.05, t * 0.2, s * 0.9, CLAIR, NOIR, trait(t, 0.02)); // le couvercle appuyé contre le flanc
+    },
+  },
+};
+// Un état (variante non défaut) a son dessin ; l'état d'origine garde le dessin d'avant, appelé tel quel.
+for (const type of Object.keys(ETATS)) {
+  const origine = objets[type];
+  objets[type] = (ctx, w, h, t, o, plan) => (ETATS[type][varianteDe(o)] ?? origine)(ctx, w, h, t, o, plan);
+}
 
 // --- Repères --------------------------------------------------------------------
 

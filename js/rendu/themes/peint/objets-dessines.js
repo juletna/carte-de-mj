@@ -15,6 +15,7 @@ import { faceVisible } from '../../perspective.js';
 import { encre, trait, ton, arrondi, rectPts, centre, ENCRE } from './trait.js';
 import { preparerObjet, face, ordonner, poly, milieu, distCentre, COTES, paroi, flamme, lumiereFeu } from './objets.js';
 import { etat } from './etat.js';
+import { etatPeint } from './objets-etats.js';
 import { sensDuCoin } from '../commun.js';
 import { teinteFlamme, fumee } from '../../feu.js';
 
@@ -211,6 +212,8 @@ export const RICHES = {
   },
 
   coffre(ctx, w, h, t, o) {
+    const etatRiche = etatPeint(true, 'coffre', o); // une variante (coffre ouvert…) : objets-etats.js
+    if (etatRiche) return etatRiche(ctx, w, h, t, o);
     const { V, r } = preparerObjet(ctx, o), cw = w * 0.8, ch = h * 0.6, x = -cw / 2, y = -ch / 2;
     V.prisme(ctx, r, rectPts(x, y, cw, ch), 0, 0.17, BOIS_C, () => plaque(ctx, V, rect(x, y, cw, ch), PLANCHES[1], { dedans: () => planches(ctx, r, pRect(x, y, cw, ch), 3) }));
     for (const c of COTES) {
@@ -235,6 +238,8 @@ export const RICHES = {
   },
 
   statue(ctx, w, h, t, o) {
+    const etatRiche = etatPeint(true, 'statue', o); // une variante (coffre ouvert…) : objets-etats.js
+    if (etatRiche) return etatRiche(ctx, w, h, t, o);
     const { V, r } = preparerObjet(ctx, o), s = Math.min(w, h), a = s * 0.38;
     const veines = (ctx2, R) => { // veinage du marbre : trois traits fins ondulés
       for (let k = 0; k < 3; k++) {
@@ -325,6 +330,8 @@ export const RICHES = {
   },
 
   tonneau(ctx, w, h, t, o) {
+    const etatRiche = etatPeint(true, 'tonneau', o); // une variante (coffre ouvert…) : objets-etats.js
+    if (etatRiche) return etatRiche(ctx, w, h, t, o);
     const { V, r } = preparerObjet(ctx, o), R = Math.min(w, h) * 0.38, h1 = 0.34;
     V.cylindre(ctx, r, 0, 0, R, 0, h1, BOIS_C, () => {
       plaque(ctx, V, disque(0, 0, R), PLANCHES[0], { ep: EP * 1.2, dedans: () => planches(ctx, r, (u, v) => [-R + 2 * R * v, -R + 2 * R * u], 6, PLANCHES) }); // douelles
@@ -337,6 +344,8 @@ export const RICHES = {
   },
 
   caisse(ctx, w, h, t, o) {
+    const etatRiche = etatPeint(true, 'caisse', o); // une variante (coffre ouvert…) : objets-etats.js
+    if (etatRiche) return etatRiche(ctx, w, h, t, o);
     const { V, r } = preparerObjet(ctx, o), s = Math.min(w, h) * 0.78, x = -s / 2, y = -s / 2;
     V.prisme(ctx, r, rectPts(x, y, s, s), 0, 0.27, BOIS_C, () => plaque(ctx, V, rect(x, y, s, s), PLANCHES[2], { ep: EP * 1.2, dedans: (c) => {
       planches(ctx, r, pRect(x, y, s, s), 4, PLANCHES);
@@ -449,6 +458,8 @@ export const RICHES = {
   },
 
   bibliotheque(ctx, w, h, t, o) {
+    const etatRiche = etatPeint(true, 'bibliotheque', o); // une variante (coffre ouvert…) : objets-etats.js
+    if (etatRiche) return etatRiche(ctx, w, h, t, o);
     const { V, r } = preparerObjet(ctx, o), bw = w - t * 0.08, bh = h * 0.7, x = -bw / 2, y = -h / 2 + t * 0.04, h1 = 0.95;
     V.prisme(ctx, r, rectPts(x, y, bw, bh), 0, h1, BOIS_C_SOMBRE, () => {
       plaque(ctx, V, rect(x, y, bw, bh), BOIS_FONCE[1], { ep: EP * 1.3, dedans: () => planches(ctx, r, pRect(x, y, bw, bh), 4, BOIS_FONCE) });
@@ -563,6 +574,8 @@ export const RICHES = {
   },
 
   sarcophage(ctx, w, h, t, o) {
+    const etatRiche = etatPeint(true, 'sarcophage', o); // une variante (coffre ouvert…) : objets-etats.js
+    if (etatRiche) return etatRiche(ctx, w, h, t, o);
     const { V, r } = preparerObjet(ctx, o), sw = w * 0.76, sh = h - t * 0.12, x = -sw / 2, y = -sh / 2, long = sh >= sw, m = t * 0.05;
     V.prisme(ctx, r, rectPts(x, y, sw, sh), 0, 0.2, PIERRE_C_SOMBRE, () => plaque(ctx, V, rect(x, y, sw, sh), DESSUS_PIERRE[2], { ep: EP * 1.2 }));
     for (const c of COTES) { const F = face(V, x, y, sw, sh, c); joints(ctx, F, 0, 0.14, 2, 3); bandeFace(ctx, F, 0.03, 0.97, 0.15, 0.19, OR, false); aretes(ctx, V, F, c, 0, 0.2, 0.05); }
@@ -761,4 +774,14 @@ export const RICHES = {
     ctx.beginPath(); ctx.moveTo(...R(0, 0.1)); ctx.lineTo(...R(-0.02, 0.15)); ctx.lineTo(...R(0.02, 0.15)); ctx.closePath(); trait(ctx, '#5a4630', 0.9); // le nez
     ligne(ctx, [R(-0.07, 0.19), R(0.07, 0.19)], '#5a4630', 0.9); // les dents
   },
+};
+
+/**
+ * Les briques et les tons du style riches, pour les états du mobilier (objets-etats.js : coffre ouvert, bibliothèque renversée…), qui les réutilisent
+ * pour rester dans le même langage que les objets d'origine.
+ */
+export const BRIQUES = {
+  plaque, polygone, rect, disque, planches, planchesFace, bandeFace, aretes, clou, ligne, pRect, pQuad, bloc, joints,
+  BOIS_C, BOIS_C_SOMBRE, PLANCHES, BOIS_FONCE, PIERRE_C, PIERRE_C_SOMBRE, DESSUS_PIERRE, MARBRE_C, MARBRE_DESSUS, MARBRE_VEINE, FER, FER_REFLET, FER_CLAIR,
+  OR, OR_REFLET, OR_OMBRE, ROUGE, ROUGE_CLAIR, LIVRES, OS, OS_OMBRE, CRANE, VIDE, VIDE_FOND, DRAP, DRAP_OMBRE, EP, EP_FIN, FIL, JOINT,
 };
