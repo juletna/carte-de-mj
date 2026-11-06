@@ -115,7 +115,7 @@ body.atelier-avec-inspecteur { --largeur-inspecteur: 330px; }
 .atelier-grille { display: flex; align-items: center; }
 .atelier-grille-bouton { border-radius: var(--rayon) 0 0 var(--rayon); }
 .atelier-grille-chevron { border-radius: 0 var(--rayon) var(--rayon) 0; width: 28px; padding: 0; }
-.atelier-grille-bouton[aria-pressed="true"] { background: var(--champ); color: var(--texte); }
+.atelier-grille-bouton[aria-pressed="true"] { background: var(--p-surface-1, var(--champ)); border-color: transparent; color: var(--texte); } /* enfoncé = visible : un fond gris, sans le doré des boutons à bascule (css/base.css) */
 .atelier-grille-bouton[aria-pressed="false"] { color: var(--texte-doux); }
 .atelier-grille-panneau { width: 260px; }
 .atelier-affichage-ligne { display: grid; grid-template-columns: 1fr auto; gap: var(--esp-1) var(--esp-2); align-items: center; font-size: 13px; }
