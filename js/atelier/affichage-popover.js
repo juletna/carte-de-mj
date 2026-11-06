@@ -86,16 +86,16 @@ export function creerAffichagePopover({ lire, surChangement }) {
   const reperes = h('input', { type: 'checkbox', id: 'reperes' });
   const ligne = (texte, champ, titre) => h('label', { className: 'atelier-affichage-ligne atelier-affichage-choix', title: titre ?? '' }, h('span', { textContent: texte }), champ);
   const caseACocher = (texte, champ) => h('label', { className: 'atelier-affichage-case' }, champ, h('span', { textContent: texte }));
-  const groupe = (titre, ...enfants) => h('div', { className: `atelier-affichage-groupe${titre === 'Grille' ? '' : ' pour-donjon'}` }, h('p', { className: 'atelier-affichage-sous-titre', textContent: titre }), ...enfants);
+  const groupe = (titre, ...enfants) => h('div', { className: 'atelier-affichage-groupe' }, h('p', { className: 'atelier-affichage-sous-titre', textContent: titre }), ...enfants);
   const panneau = h('div', { className: 'atelier-affichage-panneau', role: 'dialog', 'aria-label': 'Affichage', hidden: true },
     h('p', { className: 'atelier-affichage-titre', textContent: 'Affichage' }),
-    groupe('Grille', interrupteurLigne,
-      h('label', { className: 'atelier-affichage-ligne' }, h('span', { textContent: 'Opacité des lignes' }), curseur, valeur)),
     groupe('Carte', ligne('Thème', theme), ligne('Détails des sols', details, 'Sols dessinés et détaillés, ou sols simples (thème peint).'), caseACocher('Relief des murs', relief)),
     groupe('À la table',
       h('label', { className: 'atelier-affichage-ligne', title: 'Obscurité de la salle à la table. La vue du MJ n’en garde qu’une part, pour tout voir.' },
         h('span', { textContent: 'Pénombre' }), penombre, penombreVal),
-      caseACocher('Flammes animées', flammes), caseACocher('Repères (A, B… et 1, 2…)', reperes)));
+      caseACocher('Flammes animées', flammes), caseACocher('Repères (A, B… et 1, 2…)', reperes)),
+    groupe('Grille', interrupteurLigne,
+      h('label', { className: 'atelier-affichage-ligne' }, h('span', { textContent: 'Opacité des lignes' }), curseur, valeur))));
   const racine = h('div', { className: 'atelier-affichage' }, bouton, panneau);
 
   function maj() {

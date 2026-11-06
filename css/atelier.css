@@ -106,8 +106,6 @@ body.atelier-avec-inspecteur { --largeur-inspecteur: 330px; }
 .atelier-affichage-titre { margin: 0; font-weight: 600; }
 .atelier-affichage-groupe { display: flex; flex-direction: column; gap: var(--esp-2); }
 .atelier-affichage-sous-titre { margin: 0; color: var(--texte-doux); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
-/* Sur la carte d'un lieu (monde), seule la grille s'applique : thème, sols, relief, pénombre, flammes et repères sont ceux des salles d'un donjon. */
-body.univers-ouvert .atelier-affichage-groupe.pour-donjon { display: none; }
 /* L'interrupteur de la grille : le composant « univers-interrupteur » (css/univers.css), sans doré. */
 .atelier-affichage-interrupteur { justify-content: flex-start; }
 .atelier-affichage-ligne { display: grid; grid-template-columns: 1fr auto; gap: var(--esp-1) var(--esp-2); align-items: center; font-size: 13px; }
