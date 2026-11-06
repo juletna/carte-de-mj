@@ -9,8 +9,9 @@
  */
 import { virgule } from '../format.js';
 import { dessiner } from '../rendu/moteur.js';
+import { themeParNom } from '../rendu/themes/index.js';
 import { MARGE } from '../rendu/geometrie.js';
-import { tailleRemplir, carteDeCalibrage, CASE_MM_PAR_DEFAUT } from '../affichage.js';
+import { tailleRemplir, carteDeCalibrage, CASE_MM_PAR_DEFAUT, optionsRendu } from '../affichage.js';
 import { ZOOM_MIN, ZOOM_MAX, zoomBorne } from '../mise-en-page.js';
 import { ajouterElement, elementsPalette, GROUPES_PALETTE, SOUS_GROUPES } from '../pose.js';
 import { creerPalette } from '../palette.js';
@@ -57,7 +58,10 @@ export function creerVueCarte(ctx) {
     const retrait = 2 * (parseFloat(getComputedStyle($('support')).paddingLeft) || 0); // la place des bandes de dimensions
     return tailleRemplir(plan, scene.clientWidth - retrait, scene.clientHeight - retrait) ?? r.taille;
   }
-  const optionsDessin = (plan) => ({ taille: tailleAffichee(plan), grille: r.grille, marques: marques(plan) });
+  const optionsDessin = (plan) => {
+    const { grille, theme, relief } = optionsRendu(r);
+    return { taille: tailleAffichee(plan), grille, theme: themeParNom(theme), relief, marques: marques(plan) };
+  };
 
   /** Dessine `plan` sur la carte sans rien enregistrer (aperçu d'un glissement), à la taille donnée ou à celle de l'affichage. */
   function apercuCarte(plan, taille) {

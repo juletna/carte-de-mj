@@ -1,5 +1,5 @@
 /**
- * Les réglages de la régie (partagés avec le Donjon : carte-de-mj:reglages-v1) : taille de case, grille, repères, mini-carte et
+ * Les réglages de la régie (partagés avec le Donjon : carte-de-mj:reglages-v1) : taille de case, thème, cases, relief, repères, mini-carte et
  * mode de la table, adaptation de la carte de la régie à la fenêtre. Fabrique `creerReglages(ctx)` ; `ctx` est celui de regie.js
  * (`etat`, `r`, `commande`, `rendre`, `diffuser`, `montrerIci`), lu au moment de l'appel. Renvoie `sauver` (à rappeler quand la régie reprend la main).
  *
@@ -8,6 +8,7 @@
  */
 import * as stockage from './stockage.js';
 import { modeTable, ajusterTaille, caseMmValide, CASE_MM_PAR_DEFAUT } from './affichage.js';
+import { lierReglagesRendu } from './reglages-rendu.js';
 import { $ } from './dom.js';
 
 export function creerReglages(ctx) {
@@ -15,7 +16,7 @@ export function creerReglages(ctx) {
   const rendre = () => ctx.rendre();
   const diffuser = () => ctx.diffuser();
   const montrerIci = () => ctx.montrerIci();
-  let lu;
+  let lu, reglagesRendu;
   function sauverReglages() {
     if (commande.retrait) return;
     const frais = stockage.enregistrerReglages(lu, r).reglages;
@@ -29,7 +30,7 @@ export function creerReglages(ctx) {
   function majControles() {
     if (r.reperes === undefined) r.reperes = true;
     lu = { ...r };
-    $('grille').checked = r.grille;
+    reglagesRendu?.maj();
     $('reperes').checked = r.reperes !== false;
     $('mini-active').checked = r.miniTable !== false;
     majModeTable();
@@ -58,6 +59,7 @@ export function creerReglages(ctx) {
     $('calibrage-val').textContent = `${r.taille} px`;
   }
   majControles();
+  reglagesRendu = lierReglagesRendu(r, () => { sauverReglages(); rendre(); });
   $('taille').addEventListener('input', (e) => { r.taille = Number(e.target.value); majTaille(); sauverReglages(); majModeTable(); rendre(); });
 
   // --- L'écran de table : orientation et calibrage ------------------------------------------------------
@@ -90,7 +92,6 @@ export function creerReglages(ctx) {
   for (const b of document.querySelectorAll('[data-pas-taille]')) {
     b.addEventListener('click', () => { r.taille = ajusterTaille(r.taille, Number(b.dataset.pasTaille)); majTaille(); sauverReglages(); majModeTable(); rendre(); });
   }
-  $('grille').addEventListener('change', (e) => { r.grille = e.target.checked; sauverReglages(); rendre(); });
   $('reperes').addEventListener('change', (e) => { r.reperes = e.target.checked; sauverReglages(); rendre(); });
   $('ajuster').addEventListener('change', (e) => { etat.ajuster = e.target.checked; rendre(); });
   return { sauver: sauverReglages };

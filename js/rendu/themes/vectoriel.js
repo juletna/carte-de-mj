@@ -13,9 +13,13 @@
  *                                         (creature.etat « blesse » ou « mort » : anneau en tirets et grosse pastille à croix, ou grisé et barré)
  *
  * Repères d'interface (facultatifs), rectangles { x, y, l, h } en CASES, origine au coin nord-ouest de la pièce :
- *   repereCache(ctx, rect, t)             contour en pointillés d'un élément secret
+ *   repereCache(ctx, rect, t, genre)      contour en pointillés d'un élément secret (genre : 'porte', 'objet' ou 'creature')
  *   marqueLiaison(ctx, rect, mur, t)      porte reliée à une autre salle
- *   marqueSelection(ctx, rect, t)         élément sélectionné
+ *   marqueSelection(ctx, rect, t, genre)  élément sélectionné
+ *
+ * Autres crochets facultatifs, que le moteur appelle s'ils existent (voir peint.js) :
+ *   preparer(ctx, plan, t, {relief})      avant de dessiner une salle : le thème calcule ce qu'il lui faut (centre de la vue, graine)
+ *   grille(ctx, plan, t, opacite)         grille du thème ; `opacite` (0–1) est le réglage « Cases », absent pour un simple « oui »
  */
 import { casesRetirees } from '../../formes.js';
 import { dessinerMursDecoupes } from '../trace.js';

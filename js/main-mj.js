@@ -24,6 +24,7 @@ import { creerBulle } from './mj/bulle.js';
 import { creerZoom } from './mj/zoom.js';
 import { creerVueCarte } from './mj/vue-carte.js';
 import { creerVuePlan } from './mj/vue-plan.js';
+import { lierReglagesRendu } from './reglages-rendu.js';
 import { $, h } from './dom.js';
 import { libelleMicro } from './format.js';
 
@@ -311,7 +312,6 @@ if (!voixDisponible) {
 $('echelle').value = r.echelle;
 $('taille').value = r.taille;
 $('taille-val').textContent = `${r.taille} px`;
-$('grille').checked = r.grille;
 
 $('echelle').addEventListener('change', (e) => {
   const v = parseFloat(e.target.value);
@@ -323,7 +323,7 @@ $('taille').addEventListener('input', (e) => {
   $('taille-val').textContent = `${r.taille} px`;
   rendre();
 });
-$('grille').addEventListener('change', (e) => { r.grille = e.target.checked; rendre(); });
+lierReglagesRendu(r, rendre);
 
 $('calibrage').addEventListener('change', (e) => { $('aide-calibrage').hidden = !e.target.checked; rendre(); });
 

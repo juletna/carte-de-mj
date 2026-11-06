@@ -17,6 +17,7 @@ import { MURS } from './murs.js';
 import { validerPlan, ETATS, VERSION_PLAN } from './schema.js';
 import { disposerPlan, cheminCouloir, pontsDe } from './plan-donjon.js';
 import { normaliserForme, estSol } from './formes.js';
+import { idPublic } from './rendu/graine.js';
 
 // --- Qui voit quoi ------------------------------------------------------------------------------------
 
@@ -62,7 +63,7 @@ export function planPublic(plan, { visible = (e) => !estCache(e), garder = () =>
     ...(avecEtat && ETATS.includes(k.etat) ? { etat: k.etat } : {}), // liste blanche : blessé ou mort, rien d'autre
   });
   return {
-    version: VERSION_PLAN, id: 'table', nom: '', ...normaliserForme(plan),
+    version: VERSION_PLAN, id: idPublic(plan.id), nom: '', ...normaliserForme(plan),
     largeur: plan.largeur, longueur: plan.longueur, sol: plan.sol, entree: 'sud',
     portes: (plan.portes || []).filter((q) => visible(q, 'porte')).map((q) => ({ id: q.id, mur: q.mur, position: q.position, type: q.type })),
     objets: (plan.objets || []).filter((o) => visible(o, 'objet')).map((o) => ({ id: o.id, type: o.type, x: o.x, y: o.y, l: o.l, h: o.h, rotation: o.rotation })),

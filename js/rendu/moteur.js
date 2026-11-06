@@ -26,9 +26,11 @@ const GRILLE_TRAIT = 'rgba(0, 0, 0, 0.45)'; // lignes de la grille
 /**
  * @param {HTMLCanvasElement} canvas
  * @param {object} plan     plan validé (voir schema.js)
- * @param {{taille?:number, grille?:boolean, theme?:object, marques?:object}} options
+ * @param {{taille?:number, grille?:boolean|number, theme?:object, marques?:object, relief?:boolean}} options
  *        taille = côté d'une case en pixels CSS
- *        grille = lignes de la grille (le thème peut fournir les siennes : `theme.grille`)
+ *        grille = lignes de la grille (le thème peut fournir les siennes : `theme.grille`). Un booléen, ou une OPACITÉ de 0 à 1
+ *          (0 : pas de grille). `true` garde le trait habituel du thème ; un nombre le règle (réglage « Cases »)
+ *        relief = fausse 3D des murs vus du centre de la salle, pour les thèmes qui la savent (`theme.preparer`) ; les autres l'ignorent
  *        reperes = lettres et numéros dans la marge (par défaut : suit `grille`)
  *        marques = repères d'interface dessinés par-dessus (le thème en décide l'apparence) :
  *          portesReliees: [{mur, position}]            portes reliées à une autre salle
@@ -37,7 +39,7 @@ const GRILLE_TRAIT = 'rgba(0, 0, 0, 0.45)'; // lignes de la grille
  *        Les éléments `cache: true` (secrets) restent visibles dans la vue MJ : dessinés en
  *        translucide avec un repère en pointillés.
  */
-export function dessiner(canvas, plan, { taille = TAILLE_PAR_DEFAUT, grille = true, theme = vectoriel, marques = {}, reperes = grille } = {}) {
+export function dessiner(canvas, plan, { taille = TAILLE_PAR_DEFAUT, grille = true, theme = vectoriel, marques = {}, reperes = !!grille, relief = true } = {}) {
   const t = taille;
   const largeurPx = (plan.largeur + 2 * MARGE) * t;
   const hauteurPx = (plan.longueur + 2 * MARGE) * t;
@@ -53,11 +55,12 @@ export function dessiner(canvas, plan, { taille = TAILLE_PAR_DEFAUT, grille = tr
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, largeurPx, hauteurPx);
 
+  theme.preparer?.(ctx, plan, t, { relief }); // le fond de roche du thème peint est semé selon la salle
   theme.roche(ctx, largeurPx, hauteurPx, t);
 
   // À partir d'ici, l'origine est le coin nord-ouest de la pièce.
   ctx.translate(MARGE * t, MARGE * t);
-  peindre(ctx, plan, t, { grille, reperes, theme, marques });
+  peindre(ctx, plan, t, { grille, reperes, theme, marques, relief });
 }
 
 /**
@@ -94,8 +97,12 @@ export function dessinerFenetre(canvas, plan, { fenetre, bords, taille, debord =
   return { largeur, hauteur, debord };
 }
 
-/** Sol, objets, grille, murs, portes, pions et repères d'interface ; l'origine du contexte est le coin nord-ouest de la salle. */
-export function peindre(ctx, plan, t, { grille, reperes, theme, marques }) {
+/**
+ * Sol, objets, grille, murs, portes, pions et repères d'interface ; l'origine du contexte est le coin nord-ouest de la salle.
+ * `relief` n'a de sens que pour un thème qui a `preparer` (peint) : il y règle la fausse 3D.
+ */
+export function peindre(ctx, plan, t, { grille, reperes, theme, marques, relief = true }) {
+  theme.preparer?.(ctx, plan, t, { relief });
   theme.sol(ctx, plan, t);
 
   const objets = [...plan.objets].sort((a, b) => coucheDe(a.type) - coucheDe(b.type));
@@ -103,18 +110,18 @@ export function peindre(ctx, plan, t, { grille, reperes, theme, marques }) {
   const autres = objets.filter((o) => coucheDe(o.type) >= COUCHE_PAR_DEFAUT);
 
   auSol.forEach((o) => dessinerObjet(ctx, o, t, theme));
-  if (grille) (theme.grille || dessinerGrille)(ctx, plan, t);
+  if (grille) (theme.grille || dessinerGrille)(ctx, plan, t, grille === true ? undefined : grille);
   theme.murs(ctx, plan, t);
   if (reperes) dessinerReperes(ctx, plan, t);
-  plan.portes.forEach((p) => secret(ctx, p.cache, rectPorte(plan, p), t, theme, () => theme.porte(ctx, p, plan, t)));
+  plan.portes.forEach((p) => secret(ctx, p.cache, rectPorte(plan, p), t, theme, () => theme.porte(ctx, p, plan, t), 'porte'));
   autres.forEach((o) => dessinerObjet(ctx, o, t, theme));
   if (marques.caseVisee) dessinerCaseVisee(ctx, marques.caseVisee, t);
   // Les pions passent par-dessus tout le décor.
-  (plan.creatures || []).forEach((k) => secret(ctx, k.cache, rectDe('creature', k), t, theme, () => theme.pion(ctx, k, t)));
+  (plan.creatures || []).forEach((k) => secret(ctx, k.cache, rectDe('creature', k), t, theme, () => theme.pion(ctx, k, t), 'creature'));
 
   // Repères d'interface, tout au-dessus.
   for (const p of marques.portesReliees || []) theme.marqueLiaison?.(ctx, rectPorte(plan, p), p.mur, t, p);
-  if (marques.selection) theme.marqueSelection?.(ctx, rectDe(marques.selection.genre, marques.selection.element, plan), t);
+  if (marques.selection) theme.marqueSelection?.(ctx, rectDe(marques.selection.genre, marques.selection.element, plan), t, marques.selection.genre);
 }
 
 /** La case que le MJ montre : très voyante, sous les pions, pour se lire de loin à la table. */
@@ -132,14 +139,14 @@ function dessinerCaseVisee(ctx, { x, y }, t) {
   ctx.restore();
 }
 
-/** Dessine un élément ; s'il est secret, en translucide avec le repère en pointillés du thème. */
-function secret(ctx, cache, rect, t, theme, dessin) {
+/** Dessine un élément (`genre` : 'porte', 'objet' ou 'creature') ; s'il est secret, en translucide avec le repère en pointillés du thème. */
+function secret(ctx, cache, rect, t, theme, dessin, genre) {
   if (!cache) { dessin(); return; }
   ctx.save();
   ctx.globalAlpha = theme.opaciteCache ?? 0.5; // un thème peut préférer un élément secret opaque (papier : repère en pointillés)
   dessin();
   ctx.restore();
-  theme.repereCache?.(ctx, rect, t);
+  theme.repereCache?.(ctx, rect, t, genre);
 }
 
 /** Repères de cases dans la marge : lettres en haut, numéros à gauche (« C4 »). */
@@ -155,11 +162,11 @@ function dessinerReperes(ctx, plan, t) {
 }
 
 /** Lignes de la grille, par-dessus le sol et sous les objets. */
-function dessinerGrille(ctx, plan, t) {
+function dessinerGrille(ctx, plan, t, opacite) {
   ctx.save();
   tracerSol(ctx, plan, t);
   ctx.clip();
-  ctx.strokeStyle = GRILLE_TRAIT;
+  ctx.strokeStyle = opacite === undefined ? GRILLE_TRAIT : `rgba(0, 0, 0, ${opacite})`;
   ctx.lineWidth = Math.max(1, t / 40);
   ctx.beginPath();
   for (let x = 0; x <= plan.largeur; x++) { ctx.moveTo(x * t, 0); ctx.lineTo(x * t, plan.longueur * t); }
@@ -174,7 +181,7 @@ function dessinerGrille(ctx, plan, t) {
  * Ainsi chaque fonction de dessin n'a qu'une seule orientation à gérer.
  */
 function dessinerObjet(ctx, o, t, theme) {
-  secret(ctx, o.cache, { x: o.x, y: o.y, l: o.l, h: o.h }, t, theme, () => dessinerObjetOpaque(ctx, o, t, theme));
+  secret(ctx, o.cache, { x: o.x, y: o.y, l: o.l, h: o.h }, t, theme, () => dessinerObjetOpaque(ctx, o, t, theme), 'objet');
 }
 
 function dessinerObjetOpaque(ctx, o, t, theme) {

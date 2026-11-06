@@ -7,9 +7,10 @@
  * et de miniPlanTable() relu par recevoirMiniPlan (voir vue-publique.js). Il ne lit ni le stockage ni les parties.
  */
 import { dessiner } from './rendu/moteur.js';
+import { themeParNom } from './rendu/themes/index.js';
 import { dessinerPlanDonjon } from './rendu/plan.js';
 import { activerDeplacement } from './deplacement.js';
-import { AFFICHAGE_PAR_DEFAUT, CASE_MM_PAR_DEFAUT, tailleTable, tailleQuiTientPlan, carteDeCalibrage, transformOrientation, versCarte } from './affichage.js';
+import { AFFICHAGE_PAR_DEFAUT, CASE_MM_PAR_DEFAUT, optionsRendu, tailleTable, tailleQuiTientPlan, carteDeCalibrage, transformOrientation, versCarte } from './affichage.js';
 import { virgule } from './format.js';
 import { $ } from './dom.js';
 
@@ -31,8 +32,9 @@ export function creerEcranTable({ affichage = { ...AFFICHAGE_PAR_DEFAUT }, surCo
   }
 
   function optionsEcran(taille) {
-    const { grille, reperes } = ecran.affichage;
-    return { taille, grille, reperes, marques: ecran.caseVisee ? { caseVisee: ecran.caseVisee } : {} };
+    const { reperes } = ecran.affichage;
+    const { grille, theme, relief } = optionsRendu(ecran.affichage);
+    return { taille, grille, theme: themeParNom(theme), relief, reperes, marques: ecran.caseVisee ? { caseVisee: ecran.caseVisee } : {} };
   }
 
   /** Tourne ou retourne tout ce que voient les joueurs ; les boutons de coin restent à l'endroit. */

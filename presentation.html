@@ -254,7 +254,13 @@
         <label class="ligne">Taille d'une case
           <span><input id="taille" type="range" min="16" max="160" step="0.1" value="48"> <output id="taille-val">48 px</output></span>
         </label>
-        <label class="ligne case"><input id="grille" type="checkbox" checked> Afficher la grille</label>
+        <label class="ligne">Thème
+          <select id="theme"><option value="peint">Peint</option><option value="vectoriel">Vectoriel</option></select>
+        </label>
+        <label class="ligne">Cases
+          <span><input id="cases" type="range" min="0" max="100" step="5" value="40"> <output id="cases-val">40 %</output></span>
+        </label>
+        <label class="ligne case"><input id="relief" type="checkbox" checked> Relief des murs</label>
         <label class="ligne case"><input id="reperes" type="checkbox" checked> Afficher les repères (A, B… et 1, 2…)</label>
         <label class="ligne case"><input id="ajuster" type="checkbox" checked> Adapter la carte de la régie à la fenêtre</label>
         <p class="note">La taille d'une case sert à la table en « échelle réelle » (réglage partagé avec le Donjon ; on la calibre avec une carte bancaire dans « Régler l'écran de table » ou dans le Donjon) et de plafond à la régie.

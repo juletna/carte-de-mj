@@ -262,7 +262,13 @@
       <label class="ligne">Échelle
         <span><input id="echelle" type="number" min="0.5" max="5" step="0.5" value="1.5"> m par case</span>
       </label>
-      <label class="ligne case"><input id="grille" type="checkbox" checked> Afficher la grille</label>
+      <label class="ligne">Thème
+        <select id="theme"><option value="peint">Peint</option><option value="vectoriel">Vectoriel</option></select>
+      </label>
+      <label class="ligne">Cases
+        <span><input id="cases" type="range" min="0" max="100" step="5" value="40"> <output id="cases-val">40 %</output></span>
+      </label>
+      <label class="ligne case"><input id="relief" type="checkbox" checked> Relief des murs</label>
       <label class="ligne">Taille réelle d'une case
         <span><input id="taille" type="range" min="16" max="160" step="1" value="48"> <output id="taille-val">48 px</output></span>
       </label>

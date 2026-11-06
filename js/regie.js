@@ -17,6 +17,7 @@ import * as modele from './donjon.js';
 import * as pres from './presentation.js';
 import * as table from './commande-table.js';
 import { dessiner } from './rendu/moteur.js';
+import { themeParNom } from './rendu/themes/index.js';
 import { disposerPlan, cleDisposition } from './plan-donjon.js';
 import { activerDeplacement } from './deplacement.js';
 import { creerMiniPlan } from './miniplan.js';
@@ -24,7 +25,7 @@ import { carteFiche, carteJoueur } from './carte-personnage.js';
 import { nomCase, libelleDePorte } from './coordonnees.js';
 import { nomAffiche } from './parseur/lexique.js';
 import { creerMicro } from './voix.js';
-import { affichageDeReglages } from './affichage.js';
+import { affichageDeReglages, optionsRendu } from './affichage.js';
 import { telephone, activerOnglets, marquerDefilement, tailleQuiTient } from './telephone.js';
 import { $, h, bouton, deuxTemps } from './dom.js';
 import { pluriel, libelleMicro } from './format.js';
@@ -263,8 +264,9 @@ export function demarrerRegie() {
 
   function dessinerRegie(plan) {
     const s = salleConsultee();
+    const { grille, theme, relief } = optionsRendu(r);
     dessiner($('carte'), pres.planRegie(plan, idsReveles(s.id)), {
-      taille: tailleRegie(s.plan), grille: r.grille, reperes: r.reperes !== false, marques: marques(plan),
+      taille: tailleRegie(s.plan), grille, theme: themeParNom(theme), relief, reperes: r.reperes !== false, marques: marques(plan),
     });
     marquerDefilement($('carte'), $('scene')); // écran étroit : une carte qui dépasse se fait défiler au doigt
   }

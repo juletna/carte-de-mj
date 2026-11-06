@@ -14,6 +14,9 @@
 import { MARGE } from './rendu/geometrie.js';
 
 export const MODES_TABLE = ['remplir', 'reel'];
+export const THEMES_RENDU = ['peint', 'vectoriel']; // l'apparence de la carte à l'écran (js/rendu/themes/) ; l'impression garde le papier
+export const THEME_PAR_DEFAUT = 'peint';
+export const CASES_PAR_DEFAUT = 40;    // opacité des lignes de case (en %) quand seul l'ancien réglage « grille » oui/non est enregistré
 export const TAILLE_PAR_DEFAUT = 48;   // px par case
 export const TAILLE_MIN = 16;          // plus petite case réglable ou affichée (une grande salle défile alors)
 export const TAILLE_MAX = 160;         // plus grande case réglable dans les réglages (curseur du Donjon et de la régie)
@@ -35,6 +38,21 @@ export const ajusterTaille = (t, pas) => Math.max(TAILLE_MIN, Math.min(TAILLE_MA
 export const carteDeCalibrage = (taille, caseMm = CASE_MM_PAR_DEFAUT) => ({
   largeur: (taille * CARTE_BANCAIRE_MM.largeur) / caseMm, hauteur: (taille * CARTE_BANCAIRE_MM.hauteur) / caseMm,
 });
+
+/** Cette opacité de la grille (« Cases », en pourcent) est-elle un entier de 0 à 100 ? */
+export const casesValides = (v) => Number.isInteger(v) && v >= 0 && v <= 100;
+
+/**
+ * Les trois réglages du rendu de la carte, lus dans des réglages enregistrés OU dans un affichage de table (mêmes champs) :
+ *  - Cases : l'opacité des lignes, en %. Le réglage `cases` l'emporte ; à défaut, l'ancien booléen `grille` (vrai : CASES_PAR_DEFAUT, faux : 0) ;
+ *  - Thème : `theme` (peint par défaut) ;
+ *  - Relief : la fausse 3D des murs, `relief` (oui par défaut).
+ */
+export const casesDeReglages = (r = {}) => (casesValides(r.cases) ? r.cases : r.grille === false ? 0 : CASES_PAR_DEFAUT);
+export const themeDeReglages = (r = {}) => (THEMES_RENDU.includes(r.theme) ? r.theme : THEME_PAR_DEFAUT);
+export const reliefDeReglages = (r = {}) => r.relief !== false;
+/** Ce que le moteur attend (moteur.js `dessiner`) : { grille: opacité 0–1, theme: nom du thème, relief }. */
+export const optionsRendu = (r = {}) => ({ grille: casesDeReglages(r) / 100, theme: themeDeReglages(r), relief: reliefDeReglages(r) });
 
 /** Affichage de la table quand personne n'a rien envoyé : la taille par défaut, grille et repères, la salle qui remplit la fenêtre. */
 export const AFFICHAGE_PAR_DEFAUT = { taille: TAILLE_PAR_DEFAUT, grille: true, reperes: true, mode: 'remplir' };
@@ -72,11 +90,14 @@ export function tailleTable({ mode, plan, vue, taille }) {
 }
 
 /**
- * L'affichage de la table tel que le décrivent des réglages enregistrés : { taille, grille, reperes, mode }, plus `rotation`,
- * `miroir` et `caseMm` seulement s'ils diffèrent du défaut. `calibrage` n'est jamais enregistré : la régie l'ajoute le temps du réglage.
+ * L'affichage de la table tel que le décrivent des réglages enregistrés : { taille, grille, reperes, mode }, plus `cases` (si réglé), `theme`,
+ * `relief`, `rotation`, `miroir` et `caseMm` seulement s'ils diffèrent du défaut. `calibrage` n'est jamais enregistré : la régie l'ajoute le temps du réglage.
  */
 export const affichageDeReglages = (reglages) => ({
-  taille: reglages.taille, grille: reglages.grille, reperes: reglages.reperes !== false, mode: modeTable(reglages),
+  taille: reglages.taille, grille: casesDeReglages(reglages) > 0, reperes: reglages.reperes !== false, mode: modeTable(reglages),
+  ...(casesValides(reglages.cases) ? { cases: reglages.cases } : {}),
+  ...(themeDeReglages(reglages) !== THEME_PAR_DEFAUT ? { theme: themeDeReglages(reglages) } : {}),
+  ...(reglages.relief === false ? { relief: false } : {}),
   ...(reglages.rotationTable ? { rotation: reglages.rotationTable } : {}),
   ...(reglages.miroirTable === true ? { miroir: true } : {}),
   ...(reglages.caseMm ? { caseMm: reglages.caseMm } : {}),
@@ -89,6 +110,9 @@ export const validerAffichage = (a, defaut) => ({
   grille: typeof a?.grille === 'boolean' ? a.grille : defaut.grille,
   reperes: typeof a?.reperes === 'boolean' ? a.reperes : defaut.reperes,
   // Absents ou invalides : la valeur neutre, car la régie ne les envoie pas quand ils valent leur défaut.
+  ...(casesValides(a?.cases) ? { cases: a.cases } : {}),
+  ...(THEMES_RENDU.includes(a?.theme) && a.theme !== THEME_PAR_DEFAUT ? { theme: a.theme } : {}),
+  ...(a?.relief === false ? { relief: false } : {}),
   ...(ROTATIONS_TABLE.includes(a?.rotation) && a.rotation ? { rotation: a.rotation } : {}),
   ...(a?.miroir === true ? { miroir: true } : {}),
   ...(caseMmValide(a?.caseMm) ? { caseMm: a.caseMm } : {}),
