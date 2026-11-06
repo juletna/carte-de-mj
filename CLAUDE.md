@@ -13,3 +13,7 @@ Le déploiement GitHub Pages (« pages build and deployment ») tourne à chaque
 ## Design des panneaux
 
 Avant de créer ou de modifier un panneau latéral (arbre, inspecteur de Monde ou de Donjons, onglets de Jouer, panneau bas du téléphone), lis **`docs/design-panneaux.md`** et suis ses règles : niveaux de texte, composant section, listes, alignement. Quand une étape de sa « Migration » est livrée, coche-la et mets à jour le tableau d'état dans ce même fichier.
+
+## Versions des fichiers (anti-cache)
+
+Chaque fichier de `js/` et de `css/` est demandé sous une adresse qui porte son hash (`?v=…`, import map dans les pages HTML). **Après avoir modifié un fichier de `js/` ou de `css/`, lance `node outils/versions.mjs` avant de commiter** (les tests échouent sinon, avec ce rappel) : sans cela, un navigateur peut mélanger d'anciens et de nouveaux fichiers pendant dix minutes après un déploiement. En cas de conflit git sur le bloc `versions:` d'une page, relance l'outil au lieu de le résoudre à la main. Détails : **`docs/versions-fichiers.md`**.

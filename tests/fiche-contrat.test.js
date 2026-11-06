@@ -23,7 +23,7 @@ export async function executer({ lire }) {
   const page = await lire('js/fiche/main.js');
   const sources = { 'js/fiche/main.js': page, 'js/fiche/base.js': await lire('js/fiche/base.js'), 'js/fiche/jeu.js': await lire('js/fiche/jeu.js'), 'js/fiche/des.js': await lire('js/fiche/des.js') };
   const feuilles = { 'js/fiche/format.js': await lire('js/fiche/format.js'), 'js/fiche/regles.js': await lire('js/fiche/regles.js') };
-  verifier(/<script type="module" src="js\/fiche\/main\.js"><\/script>/.test(html), 'fiche.html : doit charger js/fiche/main.js en module');
+  verifier(/<script type="module" src="js\/fiche\/main\.js(\?v=[0-9a-f]+)?"><\/script>/.test(html), 'fiche.html : doit charger js/fiche/main.js en module');
   verifier(!/<script>/.test(html), 'fiche.html : plus de script en ligne');
   verifier(page.length > 1000, 'js/fiche/main.js : page introuvable');
 

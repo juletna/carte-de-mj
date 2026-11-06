@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Carte de MJ</title>
   <meta name="description" content="Outils de jeu de rôle sur table : un monde de cartes imbriquées, des donjons, un écran de table, une bibliothèque de cartes et la fiche du joueur.">
-  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/base.css?v=99a97065">
   <style>
     /* Les jetons (couleurs, rayon, focus) viennent de css/base.css : cette page n'embarque pas la mise en page à deux colonnes. */
     :root { color-scheme: dark; }
@@ -26,6 +26,30 @@
     .outil b .icone-outil { color: var(--accent); display: inline-flex; margin: 0; }
     footer { margin-top: 24px; font-size: 13px; color: var(--texte-doux); }
   </style>
+  <!-- versions:debut (généré par outils/versions.mjs, ne pas modifier à la main) -->
+  <script type="importmap">
+  {
+    "imports": {
+      "./js/bibliotheque/catalogue.js": "./js/bibliotheque/catalogue.js?v=9a6810d8",
+      "./js/bibliotheque/images.js": "./js/bibliotheque/images.js?v=807c36f5",
+      "./js/bibliotheque/prompt.js": "./js/bibliotheque/prompt.js?v=f8b9c55b",
+      "./js/bibliotheque/source.js": "./js/bibliotheque/source.js?v=ef3cf14e",
+      "./js/bibliotheque/vocabulaire.js": "./js/bibliotheque/vocabulaire.js?v=48a97e23",
+      "./js/dom.js": "./js/dom.js?v=30215ecd",
+      "./js/dossier-travail-logique.js": "./js/dossier-travail-logique.js?v=3ebf235b",
+      "./js/dossier-travail.js": "./js/dossier-travail.js?v=b8ce52db",
+      "./js/format.js": "./js/format.js?v=c7e074dc",
+      "./js/icones.js": "./js/icones.js?v=371257ed",
+      "./js/main-accueil.js": "./js/main-accueil.js?v=b5863b33",
+      "./js/mj/sauvegarde-ui.js": "./js/mj/sauvegarde-ui.js?v=4edd0484",
+      "./js/navigation-donnees.js": "./js/navigation-donnees.js?v=5a7b661c",
+      "./js/navigation.js": "./js/navigation.js?v=eb5ee4a8",
+      "./js/sauvegarde.js": "./js/sauvegarde.js?v=5bceaabd",
+      "./js/zip.js": "./js/zip.js?v=82ee6658"
+    }
+  }
+  </script>
+  <!-- versions:fin -->
 </head>
 <body>
   <header class="menu-site" data-navigation></header>
@@ -53,7 +77,7 @@
     <p class="note">Pour tout sauvegarder ou tout restaurer d'un clic (donjons, personnages, univers, images importées) : bouton « Sauvegarde » de la barre du haut.</p>
     <footer>Projet libre (MIT) · les données restent dans ton navigateur · outil non officiel, sans lien avec un éditeur de jeu</footer>
   </main>
-  <script type="module" src="js/navigation.js"></script>
-  <script type="module" src="js/main-accueil.js"></script>
+  <script type="module" src="js/navigation.js?v=eb5ee4a8"></script>
+  <script type="module" src="js/main-accueil.js?v=b5863b33"></script>
 </body>
 </html>

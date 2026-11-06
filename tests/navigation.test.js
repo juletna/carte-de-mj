@@ -20,7 +20,7 @@ export async function executer({ lire }) {
     ['chaque page a un emplacement de barre et charge js/navigation.js', () => {
       for (const page of PAGES) {
         verifier(/data-navigation/.test(html[page]), `${page} : pas d'emplacement [data-navigation]`);
-        verifier(html[page].includes('src="js/navigation.js"'), `${page} : js/navigation.js n'est pas chargé`);
+        verifier(/src="js\/navigation\.js(\?v=[0-9a-f]+)?"/.test(html[page]), `${page} : js/navigation.js n'est pas chargé`);
         verifier(!/<a class="menu-lien"/.test(html[page]), `${page} : liens de menu écrits à la main (ils viennent de navigation.js)`);
       }
     }],

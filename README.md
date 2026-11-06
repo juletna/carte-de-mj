@@ -118,6 +118,8 @@ Au-delà des tests de comportement, `tests/references.js` garde l'empreinte du d
 pour prouver qu'une refactorisation ne les change pas. Après un changement voulu de l'un ou de l'autre, relire le diff puis lancer
 `node tests/regenerer-references.mjs`.
 
+Après toute modification d'un fichier de `js/` ou `css/`, lancer `node outils/versions.mjs` pour mettre à jour les adresses versionnées (anti-cache) des pages : voir [`docs/versions-fichiers.md`](docs/versions-fichiers.md).
+
 ## Ce que comprend le parseur
 
 - **Dimensions** : « 4 m par 12 », « 6 cases sur 6 », « carrée de 9 m », « 7,5 m de large et 15 m de long »,

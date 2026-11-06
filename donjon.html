@@ -6,13 +6,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Préparer · Carte de MJ</title>
   <meta name="description" content="Décris une salle, la carte s'affiche sur une grille pour tes figurines.">
-  <link rel="stylesheet" href="css/base.css">
-  <link rel="stylesheet" href="css/style.css">
-  <link rel="stylesheet" href="css/donjon.css">
-  <link rel="stylesheet" href="css/bibliotheque.css">
-  <link rel="stylesheet" href="css/univers.css">
-  <link rel="stylesheet" href="css/atelier.css">
-  <link rel="stylesheet" href="css/panneaux.css">
+  <link rel="stylesheet" href="css/base.css?v=99a97065">
+  <link rel="stylesheet" href="css/style.css?v=7843981e">
+  <link rel="stylesheet" href="css/donjon.css?v=0500da22">
+  <link rel="stylesheet" href="css/bibliotheque.css?v=522ef792">
+  <link rel="stylesheet" href="css/univers.css?v=e15bf1d6">
+  <link rel="stylesheet" href="css/atelier.css?v=0734d097">
+  <link rel="stylesheet" href="css/panneaux.css?v=b4b5c169">
   <!-- Pendant le chargement des scripts, l'atelier (panneaux encore vides) est caché derrière un point de chargement ; js/main-mj.js pose `pret` au premier dessin.
        Le délai de secours évite une page vide si un script échoue. -->
   <style>
@@ -23,6 +23,171 @@
     @media (prefers-reduced-motion: reduce) { html:not(.pret) body::after { animation-duration: 2.4s; } #atelier { transition: none; } }
   </style>
   <script>setTimeout(function () { document.documentElement.classList.add('pret'); }, 8000);</script>
+  <!-- versions:debut (généré par outils/versions.mjs, ne pas modifier à la main) -->
+  <script type="importmap">
+  {
+    "imports": {
+      "./js/affichage.js": "./js/affichage.js?v=05014544",
+      "./js/alea.js": "./js/alea.js?v=bec6be5f",
+      "./js/atelier-arbre.js": "./js/atelier-arbre.js?v=91968e1e",
+      "./js/atelier-route.js": "./js/atelier-route.js?v=c99de008",
+      "./js/atelier-selection.js": "./js/atelier-selection.js?v=8ac4a04a",
+      "./js/atelier/affichage-popover.js": "./js/atelier/affichage-popover.js?v=10964419",
+      "./js/atelier/arbre-vue.js": "./js/atelier/arbre-vue.js?v=f3b57c5c",
+      "./js/atelier/au-hasard-salle.js": "./js/atelier/au-hasard-salle.js?v=9794f5d0",
+      "./js/atelier/barre-lieu.js": "./js/atelier/barre-lieu.js?v=faaed42e",
+      "./js/atelier/barre-salle.js": "./js/atelier/barre-salle.js?v=41186d1c",
+      "./js/atelier/cartouche.js": "./js/atelier/cartouche.js?v=54b8c854",
+      "./js/atelier/catalogue-onglet.js": "./js/atelier/catalogue-onglet.js?v=340e431a",
+      "./js/atelier/champ-choix.js": "./js/atelier/champ-choix.js?v=e738e8d8",
+      "./js/atelier/champ-multi.js": "./js/atelier/champ-multi.js?v=7cc9898d",
+      "./js/atelier/coquille.js": "./js/atelier/coquille.js?v=502c744c",
+      "./js/atelier/dimensions.js": "./js/atelier/dimensions.js?v=4b8c8867",
+      "./js/atelier/importer.js": "./js/atelier/importer.js?v=890c8d81",
+      "./js/atelier/inscrire-donjon.js": "./js/atelier/inscrire-donjon.js?v=be06765e",
+      "./js/atelier/inscrire-monde.js": "./js/atelier/inscrire-monde.js?v=83624bbe",
+      "./js/atelier/inspecteur.js": "./js/atelier/inspecteur.js?v=517a8155",
+      "./js/atelier/inspecteurs-donjon.js": "./js/atelier/inspecteurs-donjon.js?v=d278d816",
+      "./js/atelier/inspecteurs-monde.js": "./js/atelier/inspecteurs-monde.js?v=9830d287",
+      "./js/atelier/liste.js": "./js/atelier/liste.js?v=57861fc0",
+      "./js/atelier/section.js": "./js/atelier/section.js?v=14b9a65d",
+      "./js/atelier/vignette-lieu.js": "./js/atelier/vignette-lieu.js?v=2e9a3f90",
+      "./js/bibliotheque/catalogue.js": "./js/bibliotheque/catalogue.js?v=9a6810d8",
+      "./js/bibliotheque/fiche.js": "./js/bibliotheque/fiche.js?v=e386ceb4",
+      "./js/bibliotheque/images.js": "./js/bibliotheque/images.js?v=807c36f5",
+      "./js/bibliotheque/index.js": "./js/bibliotheque/index.js?v=355798f1",
+      "./js/bibliotheque/prompt.js": "./js/bibliotheque/prompt.js?v=f8b9c55b",
+      "./js/bibliotheque/source.js": "./js/bibliotheque/source.js?v=ef3cf14e",
+      "./js/bibliotheque/vocabulaire.js": "./js/bibliotheque/vocabulaire.js?v=48a97e23",
+      "./js/carte-personnage.js": "./js/carte-personnage.js?v=9e379875",
+      "./js/catalogue.js": "./js/catalogue.js?v=8bd103a4",
+      "./js/coordonnees.js": "./js/coordonnees.js?v=2799bab4",
+      "./js/deplacement.js": "./js/deplacement.js?v=b4bcdebd",
+      "./js/dom.js": "./js/dom.js?v=30215ecd",
+      "./js/donjon-validation.js": "./js/donjon-validation.js?v=5b5d8eb5",
+      "./js/donjon.js": "./js/donjon.js?v=52ddf63c",
+      "./js/dossier-travail-logique.js": "./js/dossier-travail-logique.js?v=3ebf235b",
+      "./js/dossier-travail.js": "./js/dossier-travail.js?v=b8ce52db",
+      "./js/fiche-hasard.js": "./js/fiche-hasard.js?v=a6c853c1",
+      "./js/fiche/format.js": "./js/fiche/format.js?v=9477ccaf",
+      "./js/fiche/regles.js": "./js/fiche/regles.js?v=01711471",
+      "./js/format.js": "./js/format.js?v=c7e074dc",
+      "./js/formes.js": "./js/formes.js?v=6185d1a7",
+      "./js/generateur.js": "./js/generateur.js?v=1a5535b0",
+      "./js/historique.js": "./js/historique.js?v=11656ad3",
+      "./js/icones.js": "./js/icones.js?v=371257ed",
+      "./js/main-mj.js": "./js/main-mj.js?v=a80958cf",
+      "./js/miniplan.js": "./js/miniplan.js?v=510a08cb",
+      "./js/mise-de-cote.js": "./js/mise-de-cote.js?v=b8e93497",
+      "./js/mise-en-page.js": "./js/mise-en-page.js?v=794b13fc",
+      "./js/mj/bulle.js": "./js/mj/bulle.js?v=7e64e9d8",
+      "./js/mj/menu-donjon.js": "./js/mj/menu-donjon.js?v=92189b84",
+      "./js/mj/personnages-ui.js": "./js/mj/personnages-ui.js?v=776a0ea6",
+      "./js/mj/salle-forme.js": "./js/mj/salle-forme.js?v=007f8ff3",
+      "./js/mj/salles-liste.js": "./js/mj/salles-liste.js?v=b2f819b5",
+      "./js/mj/sauvegarde-ui.js": "./js/mj/sauvegarde-ui.js?v=4edd0484",
+      "./js/mj/univers-calage.js": "./js/mj/univers-calage.js?v=d0ba657e",
+      "./js/mj/univers-liste.js": "./js/mj/univers-liste.js?v=4a3208f9",
+      "./js/mj/univers-menu.js": "./js/mj/univers-menu.js?v=2f1697bc",
+      "./js/mj/univers-ui.js": "./js/mj/univers-ui.js?v=bcb75840",
+      "./js/mj/vue-carte.js": "./js/mj/vue-carte.js?v=4e721ce1",
+      "./js/mj/vue-plan.js": "./js/mj/vue-plan.js?v=f53eac16",
+      "./js/mj/zoom.js": "./js/mj/zoom.js?v=68f8a0c5",
+      "./js/modeles.js": "./js/modeles.js?v=5ba8ff4e",
+      "./js/murs.js": "./js/murs.js?v=0480303c",
+      "./js/navigation-donnees.js": "./js/navigation-donnees.js?v=5a7b661c",
+      "./js/navigation.js": "./js/navigation.js?v=eb5ee4a8",
+      "./js/niveaux.js": "./js/niveaux.js?v=695edb5d",
+      "./js/palette.js": "./js/palette.js?v=86340269",
+      "./js/parseur/ambiance.js": "./js/parseur/ambiance.js?v=599b6110",
+      "./js/parseur/commandes.js": "./js/parseur/commandes.js?v=fda92c60",
+      "./js/parseur/decrire.js": "./js/parseur/decrire.js?v=473d0f86",
+      "./js/parseur/dimensions.js": "./js/parseur/dimensions.js?v=10017c4d",
+      "./js/parseur/index.js": "./js/parseur/index.js?v=8fe20f6f",
+      "./js/parseur/lexique.js": "./js/parseur/lexique.js?v=3180de44",
+      "./js/parseur/nombres.js": "./js/parseur/nombres.js?v=f37ba82c",
+      "./js/parseur/normaliser.js": "./js/parseur/normaliser.js?v=047ed5ff",
+      "./js/parseur/placement.js": "./js/parseur/placement.js?v=c6d55874",
+      "./js/parseur/placement/grille.js": "./js/parseur/placement/grille.js?v=7803da81",
+      "./js/parseur/placement/journal.js": "./js/parseur/placement/journal.js?v=b21955a4",
+      "./js/parseur/placement/placeurs.js": "./js/parseur/placement/placeurs.js?v=ff9b4520",
+      "./js/parseur/placement/portes.js": "./js/parseur/placement/portes.js?v=1b4e09b9",
+      "./js/parseur/positions.js": "./js/parseur/positions.js?v=d6ec304c",
+      "./js/partie.js": "./js/partie.js?v=0ea55a13",
+      "./js/personnages.js": "./js/personnages.js?v=0410dce9",
+      "./js/plan-donjon.js": "./js/plan-donjon.js?v=6e564eae",
+      "./js/plan-donjon/couloirs.js": "./js/plan-donjon/couloirs.js?v=7a468fed",
+      "./js/plan-donjon/pose-salles.js": "./js/plan-donjon/pose-salles.js?v=27904938",
+      "./js/plan-donjon/routage.js": "./js/plan-donjon/routage.js?v=8d732117",
+      "./js/pose.js": "./js/pose.js?v=3caab815",
+      "./js/rail.js": "./js/rail.js?v=02a7ff6f",
+      "./js/rapport.js": "./js/rapport.js?v=100aa8fd",
+      "./js/rendu/feu.js": "./js/rendu/feu.js?v=026d6dcd",
+      "./js/rendu/geometrie.js": "./js/rendu/geometrie.js?v=6d683b3b",
+      "./js/rendu/graine.js": "./js/rendu/graine.js?v=5331bb5f",
+      "./js/rendu/lumiere.js": "./js/rendu/lumiere.js?v=8129b36f",
+      "./js/rendu/moteur.js": "./js/rendu/moteur.js?v=0b13e9be",
+      "./js/rendu/perspective.js": "./js/rendu/perspective.js?v=70ab7e25",
+      "./js/rendu/plan.js": "./js/rendu/plan.js?v=d10d67e3",
+      "./js/rendu/portraits.js": "./js/rendu/portraits.js?v=d9e6d623",
+      "./js/rendu/teintes-tissu.js": "./js/rendu/teintes-tissu.js?v=065f2124",
+      "./js/rendu/themes/commun.js": "./js/rendu/themes/commun.js?v=33464e85",
+      "./js/rendu/themes/index.js": "./js/rendu/themes/index.js?v=09237b37",
+      "./js/rendu/themes/peint.js": "./js/rendu/themes/peint.js?v=9ffd25c6",
+      "./js/rendu/themes/peint/ambiance.js": "./js/rendu/themes/peint/ambiance.js?v=9ca5265d",
+      "./js/rendu/themes/peint/bruit.js": "./js/rendu/themes/peint/bruit.js?v=05613156",
+      "./js/rendu/themes/peint/dessin/bois.js": "./js/rendu/themes/peint/dessin/bois.js?v=b76b8ba6",
+      "./js/rendu/themes/peint/dessin/glace.js": "./js/rendu/themes/peint/dessin/glace.js?v=5eff528a",
+      "./js/rendu/themes/peint/dessin/herbe.js": "./js/rendu/themes/peint/dessin/herbe.js?v=e7ef36fa",
+      "./js/rendu/themes/peint/dessin/index.js": "./js/rendu/themes/peint/dessin/index.js?v=98de127b",
+      "./js/rendu/themes/peint/dessin/marbre.js": "./js/rendu/themes/peint/dessin/marbre.js?v=c4315472",
+      "./js/rendu/themes/peint/dessin/outils.js": "./js/rendu/themes/peint/dessin/outils.js?v=ee75789f",
+      "./js/rendu/themes/peint/dessin/pierre.js": "./js/rendu/themes/peint/dessin/pierre.js?v=f4fdd626",
+      "./js/rendu/themes/peint/dessin/sable.js": "./js/rendu/themes/peint/dessin/sable.js?v=007efce2",
+      "./js/rendu/themes/peint/dessin/terre.js": "./js/rendu/themes/peint/dessin/terre.js?v=78ba3e0d",
+      "./js/rendu/themes/peint/dessin/usure.js": "./js/rendu/themes/peint/dessin/usure.js?v=fe6ea26c",
+      "./js/rendu/themes/peint/details.js": "./js/rendu/themes/peint/details.js?v=e6f42a3c",
+      "./js/rendu/themes/peint/etat.js": "./js/rendu/themes/peint/etat.js?v=84748c4d",
+      "./js/rendu/themes/peint/lumiere.js": "./js/rendu/themes/peint/lumiere.js?v=bde94e02",
+      "./js/rendu/themes/peint/murs-dessines.js": "./js/rendu/themes/peint/murs-dessines.js?v=b232721b",
+      "./js/rendu/themes/peint/murs.js": "./js/rendu/themes/peint/murs.js?v=e50bc467",
+      "./js/rendu/themes/peint/objets-dessines.js": "./js/rendu/themes/peint/objets-dessines.js?v=5a80a50e",
+      "./js/rendu/themes/peint/objets-etats-decor.js": "./js/rendu/themes/peint/objets-etats-decor.js?v=fd7bccfd",
+      "./js/rendu/themes/peint/objets-etats.js": "./js/rendu/themes/peint/objets-etats.js?v=608cd407",
+      "./js/rendu/themes/peint/objets.js": "./js/rendu/themes/peint/objets.js?v=2607cb49",
+      "./js/rendu/themes/peint/pions.js": "./js/rendu/themes/peint/pions.js?v=62f89cb5",
+      "./js/rendu/themes/peint/portes-dessinees.js": "./js/rendu/themes/peint/portes-dessinees.js?v=0ad333ff",
+      "./js/rendu/themes/peint/segments.js": "./js/rendu/themes/peint/segments.js?v=257468f2",
+      "./js/rendu/themes/peint/sols.js": "./js/rendu/themes/peint/sols.js?v=f3d6c09c",
+      "./js/rendu/themes/peint/trait.js": "./js/rendu/themes/peint/trait.js?v=1b927ad9",
+      "./js/rendu/themes/peint/tuile.js": "./js/rendu/themes/peint/tuile.js?v=0577f5df",
+      "./js/rendu/themes/peint/volumes.js": "./js/rendu/themes/peint/volumes.js?v=20b4fa99",
+      "./js/rendu/themes/vectoriel.js": "./js/rendu/themes/vectoriel.js?v=f94d0d34",
+      "./js/rendu/toile.js": "./js/rendu/toile.js?v=cc9d98b1",
+      "./js/rendu/trace.js": "./js/rendu/trace.js?v=dc0edac2",
+      "./js/sauvegarde.js": "./js/sauvegarde.js?v=5bceaabd",
+      "./js/schema.js": "./js/schema.js?v=adf1d0e6",
+      "./js/stockage.js": "./js/stockage.js?v=410e105c",
+      "./js/telephone.js": "./js/telephone.js?v=46dd7eea",
+      "./js/univers-boutons.js": "./js/univers-boutons.js?v=55881d1c",
+      "./js/univers-carte.js": "./js/univers-carte.js?v=aad7641a",
+      "./js/univers-fond.js": "./js/univers-fond.js?v=e57e108c",
+      "./js/univers-grille.js": "./js/univers-grille.js?v=07498068",
+      "./js/univers-images.js": "./js/univers-images.js?v=2ac230d3",
+      "./js/univers-liste.js": "./js/univers-liste.js?v=a2ba3133",
+      "./js/univers-partie.js": "./js/univers-partie.js?v=c5b2854d",
+      "./js/univers-validation.js": "./js/univers-validation.js?v=d22929cf",
+      "./js/univers-vue.js": "./js/univers-vue.js?v=314f2fcb",
+      "./js/univers.js": "./js/univers.js?v=10b19c48",
+      "./js/vignettes.js": "./js/vignettes.js?v=3e6c0630",
+      "./js/voix.js": "./js/voix.js?v=1b45311f",
+      "./js/vue-publique.js": "./js/vue-publique.js?v=bfdc5b53",
+      "./js/zip.js": "./js/zip.js?v=82ee6658",
+      "./js/zone-passage.js": "./js/zone-passage.js?v=22c0cfc2"
+    }
+  }
+  </script>
+  <!-- versions:fin -->
 </head>
 <body>
   <!-- Barre de navigation commune (js/navigation.js). Il n'y a plus de deuxième barre en haut : le bouton de l'arbre et « Jouer » attendent ici,
@@ -282,7 +447,7 @@
     </div>
   </div>
 
-  <script type="module" src="js/navigation.js"></script>
-  <script type="module" src="js/main-mj.js"></script>
+  <script type="module" src="js/navigation.js?v=eb5ee4a8"></script>
+  <script type="module" src="js/main-mj.js?v=a80958cf"></script>
 </body>
 </html>

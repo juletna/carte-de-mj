@@ -6,9 +6,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Bibliothèque · Carte de MJ</title>
   <meta name="description" content="Tes cartes illustrées, importées ou générées, avec filtres, aperçu et crédits.">
-  <link rel="stylesheet" href="css/base.css">
-  <link rel="stylesheet" href="css/bibliotheque.css">
-  <link rel="stylesheet" href="css/panneaux.css">
+  <link rel="stylesheet" href="css/base.css?v=99a97065">
+  <link rel="stylesheet" href="css/bibliotheque.css?v=522ef792">
+  <link rel="stylesheet" href="css/panneaux.css?v=b4b5c169">
   <style>
     :root { color-scheme: dark; }
     * { box-sizing: border-box; }
@@ -28,6 +28,35 @@
       #bibliotheque .bib-detail { position: static; max-height: none; }
     }
   </style>
+  <!-- versions:debut (généré par outils/versions.mjs, ne pas modifier à la main) -->
+  <script type="importmap">
+  {
+    "imports": {
+      "./js/atelier/section.js": "./js/atelier/section.js?v=14b9a65d",
+      "./js/bibliotheque/cartes-choix.js": "./js/bibliotheque/cartes-choix.js?v=d4499118",
+      "./js/bibliotheque/catalogue.js": "./js/bibliotheque/catalogue.js?v=9a6810d8",
+      "./js/bibliotheque/fiche.js": "./js/bibliotheque/fiche.js?v=e386ceb4",
+      "./js/bibliotheque/images.js": "./js/bibliotheque/images.js?v=807c36f5",
+      "./js/bibliotheque/prompt.js": "./js/bibliotheque/prompt.js?v=f8b9c55b",
+      "./js/bibliotheque/source.js": "./js/bibliotheque/source.js?v=ef3cf14e",
+      "./js/bibliotheque/vignettes.js": "./js/bibliotheque/vignettes.js?v=f6632761",
+      "./js/bibliotheque/vocabulaire.js": "./js/bibliotheque/vocabulaire.js?v=48a97e23",
+      "./js/dom.js": "./js/dom.js?v=30215ecd",
+      "./js/dossier-travail-logique.js": "./js/dossier-travail-logique.js?v=3ebf235b",
+      "./js/dossier-travail.js": "./js/dossier-travail.js?v=b8ce52db",
+      "./js/format.js": "./js/format.js?v=c7e074dc",
+      "./js/icones.js": "./js/icones.js?v=371257ed",
+      "./js/mj/sauvegarde-ui.js": "./js/mj/sauvegarde-ui.js?v=4edd0484",
+      "./js/navigation-donnees.js": "./js/navigation-donnees.js?v=5a7b661c",
+      "./js/navigation.js": "./js/navigation.js?v=eb5ee4a8",
+      "./js/page-bibliotheque.js": "./js/page-bibliotheque.js?v=1360f70e",
+      "./js/sauvegarde.js": "./js/sauvegarde.js?v=5bceaabd",
+      "./js/univers-boutons.js": "./js/univers-boutons.js?v=55881d1c",
+      "./js/zip.js": "./js/zip.js?v=82ee6658"
+    }
+  }
+  </script>
+  <!-- versions:fin -->
 </head>
 <body>
   <header class="menu-site" data-navigation></header>
@@ -36,7 +65,7 @@
     <p class="sous-titre">Tes cartes illustrées, importées ou générées. Tu les poses ensuite sur les cartes de ton monde.</p>
     <div id="bibliotheque"></div>
   </main>
-  <script type="module" src="js/navigation.js"></script>
-  <script type="module" src="js/page-bibliotheque.js"></script>
+  <script type="module" src="js/navigation.js?v=eb5ee4a8"></script>
+  <script type="module" src="js/page-bibliotheque.js?v=1360f70e"></script>
 </body>
 </html>

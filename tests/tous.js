@@ -68,6 +68,7 @@ import { executer as executerAffichagePopover } from './affichage-popover.test.j
 import { executer as executerCartouche } from './cartouche.test.js';
 import { executer as executerFilCompact } from './fil-compact.test.js';
 import { executer as executerDossierTravail } from './dossier-travail.test.js';
+import { executer as executerVersions } from './versions.test.js';
 
 /** Les suites, dans l'ordre d'exécution : chacune reçoit `{ lire }` et rend (ou promet) une liste de résultats. */
 export const SUITES = [
@@ -85,7 +86,7 @@ export const SUITES = [
   executerUniversGrille,
   executerUniversVue, executerIcones,
   executerAtelierArbre, executerAtelierSelection, executerAtelierRoute, executerAffichagePopover, executerCartouche, executerFilCompact,
-  executerSection, executerListe, executerDossierTravail,
+  executerSection, executerListe, executerDossierTravail, executerVersions,
 ];
 
 /** Joue toutes les suites ; renvoie les résultats { phrase, ecarts, resultat? } à la suite les uns des autres. */
