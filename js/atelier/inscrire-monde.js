@@ -16,6 +16,9 @@ import { selection } from '../atelier-selection.js';
 import { telephone } from '../telephone.js';
 import { enregistrerInspecteursMonde, vignetteLieu } from './inspecteurs-monde.js';
 import { creerBarreLieu } from './barre-lieu.js';
+import { creerCartouche, cartoucheLieu } from './cartouche.js';
+import { grilleEffective } from '../univers-grille.js';
+import { chargerReglages } from '../stockage.js';
 
 export function inscrireMonde(coquille, ctx) {
   const U = ctx.univers;
@@ -68,6 +71,22 @@ export function inscrireMonde(coquille, ctx) {
       await U.ajouterLieuLibre();
     },
   });
+
+  // --- Le cartouche d'échelle : en bas à gauche de la carte du lieu (le fil d'Ariane tient le haut). Rien sans grille, ni pendant le calage ---------
+  const cartouche = creerCartouche();
+  cartouche.element.classList.add('cartouche-monde');
+  $('scene-monde').append(cartouche.element);
+  let versionCartouche = 0;
+  async function majCartouche() {
+    const moi = ++versionCartouche;
+    const l = U.ouvert() && !U.calage.actif() ? U.lieuCourant() : null;
+    if (!l) { cartouche.definir(null); return; }
+    const infos = await U.infosDe(l.image);
+    if (moi !== versionCartouche) return;
+    cartouche.definir(cartoucheLieu(grilleEffective(l, infos ?? null).grille, infos?.largeur, infos?.hauteur, chargerReglages().echelle));
+  }
+  U.surChangement(majCartouche);
+  majCartouche();
 
   // --- Barre du haut : le monde et « Jouer ce monde » ---------------------------------------------------------------------
   const nom = h('span', { className: 'barre-monde-nom' });

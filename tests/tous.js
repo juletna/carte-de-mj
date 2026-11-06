@@ -63,6 +63,7 @@ import { executer as executerAtelierArbre } from './atelier-arbre.test.js';
 import { executer as executerAtelierSelection } from './atelier-selection.test.js';
 import { executer as executerAtelierRoute } from './atelier-route.test.js';
 import { executer as executerGrilleAffichage } from './grille-affichage.test.js';
+import { executer as executerCartouche } from './cartouche.test.js';
 
 /** Les suites, dans l'ordre d'exécution : chacune reçoit `{ lire }` et rend (ou promet) une liste de résultats. */
 export const SUITES = [
@@ -79,7 +80,7 @@ export const SUITES = [
   executerZip, executerSauvegarde,
   executerUniversGrille,
   executerUniversVue, executerIcones,
-  executerAtelierArbre, executerAtelierSelection, executerAtelierRoute, executerGrilleAffichage,
+  executerAtelierArbre, executerAtelierSelection, executerAtelierRoute, executerGrilleAffichage, executerCartouche,
 ];
 
 /** Joue toutes les suites ; renvoie les résultats { phrase, ecarts, resultat? } à la suite les uns des autres. */

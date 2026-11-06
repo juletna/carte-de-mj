@@ -13,6 +13,8 @@ import { enregistrerInspecteursDonjon } from './inspecteurs-donjon.js';
 import { creerBarreSalle } from './barre-salle.js';
 import { TYPES_ELEMENT } from '../atelier-selection.js';
 import { telephone } from '../telephone.js';
+import { creerCartouche, cartoucheSalle, cartoucheEnsemble } from './cartouche.js';
+import { $ } from '../dom.js';
 
 export function inscrireDonjon(coquille, ctx) {
   const { etat } = ctx;
@@ -44,13 +46,29 @@ export function inscrireDonjon(coquille, ctx) {
   new MutationObserver(() => {
     if (etat.plan === planAffiche) return;
     planAffiche = etat.plan;
+    ctx.cartouche.maj();
     if (ctx.univers?.ouvert()) return;
     coquille.positionner(etat.plan ? { donjon: etat.actif } : { donjon: etat.actif, salle: ctx.donjon().salleActive });
   }).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+
+  // --- Le cartouche d'échelle : en haut à gauche de la zone de carte (après le catalogue, qui le pousse à droite quand il est ouvert) ---------
+  // Une salle : sa taille en cases et en mètres, et l'échelle ; la vue d'ensemble : l'échelle seule. ctx.rendre() le tient à jour (taille, échelle).
+  const cartouche = creerCartouche();
+  cartouche.element.classList.add('cartouche-donjon');
+  $('zone-scene').append(cartouche.element);
+  ctx.cartouche = {
+    maj() {
+      const echelle = etat.reglages.echelle;
+      if (etat.plan) { cartouche.definir(cartoucheEnsemble(echelle)); return; }
+      const p = ctx.salle()?.plan;
+      cartouche.definir(p ? cartoucheSalle(p.largeur, p.longueur, echelle) : null);
+    },
+  };
 
   // --- La barre d'outils du Donjon se tait quand le Monde est affiché (il y met ses propres outils) --------------------
   const majBarre = () => ctx.barre.montrer(!ctx.univers?.ouvert());
   ctx.univers?.surChangement(majBarre);
   coquille.surSelection(majBarre);
   majBarre();
+  ctx.cartouche.maj();
 }

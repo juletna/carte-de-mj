@@ -108,6 +108,7 @@ function rendre() {
   salleForme.majForme();
   personnages.maj();
   sauvegarder();
+  ctx.cartouche?.maj(); // la taille de la salle et l'échelle
   ctx.coquille?.rafraichir(); // l'arbre de l'atelier suit les noms (salles, donjons) ; il ne se redessine que s'ils ont changé
 }
 

@@ -180,3 +180,25 @@ body.atelier-avec-inspecteur { --largeur-inspecteur: 330px; }
 .atelier-inspecteur .forme-salle select { max-width: 60%; }
 .atelier-inspecteur #bloc-forme .forme-salle { display: flex; flex-direction: column; gap: var(--esp-2); }
 .atelier-inspecteur .univers-insp { gap: var(--esp-4); }
+
+/* --- Cartouche d'échelle (js/atelier/cartouche.js) : un encart discret en surimpression dans un coin de la scène ---
+   Fond du panneau à peine transparent et filet : lisible sur une carte claire comme sur une carte sombre. Il ne prend jamais le pointeur. */
+.atelier-cartouche { position: absolute; z-index: 24; margin: 0; max-width: calc(100% - 2 * var(--esp-2)); padding: 3px 9px; box-sizing: border-box; pointer-events: none; user-select: none;
+  background: color-mix(in srgb, var(--panneau) 90%, transparent); color: var(--texte); border: 1px solid var(--bord); border-radius: var(--rayon);
+  font-size: 12px; line-height: 1.5; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35); }
+.atelier-cartouche[hidden] { display: none; }
+.atelier-cartouche-court { display: none; }
+/* Donjon : en haut à gauche de la zone de carte ; le catalogue (300 px), quand il est ouvert, le pousse à sa droite. */
+#zone-scene { position: relative; }
+.cartouche-donjon { left: var(--esp-3); top: var(--esp-3); }
+#palette.tiroir-ouvert ~ .cartouche-donjon { left: calc(300px + var(--esp-3)); }
+/* Monde : en bas à gauche de la carte du lieu (le fil d'Ariane tient le haut). */
+.cartouche-monde { left: var(--esp-3); bottom: var(--esp-3); }
+#scene:fullscreen ~ .cartouche-donjon { display: none; }
+@media (max-width: 760px) {
+  .atelier-cartouche { font-size: 11px; padding: 2px 7px; max-width: min(calc(50% - 56px), 150px); }
+  .atelier-cartouche-long { display: none; }
+  .atelier-cartouche-court { display: inline; }
+  .cartouche-donjon, #palette.tiroir-ouvert ~ .cartouche-donjon { left: var(--esp-2); top: var(--esp-2); }
+  .cartouche-monde { left: var(--esp-2); bottom: var(--esp-2); }
+}
