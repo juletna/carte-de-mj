@@ -213,7 +213,7 @@ label:has(> input[type="checkbox"]), label:has(> input[type="radio"]), details s
   body:not(.presentation)[data-onglet="texte"] #selection { display: none; }
   body:not(.presentation)[data-onglet="carte"] #panneau { display: contents; }
   body:not(.presentation)[data-onglet="carte"] #panneau > :not(#selection) { display: none; }
-  body:not(.presentation)[data-onglet="carte"] #scene { display: flex; min-height: 0; height: calc(100vh - var(--barre-onglets) - var(--reserve-selection)); height: calc(100dvh - var(--barre-onglets) - var(--reserve-selection)); }
+  body:not(.presentation)[data-onglet="carte"] #scene { display: flex; min-height: 0; height: calc(100vh - var(--h-barre) - var(--barre-onglets) - var(--reserve-selection)); height: calc(100dvh - var(--h-barre) - var(--barre-onglets) - var(--reserve-selection)); }
   body:not(.presentation)[data-onglet="carte"] #support { margin: auto; padding: 12px; }
   body:not(.presentation)[data-onglet="texte"] #annuler-carte { display: none; }
 }

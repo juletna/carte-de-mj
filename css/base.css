@@ -39,9 +39,13 @@
   /* Taille de cible tactile : aucune exigence au-dessus de 760 px (densité inchangée), 44 px en dessous. */
   --cible: 0px;
   --cible-petit: 32px; /* plancher des boutons .petit, quelle que soit la largeur */
+
+  /* Hauteur de la barre de navigation commune (tout en haut de chaque page) ; les mises en page à hauteur d'écran la retranchent. */
+  --h-barre: 40px;
+  --hauteur-barre: var(--h-barre); /* même valeur, nom lu par la régie (css/presentation.css) */
 }
 @media (max-width: 760px) {
-  :root { --cible: 44px; }
+  :root { --cible: 44px; --h-barre: 48px; }
 }
 
 /* --- En-tête commun (classe menu-site : « entete » est déjà pris par les pages A4 de l'impression) ---
@@ -49,43 +53,69 @@
    Ses couleurs viennent de cinq variables --m-* : par défaut celles du thème sombre ;
    une page peut en remplacer une (la Fiche pose seulement --m-fond). */
 .menu-site {
-  --m-fond: transparent;
+  --m-fond: var(--panneau);
   --m-texte: var(--texte);
   --m-doux: var(--texte-doux);
   --m-bord: var(--bord);
   --m-accent: var(--accent);
-  margin: 0 0 var(--esp-4);
+  margin: 0;
+  box-sizing: border-box;
+  min-height: var(--h-barre);
+  padding: 0 max(var(--esp-3), env(safe-area-inset-right)) 0 max(var(--esp-3), env(safe-area-inset-left));
   background: var(--m-fond);
   border-bottom: 1px solid var(--m-bord);
   font-size: 14px;
   line-height: 1.2;
+  position: relative;
+  z-index: 90;
 }
-.menu-int { display: flex; flex-wrap: wrap; align-items: center; column-gap: var(--esp-3); }
-.menu-site nav { display: flex; flex-wrap: wrap; flex: 1 1 auto; min-width: 0; }
+.menu-site:empty { display: none; } /* vue table : la barre n'est jamais montée */
+.menu-int { display: flex; align-items: center; column-gap: var(--esp-3); min-height: calc(var(--h-barre) - 1px); }
+.menu-corps { display: flex; flex: 1 1 auto; align-items: center; min-width: 0; column-gap: var(--esp-3); }
+.menu-site nav { display: flex; flex: 1 1 auto; min-width: 0; }
+.menu-droite { display: flex; align-items: center; flex: none; }
 .menu-site .menu-nom,
-.menu-site .menu-lien {
+.menu-site .menu-lien,
+.menu-site .menu-burger {
   display: inline-flex;
   align-items: center;
   min-height: max(var(--cible), 32px);
   padding: 0 var(--esp-2);
+  border: 0;
   border-radius: var(--rayon);
+  background: none;
+  font: inherit;
   color: var(--m-doux);
   text-decoration: none;
   white-space: nowrap;
+  cursor: pointer;
 }
 .menu-site .menu-nom { padding-left: 0; font-size: 15px; font-weight: 700; color: var(--m-accent); }
-.menu-site .menu-lien:hover, .menu-site .menu-nom:hover { color: var(--m-texte); }
+.menu-site .menu-lien:hover, .menu-site .menu-nom:hover, .menu-site .menu-burger:hover { color: var(--m-texte); }
 /* Page courante : texte plein, gras et filet (pas la couleur seule). */
 .menu-site .menu-lien[aria-current="page"] { color: var(--m-texte); font-weight: 700; box-shadow: inset 0 -2px 0 var(--m-accent); border-radius: 0; }
 .menu-site .menu-nom[aria-current="page"] { text-decoration: underline; text-underline-offset: 4px; }
 .menu-site :focus-visible { outline: 2px solid var(--m-accent); outline-offset: -2px; }
+.menu-burger { display: none !important; font-size: 20px !important; margin-left: auto; }
 
-/* Sous 760 px : le nom sur sa ligne, puis les liens répartis sur toute la largeur, en cibles de 44 px. */
+/* Sous 760 px : barre compacte (nom + ☰) ; les liens, les mêmes partout, s'ouvrent en liste sous la barre. */
 @media (max-width: 760px) {
-  .menu-site .menu-nom { flex: 1 1 100%; }
-  .menu-site nav { flex: 1 1 100%; }
-  .menu-site .menu-lien { flex: 1 1 auto; justify-content: center; }
+  .menu-site .menu-nom { flex: 0 1 auto; }
+  .menu-int { flex: 1 1 auto; }
+  .menu-burger { display: inline-flex !important; }
+  .menu-corps { display: none; position: absolute; z-index: 80; left: 0; right: 0; top: 100%; margin-top: 1px; flex-direction: column; align-items: stretch; padding: var(--esp-2); background: var(--panneau); border: 1px solid var(--bord); border-radius: var(--rayon); box-shadow: 0 10px 32px rgba(0, 0, 0, 0.6); }
+  .menu-corps.ouvert { display: flex; }
+  .menu-site nav, .menu-droite { flex-direction: column; align-items: stretch; flex: none; }
+  .menu-site .menu-lien { justify-content: flex-start; min-height: 44px; }
 }
+
+/* Dialogue de la sauvegarde complète (mj/sauvegarde-ui.js), ouvert depuis le bouton « Sauvegarde » de la barre. */
+.dialogue-sauvegarde { width: min(460px, calc(100vw - 24px)); padding: var(--esp-4); background: var(--panneau); color: var(--texte); border: 1px solid var(--bord); border-radius: var(--rayon); font: 14px/1.45 var(--police); }
+.dialogue-sauvegarde::backdrop { background: rgba(0, 0, 0, 0.6); }
+.dialogue-sauvegarde h2 { margin: 0 0 var(--esp-2); font-size: 18px; }
+.dialogue-sauvegarde .note { margin: var(--esp-2) 0; color: var(--texte-doux); }
+.dialogue-sauvegarde .note.erreur { color: var(--erreur); }
+.dialogue-sauvegarde .actions { display: flex; flex-wrap: wrap; gap: var(--esp-2); margin: var(--esp-3) 0 0; }
 
 /* Jamais à l'impression. */
 @media print { .menu-site { display: none !important; } }

@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Donjon · Carte de MJ</title>
-  <meta name="description" content="Décris une pièce, la carte s'affiche sur une grille pour tes figurines.">
+  <title>Donjons · Carte de MJ</title>
+  <meta name="description" content="Décris une salle, la carte s'affiche sur une grille pour tes figurines.">
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/donjon.css">
@@ -12,17 +12,10 @@
   <link rel="stylesheet" href="css/univers.css">
 </head>
 <body>
-  <!-- Barre du haut, sur toute la largeur. Écran étroit (js/telephone.js, CSS sous 760 px) : une seule barre, avec les
-       onglets Texte / Carte à la place du nom et des liens (ils passent dans le menu du donjon). -->
-  <header id="barre" class="menu-site">
-    <div class="menu-int">
-      <a class="menu-nom" href="index.html">Carte de MJ</a>
-      <nav aria-label="Navigation principale">
-        <a class="menu-lien" href="fiche.html">Fiche</a>
-        <a class="menu-lien" href="donjon.html" aria-current="page">Donjon</a>
-        <a class="menu-lien" href="presentation.html">Présentation</a>
-      </nav>
-    </div>
+  <!-- Barre de navigation commune (js/navigation.js), puis les commandes du donjon. Écran étroit (js/telephone.js, CSS sous
+       760 px) : la barre compacte (☰) reste en haut, et la barre du donjon porte les onglets Texte / Carte. -->
+  <header class="menu-site" data-navigation></header>
+  <header id="barre">
 
     <div class="onglets" role="group" aria-label="Afficher">
       <button type="button" data-onglet="texte" aria-pressed="true">Texte</button>
@@ -36,12 +29,6 @@
         <span class="mot-donjon">Donjon</span> <strong id="menu-donjon-nom"></strong> <span aria-hidden="true">▾</span>
       </button>
       <div id="menu-donjon" class="menu-panneau" hidden>
-        <p class="liens-site">
-          <a class="bouton" href="index.html">Accueil</a>
-          <a class="bouton" href="fiche.html">Fiche</a>
-          <a class="bouton" href="presentation.html">Présentation</a>
-        </p>
-
         <label for="donjon-choix">Changer de donjon</label>
         <select id="donjon-choix"></select>
         <label for="donjon-nom" class="doux">Renommer</label>
@@ -90,17 +77,6 @@
           <textarea id="donjon-colle" rows="5" spellcheck="false" aria-label="Texte du donjon à coller" placeholder="Colle ici le texte copié avec « Copier »"></textarea>
           <div class="actions"><button id="donjon-coller" type="button">Ajouter ce donjon</button></div>
         </details>
-        <section class="tout-univers" aria-label="Tout mon univers">
-          <p class="note"><strong>Tout mon univers</strong> : un seul fichier pour tout garder ou tout retrouver.</p>
-          <div class="actions">
-            <button id="sauvegarder-tout" type="button" class="discret" title="Un seul fichier .zip : donjons, personnages, univers, modèles, parties, réglages et images importées">Sauvegarder tout</button>
-            <label class="bouton" title="Remplace tout ce que ce navigateur garde par le contenu d'une sauvegarde .zip">Restaurer… <input id="restaurer" type="file" accept=".zip,application/zip" hidden></label>
-          </div>
-          <p id="restaurer-detail" class="note" hidden></p>
-          <div class="actions"><button id="restaurer-confirmer" type="button" class="discret" hidden></button></div>
-          <p id="sauvegarde-etat" class="note" role="status" hidden></p>
-          <p id="sauvegarde-erreur" class="note erreur" role="alert" hidden></p>
-        </section>
         <p id="message-fichier" class="note" hidden></p>
         <p id="erreurs-fichier" class="note erreur" hidden></p>
         <details id="copies" class="plan-json" hidden>
@@ -122,23 +98,24 @@
         </div>
         <p id="message-copie" class="note" hidden></p>
 
+        <p class="note pied">Projet libre (MIT) · fonctionne hors ligne</p>
+
         <div class="actions zone-danger">
           <button id="donjon-supprimer" type="button" class="discret">Supprimer ce donjon</button>
         </div>
         <p id="donjon-confirmation" class="note erreur" role="status" hidden></p>
-        <p class="note pied">Projet libre (MIT) · fonctionne hors ligne</p>
       </div>
     </div>
 
     <button id="univers-bouton" type="button" class="discret" aria-expanded="false" aria-controls="univers" title="Préparer un univers de cartes imbriquées : monde, régions, villages, donjons">🌍<span class="libelle"> Univers</span></button>
-    <a id="presenter" class="bouton principal" href="presentation.html" title="Présente ce donjon : reprend sa partie en cours s'il en a une, sinon en commence une">Présenter</a>
+    <a id="presenter" class="bouton principal" href="presentation.html" title="Présente ce donjon : reprend sa partie en cours s'il en a une, sinon en commence une">Jouer</a>
   </header>
 
   <!-- Onglets des salles : toujours visibles, au-dessus de la carte, quel que soit l'outil (js/main-mj.js, majOnglets). -->
   <div class="salles-barre">
     <button id="plan-bouton" type="button" class="discret bouton-plan" aria-pressed="false" aria-controls="plan-donjon"
       title="Voir tout le donjon d'un coup : les salles à leur vraie taille, reliées par des couloirs">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3.5" width="8" height="7" rx="1"/><rect x="13" y="13.5" width="8" height="7" rx="1"/><path d="M11 7h4.5a1 1 0 0 1 1 1v5.5"/></svg><span>Plan</span>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3.5" width="8" height="7" rx="1"/><rect x="13" y="13.5" width="8" height="7" rx="1"/><path d="M11 7h4.5a1 1 0 0 1 1 1v5.5"/></svg><span>Vue d’ensemble</span>
     </button>
     <ul id="salles-onglets" class="salles-onglets" role="tablist" aria-label="Salles du donjon"></ul>
     <button id="salle-ajouter" type="button" class="discret" aria-label="Ajouter une salle" title="Ajouter une salle isolée">+</button>
@@ -165,8 +142,8 @@
     <button type="button" class="rail-outil" data-outil="notes" aria-pressed="false" title="Notes du MJ pour cette salle">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5h9l4 4v13H6z"/><path d="M15 3.5v4h4"/><path d="M9.5 12h6M9.5 15.5h6"/></svg><span>Notes</span>
     </button>
-    <button type="button" class="rail-outil" data-outil="plan" aria-pressed="false" title="Plan du donjon : salles et liaisons">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4" width="7" height="6" rx="1"/><rect x="13.5" y="14" width="7" height="6" rx="1"/><path d="M10.5 7H17v7"/></svg><span>Plan</span>
+    <button type="button" class="rail-outil" data-outil="plan" aria-pressed="false" title="Salles du donjon : liste, liaisons, vue d'ensemble">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4" width="7" height="6" rx="1"/><rect x="13.5" y="14" width="7" height="6" rx="1"/><path d="M10.5 7H17v7"/></svg><span>Salles</span>
     </button>
     <button type="button" class="rail-outil" data-outil="reglages" aria-pressed="false" title="Réglages : échelle, rendu de la carte">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h9M19 7h1M4 17h1M11 17h9"/><circle cx="16" cy="7" r="2.5"/><circle cx="8" cy="17" r="2.5"/></svg><span>Réglages</span>
@@ -184,7 +161,7 @@
       <section class="saisie">
         <label for="description" class="cache-visuel">Description de la salle <span id="nom-salle-active"></span></label>
         <textarea id="description" rows="4" spellcheck="false"
-          placeholder="Ex. : grande pièce de 4 m par 12, quatre piliers, deux coffres au fond de la salle, une statue devant une porte"></textarea>
+          placeholder="Ex. : grande salle de 4 m par 12, quatre piliers, deux coffres au fond de la salle, une statue devant une porte"></textarea>
         <div class="actions">
           <button id="micro" type="button" title="Dicter la description">🎙️ Dicter</button>
           <button id="effacer" type="button" class="discret">Effacer</button>
@@ -274,9 +251,9 @@
     </div>
 
     <div class="outil" data-pour="plan" hidden>
-      <div id="minicarte" class="minicarte" role="region" aria-label="Plan du donjon"></div>
+      <div id="minicarte" class="minicarte" role="region" aria-label="Vue d’ensemble du donjon"></div>
       <div id="orphelines" hidden></div>
-      <button id="plan-complet" type="button" class="discret" title="Voir tout le donjon d'un coup, les salles à leur vraie taille">Voir le plan complet</button>
+      <button id="plan-complet" type="button" class="discret" title="Voir tout le donjon d'un coup, les salles à leur vraie taille">Voir la vue d’ensemble</button>
       <p id="aide-salles" class="note"></p>
       <ul id="salles-liste" class="salles-liste"></ul>
     </div>
@@ -309,9 +286,9 @@
     <main id="scene">
       <!-- Vue Plan (js/main-mj.js, ouvrirPlan) : remplace #support. La liste est cachée à l'œil mais atteignable au clavier. -->
       <ul id="plan-salles" class="cache-visuel" aria-label="Salles du plan" hidden></ul>
-      <canvas id="plan-donjon" role="img" aria-label="Plan du donjon" hidden></canvas>
+      <canvas id="plan-donjon" role="img" aria-label="Vue d’ensemble du donjon" hidden></canvas>
       <div id="support">
-        <canvas id="carte" aria-label="Carte de la pièce"></canvas>
+        <canvas id="carte" aria-label="Carte de la salle"></canvas>
         <!-- Dimensions de la salle : glisser la bande d'un côté, ou ses boutons − et + (js/main-mj.js). -->
         <div class="bord-salle" data-cote="nord" data-lettre="N"></div>
         <div class="bord-salle" data-cote="sud" data-lettre="S"></div>
@@ -341,6 +318,7 @@
 
   <div id="univers" class="univers" hidden></div>
 
+  <script type="module" src="js/navigation.js"></script>
   <script type="module" src="js/main-mj.js"></script>
 </body>
 </html>

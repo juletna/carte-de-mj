@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Présentation · Carte de MJ</title>
+  <title>Jouer · Carte de MJ</title>
   <meta name="description" content="Ouvre un donjon préparé et montre-le à la table : régie du MJ et carte en grand pour les joueurs.">
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/style.css">
@@ -11,20 +11,11 @@
   <link rel="stylesheet" href="css/univers.css">
 </head>
 <body class="presentation">
+  <header class="menu-site" data-navigation></header>
 
   <!-- Écran de départ : choisir le donjon à présenter.
        Les deux en-têtes (départ et régie) sont dans des conteneurs masqués : la vue table (?vue=table) n'en affiche jamais, sans script. -->
   <main id="depart" hidden>
-    <header class="menu-site">
-      <div class="menu-int">
-        <a class="menu-nom" href="index.html">Carte de MJ</a>
-        <nav aria-label="Navigation principale">
-          <a class="menu-lien" href="fiche.html">Fiche</a>
-          <a class="menu-lien" href="donjon.html">Donjon</a>
-          <a class="menu-lien" href="presentation.html" aria-current="page">Présentation</a>
-        </nav>
-      </div>
-    </header>
     <header>
       <h1>Jouer</h1>
       <p class="sous-titre">Reprends une partie, ou lance-en une sur un donjon ou un monde préparés. La partie se joue sur une copie : ta préparation n'est jamais modifiée.</p>
@@ -60,31 +51,11 @@
 
   <!-- Une carte d'univers (js/regie-univers.js) : la régie navigue de carte en carte, révèle des points, entre dans un donjon. -->
   <main id="univers-regie" class="univers-regie" hidden>
-    <header class="menu-site">
-      <div class="menu-int">
-        <a class="menu-nom" href="index.html">Carte de MJ</a>
-        <nav aria-label="Navigation principale">
-          <a class="menu-lien" href="fiche.html">Fiche</a>
-          <a class="menu-lien" href="donjon.html">Donjon</a>
-          <a class="menu-lien" href="presentation.html" aria-current="page">Présentation</a>
-        </nav>
-      </div>
-    </header>
     <div class="univers-regie-corps"></div>
   </main>
 
   <!-- Au lancement d'une partie : qui joue ? Des fiches du donjon, ou un simple nombre de joueurs. -->
   <main id="choix-joueurs" hidden>
-    <header class="menu-site">
-      <div class="menu-int">
-        <a class="menu-nom" href="index.html">Carte de MJ</a>
-        <nav aria-label="Navigation principale">
-          <a class="menu-lien" href="fiche.html">Fiche</a>
-          <a class="menu-lien" href="donjon.html">Donjon</a>
-          <a class="menu-lien" href="presentation.html" aria-current="page">Présentation</a>
-        </nav>
-      </div>
-    </header>
     <header>
       <h1 id="titre-choix" tabindex="-1">Qui joue ?</h1>
       <p id="choix-donjon" class="sous-titre"></p>
@@ -122,16 +93,6 @@
       <button type="button" data-onglet="actions" aria-pressed="false">Actions</button>
     </div>
     <aside id="panneau">
-      <header class="menu-site">
-        <div class="menu-int">
-          <a class="menu-nom" href="index.html">Carte de MJ</a>
-          <nav aria-label="Navigation principale">
-            <a class="menu-lien" href="fiche.html">Fiche</a>
-            <a class="menu-lien" href="donjon.html">Donjon</a>
-            <a class="menu-lien" href="presentation.html" aria-current="page">Présentation</a>
-          </nav>
-        </div>
-      </header>
       <header>
         <h1>Régie</h1>
         <p class="sous-titre"><span id="nom-donjon"></span></p>
@@ -344,6 +305,7 @@
     <button id="plein-ecran-table" type="button" class="coin coin-droite">⛶ Plein écran</button>
   </div>
 
+  <script type="module" src="js/navigation.js"></script>
   <script type="module" src="js/main-presentation.js"></script>
 </body>
 </html>

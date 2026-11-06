@@ -1,9 +1,10 @@
 /**
- * « Tout mon univers » (menu du donjon) : un clic pour tout sauvegarder dans un .zip, un clic pour tout restaurer.
+ * Sauvegarde complète (bouton « Sauvegarde » de la barre commune, sur toutes les pages) : un clic pour tout sauvegarder dans un .zip,
+ * un clic pour tout restaurer. Le dialogue est construit à la demande par `ouvrirSauvegarde()`.
  * La logique (zip, validation, remplacement sans perte) est dans sauvegarde.js et zip.js ; ici, seulement le DOM,
  * le localStorage, IndexedDB et le téléchargement. Avant de remplacer quoi que ce soit, l'état actuel est téléchargé.
  */
-import { $, deuxTemps, fichierChoisi } from '../dom.js';
+import { $, h, deuxTemps, fichierChoisi } from '../dom.js';
 import { lireZip, creerZip } from '../zip.js';
 import { contenuSauvegarde, lireSauvegarde, entreesImages, resumeSauvegarde, restaurer, bibliothequeManquante, nomSauvegarde, nomAvantRestauration, TAILLE_MAX_SAUVEGARDE } from '../sauvegarde.js';
 import { listerImages, remplacerToutesImages } from '../bibliotheque/images.js';
@@ -31,7 +32,30 @@ async function idsDuCatalogue() {
   } catch { return null; }
 }
 
-export function brancherSauvegarde() {
+/** Ouvre le dialogue de sauvegarde (construit au premier appel). */
+export function ouvrirSauvegarde() {
+  let dialogue = $('dialogue-sauvegarde');
+  if (!dialogue) {
+    dialogue = h('dialog', { id: 'dialogue-sauvegarde', className: 'dialogue-sauvegarde', 'aria-labelledby': 'sauvegarde-titre' },
+      h('h2', { id: 'sauvegarde-titre', textContent: 'Sauvegarde complète' }),
+      h('p', { className: 'note', textContent: 'Un seul fichier pour tout garder ou tout retrouver : donjons, personnages, univers, modèles, parties, réglages et images importées.' }),
+      h('div', { className: 'actions' },
+        h('button', { id: 'sauvegarder-tout', type: 'button', textContent: 'Tout sauvegarder', title: 'Télécharge un fichier .zip' }),
+        h('label', { className: 'bouton', title: 'Remplace tout ce que ce navigateur garde par le contenu d\'une sauvegarde .zip' }, 'Tout restaurer… ',
+          h('input', { id: 'restaurer', type: 'file', accept: '.zip,application/zip', hidden: true }))),
+      h('p', { id: 'restaurer-detail', className: 'note', hidden: true }),
+      h('div', { className: 'actions' }, h('button', { id: 'restaurer-confirmer', type: 'button', className: 'discret', hidden: true })),
+      h('p', { id: 'sauvegarde-etat', className: 'note', role: 'status', hidden: true }),
+      h('p', { id: 'sauvegarde-erreur', className: 'note erreur', role: 'alert', hidden: true }),
+      h('div', { className: 'actions' }, h('button', { type: 'button', className: 'discret', textContent: 'Fermer', onclick: () => dialogue.close() })));
+    document.body.append(dialogue);
+    dialogue.addEventListener('click', (e) => { if (e.target === dialogue) dialogue.close(); });
+    brancherSauvegarde();
+  }
+  if (!dialogue.open) dialogue.showModal();
+}
+
+function brancherSauvegarde() {
   const zone = $('sauvegarde-etat'), erreur = $('sauvegarde-erreur'), detail = $('restaurer-detail'), confirmer = $('restaurer-confirmer');
   let lue = null; // la sauvegarde choisie, en attente de confirmation
   const dire = (texte, erreurs = []) => {

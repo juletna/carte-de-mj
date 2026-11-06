@@ -15,7 +15,7 @@
 #menu-donjon-nom { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 220px; font-weight: 600; }
 #menu-donjon-nom::before { content: '· '; font-weight: 400; color: var(--texte-doux); }
 .menu-panneau {
-  position: absolute; right: 0; top: calc(100% + 6px); z-index: 60;
+  position: absolute; left: 0; top: calc(100% + 6px); z-index: 60;
   width: min(390px, calc(100vw - 16px)); max-height: calc(100vh - 72px); max-height: calc(100dvh - 72px); overflow: auto;
   padding: 12px; background: var(--panneau); border: 1px solid var(--bord); border-radius: var(--rayon);
   box-shadow: 0 10px 32px rgba(0, 0, 0, 0.6);
@@ -25,8 +25,8 @@
 .menu-panneau label.bouton { margin: 0; }
 .menu-panneau .plan-json { margin-top: 12px; }
 .menu-panneau .zone-danger { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--bord); }
+.menu-panneau .zone-danger button { color: var(--erreur); border-color: var(--erreur); }
 .menu-panneau .pied { margin-top: 12px; }
-.liens-site { display: none; }
 
 /* --- Onglets des salles : fine bande au-dessus de la carte, quel que soit l'outil ouvert --- */
 .salles-barre { display: flex; align-items: center; gap: 6px; min-width: 0; padding: 5px 12px; background: var(--panneau); border-bottom: 1px solid var(--bord); }
@@ -127,19 +127,20 @@ body.vue-plan #aide-carte { display: none; }
 
 /* --- Ordinateur (au-dessus de 760 px) : barre, rail 64 px, panneau 300 px, puis bande des salles et carte --- */
 @media not all and (max-width: 760px) { /* complément exact de (max-width: 760px), largeurs fractionnaires comprises */
-  body { grid-template-columns: 64px 300px minmax(0, 1fr); grid-template-rows: auto auto minmax(0, 1fr); height: 100vh; height: 100dvh; overflow: hidden; }
+  body { grid-template-columns: 64px 300px minmax(0, 1fr); grid-template-rows: auto auto auto minmax(0, 1fr); height: 100vh; height: 100dvh; overflow: hidden; }
   /* Panneau replié : la colonne disparaît et la carte récupère la place (l'ajustement passe par le ResizeObserver de la scène). */
   body.panneau-replie { grid-template-columns: 64px 0 minmax(0, 1fr); }
   body.panneau-replie #panneau { display: none; }
 
-  #barre { grid-column: 1 / -1; grid-row: 1; position: relative; z-index: 50; display: flex; align-items: center; gap: var(--esp-3); padding: 0 var(--esp-3); min-height: 48px; }
+  /* Rangée 1 : la barre commune (identique aux autres pages) ; rangée 2 : les commandes du donjon. */
+  body > .menu-site { grid-column: 1 / -1; grid-row: 1; }
+  #barre { grid-column: 1 / -1; grid-row: 2; position: relative; z-index: 50; display: flex; align-items: center; gap: var(--esp-3); padding: 0 var(--esp-3); min-height: 48px; }
   #barre .onglets { display: none; }
-  #barre .menu-site nav { flex: 1 1 auto; }
 
-  #rail { grid-column: 1; grid-row: 2 / 4; min-height: 0; }
-  #panneau { grid-column: 2; grid-row: 2 / 4; min-height: 0; min-width: 0; padding: 10px 12px; gap: 8px; }
-  .salles-barre { grid-column: 3; grid-row: 2; }
-  #cadre-scene { grid-column: 3; grid-row: 3; position: relative; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+  #rail { grid-column: 1; grid-row: 3 / 5; min-height: 0; }
+  #panneau { grid-column: 2; grid-row: 3 / 5; min-height: 0; min-width: 0; padding: 10px 12px; gap: 8px; }
+  .salles-barre { grid-column: 3; grid-row: 3; }
+  #cadre-scene { grid-column: 3; grid-row: 4; position: relative; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
   /* flex et marges automatiques (pas place-items) : une carte zoomée plus grande que la scène reste entièrement atteignable au défilement. */
   #scene { flex: 1 1 auto; display: flex; min-width: 0; min-height: 0; }
   #support { margin: auto; padding: var(--bande-salle); flex: none; }
@@ -157,7 +158,6 @@ body.vue-plan #aide-carte { display: none; }
 @media (max-width: 760px) {
   :root { --bande-salles: 53px; } /* bande des salles : boutons de 44 px + marges + filet */
   body[data-onglet] #barre { position: sticky; top: 0; z-index: 50; display: flex; align-items: center; gap: var(--esp-2); min-height: var(--barre-onglets); padding: var(--esp-2) var(--esp-4); }
-  #barre .menu-int { display: none; }
   /* Les onglets prennent la place laissée par les deux boutons, dans la même barre. */
   body[data-onglet] #barre .onglets { position: static; z-index: auto; flex: 1 1 0; min-width: 0; padding: 0; border: 0; background: none; }
   #barre .onglets .libelle { display: none; }
@@ -166,9 +166,7 @@ body.vue-plan #aide-carte { display: none; }
   #menu-donjon-bouton { padding: 0 var(--esp-3); }
   #menu-donjon-nom { display: none; }
   .menu-donjon { position: static; }
-  .menu-panneau { position: fixed; left: var(--esp-2); right: var(--esp-2); top: var(--barre-onglets); width: auto; max-height: calc(100vh - var(--barre-onglets) - 8px); max-height: calc(100dvh - var(--barre-onglets) - 8px); }
-  .liens-site { display: flex; flex-wrap: wrap; gap: var(--esp-2); margin: 0 0 var(--esp-3); }
-  .liens-site .bouton { flex: 1 1 40%; }
+  .menu-panneau { position: fixed; left: var(--esp-2); right: var(--esp-2); top: calc(var(--barre-onglets) + var(--h-barre)); width: auto; max-height: calc(100vh - var(--barre-onglets) - var(--h-barre) - 8px); max-height: calc(100dvh - var(--barre-onglets) - var(--h-barre) - 8px); }
   .bouton.principal { padding: 0 var(--esp-3); }
 
   /* Bande des salles : collée sous la barre, visible dans les deux onglets ; elle défile à l'horizontale. */
@@ -188,7 +186,7 @@ body.vue-plan #aide-carte { display: none; }
   /* La carte n'existe que dans l'onglet Carte ; ses commandes avec elle. */
   body[data-onglet="texte"] #cadre-scene { display: none; }
   #cadre-scene { position: relative; }
-  body:not(.presentation)[data-onglet="carte"] #scene { height: calc(100vh - var(--barre-onglets) - var(--bande-salles) - var(--reserve-selection)); height: calc(100dvh - var(--barre-onglets) - var(--bande-salles) - var(--reserve-selection)); }
+  body:not(.presentation)[data-onglet="carte"] #scene { height: calc(100vh - var(--h-barre) - var(--barre-onglets) - var(--bande-salles) - var(--reserve-selection)); height: calc(100dvh - var(--h-barre) - var(--barre-onglets) - var(--bande-salles) - var(--reserve-selection)); }
   .bouton-ajouter { display: inline-flex; align-items: center; top: var(--esp-2); right: var(--esp-2); min-height: 44px; padding: 0 var(--esp-4); font-size: 14px; font-weight: 600; background: var(--accent); color: var(--accent-texte); border-color: var(--accent); }
   /* À côté de « + Ajouter » plutôt qu'au centre : au centre, elle serait rognée par le bouton. */
   .pose-pastille { top: var(--esp-2); left: var(--esp-2); transform: none; min-height: 44px; max-width: calc(100% - 144px); }

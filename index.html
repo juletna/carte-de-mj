@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Carte de MJ</title>
-  <meta name="description" content="Trois outils de jeu de rôle indépendants : une fiche de personnage, un préparateur de donjon et un écran de table, plus l'impression des plans.">
+  <meta name="description" content="Outils de jeu de rôle sur table : un monde de cartes imbriquées, des donjons, un écran de table, une bibliothèque de cartes et la fiche du joueur.">
   <link rel="stylesheet" href="css/base.css">
   <style>
     /* Les jetons (couleurs, rayon, focus) viennent de css/base.css : cette page n'embarque pas la mise en page à deux colonnes. */
@@ -24,35 +24,35 @@
   </style>
 </head>
 <body>
+  <header class="menu-site" data-navigation></header>
   <main>
-    <header class="menu-site">
-      <div class="menu-int">
-        <a class="menu-nom" href="index.html" aria-current="page">Carte de MJ</a>
-        <nav aria-label="Navigation principale">
-          <a class="menu-lien" href="fiche.html">Fiche</a>
-          <a class="menu-lien" href="donjon.html">Donjon</a>
-          <a class="menu-lien" href="presentation.html">Présentation</a>
-        </nav>
-      </div>
-    </header>
     <h1>Carte de MJ</h1>
-    <p class="sous-titre">Trois outils de jeu de rôle. Chacun s'utilise seul, sans compte ni réseau.</p>
+    <p class="sous-titre">Des outils de jeu de rôle sur table. Chacun s'utilise seul, sans compte ni réseau.</p>
     <nav class="choix" aria-label="Outils">
-      <a class="outil" href="fiche.html">
-        <b>Fiche</b>
-        <span>La fiche de ton personnage sur téléphone, avec jets de dés et suivi des PV. Elle s'utilise seule.</span>
+      <a class="outil" href="donjon.html#monde">
+        <b>Monde</b>
+        <span>Des cartes imbriquées : un monde, ses continents, leurs lieux, et les donjons qui s'y cachent.</span>
       </a>
       <a class="outil" href="donjon.html">
-        <b>Donjon</b>
-        <span>Décris une salle en français, la carte s'affiche sur une grille. Il s'utilise seul.</span>
+        <b>Donjons</b>
+        <span>Décris une salle en français, la carte s'affiche sur une grille. Relie les salles en un donjon.</span>
       </a>
       <a class="outil" href="presentation.html">
-        <b>Présentation</b>
-        <span>Ouvre un donjon déjà prêt : régie pour le MJ, carte en grand pour la table. Il s'utilise seul.</span>
+        <b>Jouer</b>
+        <span>Ouvre un donjon ou un monde déjà prêt : régie pour le MJ, carte en grand pour la table.</span>
+      </a>
+      <a class="outil" href="bibliotheque.html">
+        <b>Bibliothèque</b>
+        <span>Les cartes illustrées du catalogue et tes propres images, à poser dans ton monde.</span>
+      </a>
+      <a class="outil" href="fiche.html">
+        <b>Fiche joueur</b>
+        <span>La fiche de ton personnage sur téléphone, avec jets de dés et suivi des PV.</span>
       </a>
     </nav>
-    <p class="note">Pour tout sauvegarder ou tout restaurer d'un clic (donjons, personnages, univers, images importées) : Donjon, menu du donjon, « Tout mon univers ».</p>
+    <p class="note">Pour tout sauvegarder ou tout restaurer d'un clic (donjons, personnages, univers, images importées) : bouton « Sauvegarde » de la barre du haut.</p>
     <footer>Projet libre (MIT) · les données restent dans ton navigateur · outil non officiel, sans lien avec un éditeur de jeu</footer>
   </main>
+  <script type="module" src="js/navigation.js"></script>
 </body>
 </html>

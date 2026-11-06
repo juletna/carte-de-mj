@@ -1,43 +1,44 @@
 /**
- * Parité du bloc de navigation entre les pages HTML : chaque page répète à la main le même menu
- * (nom du site + liens vers les outils). Ce test garde ces copies identiques, au lien courant près.
+ * Barre de navigation commune : les liens et la page courante viennent de js/navigation-donnees.js (pur) ;
+ * chaque page HTML y déclare un emplacement `[data-navigation]` (rempli par js/navigation.js) et charge ce script.
  * Les pages sont lues par `lire(chemin)` (disque sous Node, fetch dans tests.html).
  */
 import { verifier, egal, executerSuite } from './mini-test.js';
+import { LIENS, LIEN_FICHE, pageCourante } from '../js/navigation-donnees.js';
 
-const PAGES = ['index.html', 'fiche.html', 'donjon.html', 'presentation.html', 'impression.html'];
-const LIENS = ['fiche.html', 'donjon.html', 'presentation.html'];
-
-/** Les menus d'une page : le nom du site et les liens de <nav aria-label="Navigation principale">, sans espaces superflus. */
-function menus(html) {
-  return [...html.matchAll(/<a class="menu-nom"[^>]*>[^<]*<\/a>\s*<nav aria-label="Navigation principale">([\s\S]*?)<\/nav>/g)].map((m) => ({
-    liens: [...m[1].matchAll(/<a\b([^>]*)>([^<]*)<\/a>/g)].map((a) => ({ attrs: a[1].replace(/\s*aria-current="page"/, '').replace(/\s+/g, ' ').trim(), texte: a[2].trim(), courant: /aria-current="page"/.test(a[1]) })),
-  }));
-}
-const cible = (attrs) => attrs.match(/href="([^"]*)"/)?.[1];
+const PAGES = ['index.html', 'fiche.html', 'donjon.html', 'presentation.html', 'impression.html', 'bibliotheque.html'];
 
 export async function executer({ lire }) {
-  const pages = {};
-  for (const page of PAGES) pages[page] = menus(await lire(page));
+  const html = {};
+  for (const page of PAGES) html[page] = await lire(page);
   const TESTS = [
-    ['chaque page a au moins un menu, avec les trois outils dans le même ordre', () => {
+    ['la barre : Monde, Donjons, Jouer, Bibliothèque, puis Fiche joueur à droite', () => {
+      egal(LIENS.map((l) => l.texte), ['Monde', 'Donjons', 'Jouer', 'Bibliothèque']);
+      egal(LIENS.map((l) => l.href), ['donjon.html#monde', 'donjon.html', 'presentation.html', 'bibliotheque.html']);
+      egal(LIEN_FICHE.href, 'fiche.html');
+    }],
+    ['chaque page a un emplacement de barre et charge js/navigation.js', () => {
       for (const page of PAGES) {
-        verifier(pages[page].length > 0, `${page} : aucun bloc de navigation`);
-        for (const menu of pages[page]) egal(menu.liens.map((l) => cible(l.attrs)), LIENS, `${page} : liens du menu`);
+        verifier(/data-navigation/.test(html[page]), `${page} : pas d'emplacement [data-navigation]`);
+        verifier(html[page].includes('src="js/navigation.js"'), `${page} : js/navigation.js n'est pas chargé`);
+        verifier(!/<a class="menu-lien"/.test(html[page]), `${page} : liens de menu écrits à la main (ils viennent de navigation.js)`);
       }
     }],
-    ['tous les menus sont identiques, au lien courant près', () => {
-      const [reference, ...autres] = PAGES.flatMap((page) => pages[page].map((m) => ({ page, signature: m.liens.map((l) => `${l.attrs}|${l.texte}`) })));
-      for (const m of autres) egal(m.signature, reference.signature, `menu de ${m.page} comparé à celui de ${reference.page}`);
+    ['la page courante : une seule par page, Monde seulement avec #monde', () => {
+      egal(pageCourante('/index.html'), 'accueil');
+      egal(pageCourante('/'), 'accueil');
+      egal(pageCourante('/fiche.html'), 'fiche');
+      egal(pageCourante('/donjon.html', ''), 'donjons');
+      egal(pageCourante('/donjon.html', '#monde'), 'monde');
+      egal(pageCourante('/donjon.html', '#mondes-perdus'), 'donjons');
+      egal(pageCourante('/x/presentation.html', '?donjon=a'), 'jouer');
+      egal(pageCourante('/bibliotheque.html'), 'bibliotheque');
+      egal(pageCourante('/impression.html'), 'donjons');
+      egal(pageCourante('/autre.html'), null);
     }],
-    ['le lien courant est celui de la page, jamais un autre', () => {
-      for (const page of PAGES) {
-        for (const menu of pages[page]) {
-          const courants = menu.liens.filter((l) => l.courant).map((l) => cible(l.attrs));
-          egal(courants.filter((c) => c !== page), [], `${page} : lien courant vers une autre page`);
-          verifier(courants.length <= 1, `${page} : plusieurs liens courants`);
-        }
-      }
+    ['le titre de chaque page porte le nom du site et le mot « Jouer » remplace « Présentation »', () => {
+      for (const page of PAGES) verifier(/<title>[^<]*Carte de MJ<\/title>/.test(html[page]), `${page} : titre`);
+      verifier(/<title>Jouer · Carte de MJ<\/title>/.test(html['presentation.html']), 'titre de presentation.html');
     }],
   ];
   return executerSuite('navigation : ', TESTS);

@@ -2,21 +2,12 @@
 <html lang="fr">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Fiche · Carte de MJ</title>
+<title>Fiche joueur · Carte de MJ</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="css/base.css">
 <link rel="stylesheet" href="css/fiche.css">
 
-<header class="menu-site">
-  <div class="menu-int wrap">
-    <a class="menu-nom" href="index.html">Carte de MJ</a>
-    <nav aria-label="Navigation principale">
-      <a class="menu-lien" href="fiche.html" aria-current="page">Fiche</a>
-      <a class="menu-lien" href="donjon.html">Donjon</a>
-      <a class="menu-lien" href="presentation.html">Présentation</a>
-    </nav>
-  </div>
-</header>
+<header class="menu-site" data-navigation></header>
 <header class="top"><div class="wrap" id="hdr"></div></header>
 <div class="avis wrap" id="avis" role="alert" hidden></div>
 <main class="wrap" id="view"></main>
@@ -32,4 +23,5 @@
 <div class="toast" id="toast" role="status" hidden></div>
 <input type="file" id="impf" accept=".json,application/json" hidden>
 
+<script type="module" src="js/navigation.js"></script>
 <script type="module" src="js/fiche/main.js"></script>

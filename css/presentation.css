@@ -35,7 +35,7 @@ body.presentation a { color: var(--accent); }
 .ligne-joueur input { width: 100%; min-height: var(--cible); background: var(--champ); color: var(--texte); border: 1px solid var(--bord); border-radius: var(--rayon); padding: 6px 8px; font: inherit; }
 
 /* --- Régie --- */
-/* --hauteur-barre : la barre de navigation du site, au-dessus de la régie (0 tant qu'elle est dans la colonne). */
+/* --hauteur-barre : la barre de navigation du site, au-dessus de la régie (posée par css/base.css : --h-barre). */
 #regie { display: grid; grid-template-columns: 360px minmax(0, 1fr); height: calc(100vh - var(--hauteur-barre, 0px)); height: calc(100dvh - var(--hauteur-barre, 0px)); }
 #regie #panneau { min-height: 0; }
 #principal { display: flex; flex-direction: column; min-width: 0; min-height: 0; background: var(--scene); }
@@ -171,7 +171,7 @@ body.vue-table { overflow: hidden; background: #000; }
   body[data-onglet] #regie { display: block; height: auto; }
   body[data-onglet="carte"] #regie #panneau { display: none; }
   body[data-onglet="actions"] #regie #principal { display: none; }
-  body[data-onglet="carte"] #principal { height: calc(100vh - var(--barre-onglets) - var(--reserve-selection)); height: calc(100dvh - var(--barre-onglets) - var(--reserve-selection)); }
+  body[data-onglet="carte"] #principal { height: calc(100vh - var(--h-barre) - var(--barre-onglets) - var(--reserve-selection)); height: calc(100dvh - var(--h-barre) - var(--barre-onglets) - var(--reserve-selection)); }
   body[data-onglet] #principal #scene { min-height: 0; }
   body[data-onglet] #principal #support { padding: 6px; }
   #projection { padding: 0 8px; font-size: 13px; gap: 6px; }

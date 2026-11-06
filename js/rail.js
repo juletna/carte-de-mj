@@ -19,7 +19,7 @@ export const OUTILS = [
   { id: 'creatures', titre: 'Créatures', catalogue: true },
   { id: 'personnages', titre: 'Personnages' },
   { id: 'notes', titre: 'Notes' },
-  { id: 'plan', titre: 'Plan du donjon' },
+  { id: 'plan', titre: 'Salles' },
   { id: 'reglages', titre: 'Réglages' },
 ];
 export const OUTILS_CATALOGUE = OUTILS.filter((o) => o.catalogue).map((o) => o.id);

@@ -10,18 +10,9 @@
   <link rel="stylesheet" href="css/impression.css">
 </head>
 <body class="impression">
+  <header class="menu-site" data-navigation></header>
 
   <main id="commandes" class="commandes">
-    <header class="menu-site">
-      <div class="menu-int">
-        <a class="menu-nom" href="index.html">Carte de MJ</a>
-        <nav aria-label="Navigation principale">
-          <a class="menu-lien" href="fiche.html">Fiche</a>
-          <a class="menu-lien" href="donjon.html">Donjon</a>
-          <a class="menu-lien" href="presentation.html">Présentation</a>
-        </nav>
-      </div>
-    </header>
     <header>
       <h1>Impression</h1>
       <p class="sous-titre">Des plans à l'échelle des figurines, pour jouer sur papier sans l'application. Cette page lit ton donjon sans jamais le modifier.</p>
@@ -85,6 +76,7 @@
     <button id="imprimer" type="button" disabled>Imprimer</button>
   </div>
 
+  <script type="module" src="js/navigation.js"></script>
   <script type="module" src="js/main-impression.js"></script>
 </body>
 </html>

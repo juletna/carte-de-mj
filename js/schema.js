@@ -124,7 +124,7 @@ export function validerPlan(brut) {
     if (!TYPES_OBJETS.has(o?.type)) return erreurs.push(`objet ${i + 1} : type inconnu « ${o?.type} »`);
     const l = entier(o.l) && o.l > 0 ? o.l : 1, h = entier(o.h) && o.h > 0 ? o.h : 1;
     if (!entier(o.x) || !entier(o.y) || o.x < 0 || o.y < 0 || o.x + l > W || o.y + h > L || !surLeSol(plan, o.x, o.y, l, h)) {
-      return erreurs.push(`objet ${i + 1} (${o.type}) : hors de la pièce`);
+      return erreurs.push(`objet ${i + 1} (${o.type}) : hors de la salle`);
     }
     const rotation = ((Math.round((Number(o.rotation) || 0) / 90) * 90) % 360 + 360) % 360;
     plan.objets.push({ id: String(o.id || `o${i + 1}`), type: o.type, x: o.x, y: o.y, l, h, rotation, ...(o.type === 'escalier' && o.sens === 'monte' ? { sens: 'monte' } : {}), ...marqueCache(o) });
@@ -135,7 +135,7 @@ export function validerPlan(brut) {
     if (!TYPES_CREATURES.has(k?.type)) return erreurs.push(`créature ${i + 1} : type inconnu « ${k?.type} »`);
     const taille = entier(k.taille) && k.taille > 0 ? k.taille : 1;
     if (!entier(k.x) || !entier(k.y) || k.x < 0 || k.y < 0 || k.x + taille > W || k.y + taille > L || !surLeSol(plan, k.x, k.y, taille, taille)) {
-      return erreurs.push(`créature ${i + 1} (${k.type}) : hors de la pièce`);
+      return erreurs.push(`créature ${i + 1} (${k.type}) : hors de la salle`);
     }
     numeros[k.type] = (numeros[k.type] || 0) + 1;
     const c = {

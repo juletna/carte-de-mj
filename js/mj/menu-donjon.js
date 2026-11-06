@@ -14,7 +14,6 @@ import * as modele from '../donjon.js';
 import { convertirImport } from '../donjon-validation.js';
 import { $, h, deuxTemps, fichierChoisi } from '../dom.js';
 import { pluriel } from '../format.js';
-import { brancherSauvegarde } from './sauvegarde-ui.js';
 
 export function creerMenu(ctx) {
   const { etat } = ctx;
@@ -193,8 +192,6 @@ export function creerMenu(ctx) {
     ko.hidden = erreurs.length === 0;
     ko.textContent = erreurs.join(' · '); // textContent : le contenu du fichier n'est jamais interprété comme du HTML
   }
-
-  brancherSauvegarde(); // « Tout mon univers » : sauvegarder tout / restaurer (sauvegarde-ui.js)
 
   // --- Copies mises de côté : ce qui ne s'est pas relu, à récupérer (le bloc n'apparaît que s'il y en a) ---
   function majCopies() {

@@ -30,7 +30,7 @@ import { $, h } from './dom.js';
 import { libelleMicro } from './format.js';
 
 const EXEMPLES = [
-  'Grande pièce de 4 m par 12, quatre piliers, deux coffres au fond de la salle, une statue immobile devant une porte',
+  'Grande salle de 4 m par 12, quatre piliers, deux coffres au fond de la salle, une statue immobile devant une porte',
   'Salle du trône de 12 mètres sur 15, un trône au fond, deux statues de chaque côté du trône, six colonnes, des torches le long des murs',
   'Taverne de 8 par 6 cases, sol en bois, trois tables au centre, une bibliothèque contre le mur est, deux lits à gauche, un tonneau au fond à droite',
   'Salle de 12 m sur 15, une porte au sud, les personnages à l’entrée, un jeune dragon rouge au fond, deux tonneaux dans les coins, quatre gobelins devant le dragon, deux squelettes de chaque côté de la porte',

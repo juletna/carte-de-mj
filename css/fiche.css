@@ -21,8 +21,7 @@ input,textarea,select{background:var(--champ);border:1px solid var(--bord);borde
 .linkbtn.mini{min-height:28px;padding:0;--ext:-8px 0}
 
 /* Navigation commune (css/base.css) : fond de la Fiche, zone sûre du haut, et colonne alignée sur .wrap */
-.menu-site{--m-fond:var(--panneau);margin:0;padding-top:env(safe-area-inset-top,0px)}
-.menu-int.wrap{column-gap:12px}
+.menu-site{padding-top:env(safe-area-inset-top,0px)}
 
 /* En-tête */
 header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--panneau);border-bottom:1px solid var(--bord)}
