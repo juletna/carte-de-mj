@@ -28,6 +28,7 @@ function aleatoire(graine) {
 export function creerPlaceurs({ plan, g, W, L, entree, fond, graine, fixes }) {
   const rnd = aleatoire(graine);
   const versEntree = REGARD_VERS[entree];
+  const couvertes = new Set(); // cases où traîne déjà un objet non bloquant (bougie, ossements, flaque…) : le hasard évite de les empiler
 
   /** Pose un objet au plus près de (x, y). Renvoie l'objet posé ou null. */
   function poser(def, x, y, l, h, rotation, ignorerReserve = false) {
@@ -42,6 +43,7 @@ export function creerPlaceurs({ plan, g, W, L, entree, fond, graine, fixes }) {
   function inscrire(def, x, y, l, h, rotation) {
     const c = [x, y];
     if (def.bloquant !== false) g.occuper(c[0], c[1], l, h);
+    else if (def.genre !== 'creature') for (let i = c[0]; i < c[0] + l; i++) for (let j = c[1]; j < c[1] + h; j++) couvertes.add(`${i},${j}`);
     if (def.genre === 'creature') {
       // Les pions sont numérotés par type (gobelin 1, gobelin 2…) pour que le MJ s'y retrouve.
       const numero = plan.creatures.filter((k) => k.type === def.type).length + 1;
@@ -217,8 +219,21 @@ export function creerPlaceurs({ plan, g, W, L, entree, fond, graine, fixes }) {
     },
 
     aleatoire(def, n, l, h) {
-      return Array.from({ length: n }, () =>
-        poser(def, Math.floor(rnd() * (W - l + 1)), Math.floor(rnd() * (L - h + 1)), l, h, Math.floor(rnd() * 4) * 90));
+      const tirer = () => [Math.floor(rnd() * (W - l + 1)), Math.floor(rnd() * (L - h + 1)), Math.floor(rnd() * 4) * 90];
+      if (def.bloquant !== false || def.genre === 'creature') return Array.from({ length: n }, () => { const [x, y, r] = tirer(); return poser(def, x, y, l, h, r); });
+      // Un objet non bloquant ne cherche pas de place libre (poser) : on évite ici les cases déjà prises par un objet ou par un autre semis,
+      // tant qu'il en reste ; sinon (salle pleine) il se pose où le hasard l'a mis.
+      const prise = (x, y) => { for (let i = x; i < x + l; i++) for (let j = y; j < y + h; j++) if (g.occupe.has(`${i},${j}`) || couvertes.has(`${i},${j}`)) return true; return false; };
+      return Array.from({ length: n }, () => {
+        let [x, y, rotation] = tirer();
+        if (prise(x, y)) {
+          let libre = null;
+          for (let essai = 0; essai < 12 && !libre; essai++) { const [a, b] = tirer(); if (!prise(a, b)) libre = [a, b]; }
+          for (let b = 0; b <= L - h && !libre; b++) for (let a = 0; a <= W - l && !libre; a++) if (!prise(a, b)) libre = [a, b];
+          if (libre) [x, y] = libre;
+        }
+        return inscrire(def, x, y, l, h, rotation);
+      });
     },
 
     // Coordonnées exactes : pas de recherche de place, le MJ a décidé.

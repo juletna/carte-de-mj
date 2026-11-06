@@ -349,6 +349,16 @@ PHRASES.push(
   un('un os, un crâne', { ossements: 2 }, { ignores: [] }),
   un('un tas d\'os et un tas d\'ossements', { ossements: 2 }, { ignores: [] }),
   { phrase: salle('un squelette'), attendu: { compter: {}, verifier: (plan) => (plan.creatures.length === 1 && plan.creatures[0].type === 'squelette') || 'un squelette est un pion' } },
+  // le hasard n'empile pas les objets non bloquants quand il reste de la place
+  { phrase: salle('des ossements, des bougies et une flaque au hasard, deux coffres'), attendu: { compter: { ossements: 5, bougies: 5, flaque: 1, coffre: 2 }, verifier: (plan) => {
+    const vus = new Set();
+    for (const o of plan.objets) for (let i = 0; i < o.l; i++) for (let j = 0; j < o.h; j++) {
+      const k = `${o.x + i},${o.y + j}`;
+      if (vus.has(k)) return `deux objets sur la case ${k}`;
+      vus.add(k);
+    }
+    return true;
+  } } },
   // tout ensemble
   un('un brasero, des bougies, un tapis, une bannière, un feu de camp, une flaque, un rocher, des champignons lumineux, une toile d\'araignée, des ossements',
     { brasero: 1, bougies: 5, tapis: 1, banniere: 1, feudecamp: 1, flaque: 1, rocher: 1, champignons: 2, toile: 1, ossements: 5 }, { ignores: [] }),
