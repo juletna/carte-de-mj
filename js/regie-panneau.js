@@ -47,7 +47,12 @@ export function sectionnerOnglets(creerSection, $ = (id) => document.getElementB
   // Les nœuds sont pris AVANT d'être déplacés : une fois dans une section pas encore posée, `getElementById` ne les trouve plus.
   const [projection, elements, compteElements] = [$('projection'), $('elements-salle'), $('nb-elements')];
   const cetteSalle = salle.querySelector('.cette-salle'), notes = salle.querySelector('.bloc-notes');
+  // En-tête de l'onglet (docs/design-panneaux.md, « En-tête ») : type, nom de la salle regardée, où elle en est ; regie.js le remplit.
+  const entete = document.createElement('div');
+  entete.className = 'regie-entete';
+  entete.innerHTML = '<p class="atelier-inspecteur-type">Salle</p><p id="regie-entete-nom" class="regie-entete-nom"></p><p id="regie-entete-meta" class="atelier-inspecteur-resume"></p>';
   salle.replaceChildren(
+    entete,
     section('visibilite', 'Visible à la table', [projection]),
     section('salle', 'Cette salle', [cetteSalle]),
     section('elements', 'Éléments', [elements], { compte: compteElements }),

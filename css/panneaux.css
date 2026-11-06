@@ -183,3 +183,22 @@
 #regie .univers-point-choisi.vide { font-style: italic; font-weight: 400; color: var(--p-texte-3); }
 #regie .univers-regie-panneau .actions { margin: 0; }
 #regie .univers-notes { margin: 0; padding: var(--esp-2) var(--esp-3); border-left: 2px solid var(--p-filet-fort); color: var(--p-texte-2); font-size: 13.5px; }
+
+/* « Compris » de la salle : des pastilles plutôt qu'une liste à puces ; les mots non compris ressortent en rouge. */
+.p-section-corps #compris { display: flex; flex-wrap: wrap; gap: 4px; margin: 0; padding: 0; list-style: none; font-size: 12px; line-height: 1.3; }
+.p-section-corps #compris li { margin: 0; padding: 2px 8px; border-radius: 999px; background: var(--p-surface-1); color: var(--p-texte-2); }
+.p-section-corps #ignores { margin: 6px 0 0; color: var(--erreur); }
+
+/* Formes de la salle : 12 petits dessins sur deux rangées de six au lieu de quatre rangées de boutons légendés ; le nom reste dans
+   l'infobulle et pour les lecteurs d'écran (le texte du bouton est masqué à l'œil seulement). */
+.p-section-corps .forme-salle .formes { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; }
+.p-section-corps .forme-salle .formes button { min-height: max(36px, var(--cible)); padding: 4px; border-color: var(--p-filet-fort); background: none; color: var(--p-texte-2); }
+.p-section-corps .forme-salle .formes button:hover { background: var(--p-surface-survol); }
+.p-section-corps .forme-salle .formes button[aria-pressed="true"] { background: var(--p-choisi); border-color: var(--accent); color: var(--accent); }
+.p-section-corps .forme-salle .formes svg { width: 20px; height: 20px; }
+.p-section-corps .forme-salle .formes button > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+#regie .cette-salle > .actions:not(:has(> :not([hidden]))) { display: none; }
+/* En-tête de l'onglet Salle de Jouer : comme celui de l'inspecteur (type en or, nom, une ligne de méta). */
+#regie .regie-entete { display: flex; flex-direction: column; gap: 3px; padding: 14px var(--esp-4) var(--esp-3); border-bottom: 1px solid var(--p-filet-fort); }
+#regie .regie-entete > p { margin: 0; }
+#regie .regie-entete-nom { font-size: 18px; font-weight: 650; line-height: 1.25; color: var(--p-texte-1); overflow-wrap: anywhere; }

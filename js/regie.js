@@ -419,11 +419,17 @@ export function demarrerRegie() {
   /** Bloc « Cette salle » : éléments cachés, portes (accessibles au clavier) et notes en lecture seule. */
   function majSalle() {
     const p = etat.p, s = salleConsultee();
+    // En-tête de l'onglet Salle (js/regie-panneau.js) : la salle regardée, et si c'est elle que la table voit.
+    if ($('regie-entete-nom')) {
+      $('regie-entete-nom').textContent = s.nom;
+      $('regie-entete-meta').textContent = s.id === p.salleCourante ? 'À la table' : 'Regardée ici seulement : la table voit une autre salle';
+    }
     const { total, reveles } = pres.comptageCaches(p, s.id);
     $('comptage-caches').textContent = total
       ? `Éléments cachés : ${total}, dont ${reveles} révélé${reveles > 1 ? 's' : ''}.`
       : 'Aucun élément caché dans cette salle.';
     $('reveler-tout').disabled = total === reveles;
+    $('reveler-tout').hidden = total === reveles; // rien à révéler : le compte au-dessus le dit, le bouton grisé n'apporterait rien
     const choisi = (genre, id) => etat.selection?.genre === genre && etat.selection.id === id;
     /**
      * Rangée de liste (portes et éléments, docs/design-panneaux.md « Liste ») : nom, case à droite, état dessous ; sélectionne au clavier
