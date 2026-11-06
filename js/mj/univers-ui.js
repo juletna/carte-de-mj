@@ -423,6 +423,8 @@ export function creerUniversUI(ctx) {
     donnees: () => ({ univers: reserve.univers, actif: reserve.actif }),
     lieu: () => lieuId,
     allerALieu: (id) => { allerA(id); rendre(); },
+    /** L'opacité de la grille a changé (réglage commun) : la carte du lieu la relit. */
+    redessinerGrille: () => { if (ouvertEcran) rendreCarte(); },
     surChangement: (f) => { surChangement.push(f); },
     // Pour les inspecteurs, la barre d'outils et le branchement (js/atelier/inscrire-monde.js, inspecteurs-monde.js, barre-lieu.js).
     monde: univ, lieuCourant: lieu, pointCourant: point, pointId: () => pointId, donjons, orphelinDe, saisie, infosDe, infosEnCache: (ref) => (infosCache.has(cleImage(ref)) ? infosCache.get(cleImage(ref)) : undefined),

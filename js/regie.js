@@ -650,7 +650,8 @@ export function demarrerRegie() {
   const selection = creerSelection(ctx);
   const reglages = creerReglages(ctx);
   // La coquille de l'atelier : arbre de lecture, onglets Salle · Joueurs · Table. Créée en dernier : elle lit `univers` et `etat`.
-  const jouer = creerJouer({ racine: $('regie'), donnees: donneesJeu, partie: partieJeu, surChoix: choisirDansArbre });
+  const jouer = creerJouer({ racine: $('regie'), donnees: donneesJeu, partie: partieJeu, surChoix: choisirDansArbre,
+    grille: { lire: () => r, surChangement: () => { reglages.sauver(); rendre(); diffuser(); } } });
   ctx.jouer = jouer;
   let minuterie;
   window.addEventListener('resize', () => { clearTimeout(minuterie); minuterie = setTimeout(() => { if (etat.p) rendre(); }, 150); });

@@ -52,6 +52,18 @@ body.atelier-avec-inspecteur { --largeur-inspecteur: 330px; }
 /* --- Barre d'outils de la scène (vide et cachée tant que personne n'y met rien) --- */
 .atelier-barre { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: var(--esp-2); padding: var(--esp-1) var(--esp-3); background: var(--panneau); border-bottom: 1px solid var(--bord); }
 .atelier-barre:empty { display: none; }
+/* Le bouton « Grille » (js/atelier/grille-affichage.js) : toujours au bout de la barre, son popover s'ouvre dessous. */
+.atelier-barre-grille { order: 99; margin-left: auto; }
+.atelier-grille { position: relative; }
+.atelier-grille-panneau { position: absolute; right: 0; top: calc(100% + 4px); z-index: 45; width: 260px; display: flex; flex-direction: column; gap: var(--esp-2); padding: var(--esp-3); background: var(--panneau); border: 1px solid var(--bord); border-radius: var(--rayon); box-shadow: 0 8px 24px rgba(0, 0, 0, .55); }
+.atelier-grille-panneau[hidden] { display: none; }
+.atelier-grille-titre { margin: 0; font-weight: 600; }
+.atelier-grille-interrupteur { justify-content: flex-start; }
+.atelier-grille-interrupteur[aria-checked="true"] { border-color: var(--accent); color: var(--accent); }
+.atelier-grille-ligne { display: grid; grid-template-columns: 1fr auto; gap: var(--esp-1) var(--esp-2); align-items: center; font-size: 13px; }
+.atelier-grille-ligne > span { grid-column: 1 / -1; }
+.atelier-grille-ligne input { grid-column: 1; width: 100%; min-height: var(--cible); }
+.atelier-grille-valeur { grid-column: 2; min-width: 4ch; text-align: right; font-variant-numeric: tabular-nums; }
 
 /* --- Inspecteur --- */
 .atelier-inspecteur { display: flex; flex-direction: column; gap: var(--esp-3); min-width: 0; min-height: 0; overflow-y: auto; padding: var(--esp-3); background: var(--panneau); border-left: 1px solid var(--bord); }
@@ -109,6 +121,10 @@ body.atelier-avec-inspecteur { --largeur-inspecteur: 330px; }
   .atelier-inspecteur.replie .atelier-inspecteur-plier .icone { transform: rotate(180deg); }
   /* Le panneau bas ne cache pas le bas de la page : de la place en dessous. */
   body.atelier-avec-inspecteur { padding-bottom: 45vh; padding-bottom: 45dvh; }
+  /* « Grille » : une feuille du bas, aux cibles de 44 px. */
+  .atelier-grille { position: static; }
+  .atelier-grille-panneau { position: fixed; left: 0; right: 0; bottom: 0; top: auto; width: auto; z-index: 95; border-width: 1px 0 0; border-radius: 12px 12px 0 0; padding: var(--esp-4) var(--esp-4) max(var(--esp-4), env(safe-area-inset-bottom)); }
+  .atelier-grille-interrupteur, .atelier-grille-ligne input { min-height: 44px; }
   /* Onglets du mode jouer : barre du bas. */
   .atelier-onglets { position: sticky; bottom: 0; }
 }

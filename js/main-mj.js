@@ -370,6 +370,8 @@ ctx.coquille = creerCoquille({
     donjons: etat.donjons, donjonActif: { donjon: etat.actif, salle: donjon().salleActive },
   }),
   surNavigation: allerALaRoute,
+  // La grille, préférence d'affichage commune aux salles et aux cartes : un bouton dans la barre (js/atelier/grille-affichage.js).
+  grille: { lire: () => r, surChangement: () => { rendre(); ctx.univers.redessinerGrille(); } },
 });
 ctx.univers.surChangement(() => {
   if (!ctx.univers.ouvert()) { ctx.coquille.rafraichir(); return; }

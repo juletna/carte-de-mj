@@ -21,13 +21,13 @@ const ONGLETS = {
   monde: ['lieu', 'table'],
 };
 
-export function creerJouer({ racine, donnees, partie, surChoix }) {
+export function creerJouer({ racine, donnees, partie, surChoix, grille }) {
   let enCours = false;
   let modeCourant = 'donjon';
   let derniere = null;
 
   const coquille = creerCoquille({
-    racine, mode: 'jouer', donnees, scene: $('principal'), bouton: $('arbre-bouton'),
+    racine, mode: 'jouer', donnees, scene: $('principal'), bouton: $('arbre-bouton'), grille,
     pastille: (n) => etatJeu(n, partie()),
     surNavigation: (route, noeud) => {
       if (enCours || !noeud) return;

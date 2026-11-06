@@ -17,6 +17,8 @@
  * Options : `inspecteurToujoursVisible` (la colonne de droite reste affichée même sans type enregistré : le mode jouer, dont les onglets ont leur
  * contenu), `inspecteurGenerique: false` (masque l'en-tête et le corps génériques de l'inspecteur : seuls les onglets restent), `adresse: false`
  * (la coquille n'écrit ni ne lit l'adresse : la régie se rouvre par le stockage). Par défaut, le mode jouer prend les trois : voir plus bas.
+ * `grille: { lire, surChangement }` pose le bouton « Grille » (opacité des lignes, commune aux salles et aux cartes) dans la barre d'outils ;
+ * `coquille.grille.maj()` le remet d'accord avec les réglages relus.
  * La racine porte `data-atelier="preparer"|"jouer"` : css/atelier.css place les colonnes selon ce mode.
  *   coquille.position()        la position courante
  *   coquille.rafraichir({ inspecteur? })   les données ont changé : l'arbre (si ses noms ont changé) et la validité de la sélection ; l'inspecteur seulement si `inspecteur: true`
@@ -36,6 +38,7 @@ import { selection as creerSelection, selectionValide, meme } from '../atelier-s
 import { creerArbreVue } from './arbre-vue.js';
 import { creerInspecteur } from './inspecteur.js';
 import { marquerCourant } from '../navigation.js';
+import { creerGrilleAffichage } from './grille-affichage.js';
 
 const CLE_ARBRE_REPLIE = 'carte-de-mj:atelier-arbre-replie';
 const lire = (cle) => { try { return localStorage.getItem(cle); } catch { return null; } };
@@ -46,7 +49,7 @@ export const selectionDuNoeud = (n) => (n && n.type !== 'groupe' ? creerSelectio
 
 export function creerCoquille({
   racine, mode = 'preparer', donnees, scene = null, bouton = null, surNavigation = null, pastille = null,
-  inspecteurToujoursVisible = mode === 'jouer', inspecteurGenerique = mode !== 'jouer', adresse = mode !== 'jouer',
+  inspecteurToujoursVisible = mode === 'jouer', inspecteurGenerique = mode !== 'jouer', adresse = mode !== 'jouer', grille = null,
 } = {}) {
   racine.dataset.atelier = mode;
   let pos = {};
@@ -106,6 +109,9 @@ export function creerCoquille({
   const barreOutils = h('div', { className: 'atelier-barre', role: 'toolbar', 'aria-label': 'Outils de la scène' });
   const sceneEl = scene ?? h('div', { className: 'atelier-scene' });
   sceneEl.prepend(barreOutils);
+  // Le bouton « Grille » : la préférence d'affichage commune (js/atelier/grille-affichage.js). `grille: { lire, surChangement }` ; absent, pas de bouton.
+  const grilleAffichage = grille ? creerGrilleAffichage(grille) : null;
+  if (grilleAffichage) barreOutils.append(h('div', { className: 'atelier-barre-grille' }, grilleAffichage.element));
 
   racine.prepend(colonneArbre, voile);
   racine.append(colonneInspecteur);
@@ -304,7 +310,7 @@ export function creerCoquille({
     arbre: { element: colonneArbre, ajouterAction, rafraichir, vue }, scene: sceneEl, barreOutils, inspecteur, onglets,
     selectionner, selection: () => sel, naviguer, positionner, position: () => ({ ...pos }), rafraichir,
     surSelection: (f) => { ecouteursSelection.push(f); },
-    ouvrirTiroir, fermerTiroir, tiroirOuvert, mode,
+    ouvrirTiroir, fermerTiroir, tiroirOuvert, mode, grille: grilleAffichage,
     donneesArbre: () => arbre,
   };
   calculer();
