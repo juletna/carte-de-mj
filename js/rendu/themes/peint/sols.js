@@ -16,8 +16,11 @@
  * Pour ajouter un sol : une fonction ici, une entrée dans SOLS_PEINTS, et sa couleur de mur dans peint/murs.js.
  */
 import { h2, vbp, fbmp, voroP, lisse } from './bruit.js';
+import { marche } from './dessin/outils.js';
 import { usureDe, teinterSol } from './ambiance.js';
 import { SOLS_DESSINES } from './dessin/index.js';
+import { bordDeDalle } from './dessin/pierre.js';
+import { abimerDessine, mousseRuine, lisiereTerre, lisiereHerbe, NET } from './dessin/usure.js';
 
 import { CASES_PAR_TUILE, VIRTUEL, PERIODE } from './tuile.js';
 
@@ -221,7 +224,11 @@ function reprendre(X, Y, sol, out, riches = false) {
   if (sol === 'herbe' || sol === 'glace') return;
   const fx = X / PERIODE, fy = Y / PERIODE, mv = masqueVert(fx, fy);
   if (mv < SEUIL_MOUSSE) return;
-  if (mv < SEUIL_TERRE) { vers(out, MOUSSE, ((mv - SEUIL_MOUSSE) / (SEUIL_TERRE - SEUIL_MOUSSE)) * 0.6); return; }
+  if (mv < SEUIL_TERRE) {
+    if (riches) mousseRuine(mv, SEUIL_MOUSSE, SEUIL_TERRE, out); // paliers nets, lisière sombre
+    else vers(out, MOUSSE, ((mv - SEUIL_MOUSSE) / (SEUIL_TERRE - SEUIL_MOUSSE)) * 0.6);
+    return;
+  }
   const dTerre = riches && SOLS_DESSINES.terre, dHerbe = riches && SOLS_DESSINES.herbe;
   if (sol !== 'terre' && sol !== 'sable') {
     if (dTerre) dTerre.fn(X, Y, dTerre.o, out);
@@ -231,7 +238,7 @@ function reprendre(X, Y, sol, out, riches = false) {
     }
   }
   if (mv > SEUIL_HERBE) {
-    const t = lisse((mv - SEUIL_HERBE) / 0.012), sombre = mv < SEUIL_HERBE + 0.008; // la lisière de l'herbe est plus sombre
+    const t = riches ? marche(mv, SEUIL_HERBE, NET) : lisse((mv - SEUIL_HERBE) / 0.012), sombre = mv < SEUIL_HERBE + 0.008; // la lisière de l'herbe est plus sombre
     let gr, gg, gb;
     if (dHerbe) { const c = [0, 0, 0]; dHerbe.fn(X, Y, dHerbe.o, c); [gr, gg, gb] = c; if (sombre) { gr *= 0.62; gg *= 0.66; gb *= 0.6; } }
     else {
@@ -240,7 +247,9 @@ function reprendre(X, Y, sol, out, riches = false) {
       if (sombre) { gr *= 0.62; gg *= 0.66; gb *= 0.6; }
     }
     out[0] += (gr - out[0]) * t; out[1] += (gg - out[1]) * t; out[2] += (gb - out[2]) * t;
+    if (riches) lisiereHerbe(mv, SEUIL_HERBE, out);
   }
+  if (dTerre) lisiereTerre(mv, SEUIL_TERRE, out);
   if (!dTerre) { const n = (grain(X, Y, 69) - 0.5) * 10; out[0] += n; out[1] += n; out[2] += n; } // les sols dessinés ont leur propre grain
 }
 
@@ -251,7 +260,11 @@ function reprendre(X, Y, sol, out, riches = false) {
 export function couleurSol(nom, X, Y, sortie = [0, 0, 0], { ambiance = 'neutre', etat = 'neuve', details = 'riches' } = {}) {
   const riches = details === 'riches', def = (riches && SOLS_DESSINES[nom]) || SOLS_PEINTS[nom] || SOLS_PEINTS.pierre, usure = nom === 'roche' ? 0 : usureDe(etat);
   def.fn(X, Y, usure ? optionsUsees(def, usure) : def.o, sortie);
-  if (usure) { abimer(X, Y, nom, usure, sortie); if (usure === 2) reprendre(X, Y, nom, sortie, riches); }
+  if (usure && riches) {
+    const pierre = nom === 'pierre';
+    abimerDessine(X, Y, usure, nom === 'pierre' || nom === 'marbre' || nom === 'bois' || nom === 'terre', !pierre, pierre ? bordDeDalle() : -1, sortie);
+    if (usure === 2) reprendre(X, Y, nom, sortie, true);
+  } else if (usure) { abimer(X, Y, nom, usure, sortie); if (usure === 2) reprendre(X, Y, nom, sortie, riches); }
   return teinterSol(sortie, ambiance);
 }
 

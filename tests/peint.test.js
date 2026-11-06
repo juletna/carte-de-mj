@@ -16,6 +16,7 @@ import { dessiner, ordonnerObjets } from '../js/rendu/moteur.js';
 import { objets as objetsPeints, ordonner, face } from '../js/rendu/themes/peint/objets.js';
 import { pion as pionPeint } from '../js/rendu/themes/peint/pions.js';
 import { etat } from '../js/rendu/themes/peint/etat.js';
+import { dessinerDetails } from '../js/rendu/themes/peint/details.js';
 import { casesDeReglages, themeDeReglages, detailsDeReglages, reliefDeReglages, optionsRendu, affichageDeReglages, validerAffichage, CASES_PAR_DEFAUT, AFFICHAGE_PAR_DEFAUT } from '../js/affichage.js';
 import { chargerReglages, CLE_REGLAGES } from '../js/stockage.js';
 import { planPublic } from '../js/vue-publique.js';
@@ -368,6 +369,49 @@ const TESTS = [
       egal(couleurSol(sol, 101, 57, [0, 0, 0], { etat: 'usee', details: 'sobres' }), sobre, `${sol} usé sobre, après un riche`);
       egal(couleurSol(sol, 101, 57, [0, 0, 0], { etat: 'usee', details: 'riches' }), riche, `${sol} usé riche, après un sobre`);
       verifier(riche.every(Number.isFinite), `${sol} usé riche : des nombres`);
+    }
+  }],
+
+  ['usure en sobres : strictement l’ancien rendu (valeurs figées avant la refonte) ; en riches : périodique, déterministe, finie, différente de la neuve, et de coût borné', () => {
+    const GEL = {"pierre/usee":[[123.607,129.9443,129.67],[62.9,86.7,45.9],[98.1381,110.8559,93.2685],[107.8312,113.9685,114.3356],[62.6424,65.7168,65.4411],[70.8493,72.7512,70.8002]],"pierre/ruine":[[123.607,129.9443,129.67],[124.4898,168.0217,71.596],[86.2838,106.5068,73.9837],[107.8312,113.9685,114.3356],[92.7481,71.1033,49.4088],[71.4523,73.4145,71.4836]],"marbre/usee":[[201.7293,197.6124,189.3786],[172.6049,169.5499,160.3851],[119.1248,127.2115,105.5567],[183.2037,179.4649,171.9872],[106.3053,103.4776,97.8222],[92.16,89.28,83.52]],"marbre/ruine":[[201.7293,197.6124,189.3786],[124.4898,168.0217,71.596],[96.9639,114.8301,80.2371],[183.2037,179.4649,171.9872],[92.7481,71.1033,49.4088],[102.4,99.2,92.8]],"bois/usee":[[155.2227,108.6559,64.3065],[136.8962,95.8273,56.7141],[129.7036,108.254,61.8539],[152.4562,106.7193,63.1604],[104.7757,73.343,43.4071],[119.0713,83.3499,49.3295]],"bois/ruine":[[155.2227,108.6559,64.3065],[124.4898,168.0217,71.596],[102.3474,105.1827,57.9968],[152.4562,106.7193,63.1604],[92.7481,71.1033,49.4088],[119.0713,83.3499,49.3295]],"terre/usee":[[85.7684,66.9106,48.0528],[94.6487,73.2158,51.7828],[87.964,82.6653,50.9309],[93.1158,70.9381,48.7604],[74.6912,57.2282,39.7652],[100.6356,77.8287,55.0218]],"terre/ruine":[[85.7684,66.9106,48.0528],[124.4898,168.0217,71.596],[81.1062,92.1606,52.4382],[93.1158,70.9381,48.7604],[67.3868,51.3868,35.3372],[100.6356,77.8287,55.0218]],"sable/usee":[[196.3704,173.7123,126.5079],[168.9038,149.4149,108.813],[202.6587,179.275,130.559],[207.9019,183.9132,133.9368],[170.9189,151.1974,110.1112],[192.5273,170.3126,124.032]],"sable/ruine":[[196.3704,173.7123,126.5079],[124.4898,168.0217,71.596],[202.6587,179.275,130.559],[207.9019,183.9132,133.9368],[155.6449,137.5735,99.8571],[192.5273,170.3126,124.032]],"herbe/usee":[[102.3497,148.1624,52.7715],[90.1065,128.1477,46.5482],[69.3859,108.1557,36.1567],[102.7444,147.8243,57.5146],[90.6882,130.4117,48.159],[120.0528,167.952,63.6073]],"herbe/ruine":[[102.3497,148.1624,52.7715],[84.7757,120.5662,43.7943],[69.3859,108.1557,36.1567],[102.7444,147.8243,57.5146],[83.2198,119.6719,44.193],[120.0528,167.952,63.6073]],"glace/usee":[[231.7552,241.5326,246.4213],[154.418,182.3183,196.5688],[185.2528,220.5085,238.9215],[195.9419,225.6849,239.565],[162.3014,187.0829,198.6475],[197.7812,230.8843,247.2546]],"glace/ruine":[[231.7552,241.5326,246.4213],[145.2823,171.532,184.9394],[185.2528,220.5085,238.9215],[195.9419,225.6849,239.565],[148.9354,171.676,182.2883],[197.7812,230.8843,247.2546]],"roche/usee":[[42.2908,39.4945,43.1194],[36.1519,33.7542,36.8212],[44.2308,41.0399,43.6663],[33.7757,31.4415,33.8953],[32.7514,30.231,31.9052],[16.1064,14.8192,16.7915]],"roche/ruine":[[42.2908,39.4945,43.1194],[36.1519,33.7542,36.8212],[44.2308,41.0399,43.6663],[33.7757,31.4415,33.8953],[32.7514,30.231,31.9052],[16.1064,14.8192,16.7915]]};
+    const pts = [[101, 57], [13.5, 200.25], [300, 350], [222.2, 18], [75, 310], [190, 190]];
+    for (const [cle, valeurs] of Object.entries(GEL)) {
+      const [sol, etatSalle] = cle.split('/');
+      pts.forEach(([X, Y], i) => egal(couleurSol(sol, X, Y, [0, 0, 0], { etat: etatSalle, details: 'sobres' }).map((v) => +v.toFixed(4)), valeurs[i], `${cle} (${X}, ${Y}) sobres : identique à avant`));
+    }
+    const tirage = alea(23);
+    let diff = 0;
+    for (const nom of Object.keys(SOLS_PEINTS)) for (const etatSalle of ['usee', 'ruine']) {
+      for (let i = 0; i < 80; i++) {
+        const X = 3 + tirage() * (PERIODE - 6), Y = 3 + tirage() * (PERIODE - 6), v = { etat: etatSalle, details: 'riches' };
+        const a = couleurSol(nom, X, Y, [0, 0, 0], v).slice(), droite = couleurSol(nom, X + PERIODE, Y, [0, 0, 0], v), bas = couleurSol(nom, X, Y - PERIODE, [0, 0, 0], v);
+        verifier(a.every(Number.isFinite), `${nom} ${etatSalle} riches : des nombres`);
+        for (let c = 0; c < 3; c++) { proche(a[c], droite[c], `${nom} ${etatSalle} riches : période vers la droite`, 1e-6); proche(a[c], bas[c], `${nom} ${etatSalle} riches : période vers le haut`, 1e-6); }
+        if (nom !== 'roche' && couleurSol(nom, X, Y, [0, 0, 0], { details: 'riches' }).some((x, c) => Math.abs(x - a[c]) > 1)) diff++;
+      }
+    }
+    verifier(diff > 100, 'l’usure change des pixels en riches');
+    for (const nom of Object.keys(SOLS_PEINTS)) for (const etatSalle of ['usee', 'ruine']) {
+      const tuile = calculerTuile(nom, 16, { etat: etatSalle, details: 'riches' }), neuve = calculerTuile(nom, 16, { details: 'riches' });
+      verifier(tuile.cote === neuve.cote && tuile.data.length === neuve.data.length, `${nom} ${etatSalle} : tuile de même taille`);
+      egal(Array.from(tuile.data.slice(0, 64)), Array.from(calculerTuile(nom, 16, { etat: etatSalle, details: 'riches' }).data.slice(0, 64)), `${nom} ${etatSalle} : tuile déterministe`);
+    }
+  }],
+  ['détails semés : riches et sobres se dessinent sans exception, déterministes, et sobres garde les dessins d’avant (dégradés)', () => {
+    const detailsDe = (etatSalle, ambiance, details, sol = 'pierre') => {
+      const { ctx, lignes } = ctxJournal();
+      const plan = rect(12, 10, { id: 'dt', sol, etat: etatSalle, ambiance });
+      THEMES.peint.preparer(ctx, plan, 48, { relief: true, details });
+      dessinerDetails(ctx, plan, 48);
+      return lignes;
+    };
+    for (const etatSalle of ['usee', 'ruine']) for (const ambiance of ['neutre', 'nuit']) for (const sol of ['pierre', 'herbe', 'bois']) {
+      const riches = detailsDe(etatSalle, ambiance, 'riches', sol), sobres = detailsDe(etatSalle, ambiance, 'sobres', sol), quoi = `${etatSalle} ${ambiance} ${sol}`;
+      verifier(riches.length > 20 && sobres.length > 20, `${quoi} : trace quelque chose`);
+      verifier(riches.every((l) => !/NaN|undefined|Infinity/.test(l)), `${quoi} : valeur invalide en riches`);
+      egal(riches, detailsDe(etatSalle, ambiance, 'riches', sol), `${quoi} : riches déterministe`);
+      egal(sobres, detailsDe(etatSalle, ambiance, 'sobres', sol), `${quoi} : sobres déterministe`);
+      verifier(riches.join('|') !== sobres.join('|'), `${quoi} : riches et sobres diffèrent`);
     }
   }],
 

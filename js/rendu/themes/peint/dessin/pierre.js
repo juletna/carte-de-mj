@@ -44,6 +44,9 @@ function hauteurDalles(X, Y, o) {
   return h;
 }
 
+/** Distance (px virtuels) au joint de dalles du DERNIER point calculé par `dalles` : la mousse d'une salle usée s'y accroche (usure.js). */
+export const bordDeDalle = () => V.e * PERIODE;
+
 /** Dalles irrégulières éclairées en aplats, cernées d'encre, avec leurs détails dessinés : la pierre « dessin animé » en relief. */
 export function dalles(X, Y, o, out) {
   const { k, ombre } = aplats(hauteurDalles, X, Y, o, o.relief);

@@ -88,7 +88,8 @@ export function dessinerDetails(ctx, plan, t) {
   if (!liste.length) return;
   ctx.save();
   ctx.lineJoin = 'round'; ctx.lineCap = 'round';
-  for (const d of liste) DESSINS[d.sorte](ctx, alea(d.graine), d.x * t, d.y * t, t, d);
+  const dessins = etat.details === 'riches' ? { ...DESSINS, ...DESSINS_RICHES } : DESSINS;
+  for (const d of liste) dessins[d.sorte](ctx, alea(d.graine), d.x * t, d.y * t, t, d);
   ctx.restore();
 }
 
@@ -156,5 +157,60 @@ export const DESSINS = {
       });
       ctx.stroke();
     }
+  },
+};
+
+// --- Dessin « riches » : tons clairs et francs, aplats nets, cernés d'encre ----------------------------------------------------------------
+
+const MOUSSE_V = ['#5f9a3e', '#8ccb52'], MOUSSE_CONTOUR = '#2f5a26';
+const PIERRE_V = [['#c9c2b0', '#efe9d6'], ['#b4bcc4', '#e3eaf0'], ['#cdb98f', '#f1e4be']];
+const TOUFFE_V = ['#4f9a38', '#8fd04e', '#c3e86c'];
+
+/** Les dessins « riches » des détails semés, qui remplacent ceux de `DESSINS` quand `etat.details` est « riches » (les objets du thème gardent les leurs). */
+export const DESSINS_RICHES = {
+  /** Une à trois pierres : un aplat gris clair, un croissant plus clair côté lumière, un trait d'encre. */
+  caillou(ctx, r, x, y, t) {
+    for (let i = 0, n = 1 + ((r() * 3) | 0); i < n; i++) {
+      const cx = x + (r() - 0.5) * t * 0.16, cy = y + (r() - 0.5) * t * 0.12, rr = t * (0.03 + r() * 0.04), c = PIERRE_V[(r() * PIERRE_V.length) | 0], a = r() * 3;
+      ctx.beginPath(); ctx.ellipse(cx, cy, rr * 1.25, rr, a, 0, 7); encre(ctx, c[0], Math.max(0.8, t * 0.022));
+      ctx.beginPath(); ctx.ellipse(cx - rr * 0.28, cy - rr * 0.3, rr * 0.55, rr * 0.35, a, 0, 7); ctx.fillStyle = c[1]; ctx.fill();
+    }
+  },
+  /** Une plaque de mousse : trois à cinq boules qui se chevauchent, vert franc, un reflet clair, un trait sombre net. */
+  mousse(ctx, r, x, y, t) {
+    const rr = t * (0.07 + r() * 0.07), n = 3 + ((r() * 3) | 0), a0 = r() * 6.28, pts = [];
+    ctx.beginPath();
+    for (let i = 0; i < n; i++) {
+      const a = a0 + i * (6.28 / n) + (r() - 0.5) * 0.5, d = rr * (0.5 + r() * 0.4), rb = rr * (0.55 + r() * 0.3), px = x + Math.cos(a) * d, py = y + Math.sin(a) * d * 0.75;
+      pts.push([px, py, rb]); ctx.moveTo(px + rb, py); ctx.arc(px, py, rb, 0, 6.29);
+    }
+    ctx.fillStyle = MOUSSE_V[0]; ctx.fill(); ctx.lineWidth = Math.max(0.8, t * 0.022); ctx.strokeStyle = MOUSSE_CONTOUR; ctx.stroke();
+    ctx.beginPath();
+    for (const [px, py, rb] of pts) { ctx.moveTo(px - rb * 0.25 + rb * 0.45, py - rb * 0.3); ctx.arc(px - rb * 0.25, py - rb * 0.3, rb * 0.45, 0, 6.29); }
+    ctx.fillStyle = MOUSSE_V[1]; ctx.fill();
+  },
+  /** Une touffe d'herbe : sept à onze lames en éventail, deux tons plats, cernées d'encre. */
+  touffe(ctx, r, x, y, t) {
+    const k = t / 48, s = 0.9 + r() * 0.5, n = 7 + ((r() * 4) | 0);
+    for (let i = 0; i < n; i++) {
+      const a = -Math.PI / 2 + (i - n / 2) * 0.24 + (r() - 0.5) * 0.25, lg = s * (7 + r() * 7) * k, w = s * 1.7 * k;
+      const tx = x + Math.cos(a) * lg, ty = y + Math.sin(a) * lg, px = -Math.sin(a) * w, py = Math.cos(a) * w;
+      ctx.beginPath(); ctx.moveTo(x + px, y + py);
+      ctx.quadraticCurveTo(x + Math.cos(a) * lg * 0.5 + px * 0.6, y + Math.sin(a) * lg * 0.5 + py * 0.6, tx, ty);
+      ctx.quadraticCurveTo(x + Math.cos(a) * lg * 0.5 - px * 0.6, y + Math.sin(a) * lg * 0.5 - py * 0.6, x - px, y - py);
+      ctx.closePath(); encre(ctx, TOUFFE_V[i % 3 === 0 ? 2 : i % 2 ? 1 : 0], Math.max(0.7, 0.9 * k));
+    }
+  },
+  /** Deux os croisés et un crâne : aplats ivoire, crâne cerné d'encre sans dégradé ni ombre portée. */
+  os(ctx, r, x, y, t) {
+    const k = t * 0.55, a = r() * 6.28, c = Math.cos(a), s = Math.sin(a);
+    const R = (u, v) => [x + (u * c - v * s) * k, y + (u * s + v * c) * k];
+    for (const [ax, ay, bx, by] of [[-0.35, 0.15, 0.05, 0.3], [0.1, -0.25, 0.4, 0.05]]) {
+      ctx.beginPath(); ctx.moveTo(...R(ax, ay)); ctx.lineTo(...R(bx, by));
+      trait(ctx, '#231b16', Math.max(2.5, t * 0.1)); trait(ctx, '#f1e8cf', Math.max(1.6, t * 0.065));
+    }
+    ctx.beginPath(); ctx.ellipse(x, y, k * 0.15, k * 0.18, a - 0.3, 0, 7); encre(ctx, '#f6efdc', Math.max(1, t * 0.025));
+    ctx.beginPath(); ctx.ellipse(x - k * 0.04, y - k * 0.05, k * 0.07, k * 0.08, a - 0.3, 0, 7); ctx.fillStyle = '#fffbee'; ctx.fill();
+    for (const u of [-0.05, 0.05]) { const [ex, ey] = R(u, 0.02); ctx.beginPath(); ctx.ellipse(ex, ey, Math.max(1, k * 0.045), Math.max(1.2, k * 0.057), 0, 0, 7); ctx.fillStyle = '#2a2017'; ctx.fill(); }
   },
 };
