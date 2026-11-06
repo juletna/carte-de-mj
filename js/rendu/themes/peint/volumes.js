@@ -15,9 +15,9 @@
  *                                             `etat.lumieres` en coordonnées de la salle (voir etat.js), pour la couche de lumière
  * `r` est le générateur de bruit.js (`alea(graine)`) ; `couleur` une teinte [h, s, l] (trait.js : `ton`).
  */
-import { vueLocale, haut as hautVue, echelle as echelleVue, faceVisible, eclairage, composer, inverser, appliquer, IDENTITE } from '../../perspective.js';
+import { vueLocale, kpObjetsEn, haut as hautVue, echelle as echelleVue, faceVisible, eclairage, composer, inverser, appliquer, IDENTITE } from '../../perspective.js';
 import { etat } from './etat.js';
-import { chemin, cercle, encre, trait, dl, dr, ton, centre } from './trait.js';
+import { chemin, cercle, encre, trait, dl, dr, ton, centre, ENCRE } from './trait.js';
 
 /**
  * Les volumes d'une vue. `versSalle` est la matrice qui ramène le repère de la vue à celui de la salle (l'identité quand la vue est celle de la salle) :
@@ -34,8 +34,9 @@ export function creerVolumes(vue, versSalle = IDENTITE) {
   }
   function ombrePied(ctx, tracer) {
     ctx.save();
-    ctx.shadowColor = 'rgba(6,4,2,0.6)'; ctx.shadowOffsetX = 4 * etat.dpr; ctx.shadowOffsetY = 5 * etat.dpr; ctx.shadowBlur = 6 * etat.dpr;
-    tracer(); ctx.fillStyle = 'rgba(6,4,2,0.4)'; ctx.fill();
+    // La lumière vient du nord-ouest : l'ombre tombe vers le sud-est, plus longue que l'ancienne pour asseoir l'objet au sol.
+    ctx.shadowColor = 'rgba(6,4,2,0.72)'; ctx.shadowOffsetX = 6 * etat.dpr; ctx.shadowOffsetY = 7 * etat.dpr; ctx.shadowBlur = 7 * etat.dpr;
+    tracer(); ctx.fillStyle = 'rgba(6,4,2,0.5)'; ctx.fill();
     ctx.restore();
   }
   // Volume à base polygonale : faces tournées vers le centre, puis le dessus (dessiné à plat puis mis à l'échelle de sa hauteur).
@@ -53,13 +54,17 @@ export function creerVolumes(vue, versSalle = IDENTITE) {
       if ((mx - g[0]) * nx + (my - g[1]) * ny < 0) { nx = -nx; ny = -ny; } // normale vers l'extérieur du volume
       if (!faceVisible(vue, pts[i], pts[j], [nx, ny])) continue;
       chemin(ctx, [B[i], B[j], S[j], S[i]], true, r, 0.3);
-      const k = 0.8 + 0.3 * eclairage(vue, nx, ny);
-      encre(ctx, dl(ctx, ...B[i], ...S[i], ton(c, k * 0.8), ton(c, k)), 1.2);
+      // Face éclairée (lumière nord-ouest) ≈ 1,05 ; face à l'ombre ≈ 0,40 : bien plus sombre que le dessus (≥ 1,15), pour que le volume se lise.
+      const k = 0.72 + 0.32 * eclairage(vue, nx, ny);
+      encre(ctx, dl(ctx, ...B[i], ...S[i], ton(c, k * 0.68), ton(c, k)), 1.6);
     }
-    if (dessus && retrait === 1) auNiveau(ctx, h1, dessus);
+    if (dessus && retrait === 1) {
+      auNiveau(ctx, h1, dessus);
+      if (vue.kp > 0) { chemin(ctx, S, true, r, 0.3); trait(ctx, ENCRE, 1.7); } // l'arête d'encre entre le dessus et les faces
+    }
     else {
       chemin(ctx, S, true, r, 0.4);
-      encre(ctx, dl(ctx, S[0][0] - 10, S[0][1] - 10, S[0][0] + 20, S[0][1] + 20, ton(c, 1.25), ton(c, 0.95)), 1.4);
+      encre(ctx, dl(ctx, S[0][0] - 10, S[0][1] - 10, S[0][0] + 20, S[0][1] + 20, ton(c, 1.4), ton(c, 1.1)), 1.7);
       if (dessus) dessus(S);
     }
   }
@@ -72,8 +77,8 @@ export function creerVolumes(vue, versSalle = IDENTITE) {
       const a = Math.atan2(dy, dx), nx = -dy / L, ny = dx / L;
       ctx.beginPath(); ctx.arc(bx, by, rb, a + Math.PI / 2, a + Math.PI * 1.5); ctx.lineTo(tx - nx * rt, ty - ny * rt); ctx.lineTo(tx + nx * rt, ty + ny * rt); ctx.closePath();
       const kn = eclairage(vue, nx, ny), g = ctx.createLinearGradient(bx + nx * rb, by + ny * rb, bx - nx * rb, by - ny * rb);
-      g.addColorStop(0, ton(c, 0.78 + 0.32 * kn)); g.addColorStop(0.5, ton(c, 0.95)); g.addColorStop(1, ton(c, 0.78 - 0.32 * kn));
-      encre(ctx, g, 1.4);
+      g.addColorStop(0, ton(c, 0.7 + 0.4 * kn)); g.addColorStop(0.45, ton(c, 0.85)); g.addColorStop(1, ton(c, 0.5 - 0.4 * kn));
+      encre(ctx, g, 1.7);
       if (cannelures) {
         const a0 = a + Math.PI;
         ctx.beginPath();
@@ -100,11 +105,15 @@ export function creerVolumes(vue, versSalle = IDENTITE) {
 
 /**
  * Les volumes dans le repère LOCAL d'un objet (le contexte tel que le moteur le donne à `objets[type]`) : le centre de la salle et la lumière
- * y sont ramenés, les points élevés par `haut` sont donc des points de ce repère.
+ * y sont ramenés, les points élevés par `haut` sont donc des points de ce repère. `surMur` : objet posé sur la face d'un mur (torche, bannière), au KP des murs.
  */
-export function volumesLocaux(ctx) {
+export function volumesLocaux(ctx, surMur = false) {
   const m = ctx.getTransform?.();
   const courante = m && Number.isFinite(m.a) ? { a: m.a, b: m.b, c: m.c, d: m.d, e: m.e, f: m.f } : etat.base;
   const vers = composer(inverser(courante), etat.base); // repère de la salle → repère local
-  return creerVolumes(vueLocale(etat.vue, etat.base, courante), inverser(vers));
+  const vue = vueLocale(etat.vue, etat.base, courante);
+  if (surMur) return creerVolumes(vue, inverser(vers));
+  const [qx, qy] = appliquer(inverser(vers), 0, 0); // le centre de l'objet, dans le repère de la salle
+  // Les objets du sol ont leur propre facteur (plus fort, borné par leur place) ; ce qui est posé sur la face d'un mur garde celui des murs pour rester collé à la face.
+  return creerVolumes({ ...vue, kp: kpObjetsEn({ ...etat.vue, kpObj: vue.kpObj }, etat.t, qx, qy) }, inverser(vers));
 }

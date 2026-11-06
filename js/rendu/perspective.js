@@ -5,7 +5,7 @@
  * `1 + h·KP` : plus il est loin du centre, plus on voit la face tournée vers le centre. Murs et objets suivent la même règle.
  * Sans relief, KP vaut 0 et la vue est à plat.
  *
- * Une « vue » est { cx, cy, kp, lum } : le centre de la salle en pixels (origine : coin nord-ouest de la pièce), le facteur de perspective et la
+ * Une « vue » est { cx, cy, kp, kpObj, lum } : le centre de la salle en pixels (origine : coin nord-ouest de la pièce), le facteur de perspective des murs, celui des objets et la
  * direction d'où vient la lumière (nord-ouest). Les matrices { a, b, c, d, e, f } ont le sens de celles du Canvas (x' = a·x + c·y + e).
  */
 import { MARGE, EPAISSEUR_MUR } from './geometrie.js';
@@ -37,6 +37,36 @@ export function kpDeSalle(plan, t, relief = true) {
   return Math.min((PART_MARGE * MARGE * t) / demiMax, Math.max(KP_MAX, (DECALAGE_MIN * t) / demiMin), plafond);
 }
 
+/** Les objets du sol (piliers, tonneaux, tables…) se décalent plus que les murs : leur volume doit se lire d'un coup d'œil. Ils n'ont pas à tenir dans la marge avec une épaisseur de mur. */
+export const FACTEUR_OBJETS = 2.2, KP_OBJETS_MIN = 0.16, KP_OBJETS_MAX = 0.28;
+/** Part de la marge (en cases) que le haut d'un objet d'une hauteur de mur, collé au bord de la salle, peut occuper : au-delà, il sortirait du canevas. */
+export const PART_MARGE_OBJETS = 0.97;
+
+/**
+ * KP voulu pour les objets du sol : `max(KP, min(0,28, max(2,2 × KP, 0,16)))`. Nul sans relief. Les éléments posés sur la face d'un mur
+ * (torche, bannière) gardent le KP des murs. Voir `kpObjetsEn` pour la borne propre à la place d'un objet.
+ */
+export function kpObjets(plan, t, relief = true) {
+  if (!relief) return 0;
+  const kp = kpDeSalle(plan, t, true);
+  return Math.max(kp, Math.min(KP_OBJETS_MAX, Math.max(FACTEUR_OBJETS * kp, KP_OBJETS_MIN)));
+}
+
+/**
+ * Le KP d'un objet dont le centre est en (x, y) (repère de la salle, px) : `vue.kpObj`, réduit au besoin pour que le haut d'un objet d'une hauteur
+ * de mur, qui s'étend jusqu'à `demi` px de son centre, reste dans le canevas (marge de roche comprise) ; jamais sous le KP des murs.
+ * Un objet près du centre garde donc tout son relief ; un objet collé au bord en garde ce que la marge permet.
+ */
+export function kpObjetsEn(vue, t, x, y, demi = t / 2) {
+  if (!(vue.kp > 0)) return 0;
+  let cap = Infinity;
+  for (const [pos, c] of [[x, vue.cx], [y, vue.cy]]) {
+    const r = Math.abs(pos - c) + demi;
+    cap = Math.min(cap, (c + PART_MARGE_OBJETS * MARGE * t - r) / r);
+  }
+  return Math.max(vue.kp, Math.min(vue.kpObj ?? vue.kp, cap));
+}
+
 /** Jusqu'où le dessus des murs déborde du rectangle de la salle, en cases : le décalage du haut du mur le plus éloigné plus l'épaisseur du mur. Toujours inférieur à MARGE. */
 export function debordMax(plan, t, relief = true) {
   const kp = kpDeSalle(plan, t, relief);
@@ -45,7 +75,7 @@ export function debordMax(plan, t, relief = true) {
 
 /** La vue d'une salle de `plan` dessinée avec des cases de `t` px. */
 export function vueDeSalle(plan, t, relief = true) {
-  return { cx: (plan.largeur * t) / 2, cy: (plan.longueur * t) / 2, kp: kpDeSalle(plan, t, relief), lum: LUMIERE };
+  return { cx: (plan.largeur * t) / 2, cy: (plan.longueur * t) / 2, kp: kpDeSalle(plan, t, relief), kpObj: kpObjets(plan, t, relief), lum: LUMIERE };
 }
 
 /** Facteur d'agrandissement à la hauteur h. */
@@ -100,5 +130,5 @@ export function vueLocale(vue, base, courante) {
   const [cx, cy] = appliquer(m, vue.cx, vue.cy);
   const lx = m.a * vue.lum[0] + m.c * vue.lum[1], ly = m.b * vue.lum[0] + m.d * vue.lum[1];
   const n = Math.hypot(lx, ly) || 1;
-  return { cx, cy, kp: vue.kp, lum: [lx / n, ly / n] };
+  return { cx, cy, kp: vue.kp, kpObj: vue.kpObj ?? vue.kp, lum: [lx / n, ly / n] };
 }

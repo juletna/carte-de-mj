@@ -31,8 +31,8 @@ const FER = [20, 8, 24], OR = [43, 60, 50];
 // --- Briques communes -----------------------------------------------------------------------------------------
 
 /** Les volumes de l'objet (repère local) et son générateur d'aléa, propre à sa place dans la salle. */
-export function preparerObjet(ctx, o) {
-  const V = volumesLocaux(ctx);
+export function preparerObjet(ctx, o, surMur = false) {
+  const V = volumesLocaux(ctx, surMur);
   const r = alea((etat.graine ^ graineDeTexte(`${o?.type}|${o?.x}|${o?.y}`)) >>> 0);
   return { V, r };
 }
@@ -386,7 +386,7 @@ export const objets = {
 
   torche(ctx, w, h, t, o) {
     // Accrochée à la face du mur, derrière la case (−y).
-    const { V } = preparerObjet(ctx, o), yMur = -h / 2, F = face(V, -w / 2, yMur, w, h, 'nord');
+    const { V } = preparerObjet(ctx, o, true), yMur = -h / 2, F = face(V, -w / 2, yMur, w, h, 'nord');
     const P = (v) => F.P(0.5, v);
     const [tx, ty] = P(0.7);
     const suie = ctx.createRadialGradient(tx, ty - t * 0.05, 0, tx, ty - t * 0.05, t * 0.38);
@@ -539,7 +539,7 @@ export const objets = {
 
   banniere(ctx, w, h, t, o) {
     // Accrochée à la face du mur, derrière la case (−y), comme la torche. Sans relief le mur n'a pas de face : on la voit du dessus, pendue vers l'avant.
-    const { V, r } = preparerObjet(ctx, o);
+    const { V, r } = preparerObjet(ctx, o, true);
     if (!V.KP) return vectoriel.objets.banniere(ctx, w, h, t, o);
     const yMur = -h / 2, F = face(V, -w / 2, yMur, w, h, 'nord'), u0 = 0.2, u1 = 0.8, um = 0.5;
     const [fond, ombre] = [['#a5302a', '#5b1513'], ['#2f4f9a', '#17274f'], ['#3f7a3a', '#1f3d1c']][(r() * 3) | 0];

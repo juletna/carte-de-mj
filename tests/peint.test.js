@@ -3,7 +3,7 @@
  * qui le pilotent (Thème, Cases, Relief : compatibilité avec l'ancien réglage booléen), puis un dessin complet sur un contexte simulé (aucune
  * exception, quelles que soient la forme et l'option). Le rendu réel est vérifié dans un navigateur (voir le README). Sans dépendance.
  */
-import { kpDeSalle, vueDeSalle, haut, echelle, faceVisible, eclairage, debordMax, composer, inverser, appliquer, vueLocale, KP_MAX, IDENTITE } from '../js/rendu/perspective.js';
+import { kpDeSalle, kpObjets, kpObjetsEn, KP_OBJETS_MAX, vueDeSalle, haut, echelle, faceVisible, eclairage, debordMax, composer, inverser, appliquer, vueLocale, KP_MAX, IDENTITE } from '../js/rendu/perspective.js';
 import { MARGE } from '../js/rendu/geometrie.js';
 import { segmentsDeMurs } from '../js/rendu/themes/peint/segments.js';
 import { SOLS_PEINTS, PERIODE, couleurSol, calculerTuile, cleTuile, resolutionTuile, RESOLUTION_MIN, RESOLUTION_MAX, CASES_PAR_TUILE } from '../js/rendu/themes/peint/sols.js';
@@ -114,6 +114,46 @@ const TESTS = [
     const [ex, ey] = haut(vue, ...appliquer(versSalle, px, py), 0.8);
     proche(sx, ex, 'x', 1e-6); proche(sy, ey, 'y', 1e-6);
     egal(vueLocale(vue, base, base).cx, vue.cx, 'repère identique : rien ne change');
+  }],
+  ['KP des objets : nul sans relief, plus fort que celui des murs, plafonné ; chaque objet est borné par sa place pour rester dans le canevas', () => {
+    egal(kpObjets(rect(10, 7), 64, false), 0, 'sans relief');
+    for (const [l, h, t] of [[10, 7, 64], [12, 8, 56], [4, 3, 48], [8, 6, 48], [40, 30, 20], [1, 1, 48]]) {
+      const kp = kpDeSalle(rect(l, h), t), ko = kpObjets(rect(l, h), t);
+      verifier(ko >= kp && ko <= Math.max(kp, KP_OBJETS_MAX) + 1e-12, `${l}×${h} : ${ko} entre KP et max(KP, ${KP_OBJETS_MAX})`);
+    }
+    verifier(kpObjets(rect(10, 7), 64) >= 2.2 * kpDeSalle(rect(10, 7), 64) - 1e-12, '10×7 : au moins 2,2 fois celui des murs');
+    proche(kpObjets(rect(10, 7), 64), 0.264, '10×7 en cases de 64 : 2,2 × 0,12', 1e-9);
+    const vue = vueDeSalle(rect(12, 8), 56), t = 56;
+    egal(vue.kpObj, kpObjets(rect(12, 8), t), 'la vue porte kpObj');
+    proche(kpObjetsEn(vue, t, vue.cx + t, vue.cy), vue.kpObj, 'près du centre : tout le relief');
+    // Un objet d'une hauteur de mur, étendu de ½ case autour de son centre, ne dépasse jamais le canevas (marge de 1 case de roche), où qu'il soit.
+    for (let cx = 0.5; cx < 12; cx++) for (let cy = 0.5; cy < 8; cy++) {
+      const k = kpObjetsEn(vue, t, cx * t, cy * t);
+      verifier(k >= vue.kp - 1e-12 && k <= vue.kpObj + 1e-12, `case ${cx},${cy} : entre les murs et le voulu`);
+      verifier(Math.abs(cx * t - vue.cx) + t / 2 <= 0 || (Math.abs(cx * t - vue.cx) + t / 2) * (1 + k) <= vue.cx + t + 1e-6, `case ${cx},${cy} : reste dans le canevas en x`);
+      verifier((Math.abs(cy * t - vue.cy) + t / 2) * (1 + k) <= vue.cy + t + 1e-6, `case ${cx},${cy} : reste dans le canevas en y`);
+    }
+    verifier(kpObjetsEn(vue, t, 0.5 * t, 0.5 * t) < vue.kpObj, 'dans un coin, la marge borne');
+    egal(kpObjetsEn(vueDeSalle(rect(12, 8), t, false), t, 0, 0), 0, 'sans relief');
+  }],
+  ['peint : les objets du sol ont le KP des objets, ce qui se pose sur un mur (torche, bannière) garde celui des murs', () => {
+    const plan = rect(10, 7, { id: 'k' }), t = 64;
+    const sur = (e, f) => { const c = ctxPermissif(); return new Proxy(c, { get: (cible, nom) => (nom === 'getTransform' ? () => ({ a: 1, b: 0, c: 0, d: 1, e, f }) : cible[nom]) }); };
+    THEMES.peint.preparer(sur(0, 0), plan, t, { relief: true });
+    const centreObjet = sur(5 * t + 64, 3.5 * t), VI = volumesLocaux(centreObjet);
+    proche(VI.KP, kpObjets(plan, t), 'objet au centre : KP des objets');
+    verifier(VI.KP > kpDeSalle(plan, t) * 2, 'plus fort que les murs');
+    proche(volumesLocaux(centreObjet, true).KP, kpDeSalle(plan, t), 'posé sur un mur : KP des murs');
+    // La torche et sa lumière : la source est à la hauteur de la flamme, élevée au KP des murs.
+    etat.lumieres = [];
+    const antes = 0;
+    objetsPeints.torche(sur(5 * t, 0.5 * t), t, t, t, { type: 'torche', x: 4, y: 0, rotation: 0 });
+    const src = etat.lumieres[etat.lumieres.length - 1], vue = etat.vue;
+    verifier(etat.lumieres.length === antes + 1, 'une source de plus');
+    const [ex, ey] = haut(vue, 5 * t, 0.5 * t - t / 2 + t * 0.1, 0.7);
+    proche(src.x, ex, 'la flamme de la torche reste collée à la face du mur (KP des murs)', 1e-6); proche(src.y, ey, 'idem en y', 1e-6);
+    THEMES.peint.preparer(sur(0, 0), plan, t, { relief: false });
+    egal(volumesLocaux(centreObjet).KP, 0, 'sans relief : à plat');
   }],
   ['volumes : creerVolumes donne haut, KP et les helpers de volume ; volumesLocaux marche sur un contexte simulé', () => {
     const vue = vueDeSalle(rect(10, 6), 40);
