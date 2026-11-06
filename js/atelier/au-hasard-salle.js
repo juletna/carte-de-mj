@@ -118,7 +118,7 @@ export function creerSectionAuHasard(ctx) {
       const [, min, max] = BORNES_SALLE[cle];
       const entree = h('input', { type: 'number', inputMode: 'numeric', min: String(min), max: String(max), step: '1', placeholder: 'Auto', value: reglages[cle] === null ? '' : String(reglages[cle]), 'aria-label': `${libelle} (de ${min} à ${max}, vide : automatique)` });
       // Vide = automatique ; un nombre est imposé (0 compris) ; vider le champ, le picto ↺ ou ↓ sur le minimum le remet en automatique.
-      const auto = h('button', { type: 'button', className: 'hasard-salle-auto', title: `${libelle} : revenir en automatique`, 'aria-label': `${libelle} : revenir en automatique` }, icone('reinitialiser'));
+      const auto = h('button', { type: 'button', className: 'hasard-salle-auto', title: `${libelle} : revenir en automatique`, 'aria-label': `${libelle} : revenir en automatique` }, (() => { try { return icone('reinitialiser'); } catch { return '↺'; } })()); // un fichier d'icônes plus ancien en cache ne casse pas le champ
       const majAuto = () => { auto.hidden = entree.value === ''; };
       const enAuto = () => { reglages[cle] = null; entree.value = ''; majAuto(); };
       entree.addEventListener('input', majAuto);

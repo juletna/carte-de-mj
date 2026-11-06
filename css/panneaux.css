@@ -279,9 +279,10 @@
 .hasard-salle-apparence > label.ligne { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: var(--esp-3); align-items: center; margin: 0; font-size: 13px; font-weight: 500; color: var(--p-texte-3); }
 .hasard-salle-apparence select { max-width: none; width: 100%; min-height: max(32px, var(--cible)); }
 /* Choix multiples (js/atelier/champ-multi.js) : une case à cocher devant chaque ligne du popover. */
-.rang-case { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; box-sizing: border-box; border: 1.5px solid var(--p-texte-4); border-radius: 4px; color: transparent; }
-.rang-case .icone { width: 12px; height: 12px; }
-.rang-choix[aria-selected="true"] .rang-case { background: var(--accent); border-color: var(--accent); color: var(--accent-texte); }
+.rang-case { position: relative; flex: none; display: inline-block; width: 16px; height: 16px; box-sizing: border-box; border: 1.5px solid var(--p-texte-4); border-radius: 4px; }
+.rang-case::after { content: ""; position: absolute; left: 4.5px; top: 1px; width: 4px; height: 8px; border: solid var(--accent-texte); border-width: 0 2px 2px 0; transform: rotate(45deg); opacity: 0; }
+.rang-choix[aria-selected="true"] .rang-case { background: var(--accent); border-color: var(--accent); }
+.rang-choix[aria-selected="true"] .rang-case::after { opacity: 1; }
 .hasard-salle-champ select { width: 100%; max-width: none; min-height: max(32px, var(--cible)); }
 .p-section-corps > .rang-interrupteur:disabled { opacity: 0.5; cursor: default; }
 .p-section-corps > .rang-interrupteur:disabled:hover { background: var(--p-surface-1); }

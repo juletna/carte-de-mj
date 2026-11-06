@@ -29,7 +29,7 @@ export function creerChampMulti({ titre, icone: nomIcone, auto = 'Auto', options
   }
   const ligne = (libelle, coche, agir) => {
     const b = h('button', { type: 'button', className: 'rang-choix', role: 'option', 'aria-selected': String(coche) },
-      h('span', { className: 'rang-case', 'aria-hidden': 'true' }, icone('coche')), h('span', { textContent: libelle }));
+      h('span', { className: 'rang-case', 'aria-hidden': 'true' }), h('span', { textContent: libelle })); // la coche est dessinée en CSS : aucune icône à charger, la liste s'ouvre même si icones.js est une version plus ancienne en cache
     b.addEventListener('click', agir);
     return b;
   };
