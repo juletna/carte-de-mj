@@ -96,6 +96,9 @@ p { margin: 0; }
 .dock .defile { display: flex; gap: 5px; overflow: hidden; mask-image: linear-gradient(90deg, #000 85%, transparent); }
 .dock .tuile { flex: none; width: 58px; }
 .dock .tuile i { width: 30px; height: 30px; }
+.zoom { position: absolute; right: 8px; bottom: 8px; display: flex; gap: 6px; align-items: center; padding: 2px 8px; background: rgba(31,30,36,.95); border: 1px solid var(--bord); border-radius: 6px; font-size: 11px; color: var(--t2); }
+.serie { margin-top: 12px; max-width: 760px; padding: 10px 14px; background: var(--choisi); border: 1px solid rgba(217,169,41,.4); border-radius: 8px; font-size: 14px; color: var(--t1); }
+.serie b { color: var(--accent); font-weight: 600; }
 .note-fine { margin-top: 12px; max-width: 70ch; font-size: 13.5px; color: var(--t3); }
 
 /* Commun : ce qui est bon quel que soit l'emplacement */
@@ -145,6 +148,7 @@ p { margin: 0; }
         </div>
       </div>
     </div>
+    <p class="serie"><b>Pose en série :</b> l'objet armé reste armé, le catalogue reste ouvert à côté de la carte ; Échap (ou la pastille « Pose : Coffre ✕ ») arrête, un autre clic dans le catalogue change d'objet.</p>
     <div class="pour-contre">
       <div class="pour"><h3>Pour</h3><ul><li>Bouton visible, doré : c'est l'action principale (règle « un seul doré »).</li><li>Rien ne couvre la carte, elle garde sa taille ; pose en série inchangée.</li><li>Même emplacement qu'aujourd'hui : peu de code à changer.</li></ul></div>
       <div class="contre"><h3>Contre</h3><ul><li>Le panneau est soit la salle, soit le catalogue : on ne règle pas un objet en posant.</li><li>Le bouton et le panneau sont loin de la barre de la scène.</li></ul></div>
@@ -174,6 +178,7 @@ p { margin: 0; }
         </div>
       </div>
     </div>
+    <p class="serie"><b>Pose en série :</b> la fermeture ne désarme pas. L'objet reste armé (pastille « Pose : Coffre ✕ » sur la carte) jusqu'à Échap ou un autre choix, et chaque clic sur la carte en pose un. Pour changer d'objet, on rouvre la fenêtre ; elle peut aussi rester ouverte, au prix d'une carte recouverte.</p>
     <div class="pour-contre">
       <div class="pour"><h3>Pour</h3><ul><li>Le bouton est dans la barre de la scène, à côté de « + Salle ».</li><li>Le panneau de droite redevient simple, sans onglets.</li><li>La carte ne se rétrécit pas.</li></ul></div>
       <div class="contre"><h3>Contre</h3><ul><li>C'est la « palette flottante » écartée au départ : elle recouvre une partie de la carte.</li><li>Fermée au choix : rouvrir pour chaque objet différent. Ouverte en permanence : elle gêne la pose.</li><li>Sur téléphone, c'est déjà le tiroir du bas : deux mécanismes différents.</li></ul></div>
@@ -189,7 +194,7 @@ p { margin: 0; }
       <div class="etat"><p class="etiquette">Bandeau ouvert, un coffre armé</p>
         <div class="atelier">
           <div class="scene"><div class="barre"><span class="btn actif">＋ Ajouter</span><span class="btn discret">+ Salle</span><span class="btn discret">Vue d'ensemble</span><span class="fin"><span class="btn discret">Grille ▾</span><span class="btn discret">Affichage</span></span></div>
-            <div class="carte"><span class="pastille-pose">Pose : Coffre ✕</span><div class="salle" style="height:190px;width:150px"><i style="left:20px;top:20px"></i><i style="left:100px;top:20px"></i></div></div>
+            <div class="carte"><span class="cartouche">12 × 12 m</span><span class="zoom">− 94 % +</span><span class="pastille-pose">Pose : Coffre ✕</span><div class="salle" style="height:190px;width:150px"><i style="left:20px;top:20px"></i><i style="left:100px;top:20px"></i></div></div>
             <div class="dock"><div class="cat"><div class="puces"><span class="btn actif">Portes</span><span class="btn">Mobilier</span></div><div class="puces"><span class="btn">Créatures</span><span class="recherche" style="flex:1">Rechercher…</span></div></div>
               <div class="defile" data-tuiles-ligne></div></div>
           </div>
@@ -204,6 +209,8 @@ p { margin: 0; }
         </div>
       </div>
     </div>
+    <p class="serie"><b>Pose en série :</b> le bandeau reste ouvert, l'objet armé reste armé jusqu'à Échap ou un autre choix ; on change d'objet d'un clic sans rouvrir quoi que ce soit.</p>
+    <p class="serie"><b>Cartouche et zoom :</b> ils restent dans la zone de la carte, qui se raccourcit au-dessus du bandeau. Le cartouche d'échelle garde sa place (en haut à gauche de la carte) et le zoom (en bas à droite) remonte avec le bas de la carte : ils ne passent jamais sous le bandeau. Plus de décalage à gauche (aujourd'hui le catalogue pousse le cartouche de 300 px) : une règle CSS de moins.</p>
     <div class="pour-contre">
       <div class="pour"><h3>Pour</h3><ul><li>Reste ouvert pendant la pose en série, sans rien cacher de la carte.</li><li>On voit la salle ET le catalogue ET les réglages en même temps.</li><li>Idée de jeu vidéo connue : lisible tout de suite.</li></ul></div>
       <div class="contre"><h3>Contre</h3><ul><li>La carte perd environ 110 px de hauteur ; sur une salle haute, elle se réduit.</li><li>Peu de vignettes visibles à la fois (défilement horizontal) : plus pénible pour parcourir tout le mobilier.</li><li>Sur téléphone, le tiroir du bas reste un cas à part.</li></ul></div>
@@ -219,6 +226,16 @@ p { margin: 0; }
         <li><b>Un aperçu sur chaque section repliée</b> : « Taille · 12 × 12 m », « Apparence · pierre, neutre », « Notes du MJ · vide » (ou ses premiers mots).</li>
         <li><b>Liaisons</b> disparaît quand il n'y en a aucune, au lieu d'un « 0 ».</li>
         <li>Le cadre doré autour de l'onglet « Salle » était l'anneau de focus clavier ; il disparaît avec les onglets (A, B, C) ou se corrige.</li></ul></div>
+  </section>
+
+  <section>
+    <p class="sur">Valable pour les trois</p>
+    <h2>Contraintes à garder</h2>
+    <div class="commun"><ul>
+      <li><b>Téléphone (moins de 760 px)</b> : le « + Ajouter » du bas garde son tiroir actuel, sans changement. Aucune des trois options ne touche au tiroir ni à la bascule de 760 px.</li>
+      <li><b>Tests</b> : <code>tests/rail.test.js</code> exige les ids <code>palette</code>, <code>barre-donjon</code>, <code>barre-catalogue</code>, <code>reserve</code>, <code>feuille-donjons</code>, <code>cadre-scene</code>, <code>scene</code>, <code>carte</code>, <code>arbre-bouton</code>. A : tous gardés (le catalogue reste dans <code>#palette</code>, déplacé sous le bouton). B : tous gardés (<code>#palette</code> devient la fenêtre). C : tous gardés (<code>#palette</code> devient le bandeau) ; si <code>#barre-catalogue</code> disparaissait, le test serait adapté.</li>
+      <li><b>Barre de la scène</b> (<code>#barre-donjon</code>, partagée avec la grille et « Affichage ») : A ne la change pas ; B et C y ajoutent « + Ajouter » à gauche, à côté de « + Salle ».</li>
+      <li><b>Panneau de droite</b> : Description et Éléments ouverts, aperçu sur les sections repliées, Liaisons masquée à 0, plus d'onglets donc plus de cadre doré. Identique dans les trois maquettes ci-dessus.</li></ul></div>
   </section>
 
   <section>
