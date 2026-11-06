@@ -82,11 +82,31 @@
 /* --- Vue table : la carte d'univers à la place de la salle --- */
 #univers-table { position: absolute; inset: 0; z-index: 1; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 #univers-table[hidden] { display: none; }
-.univers-table-zone { flex: 1 1 auto; min-height: 0; width: 100%; display: flex; align-items: center; justify-content: center; padding: 12px; box-sizing: border-box; }
-.univers-table-zone .univers-image { max-width: 100%; max-height: calc(100vh - 24px); border-radius: 0; }
-#orientation-table.couche .univers-table-zone .univers-image { max-height: calc(100vw - 24px); }
+.univers-table-zone { flex: 1 1 auto; min-height: 0; width: 100%; display: flex; padding: 12px; box-sizing: border-box; overflow: auto; scrollbar-width: none; }
+.univers-table-zone::-webkit-scrollbar { display: none; }
+/* La taille de l'image est posée par js/univers-table.js (échelle réelle ou « remplir ») ; `margin: auto` centre sans rogner ce qui déborde. */
+.univers-table-zone .univers-cadre { flex: none; margin: auto; max-width: none; max-height: none; }
+.univers-table-zone .univers-image { max-width: none; max-height: none; border-radius: 0; }
 .univers-table-zone .univers-pastille { width: 34px; height: 34px; }
 .univers-table-zone .univers-etiquette { font-size: 22px; padding: 4px 12px; }
 .univers-table-zone .univers-point { pointer-events: none; }
 .univers-table-titre { position: absolute; left: 50%; top: 12px; transform: translateX(-50%); margin: 0; padding: 6px 16px; border-radius: var(--rayon); background: rgba(12, 11, 14, .8); color: #fff; font-size: 22px; font-weight: 700; pointer-events: none; z-index: 2; }
 .univers-table-titre[hidden] { display: none; }
+
+/* --- Grille calée sur la carte (F4) --- */
+.univers-grille { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.univers-grille-ombre { stroke: #000; stroke-width: 3; }
+.univers-grille-trait { stroke: #fff; stroke-width: 1; }
+
+/* --- Calage de la grille (préparation) --- */
+.univers-cadre.calage { cursor: move; touch-action: none; outline: 2px solid var(--accent); outline-offset: 2px; }
+.univers-cadre.calage-mesure { cursor: crosshair; }
+.univers-calage .calage-champ { margin: var(--esp-2) 0; }
+.univers-calage .calage-nom { display: block; font-size: 13px; margin-bottom: 2px; }
+.univers-calage .calage-ligne { display: flex; align-items: center; gap: 6px; }
+.univers-calage input[type="range"] { flex: 1 1 auto; min-width: 0; min-height: 44px; }
+.univers-calage input[type="number"] { width: 76px; box-sizing: border-box; min-height: 44px; }
+.univers-calage .calage-ligne .bouton { min-width: 44px; min-height: 44px; }
+.univers-calage .calage-geste { display: flex; flex-wrap: wrap; align-items: center; gap: var(--esp-2); margin: var(--esp-2) 0; }
+.univers-calage .calage-n { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; }
+.univers-calage .calage-n input { width: 64px; }

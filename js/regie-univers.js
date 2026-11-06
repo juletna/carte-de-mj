@@ -13,7 +13,8 @@ import * as pu from './univers-partie.js';
 import { messageUnivers } from './univers-protocole.js';
 import { creerCarteUnivers } from './univers-carte.js';
 import * as images from './univers-images.js';
-import { affichageDeReglages } from './affichage.js';
+import { affichageDeReglages, casesDeReglages } from './affichage.js';
+import { grilleEffective } from './univers-grille.js';
 import { $, h, bouton, deuxTemps } from './dom.js';
 import { pluriel } from './format.js';
 
@@ -36,12 +37,19 @@ export function creerRegieUnivers(ctx) {
   function sauver() {
     if (!stockage.enregistrerPartieUnivers(courant.partie)) ctx.annoncer('Impossible d’enregistrer la partie de l’univers dans ce navigateur (stockage plein ou bloqué) : elle continue, mais ne pourra pas être reprise.', 12000);
   }
-  const vue = () => pu.vueDeLaTable(courant.partie, courant.univers);
+  // La grille du lieu : celle que le MJ a calée, sinon celle du catalogue (relue une fois par image, puis gardée).
+  const infosParImage = new Map();
+  const cleImage = (ref) => `${ref.source}:${ref.id}`;
+  const grilleDuLieu = (lieu) => grilleEffective(lieu, infosParImage.get(cleImage(lieu.image))).grille;
+  const opacite = () => casesDeReglages(ctx.r) / 100;
+  const vue = () => { const lieu = courant.univers.lieux[courant.partie.lieuCourant]; return pu.vueDeLaTable(courant.partie, courant.univers, lieu ? grilleDuLieu(lieu) : null); };
 
   // --- Table ----------------------------------------------------------------------------------------------
   /** Envoie la carte à la table si la régie a la main et affiche une carte d'univers. Vrai : la table est servie (regie.js n'envoie alors pas de plan). */
   function diffuser() {
     if (!courant || ecran.hidden) return false;
+    const lieu = courant.univers.lieux[courant.partie.lieuCourant];
+    if (lieu) carte.majGrille(grilleDuLieu(lieu), opacite()); // le réglage « Cases » a pu changer
     if (!ctx.commande.main) return true; // en retrait : on ne parle pas à la table, et on ne lui envoie pas non plus un plan vide
     const v = vue();
     if (v) ctx.canal?.postMessage(messageUnivers(v, affichageDeReglages(ctx.r)));
@@ -182,8 +190,14 @@ export function creerRegieUnivers(ctx) {
       };
     });
     const moi = ++sequence;
-    const options = { points, alt: `Carte : ${lieu.nom}` };
+    const options = { points, alt: `Carte : ${lieu.nom}`, grille: grilleDuLieu(lieu), opacite: opacite() };
     carte.afficher({ ...options, url: null, absente: 'Chargement de l’image…' });
+    if (lieu.grille === undefined && !infosParImage.has(cleImage(lieu.image))) {
+      images.infosImage(lieu.image).then((infos) => {
+        infosParImage.set(cleImage(lieu.image), infos);
+        if (moi === sequence && grilleDuLieu(lieu)) { carte.majGrille(grilleDuLieu(lieu), opacite()); diffuser(); }
+      });
+    }
     images.urlImage(lieu.image).then((url) => { if (moi === sequence) carte.afficher({ ...options, url, absente: 'Image introuvable : la carte n’est plus dans la bibliothèque ou dans ce navigateur. Les points restent utilisables dans la liste.' }); });
     rendrePanneau(lieu, dons);
     diffuser();

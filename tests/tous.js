@@ -55,6 +55,7 @@ import { executer as executerUniversPartie } from './univers-partie.test.js';
 import { executer as executerBibliotheque } from './bibliotheque.test.js';
 import { executer as executerZip } from './zip.test.js';
 import { executer as executerSauvegarde } from './sauvegarde.test.js';
+import { executer as executerUniversGrille } from './univers-grille.test.js';
 
 /** Les suites, dans l'ordre d'exécution : chacune reçoit `{ lire }` et rend (ou promet) une liste de résultats. */
 export const SUITES = [
@@ -69,6 +70,7 @@ export const SUITES = [
   executerUniversPartie,
   executerBibliotheque,
   executerZip, executerSauvegarde,
+  executerUniversGrille,
 ];
 
 /** Joue toutes les suites ; renvoie les résultats { phrase, ecarts, resultat? } à la suite les uns des autres. */

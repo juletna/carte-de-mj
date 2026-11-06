@@ -10,6 +10,9 @@ import * as modele from '../univers.js';
 import { lireUnivers } from '../univers-validation.js';
 import { creerCarteUnivers } from '../univers-carte.js';
 import * as images from '../univers-images.js';
+import { creerCalage } from './univers-calage.js';
+import { grilleEffective } from '../univers-grille.js';
+import { casesDeReglages } from '../affichage.js';
 import { idUnique } from '../donjon.js';
 import { $, h, bouton, deuxTemps, fichierChoisi } from '../dom.js';
 import { pluriel, sansAccents } from '../format.js';
@@ -52,10 +55,28 @@ export function creerUniversUI(ctx) {
   racine.setAttribute('aria-label', 'Univers');
 
   const carte = creerCarteUnivers(zoneCarte, {
-    onPoint: (id) => { pointId = id; arme = false; rendre(); },
-    onVide: (x, y) => poserPoint(x, y),
+    onPoint: (id) => { if (calage.actif()) return; pointId = id; arme = false; rendre(); },
+    onVide: (x, y) => { if (!calage.actif()) poserPoint(x, y); },
     onDeplace: (id, x, y) => { modele.deplacerPoint(univ(), lieuId, id, x, y); pointId = id; sauver(); rendre(); },
   });
+
+  // Le calage de la grille d'un lieu (js/mj/univers-calage.js) : pendant qu'il est ouvert, il remplace le panneau et la carte n'a plus de points à déplacer.
+  const calage = creerCalage({
+    carte,
+    surMarqueurs: () => rendreCarte(),
+    quitter: () => { calage.fermer(); rendre(); dire('Calage abandonné : rien n’a été modifié.'); },
+    enregistrer: (grille, dims) => {
+      try { modele.definirGrilleLieu(univ(), lieuId, grille, dims); } catch (err) { dire(err.message, { erreur: true }); return; }
+      calage.fermer(); sauver(); rendre();
+      dire(grille === undefined ? 'Grille du catalogue rétablie pour cette carte.' : grille === null ? 'Pas de grille : cette carte n’en affiche plus.' : 'Grille enregistrée. Elle sera tracée en régie et à la table.');
+    },
+  });
+  const infosCache = new Map();
+  const cleImage = (ref) => `${ref.source}:${ref.id}`;
+  async function infosDe(ref) {
+    if (!infosCache.has(cleImage(ref))) infosCache.set(cleImage(ref), await images.infosImage(ref));
+    return infosCache.get(cleImage(ref));
+  }
 
   // --- Petits outils ---------------------------------------------------------------------------------
   function dire(texte, { erreur = false, action = null } = {}) {
@@ -136,11 +157,11 @@ export function creerUniversUI(ctx) {
   function allerA(id, { nouveauFil = true } = {}) {
     lieuId = id && univ()?.lieux[id] ? id : null;
     if (nouveauFil) fil = lieuId ? [lieuId] : [];
-    pointId = null; arme = false;
+    pointId = null; arme = false; calage.fermer();
   }
   function entrerDansLieu(id) {
     fil = [...fil.slice(0, fil.indexOf(lieuId) + 1), id];
-    lieuId = id; pointId = null; arme = false;
+    lieuId = id; pointId = null; arme = false; calage.fermer();
   }
 
   async function demanderImage() {
@@ -237,21 +258,28 @@ export function creerUniversUI(ctx) {
     if (fil.length > 1) filAriane.append(bouton('↑ Remonter', () => { const id = fil.at(-2); fil = fil.slice(0, -1); allerA(id, { nouveauFil: false }); rendre(); }, 'discret petit univers-remonter'));
   }
 
+  let imageAffichee = null; // clé de l'image déjà montrée : on ne la recharge pas à chaque rendu
   async function rendreCarte() {
     const l = lieu();
     const moi = ++sequence;
     zoneCarte.hidden = !l;
     if (!l) return;
-    const pointsCarte = l.points.map((p) => ({
+    const enCalage = calage.actif();
+    const pointsCarte = enCalage ? calage.marqueurs() : l.points.map((p) => ({
       id: p.id, x: p.x, y: p.y, nom: p.nom || '',
       titre: `${p.nom || 'Point sans nom'} → ${modele.nomDestination(univ(), p.vers, donjons())}${orphelinDe(p) ? ` (${orphelinDe(p)})` : ''}`,
       classes: [p.cache ? 'cache' : '', orphelinDe(p) ? 'orphelin' : '', !p.vers ? 'libre' : '', p.id === pointId ? 'choisi' : ''].filter(Boolean),
       selectionne: p.id === pointId,
     }));
-    const options = { points: pointsCarte, modifiable: true, arme, alt: `Carte : ${l.nom}` };
-    carte.afficher({ ...options, url: null, absente: 'Chargement de l’image…' });
+    const infos = await infosDe(l.image);
+    if (moi !== sequence) return;
+    const aff = enCalage ? calage.grilleAffichee() : { grille: grilleEffective(l, infos).grille, opacite: casesDeReglages(stockage.chargerReglages() ?? {}) / 100 };
+    const options = { points: pointsCarte, modifiable: !enCalage, arme: arme && !enCalage, alt: `Carte : ${l.nom}`, ...aff };
+    const cle = cleImage(l.image);
+    if (imageAffichee !== cle) carte.afficher({ ...options, url: null, absente: 'Chargement de l’image…' });
     const url = await images.urlImage(l.image);
     if (moi !== sequence) return;
+    imageAffichee = url ? cle : null;
     carte.afficher({ ...options, url, absente: 'Image introuvable : la carte n’est plus dans la bibliothèque ou dans ce navigateur (ou la bibliothèque n’est pas disponible). Les points restent posés ; choisis une autre image.' });
   }
 
@@ -281,11 +309,27 @@ export function creerUniversUI(ctx) {
     depart.firstChild.addEventListener('change', (e) => { if (e.target.checked) { modele.definirRacine(univ(), l.id); sauver(); rendre(); } else e.target.checked = true; });
     const suppr = h('button', { type: 'button', className: 'discret' });
     deuxTemps(suppr, 'Supprimer ce lieu', 'Confirmer la suppression', supprimerLeLieu);
+    const info = infosCache.get(cleImage(l.image)) ?? null;
+    const eff = grilleEffective(l, info);
+    const etatGrille = { lieu: `Grille calée : cases de ${String(eff.grille?.case).replace('.', ',')} px.`, catalogue: `Grille du catalogue : cases de ${String(eff.grille?.case).replace('.', ',')} px.`, aucune: 'Pas de grille.', ambiance: 'Carte d’ambiance, sans grille.' }[eff.origine];
     return h('section', {},
       h('h3', { textContent: 'Ce lieu' }),
       champ('Nom', nomLieu), champ('Notes', notes), depart,
-      h('div', { className: 'actions' }, bouton('Changer l’image', () => changerImage(), 'discret'), suppr),
+      h('p', { className: 'note univers-etat-grille', textContent: etatGrille }),
+      h('div', { className: 'actions' }, bouton('Caler la grille', () => ouvrirCalage(), 'discret'), bouton('Changer l’image', () => changerImage(), 'discret'), suppr),
       ...(orph.length ? [h('p', { className: 'note erreur', textContent: `${pluriel(orph.length, 'point mène', 'points mènent')} vers une destination qui n’existe plus : ils sont marqués ⚠, rien n’a été retiré.` })] : []));
+  }
+
+  async function ouvrirCalage() {
+    const l = lieu();
+    const dims = carte.dimensions();
+    if (!dims) { dire('La carte n’est pas encore chargée (ou introuvable) : on ne peut pas y caler une grille.', { erreur: true }); return; }
+    arme = false; pointId = null;
+    const infos = await infosDe(l.image);
+    if (!calage.ouvrir({ lieu: l, infos, dims })) return;
+    dire('');
+    rendre();
+    calage.focaliser();
   }
 
   function listePoints() {
@@ -383,7 +427,8 @@ export function creerUniversUI(ctx) {
       zoneCarte.hidden = true;
       return;
     }
-    panneau.replaceChildren(listeLieux(), ...(lieu() ? [editionLieu(), listePoints(), editionPoint()].filter(Boolean) : []));
+    if (calage.actif() && lieu()) panneau.replaceChildren(calage.panneau());
+    else panneau.replaceChildren(listeLieux(), ...(lieu() ? [editionLieu(), listePoints(), editionPoint()].filter(Boolean) : []));
     rendreCarte();
   }
 
@@ -398,7 +443,7 @@ export function creerUniversUI(ctx) {
   }
   function fermerEcran({ rendreFocus = true } = {}) {
     racine.hidden = true;
-    arme = false;
+    arme = false; calage.fermer();
     document.body.classList.remove('univers-ouvert');
     declencheur?.setAttribute('aria-expanded', 'false');
     if (rendreFocus) declencheur?.focus();
@@ -407,7 +452,7 @@ export function creerUniversUI(ctx) {
   racine.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape' || e.defaultPrevented) return;
     e.preventDefault();
-    if (arme) { arme = false; rendre(); } else fermerEcran();
+    if (calage.actif()) { calage.fermer(); rendre(); } else if (arme) { arme = false; rendre(); } else fermerEcran();
   });
 
   if (charge.miseDeCote) {

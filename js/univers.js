@@ -6,6 +6,7 @@
  * Les fonctions modifient l'univers reçu (comme donjon.js) ; la validation d'un univers venu de l'extérieur est dans univers-validation.js.
  */
 import { idUnique, coupe, dictionnaire } from './donjon.js';
+import { normaliserGrille } from './univers-grille.js';
 
 export const FORMAT = 'carte-de-mj-univers';
 export const VERSION = 1;
@@ -43,7 +44,8 @@ export function ajouterLieu(u, { nom, image, notes = '', grille } = {}) {
   if (!imageValide(image)) throw new Error('image invalide');
   const id = idUnique('l', Object.keys(u.lieux));
   const lieu = { id, nom: coupe(nom, LIMITES.nom).trim() || `Lieu ${Object.keys(u.lieux).length + 1}`, type: 'carte', image: { source: image.source, id: image.id }, notes: coupe(notes, LIMITES.notes), points: [] };
-  if (grille) lieu.grille = grille;
+  const g = normaliserGrille(grille);
+  if (g) lieu.grille = g;
   u.lieux[id] = lieu;
   if (!u.racine || !(u.racine in u.lieux)) u.racine = id;
   return lieu;
@@ -59,6 +61,19 @@ export function definirNotesLieu(u, id, notes) { const l = lieuOu(u, id); l.note
 export function definirImageLieu(u, id, image) {
   if (!imageValide(image)) throw new Error('image invalide');
   const l = lieuOu(u, id); l.image = { source: image.source, id: image.id }; return l;
+}
+/**
+ * Cale la grille d'un lieu (F4, js/univers-grille.js) : un objet `{ case, dx, dy }` (ramené dans les bornes), `null` pour « pas de grille »
+ * même si le catalogue en propose une, `undefined` pour revenir à la grille du catalogue (la clé disparaît). Lève une Error si la grille est inexploitable.
+ */
+export function definirGrilleLieu(u, id, grille, dims) {
+  const l = lieuOu(u, id);
+  if (grille === undefined) { delete l.grille; return l; }
+  if (grille === null) { l.grille = null; return l; }
+  const g = normaliserGrille(grille, dims);
+  if (!g) throw new Error('grille invalide');
+  l.grille = g;
+  return l;
 }
 export function definirRacine(u, id) { lieuOu(u, id); u.racine = id; return u; }
 

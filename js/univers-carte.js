@@ -4,6 +4,9 @@
  * Tout texte passe par textContent (le nom d'un point vient d'un fichier).
  */
 import { h } from './dom.js';
+import { traceGrille } from './univers-grille.js';
+
+const SVG = 'http://www.w3.org/2000/svg';
 
 const borne = (v) => Math.min(1, Math.max(0, v));
 
@@ -15,9 +18,33 @@ export function creerCarteUnivers(parent, { onPoint, onVide, onDeplace } = {}) {
   const img = h('img', { className: 'univers-image', alt: '', draggable: false });
   const couche = h('div', { className: 'univers-points' });
   const manque = h('p', { className: 'univers-manque', hidden: true });
-  const cadre = h('div', { className: 'univers-cadre' }, img, couche, manque);
+  // La grille calée : un SVG dont le repère est celui de l'image (pixels de l'image), étiré sur elle. Deux traits superposés (sombre puis clair)
+  // pour qu'elle se lise sur toutes les cartes ; leur épaisseur ne dépend pas du zoom (non-scaling-stroke).
+  const trait = (classe) => { const p = document.createElementNS(SVG, 'path'); p.setAttribute('class', classe); p.setAttribute('vector-effect', 'non-scaling-stroke'); p.setAttribute('fill', 'none'); return p; };
+  const ombre = trait('univers-grille-ombre'), lumiere = trait('univers-grille-trait');
+  const svg = document.createElementNS(SVG, 'svg');
+  svg.setAttribute('class', 'univers-grille');
+  svg.setAttribute('preserveAspectRatio', 'none');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.append(ombre, lumiere);
+  const cadre = h('div', { className: 'univers-cadre' }, img, svg, couche, manque);
   parent.append(cadre);
   let etat = { modifiable: false, arme: false };
+  let grilleAffichee = { grille: null, opacite: 0.4 };
+  /** Dessine la grille mémorisée ; attend que l'image ait une taille. */
+  function dessinerGrille() {
+    const { grille, opacite } = grilleAffichee;
+    const l = img.naturalWidth, ht = img.naturalHeight;
+    const visible = !!grille && opacite > 0 && l > 0 && ht > 0 && !!img.getAttribute('src');
+    svg.style.display = visible ? '' : 'none';
+    if (!visible) return;
+    svg.setAttribute('viewBox', `0 0 ${l} ${ht}`);
+    const d = traceGrille(grille, l, ht);
+    ombre.setAttribute('d', d); lumiere.setAttribute('d', d);
+    ombre.style.opacity = String(Math.min(1, opacite * 0.8));
+    lumiere.style.opacity = String(Math.min(1, opacite));
+  }
+  img.addEventListener('load', dessinerGrille);
 
   const fraction = (e) => {
     const r = img.getBoundingClientRect();
@@ -76,19 +103,32 @@ export function creerCarteUnivers(parent, { onPoint, onVide, onDeplace } = {}) {
   return {
     /**
      * @param {{url:string|null, alt?:string, absente?:string, points:{id:string,x:number,y:number,nom?:string,titre?:string,aria?:string,classes?:string[],selectionne?:boolean}[], modifiable?:boolean, arme?:boolean}} o
+     * `grille` : { case, dx, dy } en pixels de l'image (js/univers-grille.js), tracée avec l'opacité `opacite` (0 à 1, le réglage « Cases »).
      * `url` null : l'image n'existe plus (ou la bibliothèque manque) ; `absente` dit pourquoi, les points restent posés.
      */
-    afficher({ url, alt = '', absente = 'Image introuvable.', points, modifiable = false, arme = false }) {
+    afficher({ url, alt = '', absente = 'Image introuvable.', points, modifiable = false, arme = false, grille = null, opacite = 0.4 }) {
       etat = { modifiable, arme };
+      grilleAffichee = { grille, opacite };
       cadre.classList.toggle('arme', arme);
       cadre.classList.toggle('sans-image', !url);
       if (url) { if (img.getAttribute('src') !== url) img.src = url; img.alt = alt; } else img.removeAttribute('src');
+      dessinerGrille();
       manque.hidden = !!url;
       manque.textContent = absente;
       couche.replaceChildren(...points.map((p) => marqueur(p, modifiable)));
     },
     cadre,
     image: img,
+    /** Change seulement la grille (sans reconstruire les points). */
+    majGrille(grille, opacite) { grilleAffichee = { grille, opacite }; dessinerGrille(); },
+    /** Taille naturelle de l'image chargée, ou null. */
+    dimensions: () => (img.naturalWidth > 0 && img.naturalHeight > 0 ? { largeur: img.naturalWidth, hauteur: img.naturalHeight } : null),
+    /** Pixels de l'image sous un évènement de pointeur (hors de l'image : borné à ses bords), ou null. */
+    pixelsImage(e) {
+      const r = img.getBoundingClientRect();
+      if (!r.width || !r.height || !img.naturalWidth) return null;
+      return { x: Math.min(img.naturalWidth, Math.max(0, ((e.clientX - r.left) / r.width) * img.naturalWidth)), y: Math.min(img.naturalHeight, Math.max(0, ((e.clientY - r.top) / r.height) * img.naturalHeight)) };
+    },
     focaliser(idPoint) { couche.querySelector(`[data-id="${CSS.escape(idPoint)}"]`)?.focus(); },
   };
 }

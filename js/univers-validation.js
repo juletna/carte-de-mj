@@ -5,6 +5,7 @@
  */
 import { estObjet } from './format.js';
 import { coupe, dictionnaire, idUnique } from './donjon.js';
+import { normaliserGrille } from './univers-grille.js';
 import { FORMAT, VERSION, MAX_LIEUX, MAX_POINTS, LIMITES, imageValide, destinationValide, copieDestination, fraction } from './univers.js';
 
 const RE_ID = /^[A-Za-z0-9_-]{1,64}$/;
@@ -34,9 +35,10 @@ function validerLieu(brut, id, avertissements) {
     id, nom: coupe(brut.nom, LIMITES.nom).trim() || id, type: 'carte', image: { source: brut.image.source, id: brut.image.id },
     notes: typeof brut.notes === 'string' ? coupe(brut.notes, LIMITES.notes) : '', points: [],
   };
-  if (estObjet(brut.grille)) {
-    const { case: c, dx, dy } = brut.grille;
-    if (Number.isFinite(c) && c > 0 && Number.isFinite(dx ?? 0) && Number.isFinite(dy ?? 0)) lieu.grille = { case: c, dx: dx ?? 0, dy: dy ?? 0 };
+  if (brut.grille === null) lieu.grille = null; // « pas de grille », même si le catalogue en propose une
+  else if (brut.grille !== undefined) {
+    const g = normaliserGrille(brut.grille);
+    if (g) lieu.grille = g;
     else avertissements.push(`${etiquette} : grille invalide, écartée`);
   }
   const points = Array.isArray(brut.points) ? brut.points : [];
