@@ -1,0 +1,731 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Panneaux de Carte de MJ</title>
+<style>
+/* Mise en page : une colonne de lecture (≈ 980 px) ; les maquettes avant/après côte à côte, empilées sur téléphone.
+   Page volontairement sombre : elle montre l'appli dans son propre thème. Les jetons --* reprennent css/base.css,
+   les jetons --p-* sont la proposition. */
+:root {
+  color-scheme: dark;
+  /* Thème actuel (css/base.css) */
+  --fond: #16151a;
+  --panneau: #1f1e24;
+  --bord: #34323b;
+  --texte: #e8e4dc;
+  --texte-doux: #a29d94;
+  --accent: #d9a929;
+  --accent-texte: #1a1508;
+  --erreur: #e06c5a;
+  --champ: #121116;
+  --scene: #0c0b0e;
+  --succes: #4f9a5c;
+  --succes-texte: #7cc47c;
+
+  /* Proposition : jetons de panneau */
+  --p-texte-1: #ece8e0;   /* titres, valeurs, noms d'éléments */
+  --p-texte-2: #c3beb4;   /* texte courant, libellés de section */
+  --p-texte-3: #97928a;   /* étiquettes de champ, notes, méta */
+  --p-texte-4: #67635d;   /* indices, placeholders, compteurs */
+  --p-surface-0: #1f1e24; /* fond du panneau */
+  --p-surface-1: #26252c; /* en-tête de section, liste en creux */
+  --p-surface-survol: #2d2c34;
+  --p-filet: #2f2d35;     /* séparateur de section */
+  --p-filet-fort: #3d3a44;
+  --p-choisi: rgba(217, 169, 41, 0.13);
+
+  --police: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, monospace;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--fond); color: var(--texte); font: 15px/1.55 var(--police);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 40px 80px;
+}
+.page { max-width: 1000px; margin: 0 auto; display: flex; flex-direction: column; gap: 56px; }
+h1, h2, h3 { text-wrap: balance; margin: 0; }
+h1 { font-size: 34px; line-height: 1.15; letter-spacing: -0.01em; }
+.chapeau { max-width: 64ch; color: var(--p-texte-2); margin: 12px 0 0; font-size: 16px; }
+.sur { font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); font-weight: 600; margin: 0 0 10px; }
+section.bloc { display: flex; flex-direction: column; gap: 20px; }
+section.bloc > h2 { font-size: 24px; line-height: 1.2; }
+section.bloc > .intro { max-width: 66ch; color: var(--p-texte-2); margin: -8px 0 0; }
+p { margin: 0; }
+code { font-family: var(--mono); font-size: 0.86em; background: var(--panneau); border: 1px solid var(--bord); border-radius: 4px; padding: 1px 5px; color: var(--p-texte-1); }
+
+/* --- Diagnostic --- */
+.constats { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 12px; }
+.constat { background: var(--panneau); border: 1px solid var(--bord); border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.constat h3 { font-size: 15px; line-height: 1.3; color: var(--p-texte-1); }
+.constat p { color: var(--p-texte-2); font-size: 14px; }
+.constat .preuve { font-size: 12.5px; color: var(--p-texte-3); font-family: var(--mono); line-height: 1.5; overflow-wrap: anywhere; }
+
+/* Spécimen de l'échelle actuelle */
+.echelle { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.echelle > div { background: var(--panneau); border: 1px solid var(--bord); border-radius: 8px; padding: 16px; min-width: 0; }
+.echelle h3 { font-size: 13px; color: var(--p-texte-3); font-weight: 600; margin-bottom: 10px; }
+.echelle table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.echelle td { padding: 5px 0; border-top: 1px solid var(--bord); vertical-align: baseline; }
+.echelle td:last-child { text-align: right; color: var(--p-texte-3); font-family: var(--mono); font-size: 11.5px; white-space: nowrap; padding-left: 8px; }
+@media (max-width: 700px) { .echelle { grid-template-columns: 1fr; } }
+
+/* --- Comparaisons --- */
+.paire { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
+.paire figure { margin: 0; display: flex; flex-direction: column; gap: 10px; align-items: center; min-width: 0; }
+.paire figcaption { align-self: stretch; font-size: 13px; color: var(--p-texte-3); display: flex; gap: 8px; align-items: baseline; }
+.paire figcaption b { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; padding: 2px 7px; border-radius: 4px; }
+.paire .avant figcaption b { background: rgba(224, 108, 90, 0.15); color: var(--erreur); }
+.paire .apres figcaption b { background: rgba(124, 196, 124, 0.13); color: var(--succes-texte); }
+.ecran { width: 100%; max-width: 340px; border: 1px solid var(--bord); border-radius: 10px; overflow: hidden; background: var(--panneau); box-shadow: 0 12px 40px rgba(0,0,0,.45); }
+.cas h3 { font-size: 18px; }
+.cas > p { color: var(--p-texte-2); max-width: 70ch; font-size: 14px; }
+.cas { display: flex; flex-direction: column; gap: 14px; padding-top: 8px; }
+.changements { margin: 0; padding-left: 18px; color: var(--p-texte-2); font-size: 14px; display: flex; flex-direction: column; gap: 4px; }
+@media (max-width: 760px) { .paire { grid-template-columns: 1fr; } }
+
+/* ============ AVANT : reproduction fidèle des styles mesurés (origin/main, 6 nov.) ============ */
+.av { font: 15px/1.4 var(--police); color: var(--texte); background: var(--panneau); }
+.av .tete { display: flex; gap: 8px; padding: 12px 12px 8px; border-bottom: 1px solid var(--bord); }
+.av .tete .id { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.av .type { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--texte-doux); }
+.av .nom { font-size: 20px; font-weight: 600; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.av .resume { font-size: 13px; color: var(--texte-doux); }
+.av .corps { display: flex; flex-direction: column; gap: 16px; padding: 12px 12px 16px; }
+.av h4 { margin: 0; font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--texte-doux); }
+.av h4.j { font-size: 16px; font-weight: 700; }
+.av .lbl { font-size: 15px; font-weight: 600; display: block; margin-bottom: 4px; }
+.av .lbl.petit { font-size: 13px; }
+.av .note { font-size: 13px; color: var(--texte-doux); }
+.av .champ { background: var(--champ); border: 1px solid var(--bord); border-radius: 6px; padding: 7px 10px; font-size: 15px; color: var(--texte); }
+.av .champ.ph { color: var(--texte-doux); min-height: 64px; }
+.av .champ.long { min-height: 86px; font-size: 15px; line-height: 1.45; }
+.av .btn { display: inline-flex; align-items: center; gap: 8px; min-height: 34px; padding: 0 12px; border-radius: 6px; font-weight: 600; font-size: 15px; background: var(--panneau); border: 1px solid var(--bord); color: var(--texte); }
+.av .btn.d { background: transparent; border-color: transparent; color: var(--texte-doux); font-weight: 500; }
+.av .btn.sel { background: var(--champ); color: var(--texte); }
+.av .btn.p { font-size: 12px; min-height: 30px; padding: 0 8px; }
+.av .btn.or { color: var(--accent); border-color: var(--accent); background: rgba(217,169,41,.16); }
+.av .btn.vert { border-color: var(--succes); }
+.av .sum { font-size: 13px; color: var(--texte-doux); }
+.av .sum::before { content: "▸ "; }
+.av ul { margin: 0; padding-left: 18px; font-size: 13px; }
+.av .pt { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 6px; font-size: 14px; }
+.av .pt .btn { font-size: 15px; }
+.av .pt .doux { color: var(--texte-doux); font-size: 14px; }
+.av .ligne { display: flex; align-items: center; gap: 8px; font-size: 15px; }
+.av .ligne .champ { padding: 5px 8px; flex: 1; }
+.av .encadre { border: 1px solid var(--bord); border-radius: 6px; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+.av .onglets { display: flex; gap: 4px; padding: 6px; border-bottom: 1px solid var(--bord); }
+.av .onglets .btn { flex: 1; justify-content: center; }
+.av .elts { display: flex; flex-wrap: wrap; gap: 2px 4px; }
+.av .elts .btn { font-size: 13px; font-weight: 400; min-height: 26px; padding: 0 6px; }
+.av .arbre-l { display: flex; align-items: center; gap: 6px; font-size: 13px; padding: 4px 6px; }
+.av .arbre-g { color: var(--texte-doux); text-transform: uppercase; font-size: 13px; letter-spacing: .03em; }
+
+/* ============ APRÈS : la proposition, en jetons --p-* ============ */
+.ap { font: 14px/1.45 var(--police); color: var(--p-texte-2); background: var(--p-surface-0); }
+.ap .tete { display: flex; gap: 8px; padding: 14px 16px 14px; border-bottom: 1px solid var(--p-filet-fort); align-items: flex-start; }
+.ap .tete .id { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.ap .type { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .09em; color: var(--accent); }
+.ap .type svg { width: 13px; height: 13px; }
+.ap .nom { font-size: 18px; font-weight: 650; line-height: 1.25; color: var(--p-texte-1); }
+.ap .meta { font-size: 12.5px; color: var(--p-texte-3); font-variant-numeric: tabular-nums; }
+.ap .ico-btn { width: 30px; height: 30px; display: grid; place-items: center; border-radius: 6px; color: var(--p-texte-3); flex: none; }
+.ap .ico-btn svg { width: 17px; height: 17px; }
+.ap .ico-btn.cadre { border: 1px solid var(--p-filet-fort); }
+/* Section : un bandeau de titre cliquable (chevron, titre, compteur, aide, action), puis le corps */
+.ap .sec { border-bottom: 1px solid var(--p-filet); }
+.ap .sec:last-child { border-bottom: 0; }
+.ap .sec-tete { display: flex; align-items: center; gap: 6px; padding: 10px 10px 10px 12px; min-height: 40px; }
+.ap .sec-tete .chev { width: 14px; height: 14px; color: var(--p-texte-4); flex: none; }
+.ap .sec-tete .chev.ferme { transform: rotate(-90deg); }
+.ap .sec-titre { font-size: 13px; font-weight: 650; color: var(--p-texte-1); flex: 1; min-width: 0; }
+.ap .compte { font-size: 11.5px; font-weight: 600; color: var(--p-texte-3); background: var(--p-surface-1); border-radius: 999px; padding: 1px 7px; font-variant-numeric: tabular-nums; }
+.ap .sec-tete .ico-btn { width: 26px; height: 26px; }
+.ap .sec-tete .ico-btn svg { width: 15px; height: 15px; }
+.ap .sec-corps { padding: 0 16px 16px; display: flex; flex-direction: column; gap: 12px; }
+.ap .sec.repliee .sec-corps { display: none; }
+.ap .sec.repliee .sec-tete { color: var(--p-texte-2); }
+.ap .sec.repliee .sec-titre { color: var(--p-texte-2); font-weight: 600; }
+/* Champ : étiquette discrète au-dessus */
+.ap .champ { display: flex; flex-direction: column; gap: 5px; }
+.ap .etq { font-size: 12.5px; font-weight: 500; color: var(--p-texte-3); }
+.ap .saisie { background: var(--champ); border: 1px solid var(--bord); border-radius: 6px; padding: 7px 10px; color: var(--p-texte-1); font-size: 14px; }
+.ap .saisie.ph { color: var(--p-texte-4); min-height: 60px; }
+.ap .saisie.long { min-height: 80px; line-height: 1.5; color: var(--p-texte-1); }
+/* Propriétés : étiquette à gauche, valeur à droite, toutes alignées */
+.ap .props { display: grid; grid-template-columns: 92px 1fr; gap: 6px 10px; align-items: center; }
+.ap .props .etq { font-size: 13px; }
+.ap .sel { background: var(--champ); border: 1px solid var(--bord); border-radius: 6px; padding: 5px 9px; color: var(--p-texte-1); font-size: 13.5px; display: flex; justify-content: space-between; align-items: center; }
+.ap .sel::after { content: ""; width: 6px; height: 6px; border-right: 1.5px solid var(--p-texte-3); border-bottom: 1.5px solid var(--p-texte-3); transform: rotate(45deg) translateY(-2px); }
+/* Liste d'éléments : des rangées, nom à gauche, destination dessous, en creux */
+.ap .liste { display: flex; flex-direction: column; background: var(--p-surface-1); border-radius: 8px; padding: 4px; }
+.ap .rang { display: grid; grid-template-columns: 18px 1fr auto; gap: 2px 8px; align-items: center; padding: 7px 8px; border-radius: 6px; }
+.ap .rang svg { width: 15px; height: 15px; color: var(--p-texte-3); }
+.ap .rang .n { color: var(--p-texte-1); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.ap .rang .n.vide { color: var(--p-texte-3); font-style: italic; font-weight: 400; }
+.ap .rang .s { grid-column: 2 / 4; font-size: 12.5px; color: var(--p-texte-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.ap .rang .s b { font-weight: 500; color: var(--p-texte-2); }
+.ap .rang .pos { font-size: 12px; color: var(--p-texte-4); font-family: var(--mono); }
+.ap .rang.choisi { background: var(--p-choisi); }
+.ap .rang.choisi .n, .ap .rang.choisi svg { color: var(--accent); }
+.ap .rang.compact { padding: 5px 8px; }
+.ap .rang.compact .n { font-weight: 400; color: var(--p-texte-2); }
+/* Boutons : alignés à gauche, l'icône sur la marge du texte */
+.ap .btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.ap .b { display: inline-flex; align-items: center; gap: 7px; min-height: 32px; padding: 0 11px; border-radius: 6px; font-weight: 600; font-size: 13.5px; border: 1px solid var(--p-filet-fort); color: var(--p-texte-1); background: transparent; }
+.ap .b svg { width: 15px; height: 15px; }
+.ap .b.prim { background: var(--accent); border-color: var(--accent); color: var(--accent-texte); }
+.ap .b.lien { border-color: transparent; padding: 0; min-height: 28px; color: var(--p-texte-3); font-weight: 500; }
+.ap .b.plein { flex: 1; justify-content: center; }
+.ap .b.on { border-color: var(--succes); color: var(--succes-texte); background: rgba(79,154,92,.12); }
+.ap .indice { font-size: 12.5px; color: var(--p-texte-3); line-height: 1.45; }
+.ap .etat { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--p-texte-2); }
+.ap .etat .pastille { width: 8px; height: 8px; border-radius: 50%; background: var(--p-texte-4); flex: none; }
+.ap .case { display: flex; align-items: center; gap: 10px; color: var(--p-texte-1); font-size: 14px; }
+.ap .case i { width: 32px; height: 18px; border-radius: 999px; background: var(--p-filet-fort); position: relative; flex: none; }
+.ap .case i::after { content: ""; position: absolute; left: 2px; top: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--p-texte-2); }
+.ap .case i.on { background: var(--accent); }
+.ap .case i.on::after { left: 16px; background: var(--accent-texte); }
+.ap .onglets { display: flex; padding: 0 8px; border-bottom: 1px solid var(--p-filet-fort); }
+.ap .onglet { flex: 1; text-align: center; padding: 11px 0 9px; font-size: 13.5px; font-weight: 600; color: var(--p-texte-3); border-bottom: 2px solid transparent; }
+.ap .onglet.on { color: var(--p-texte-1); border-bottom-color: var(--accent); }
+.ap .compris { display: flex; flex-wrap: wrap; gap: 4px; }
+.ap .compris span { font-size: 12px; padding: 2px 8px; border-radius: 999px; background: var(--p-surface-1); color: var(--p-texte-2); }
+.ap .compris span.err { color: var(--erreur); background: rgba(224,108,90,.1); }
+.ap .lecture { font-size: 13px; color: var(--p-texte-3); font-style: italic; padding: 8px 10px; border-left: 2px solid var(--p-filet-fort); }
+/* Arbre */
+.ap .arbre-tete { display: flex; align-items: center; gap: 6px; padding: 12px 10px 12px 14px; border-bottom: 1px solid var(--p-filet-fort); }
+.ap .arbre-tete .t { flex: 1; font-size: 13px; font-weight: 650; color: var(--p-texte-1); }
+.ap .arbre { padding: 8px 6px 12px; display: flex; flex-direction: column; }
+.ap .grp { font-size: 11px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--p-texte-4); padding: 12px 8px 4px; }
+.ap .nd { display: flex; align-items: center; gap: 7px; padding: 5px 8px; border-radius: 6px; font-size: 14px; color: var(--p-texte-2); }
+.ap .nd svg { width: 15px; height: 15px; color: var(--p-texte-3); flex: none; }
+.ap .nd .chev { width: 12px; height: 12px; color: var(--p-texte-4); }
+.ap .nd .chev.ferme { transform: rotate(-90deg); }
+.ap .nd .vide { width: 12px; flex: none; }
+.ap .nd.n1 { padding-left: 22px; }
+.ap .nd.n2 { padding-left: 42px; }
+.ap .nd.parent { color: var(--p-texte-1); font-weight: 600; }
+.ap .nd.choisi { background: var(--p-choisi); color: var(--accent); font-weight: 600; }
+.ap .nd.choisi svg { color: var(--accent); }
+.ap .nd .pt-table { margin-left: auto; width: 7px; height: 7px; border-radius: 50%; background: var(--succes-texte); }
+
+/* --- Design system --- */
+.ds { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.ds > div { background: var(--panneau); border: 1px solid var(--bord); border-radius: 8px; padding: 18px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.ds h3 { font-size: 16px; color: var(--p-texte-1); }
+.ds .large { grid-column: 1 / -1; }
+@media (max-width: 760px) { .ds { grid-template-columns: 1fr; } }
+.specimen { display: flex; flex-direction: column; }
+.specimen .r { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: baseline; padding: 9px 0; border-top: 1px solid var(--bord); }
+.specimen .r:first-child { border-top: 0; }
+.specimen .r small { font-family: var(--mono); font-size: 11.5px; color: var(--p-texte-3); text-align: right; white-space: nowrap; }
+.specimen .r > span:first-child { min-width: 0; }
+.nuancier { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+.nuance { border: 1px solid var(--bord); border-radius: 6px; overflow: hidden; font-size: 12px; }
+.nuance div { height: 38px; display: flex; align-items: center; padding: 0 10px; font-weight: 600; }
+.nuance p { padding: 6px 10px; color: var(--p-texte-3); line-height: 1.35; }
+.nuance p code { background: none; border: 0; padding: 0; font-size: 11.5px; color: var(--p-texte-2); }
+.regles { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; counter-reset: r; }
+.regles li { display: grid; grid-template-columns: 26px 1fr; gap: 8px; font-size: 14px; color: var(--p-texte-2); }
+.regles li::before { counter-increment: r; content: counter(r); font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
+.regles li b { color: var(--p-texte-1); }
+.espaces { display: flex; flex-direction: column; gap: 8px; font-size: 13px; color: var(--p-texte-2); }
+.espaces div { display: grid; grid-template-columns: 54px 1fr; gap: 10px; align-items: center; }
+.espaces i { display: block; height: 12px; background: rgba(217,169,41,.35); border-radius: 2px; }
+.anatomie { display: grid; grid-template-columns: minmax(0, 340px) 1fr; gap: 24px; align-items: start; }
+.anatomie ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; font-size: 14px; color: var(--p-texte-2); }
+.anatomie ol b { color: var(--p-texte-1); }
+@media (max-width: 760px) { .anatomie { grid-template-columns: 1fr; } }
+.tableau { overflow-x: auto; }
+.tableau table { border-collapse: collapse; width: 100%; font-size: 13.5px; min-width: 560px; }
+.tableau th { text-align: left; font-size: 12px; color: var(--p-texte-3); font-weight: 600; padding: 6px 10px 6px 0; border-bottom: 1px solid var(--p-filet-fort); }
+.tableau td { padding: 8px 10px 8px 0; border-bottom: 1px solid var(--bord); color: var(--p-texte-2); vertical-align: top; }
+.tableau td:first-child { color: var(--p-texte-1); font-weight: 600; white-space: nowrap; }
+.etapes { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 10px; color: var(--p-texte-2); max-width: 74ch; }
+.etapes b { color: var(--p-texte-1); }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-dots" viewBox="0 0 24 24"><g fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></g></symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-6-5.5-6-11a6 6 0 0112 0c0 5.5-6 11-6 11z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="10" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/></symbol>
+    <symbol id="i-aide" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M9.6 9.3a2.5 2.5 0 014.8.9c0 1.7-2.4 2.1-2.4 3.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="17" r="1.1" fill="currentColor"/></symbol>
+    <symbol id="i-grille" viewBox="0 0 24 24"><path d="M4 4h16v16H4zM4 9.3h16M4 14.6h16M9.3 4v16M14.6 4v16" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+    <symbol id="i-livres" viewBox="0 0 24 24"><path d="M5 4v16M9 4v16M13 5l4 15M17 4.5l3.5 15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+    <symbol id="i-carte" viewBox="0 0 24 24"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2zM9 4v14M15 6v14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></symbol>
+    <symbol id="i-donjon" viewBox="0 0 24 24"><path d="M4 20V9l4-2v3l4-2 4 2V7l4 2v11zM10 20v-4a2 2 0 014 0v4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></symbol>
+    <symbol id="i-salle" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="1" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M10 19v-3h4v3" fill="none" stroke="currentColor" stroke-width="1.8"/></symbol>
+    <symbol id="i-monde" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M3 12h18M12 3c2.6 3 2.6 15 0 18M12 3c-2.6 3-2.6 15 0 18" fill="none" stroke="currentColor" stroke-width="1.5"/></symbol>
+    <symbol id="i-micro" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M6 11a6 6 0 0012 0M12 17v4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+    <symbol id="i-oeil" viewBox="0 0 24 24"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="12" r="2.8" fill="none" stroke="currentColor" stroke-width="1.7"/></symbol>
+    <symbol id="i-pion" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M5.5 20c.8-4 3.3-6 6.5-6s5.7 2 6.5 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+    <symbol id="i-objet" viewBox="0 0 24 24"><path d="M4 9h16v10H4zM4 9l2-4h12l2 4M10 13h4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></symbol>
+    <symbol id="i-gauche" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  </defs>
+</svg>
+
+<main class="page">
+
+<header>
+  <p class="sur">Carte de MJ · proposition de design</p>
+  <h1>Des panneaux qu'on lit d'un coup d'œil</h1>
+  <p class="chapeau">Règles de référence : <code>docs/design-panneaux.md</code>. Inventaire des panneaux latéraux de l'appli (l'arbre à gauche, l'inspecteur à droite dans Monde et Donjons, les trois onglets de Jouer), ce qui brouille leur hiérarchie, une petite grammaire pour les recomposer, puis quatre écrans avant et après. L'état « avant » est celui de <code>origin/main</code> au 6 novembre (en-tête d'inspecteur commun déjà en place).</p>
+</header>
+
+<!-- ============================== INVENTAIRE ============================== -->
+<section class="bloc">
+  <h2>Les panneaux de l'appli</h2>
+  <p class="intro">Une seule coquille (<code>js/atelier/coquille.js</code>) pose deux colonnes ; leur contenu vient de dix sources différentes, chacune avec ses propres titres et classes.</p>
+  <div class="tableau">
+    <table>
+      <thead><tr><th>Panneau</th><th>Où</th><th>Contenu</th><th>Code</th></tr></thead>
+      <tbody>
+        <tr><td>Arbre</td><td>Monde, Donjons, Jouer</td><td>groupes, mondes, lieux, donjons, salles ; menu « ⋯ »</td><td>atelier/arbre-vue.js</td></tr>
+        <tr><td>Inspecteur · Monde</td><td>Monde</td><td>nom, nombre de lieux, ajouter un lieu</td><td>inspecteurs-monde.js</td></tr>
+        <tr><td>Inspecteur · Lieu</td><td>Monde</td><td>points, notes, lieu de départ, grille, image</td><td>inspecteurs-monde.js</td></tr>
+        <tr><td>Inspecteur · Point</td><td>Monde</td><td>nom, destination (Carte · Donjon · Rien), caché</td><td>inspecteurs-monde.js</td></tr>
+        <tr><td>Inspecteur · Calage</td><td>Monde</td><td>réglages de la grille d'une carte</td><td>univers (calage)</td></tr>
+        <tr><td>Inspecteur · Donjon</td><td>Donjons</td><td>résumé, personnages, export</td><td>inspecteurs-donjon.js</td></tr>
+        <tr><td>Inspecteur · Salle</td><td>Donjons</td><td>description dictée, « Compris », notes, forme et ambiance, exemples, JSON</td><td>inspecteurs-donjon.js · mj/salle-forme.js</td></tr>
+        <tr><td>Inspecteur · Porte, Objet, Créature</td><td>Donjons</td><td>bulle de sélection</td><td>mj/bulle.js</td></tr>
+        <tr><td>Jouer · onglet Salle</td><td>Jouer</td><td>visibilité à la table, cette salle, éléments, notes</td><td>presentation (régie)</td></tr>
+        <tr><td>Jouer · onglet Joueurs</td><td>Jouer</td><td>personnages, ajout en cours de partie</td><td>presentation (régie)</td></tr>
+        <tr><td>Jouer · onglet Table</td><td>Jouer</td><td>fenêtre table, taille, écran, défilement, réglages</td><td>presentation (régie)</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ============================== DIAGNOSTIC ============================== -->
+<section class="bloc">
+  <h2>Pourquoi on ne voit pas la hiérarchie</h2>
+  <p class="intro">Relevé des tailles, graisses et couleurs calculées dans le navigateur, panneau par panneau. Le problème n'est pas un manque de style, c'est que presque tout se ressemble, et que ce qui devrait être discret crie plus fort que ce qui devrait structurer.</p>
+
+  <div class="constats">
+    <div class="constat">
+      <h3>1. Trois « petits gris en majuscules » pour trois rôles</h3>
+      <p>Le type de l'objet (LIEU), le titre de section (POINTS · 2, NOTES, CARTE) et les groupes de l'arbre (DONJONS HORS MONDE) ont presque le même style. L'œil ne sait pas lequel est un titre.</p>
+      <p class="preuve">type 11px/400 #a29d94 · section 12px/600 #a29d94 · groupe 13px/400 #a29d94</p>
+    </div>
+    <div class="constat">
+      <h3>2. Les étiquettes crient plus fort que les titres</h3>
+      <p>« Nom de la salle », « Notes de la salle » sont en 15px gras clair ; le titre de section au-dessus est en 12px gris. La hiérarchie est inversée.</p>
+      <p class="preuve">étiquette 15px/600 #e8e4dc &gt; section 12px/600 #a29d94</p>
+    </div>
+    <div class="constat">
+      <h3>3. Rien ne sépare les sections</h3>
+      <p>Les sections ne sont séparées que par 16px de vide. Le titre « NOTES » flotte à égale distance des points au-dessus et du champ dessous : on ne sait pas à quoi il appartient.</p>
+      <p class="preuve">.atelier-inspecteur-corps { gap: 16px } sans filet</p>
+    </div>
+    <div class="constat">
+      <h3>4. Le gris est partout</h3>
+      <p>Notes, aides, résumés, sommaires repliables, boutons discrets, éléments de liste, destination des points : tout est en #a29d94. Un seul niveau de gris pour sept usages, donc aucun ne ressort.</p>
+      <p class="preuve">texte-doux sur 41 % des lignes de l'onglet Salle</p>
+    </div>
+    <div class="constat">
+      <h3>5. Les listes ne sont pas des listes</h3>
+      <p>Les points sont des boutons suivis d'un texte qui passe à la ligne sous le bouton (« → Repaire / gobelin (tirage…) › Salle 1 »). Les éléments de Jouer sont 21 boutons gris en vrac. Pas de rangées, pas d'alignement.</p>
+      <p class="preuve">.pt : flex-wrap, bouton 15px + span 14px</p>
+    </div>
+    <div class="constat">
+      <h3>6. Les bords gauches ne s'alignent pas</h3>
+      <p>Un bouton discret a 12px de marge interne : « Point au centre », « Changer l'image » et le point non choisi sont décalés par rapport au texte. « Caler la grille » est centré. Quatre bords gauches dans un même panneau.</p>
+      <p class="preuve">.btn-discret padding 0 12px, pas d'annulation</p>
+    </div>
+    <div class="constat">
+      <h3>7. Sept tailles de texte dans 330 pixels</h3>
+      <p>11, 12, 13, 14, 15, 16 et 20 px se côtoient, avec des écarts de 1px qui ne se voient pas mais brouillent. Jouer a ses titres de section en 16px, Donjons en 13px, Monde en 12px.</p>
+      <p class="preuve">h2 Jouer 16px · h2 Donjons 13px · h3 Monde 12px</p>
+    </div>
+    <div class="constat">
+      <h3>8. Quatre manières de replier</h3>
+      <p>« ▸ Comment poser un point ? », « Forme et ambiance », la section Réglages qui contient un h2, l'aide « ? » : chacune a son style. On ne reconnaît pas ce qui s'ouvre.</p>
+      <p class="preuve">details.aide-bloc · .bloc-inspecteur · .reglages · .aide</p>
+    </div>
+  </div>
+
+  <div class="echelle">
+    <div>
+      <h3>Aujourd'hui, ce que l'œil voit dans Lieu</h3>
+      <table>
+        <tr><td style="font-size:20px;font-weight:600">Ruines oubliées</td><td>20 / 600 / clair</td></tr>
+        <tr><td style="font-size:15px;font-weight:600">Entrée du Repère</td><td>15 / 600 / clair (bouton)</td></tr>
+        <tr><td style="font-size:15px;font-weight:600">Lieu de départ du monde</td><td>15 / 400 / clair</td></tr>
+        <tr><td style="font-size:14px;color:var(--texte-doux)">→ Repaire gobelin</td><td>14 / 400 / gris</td></tr>
+        <tr><td style="font-size:13px;color:var(--texte-doux)">2 points</td><td>13 / 400 / gris</td></tr>
+        <tr><td style="font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--texte-doux)">Points · 2</td><td>12 / 600 / gris · MAJ</td></tr>
+        <tr><td style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--texte-doux)">Lieu</td><td>11 / 400 / gris · MAJ</td></tr>
+      </table>
+    </div>
+    <div>
+      <h3>Proposé : quatre niveaux, chacun a un rôle</h3>
+      <table>
+        <tr><td style="font-size:18px;font-weight:650;color:var(--p-texte-1)">Ruines oubliées</td><td>nom · 18 / 650 / T1</td></tr>
+        <tr><td style="font-size:13px;font-weight:650;color:var(--p-texte-1)">Points</td><td>section · 13 / 650 / T1</td></tr>
+        <tr><td style="font-size:14px;font-weight:500;color:var(--p-texte-1)">Entrée du Repère</td><td>élément · 14 / 500 / T1</td></tr>
+        <tr><td style="font-size:14px;color:var(--p-texte-2)">Texte courant, valeurs</td><td>corps · 14 / 400 / T2</td></tr>
+        <tr><td style="font-size:12.5px;color:var(--p-texte-3)">Notes · étiquettes · destination</td><td>méta · 12,5 / 400–500 / T3</td></tr>
+        <tr><td style="font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--accent)">Lieu</td><td>type · 11 / 600 / or · MAJ</td></tr>
+        <tr><td style="font-size:12px;color:var(--p-texte-4)">placeholder, compteur</td><td>12 / 400 / T4</td></tr>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== DESIGN SYSTEM ============================== -->
+<section class="bloc">
+  <h2>La grammaire des panneaux</h2>
+  <p class="intro">Une seule structure pour tous les panneaux, quatre niveaux de texte, deux surfaces, un séparateur. Les jetons <code>--p-*</code> s'ajoutent à <code>css/base.css</code> ; rien ne change dans la scène ni dans les autres pages.</p>
+
+  <div class="ds">
+    <div class="large">
+      <h3>Anatomie d'un panneau</h3>
+      <div class="anatomie">
+        <div class="ecran ap">
+          <div class="tete">
+            <div class="id">
+              <span class="type"><svg><use href="#i-carte"/></svg>Lieu</span>
+              <span class="nom">Ruines oubliées dans la forêt</span>
+              <span class="meta">2 points · 24 × 18 cases</span>
+            </div>
+            <span class="ico-btn"><svg><use href="#i-dots"/></svg></span>
+          </div>
+          <div class="sec">
+            <div class="sec-tete"><svg class="chev"><use href="#i-chev"/></svg><span class="sec-titre">Section ouverte</span><span class="compte">2</span><span class="ico-btn"><svg><use href="#i-aide"/></svg></span><span class="ico-btn"><svg><use href="#i-plus"/></svg></span></div>
+            <div class="sec-corps">
+              <div class="champ"><span class="etq">Étiquette de champ</span><div class="saisie">Valeur saisie</div></div>
+              <span class="indice">Une note d'aide, courte, en dessous de ce qu'elle explique.</span>
+            </div>
+          </div>
+          <div class="sec repliee">
+            <div class="sec-tete"><svg class="chev ferme"><use href="#i-chev"/></svg><span class="sec-titre">Section repliée</span></div>
+          </div>
+        </div>
+        <ol>
+          <li><b>En-tête collé.</b> Type en or avec son icône (le seul texte en majuscules du panneau), nom en 18px, une ligne de méta. Le menu « ⋯ » à droite. Rien d'autre.</li>
+          <li><b>Section.</b> Un bandeau de 40px : chevron, titre en 13px clair et gras (en casse normale), compteur en pastille, puis à droite l'aide « ? » et l'action principale de la section (« + »). Le bandeau entier ouvre et ferme.</li>
+          <li><b>Filet entre sections</b>, sur toute la largeur. Le titre appartient visiblement à ce qui suit.</li>
+          <li><b>Corps</b> en retrait de 16px, 12px entre les éléments. Étiquettes en gris, au-dessus du champ, plus petites que la valeur.</li>
+          <li><b>Repliée</b> : seul le bandeau reste, en T2. L'état est gardé par panneau (comme les plis de l'arbre).</li>
+        </ol>
+      </div>
+    </div>
+
+    <div>
+      <h3>Niveaux de texte</h3>
+      <div class="nuancier">
+        <div class="nuance"><div style="background:var(--p-surface-0);color:var(--p-texte-1)">T1 · Titres</div><p><code>--p-texte-1</code> #ece8e0. Nom, titres de section, noms d'éléments, valeurs saisies.</p></div>
+        <div class="nuance"><div style="background:var(--p-surface-0);color:var(--p-texte-2)">T2 · Corps</div><p><code>--p-texte-2</code> #c3beb4. Texte courant, éléments secondaires.</p></div>
+        <div class="nuance"><div style="background:var(--p-surface-0);color:var(--p-texte-3)">T3 · Méta</div><p><code>--p-texte-3</code> #97928a. Étiquettes, notes, destinations, méta.</p></div>
+        <div class="nuance"><div style="background:var(--p-surface-0);color:var(--p-texte-4)">T4 · Indice</div><p><code>--p-texte-4</code> #67635d. Placeholders, compteurs vides, groupes de l'arbre. Jamais seul porteur d'une information.</p></div>
+      </div>
+      <p class="indice" style="color:var(--p-texte-3);font-size:13px">Contraste sur le panneau : T1 13,5 · T2 8,9 · T3 5,4 (4,9 dans une liste en creux) · T4 2,8. Les trois premiers passent le niveau AA pour du texte courant, y compris sur la surface 1 ; T4 est réservé à ce qui se devine (placeholder, pastille vide).</p>
+    </div>
+
+    <div>
+      <h3>Surfaces et espaces</h3>
+      <div class="nuancier">
+        <div class="nuance"><div style="background:var(--p-surface-0);color:var(--p-texte-2)">Surface 0</div><p><code>--p-surface-0</code> fond du panneau (= --panneau).</p></div>
+        <div class="nuance"><div style="background:var(--p-surface-1);color:var(--p-texte-2)">Surface 1</div><p><code>--p-surface-1</code> listes en creux, pastilles.</p></div>
+        <div class="nuance"><div style="background:var(--p-choisi);color:var(--accent)">Choisi</div><p><code>--p-choisi</code> sélection, partout pareille (arbre, listes).</p></div>
+        <div class="nuance"><div style="background:var(--p-surface-0);border-bottom:1px solid var(--p-filet-fort);color:var(--p-texte-3)">Filets</div><p><code>--p-filet</code> entre sections, <code>--p-filet-fort</code> sous l'en-tête.</p></div>
+      </div>
+      <div class="espaces">
+        <div><span>4 px</span><i style="width:4px"></i></div>
+        <div><span>8 px</span><i style="width:8px"></i></div>
+        <div><span>12 px</span><i style="width:12px"></i></div>
+        <div><span>16 px</span><i style="width:16px"></i></div>
+      </div>
+      <p class="indice" style="color:var(--p-texte-3);font-size:13px">Marge du panneau 16px. Entre éléments d'une section 12px. Étiquette → champ 5px. Les jetons <code>--esp-1</code> à <code>--esp-4</code> existent déjà.</p>
+    </div>
+
+    <div class="large">
+      <h3>Composants</h3>
+      <div class="tableau">
+        <table>
+          <thead><tr><th>Composant</th><th>Quand</th><th>Règle</th><th>Remplace</th></tr></thead>
+          <tbody>
+            <tr><td>En-tête</td><td>chaque panneau</td><td>type · nom · méta · « ⋯ ». Le nom est modifiable sur place.</td><td>.atelier-inspecteur-tete</td></tr>
+            <tr><td>Section</td><td>tout groupe de contenu</td><td>bandeau repliable + compteur + aide + action ; filet dessous</td><td>.insp-section, .bloc-inspecteur, .retour, .cette-salle, .bloc-notes, .reglages, .aide-bloc</td></tr>
+            <tr><td>Champ</td><td>une saisie</td><td>étiquette T3 12,5px au-dessus, valeur T1</td><td>.champ-inspecteur, .outil-etiquette, label 15px gras</td></tr>
+            <tr><td>Propriétés</td><td>plusieurs menus courts</td><td>grille 2 colonnes : étiquette 92px, valeur</td><td>label.ligne (Sol, Ambiance, Rotation…)</td></tr>
+            <tr><td>Liste</td><td>points, éléments, personnages</td><td>rangées en creux : icône · nom T1 · position ; sous-ligne T3 tronquée</td><td>.univers-liste, .elements-salle, boutons en vrac</td></tr>
+            <tr><td>Interrupteur</td><td>un oui/non</td><td>libellé à droite, toujours aligné sur le bord du corps</td><td>cases à cocher nues, .univers-interrupteur</td></tr>
+            <tr><td>Rangée de boutons</td><td>actions d'une section</td><td>alignés à gauche ; boutons à filet ; un seul primaire par panneau</td><td>.actions, boutons centrés, btn-discret décalés</td></tr>
+            <tr><td>Lien d'action</td><td>action secondaire dans un texte</td><td>texte T3 souligné au survol, sans marge interne</td><td>.btn-discret dans le corps</td></tr>
+            <tr><td>Onglets</td><td>Jouer</td><td>soulignés d'or, pas de fond</td><td>.atelier-onglet (boutons à fond doré)</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="large">
+      <h3>Huit règles</h3>
+      <ol class="regles">
+        <li><span><b>Les majuscules ne servent qu'au type de l'objet</b> (en or, en tête) et aux groupes de l'arbre. Les titres de section sont en casse normale, clairs et gras.</span></li>
+        <li><span><b>Une étiquette est toujours plus discrète que ce qu'elle nomme.</b> Étiquette T3, valeur T1.</span></li>
+        <li><span><b>Un titre de section est plus fort que tout ce qu'il contient</b>, sauf les noms d'éléments, qui sont au même niveau mais en graisse moyenne.</span></li>
+        <li><span><b>Un seul bord gauche.</b> Tout le corps s'aligne à 16px : texte, champs, boutons, icônes. Pas de bouton centré, pas de marge interne qui décale.</span></li>
+        <li><span><b>Une liste est une liste</b> : des rangées de même hauteur, en creux, nom à gauche, position à droite, détail en dessous et tronqué.</span></li>
+        <li><span><b>Un seul geste pour replier</b> : le bandeau de section. L'aide est un « ? » dans le bandeau, jamais une ligne « ▸ Comment… ? » dans le corps.</span></li>
+        <li><span><b>Un seul primaire doré par panneau</b> (règle déjà écrite dans base.css), et la sélection a le même aspect dans l'arbre et dans les listes.</span></li>
+        <li><span><b>Le rare d'abord replié</b> : JSON, exemples, réglages d'écran. Une section repliée montre son compteur pour qu'on sache ce qu'elle cache.</span></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== AVANT / APRÈS ============================== -->
+<section class="bloc">
+  <h2>Avant et après</h2>
+  <p class="intro">Mêmes contenus, mêmes fonctions : seules la structure et la typographie changent. Les maquettes sont à la largeur réelle de l'inspecteur (330px).</p>
+
+  <!-- ---------- 1. LIEU ---------- -->
+  <div class="cas">
+    <h3>Monde · Lieu</h3>
+    <p>L'écran de ta capture. Les points deviennent une vraie liste, l'aide passe dans le bandeau, « Point au centre » devient l'action « + » de la section. Les réglages de la carte (départ, grille, image) se regroupent.</p>
+    <div class="paire">
+      <figure class="avant">
+        <figcaption><b>Avant</b> origin/main</figcaption>
+        <div class="ecran av">
+          <div class="tete"><div class="id"><span class="type">Lieu</span><span class="nom">Ruines oubliées dans la forêt</span><span class="resume">2 points</span></div><span class="btn d" style="padding:0 6px"><svg width="18" height="18"><use href="#i-dots"/></svg></span></div>
+          <div class="corps">
+            <h4>Points · 2</h4>
+            <div class="pt"><span class="btn sel">Entrée du Repere de gobelins</span><span class="doux">→ Repaire gobelin (tirage 577889) › Salle 1</span></div>
+            <div class="pt"><span class="btn d">Point sans nom</span><span class="doux">→ Village automnal au bord du lac</span></div>
+            <span class="btn d" style="align-self:flex-start"><svg width="18" height="18"><use href="#i-pin"/></svg>Point au centre</span>
+            <span class="sum">Comment poser un point ?</span>
+            <h4>Notes</h4>
+            <div class="champ ph">Ce que les joueurs savent, ce qui se cache ici…</div>
+            <h4>Carte</h4>
+            <div class="ligne"><span style="width:16px;height:16px;border:1px solid var(--bord);border-radius:3px;background:var(--champ)"></span>Lieu de départ du monde</div>
+            <span class="note">Carte d'ambiance, sans grille</span>
+            <span class="btn d" style="align-self:center"><svg width="18" height="18"><use href="#i-grille"/></svg>Caler la grille</span>
+            <span class="btn d" style="align-self:flex-start"><svg width="18" height="18"><use href="#i-livres"/></svg>Changer l'image</span>
+          </div>
+        </div>
+      </figure>
+      <figure class="apres">
+        <figcaption><b>Après</b> proposition</figcaption>
+        <div class="ecran ap">
+          <div class="tete"><div class="id"><span class="type"><svg><use href="#i-carte"/></svg>Lieu</span><span class="nom">Ruines oubliées dans la forêt</span><span class="meta">2 points · carte d'ambiance</span></div><span class="ico-btn"><svg><use href="#i-dots"/></svg></span></div>
+          <div class="sec">
+            <div class="sec-tete"><svg class="chev"><use href="#i-chev"/></svg><span class="sec-titre">Points</span><span class="compte">2</span><span class="ico-btn" title="Comment poser un point ?"><svg><use href="#i-aide"/></svg></span><span class="ico-btn" title="Point au centre"><svg><use href="#i-plus"/></svg></span></div>
+            <div class="sec-corps">
+              <div class="liste">
+                <div class="rang choisi"><svg><use href="#i-donjon"/></svg><span class="n">Entrée du Repère de gobelins</span><span></span><span class="s">vers <b>Repaire gobelin</b> › Salle 1</span></div>
+                <div class="rang"><svg><use href="#i-carte"/></svg><span class="n vide">Point sans nom</span><span></span><span class="s">vers <b>Village automnal au bord du lac</b></span></div>
+              </div>
+            </div>
+          </div>
+          <div class="sec">
+            <div class="sec-tete"><svg class="chev"><use href="#i-chev"/></svg><span class="sec-titre">Notes</span></div>
+            <div class="sec-corps"><div class="saisie ph">Ce que les joueurs savent, ce qui se cache ici…</div></div>
+          </div>
+          <div class="sec">
+            <div class="sec-tete"><svg class="chev"><use href="#i-chev"/></svg><span class="sec-titre">Carte</span></div>
+            <div class="sec-corps">
+              <label class="case"><i></i>Lieu de départ du monde</label>
+              <div class="etat"><span class="pastille"></span>Carte d'ambiance, sans grille</div>
+              <div class="btns"><span class="b"><svg><use href="#i-grille"/></svg>Caler la grille</span><span class="b"><svg><use href="#i-livres"/></svg>Changer l'image</span></div>
+            </div>
+          </div>
+        </div>
+      </figure>
+    </div>
+    <ul class="changements">
+      <li>Le titre « Points » est plus fort que les noms de points, et les notes d'aide disparaissent du corps.</li>
+      <li>La destination tient sur une ligne, tronquée, avec l'icône de son genre (carte ou donjon) : on lit la liste en colonne.</li>
+      <li>Un « Point sans nom » est en italique T3 : c'est une absence, pas un nom.</li>
+    </ul>
+  </div>
+
+  <!-- ---------- 2. SALLE ---------- -->
+  <div class="cas">
+    <h3>Donjons · Salle</h3>
+    <p>Le panneau le plus long. La description reste en haut ; « Compris » devient une ligne de pastilles repliable ; Forme, Sol, Ambiance, État, Éclairage passent en grille de propriétés ; JSON et Exemples sont repliés.</p>
+    <div class="paire">
+      <figure class="avant">
+        <figcaption><b>Avant</b> origin/main</figcaption>
+        <div class="ecran av">
+          <div class="tete"><div class="id"><span class="type">Salle</span><span class="nom">Salle 1</span><span class="resume">8 × 6 cases (12 × 9 m) · pierre</span></div><span class="btn d" style="padding:0 6px"><svg width="18" height="18"><use href="#i-dots"/></svg></span></div>
+          <div class="corps">
+            <div class="champ long">salle usée de 8 par 6 cases, une porte au mur sud en D, un tapis en C3, un brasero en A1…</div>
+            <div style="display:flex;gap:8px"><span class="btn"><svg width="18" height="18"><use href="#i-micro"/></svg>Dicter</span><span class="btn d">Effacer</span></div>
+            <span class="note">Clique une porte sur la carte pour créer la salle suivante.</span>
+            <div><h4 style="margin-bottom:6px">Compris</h4><ul><li>pièce de 8 × 6 cases (12 × 9 m)</li><li>état de la salle : usée</li><li>1 porte : porte (mur sud)</li><li>1 tapis — en C3</li><li>1 brasero — en A1</li><li>3 bougies — en F2</li><li style="color:var(--texte-doux);list-style:none;margin-left:-18px">… 8 lignes de plus</li></ul><span class="note">Mots non compris : ouest</span></div>
+            <div><span class="lbl petit">Notes de la salle</span><div class="champ ph">Secrets, pièges, trésors… Ces notes ne sont jamais réécrites par la description.</div></div>
+            <span class="sum">Forme et ambiance</span>
+            <span class="sum">Exemples</span>
+            <span class="sum">Avancé : plan JSON, signaler une erreur</span>
+          </div>
+        </div>
+      </figure>
+      <figure class="apres">
+        <figcaption><b>Après</b> proposition</figcaption>
+        <div class="ecran ap">
+          <div class="tete"><div class="id"><span class="type"><svg><use href="#i-salle"/></svg>Salle</span><span class="nom">Salle 1</span><span class="meta">8 × 6 cases · 12 × 9 m · pierre</span></div><span class="ico-btn"><svg><use href="#i-dots"/></svg></span></div>
+          <div class="sec">
+            <div class="sec-tete"><svg class="chev"><use href="#i-chev"/></svg><span class="sec-titre">Description</span><span class="ico-btn" title="Exemples de descriptions"><svg><use href="#i-aide"/></svg></span></div>
+            <div class="sec-corps">
+              <div class="saisie long">salle usée de 8 par 6 cases, une porte au mur sud en D, un tapis en C3, un brasero en A1…</div>
+              <div class="btns"><span class="b"><svg><use href="#i-micro"/></svg>Dicter</span><span class="b lien">Effacer</span></div>
+              <div class="champ"><span class="etq">Compris · 14 éléments</span>
+                <div class="compris"><span>8 × 6 cases</span><span>usée</span><span>porte sud</span><span>tapis C3</span><span>brasero A1</span><span>3 bougies F2</span><span>+ 8</span><span class="err">« ouest » ?</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="sec">
+            <div class="sec-tete"><svg class="chev"><use href="#i-chev"/></svg><span class="sec-titre">Notes du MJ</span></div>
+            <div class="sec-corps"><div class="saisie ph">Secrets, pièges, trésors…</div><span class="indice">Jamais réécrites par la description.</span></div>
+          </div>
+          <div class="sec">
+            <div class="sec-tete"><svg class="chev"><use href="#i-chev"/></svg><span class="sec-titre">Forme et ambiance</span></div>
+            <div class="sec-corps">
+              <div class="props">
+                <span class="etq">Forme</span><span class="sel">Rectangle</span>
+                <span class="etq">Sol</span><span class="sel">Pierre</span>
+                <span class="etq">Ambiance</span><span class="sel">Neutre</span>
+                <span class="etq">État</span><span class="sel">Usée</span>
+                <span class="etq">Éclairage</span><span class="sel">Pénombre</span>
+              </div>
+            </div>
+          </div>
+          <div class="sec repliee"><div class="sec-tete"><svg class="chev ferme"><use href="#i-chev"/></svg><span class="sec-titre">Avancé</span><span class="compte">JSON</span></div></div>
+        </div>
+      </figure>
+    </div>
+    <ul class="changements">
+      <li>« Clique une porte… » quitte le panneau : c'est une aide de la scène, elle va dans la barre d'outils ou dans le « ? ».</li>
+      <li>Les 14 lignes de « Compris » deviennent des pastilles ; les mots non compris ressortent en rouge au lieu d'une note grise en bas.</li>
+      <li>Les 12 boutons de forme deviennent un menu (avec vignettes) dans la grille de propriétés.</li>
+    </ul>
+  </div>
+
+  <!-- ---------- 3. JOUER · SALLE ---------- -->
+  <div class="cas">
+    <h3>Jouer · onglet Salle</h3>
+    <p>En partie, le MJ cherche vite. Les 21 éléments deviennent une liste groupée (pions puis objets) avec leur case, les deux bascules de visibilité passent en tête, et les notes de préparation se lisent comme une citation.</p>
+    <div class="paire">
+      <figure class="avant">
+        <figcaption><b>Avant</b> origin/main</figcaption>
+        <div class="ecran av">
+          <div class="onglets"><span class="btn or">Salle</span><span class="btn d">Joueurs</span><span class="btn d">Table</span></div>
+          <div class="corps">
+            <div style="display:flex;flex-direction:column;gap:6px;font-size:14px"><span class="note" style="font-size:14px">À la table :</span><span class="btn vert" style="justify-content:center;font-size:14px"><svg width="18" height="18"><use href="#i-oeil"/></svg>Monstres visibles</span><span class="btn vert" style="justify-content:center;font-size:14px"><svg width="18" height="18"><use href="#i-oeil"/></svg>Objets visibles</span></div>
+            <div class="encadre"><h4 class="j">Cette salle</h4><span class="note">Aucun élément caché dans cette salle.</span><span class="btn d" style="opacity:.5;align-self:flex-start">Révéler toute la salle</span><span class="note">Portes de la salle :</span><span class="sum" style="font-size:14px">Éléments de la salle (21)</span>
+              <div class="elts"><span class="btn d">gobelin 1 · D4</span><span class="btn d">Joueur 1 (P1) · F4</span><span class="btn d">Joueur 2 (P2) · F5</span><span class="btn d">torche · E1</span><span class="btn d">torche · E8</span><span class="btn d">pilier · D3</span><span class="btn d">pilier · G3</span><span class="btn d">…</span></div></div>
+            <h4 class="j">Notes de la salle</h4>
+            <span class="note">Préparation (lecture seule) :</span>
+            <div class="champ" style="font-style:italic;color:var(--texte-doux);background:transparent">Aucune note pour cette salle.</div>
+            <span class="note">Notes de partie, prises en jouant (enregistrées avec la partie, jamais envoyées à la table) :</span>
+            <div class="champ ph">Ce qui se passe dans cette salle…</div>
+          </div>
+        </div>
+      </figure>
+      <figure class="apres">
+        <figcaption><b>Après</b> proposition</figcaption>
+        <div class="ecran ap">
+          <div class="onglets"><span class="onglet on">Salle</span><span class="onglet">Joueurs</span><span class="onglet">Table</span></div>
+          <div class="tete"><div class="id"><span class="type"><svg><use href="#i-salle"/></svg>Salle à la table</span><span class="nom">Salle 1</span><span class="meta">rien de caché · 3 portes</span></div><span class="ico-btn"><svg><use href="#i-dots"/></svg></span></div>
+          <div class="sec">
+            <div class="sec-tete"><svg class="chev"><use href="#i-chev"/></svg><span class="sec-titre">Visible à la table</span></div>
+            <div class="sec-corps"><div class="btns"><span class="b on plein"><svg><use href="#i-oeil"/></svg>Monstres</span><span class="b on plein"><svg><use href="#i-oeil"/></svg>Objets</span></div></div>
+          </div>
+          <div class="sec">
+            <div class="sec-tete"><svg class="chev"><use href="#i-chev"/></svg><span class="sec-titre">Éléments</span><span class="compte">21</span></div>
+            <div class="sec-corps">
+              <div class="liste">
+                <div class="rang compact"><svg><use href="#i-pion"/></svg><span class="n">gobelin 1</span><span class="pos">D4</span></div>
+                <div class="rang compact"><svg><use href="#i-pion"/></svg><span class="n">Joueur 1 · P1</span><span class="pos">F4</span></div>
+                <div class="rang compact"><svg><use href="#i-pion"/></svg><span class="n">Joueur 2 · P2</span><span class="pos">F5</span></div>
+                <div class="rang compact"><svg><use href="#i-objet"/></svg><span class="n">torche × 2</span><span class="pos">E1 E8</span></div>
+                <div class="rang compact"><svg><use href="#i-objet"/></svg><span class="n">pilier × 4</span><span class="pos">D3 G3…</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="sec">
+            <div class="sec-tete"><svg class="chev"><use href="#i-chev"/></svg><span class="sec-titre">Notes</span></div>
+            <div class="sec-corps">
+              <div class="champ"><span class="etq">Préparation</span><div class="lecture">Aucune note pour cette salle.</div></div>
+              <div class="champ"><span class="etq">Pendant la partie</span><div class="saisie ph">Ce qui se passe dans cette salle…</div><span class="indice">Gardées avec la partie, jamais montrées à la table.</span></div>
+            </div>
+          </div>
+        </div>
+      </figure>
+    </div>
+    <ul class="changements">
+      <li>Les onglets ne sont plus des boutons dorés : l'or reste pour la sélection et le bouton principal.</li>
+      <li>« Révéler toute la salle » désactivé disparaît quand il n'y a rien à révéler ; l'état est dans la méta.</li>
+      <li>Les objets identiques se regroupent (« pilier × 4 »).</li>
+    </ul>
+  </div>
+
+  <!-- ---------- 4. ARBRE ---------- -->
+  <div class="cas">
+    <h3>L'arbre</h3>
+    <p>Les groupes passent au plus discret (T4), les parents au plus fort, la sélection prend le même fond que dans les listes. Le texte passe de 13 à 14px pour suivre le corps des panneaux.</p>
+    <div class="paire">
+      <figure class="avant">
+        <figcaption><b>Avant</b> origin/main</figcaption>
+        <div class="ecran av" style="max-width:260px">
+          <div class="tete" style="align-items:center"><span class="type" style="flex:1;font-size:13px;font-weight:700">L'atelier</span><span class="btn d" style="padding:0 6px"><svg width="18" height="18"><use href="#i-dots"/></svg></span><span class="btn d" style="padding:0 6px"><svg width="16" height="16"><use href="#i-gauche"/></svg></span></div>
+          <div style="padding:8px">
+            <div class="arbre-l"><svg width="12" height="12"><use href="#i-chev"/></svg><svg width="14" height="14" style="color:var(--texte-doux)"><use href="#i-monde"/></svg><span class="arbre-g">Ruines du Nord</span></div>
+            <div class="arbre-l" style="padding-left:24px"><svg width="12" height="12"><use href="#i-chev"/></svg><svg width="14" height="14"><use href="#i-carte"/></svg>Ruines oubliées dans la forêt</div>
+            <div class="arbre-l" style="padding-left:44px"><svg width="12" height="12" style="transform:rotate(-90deg)"><use href="#i-chev"/></svg><svg width="14" height="14"><use href="#i-carte"/></svg>Village automnal au bord…</div>
+            <div class="arbre-l"><svg width="12" height="12"><use href="#i-chev"/></svg><svg width="14" height="14" style="color:var(--texte-doux)"><use href="#i-donjon"/></svg><span class="arbre-g">Donjons hors monde</span></div>
+            <div class="arbre-l" style="padding-left:24px"><svg width="12" height="12"><use href="#i-chev"/></svg><svg width="14" height="14"><use href="#i-donjon"/></svg>Repaire gobelin</div>
+            <div class="arbre-l" style="padding-left:44px;color:var(--accent);border:1px solid var(--accent);border-radius:6px"><svg width="14" height="14"><use href="#i-salle"/></svg>Salle 1</div>
+            <div class="arbre-l" style="padding-left:44px"><svg width="14" height="14"><use href="#i-salle"/></svg>Salle 2</div>
+          </div>
+        </div>
+      </figure>
+      <figure class="apres">
+        <figcaption><b>Après</b> proposition</figcaption>
+        <div class="ecran ap" style="max-width:260px">
+          <div class="arbre-tete"><span class="t">L'atelier</span><span class="ico-btn"><svg><use href="#i-dots"/></svg></span><span class="ico-btn"><svg><use href="#i-gauche"/></svg></span></div>
+          <div class="arbre">
+            <span class="grp">Mondes</span>
+            <div class="nd parent"><svg class="chev"><use href="#i-chev"/></svg><svg><use href="#i-monde"/></svg>Ruines du Nord</div>
+            <div class="nd n1"><svg class="chev"><use href="#i-chev"/></svg><svg><use href="#i-carte"/></svg>Ruines oubliées dans la forêt</div>
+            <div class="nd n2"><svg class="chev ferme"><use href="#i-chev"/></svg><svg><use href="#i-carte"/></svg>Village automnal au bord…</div>
+            <span class="grp">Donjons hors monde</span>
+            <div class="nd parent"><svg class="chev"><use href="#i-chev"/></svg><svg><use href="#i-donjon"/></svg>Repaire gobelin</div>
+            <div class="nd n1 choisi"><span class="vide"></span><svg><use href="#i-salle"/></svg>Salle 1<span class="pt-table" title="À la table"></span></div>
+            <div class="nd n1"><span class="vide"></span><svg><use href="#i-salle"/></svg>Salle 2</div>
+          </div>
+        </div>
+      </figure>
+    </div>
+    <ul class="changements">
+      <li>Le monde n'est plus en majuscules grises comme un groupe : c'est un objet, il est en T1 gras.</li>
+      <li>Les groupes (« Mondes », « Donjons hors monde ») sont des intertitres sans chevron ni icône.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============================== MISE EN ŒUVRE ============================== -->
+<section class="bloc">
+  <h2>Mise en œuvre</h2>
+  <p class="intro">Faisable par étapes, sans toucher à la logique des inspecteurs : la plupart des changements sont du CSS et un composant « section » commun.</p>
+  <ol class="etapes">
+    <li><b>Jetons.</b> Ajouter les <code>--p-*</code> dans <code>css/base.css</code> et réécrire la typographie de <code>.atelier-inspecteur</code> et <code>.atelier-arbre</code> dans <code>css/atelier.css</code>. Gain immédiat sur les règles 1, 2 et 4, sans toucher au JS.</li>
+    <li><b>Composant section.</b> Une fonction <code>section({ titre, compte, aide, action, repliee })</code> à côté de <code>js/atelier/inspecteur.js</code>, avec l'état replié mémorisé en session comme les plis de l'arbre. Les inspecteurs Monde, Lieu, Point, Donjon et Salle l'adoptent.</li>
+    <li><b>Listes.</b> Un composant rangée (icône, nom, position, sous-ligne) pour les points, les éléments de Jouer et les personnages.</li>
+    <li><b>Jouer.</b> Les trois onglets de la régie passent au même modèle (en-tête, sections), onglets soulignés.</li>
+    <li><b>Téléphone.</b> Le panneau bas garde la même grammaire ; replié, il montre l'en-tête seul (déjà le cas aujourd'hui).</li>
+  </ol>
+</section>
+
+</main>
+</body>
+</html>

@@ -1,6 +1,7 @@
 /* Carte de MJ — l'atelier : arbre à gauche, scène au centre, inspecteur à droite (js/atelier/coquille.js).
    Charge après donjon.css et univers.css. Jetons de css/base.css. La grille de la page est dans donjon.css (colonnes de body) ;
    ici : les composants (arbre, inspecteur, barre d'outils, onglets) et leur version téléphone (tiroir, panneau bas).
+   Composition et typographie des panneaux : docs/design-panneaux.md (à suivre pour toute modification).
    Au-dessus de 760 px : ordinateur. En dessous : l'arbre est un tiroir, l'inspecteur un panneau bas repliable. */
 
 :root { --largeur-arbre: 260px; --largeur-inspecteur: 0px; }

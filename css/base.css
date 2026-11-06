@@ -15,6 +15,7 @@
    Cibles tactiles : --cible vaut 44 px sous 760 px ; boutons (--btn-h), liens de barre, cases et interrupteurs la respectent (34 px au-dessus).
    Aide : .aide, un « ? » qui déplie un court texte, sans script :
      <details class="aide"><summary class="btn btn-icone btn-discret" aria-label="Aide">?</summary><div class="aide-texte">…</div></details>
+   Panneaux latéraux (arbre, inspecteur, onglets de Jouer) : règles de composition dans docs/design-panneaux.md.
    Compatibilité : les anciennes classes (button seul = doré, .bouton.principal, button.danger, button.discret, button.petit) marchent toujours ;
    on migre page par page. */
 
