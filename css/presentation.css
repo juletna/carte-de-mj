@@ -35,7 +35,9 @@ body.presentation a { color: var(--accent); }
 .ligne-joueur input { width: 100%; min-height: var(--cible); background: var(--champ); color: var(--texte); border: 1px solid var(--bord); border-radius: var(--rayon); padding: 6px 8px; font: inherit; }
 
 /* --- Régie --- */
-#regie { display: grid; grid-template-columns: 360px minmax(0, 1fr); height: 100vh; }
+/* --hauteur-barre : la barre de navigation du site, au-dessus de la régie (0 tant qu'elle est dans la colonne). */
+#regie { display: grid; grid-template-columns: 360px minmax(0, 1fr); height: calc(100vh - var(--hauteur-barre, 0px)); height: calc(100dvh - var(--hauteur-barre, 0px)); }
+#regie #panneau { min-height: 0; }
 #principal { display: flex; flex-direction: column; min-width: 0; min-height: 0; background: var(--scene); }
 #principal #scene { flex: 1; display: flex; overflow: auto; min-height: 0; }
 #principal #support { margin: auto; padding: 24px; flex: none; }
@@ -63,11 +65,10 @@ body.presentation a { color: var(--accent); }
 #projection button { padding: 4px 12px; white-space: nowrap; border-color: var(--succes-bord); background: var(--succes-fond); }
 #projection button.masque { border-color: #8a6d17; background: #33280a; }
 
-/* Retour d'action transitoire : posé sur la carte, jamais dans le flux. Opacité (pas display/visibility) : la zone aria-live reste annoncée. */
-#principal { position: relative; }
-#toast { position: absolute; top: 128px; left: 50%; transform: translate(-50%, -6px); z-index: 15; max-width: min(640px, calc(100% - 32px)); padding: 10px 14px; border-radius: var(--rayon); border: 1px solid var(--succes-bord); background: var(--succes-fond); color: var(--texte); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5); overflow-wrap: anywhere; cursor: pointer; opacity: 0; pointer-events: none; transition: opacity 0.2s, transform 0.2s; }
-#toast.visible { opacity: 1; pointer-events: auto; transform: translate(-50%, 0); }
-@media (max-width: 1100px) { #toast { top: 176px; } }
+/* Retour d'action transitoire : posé en bas à gauche de la fenêtre (sous la colonne de commandes), jamais sur la carte ni dans le flux.
+   Opacité (pas display/visibility) : la zone aria-live reste annoncée. Il disparaît seul (regie.js, annoncer) ou au clic. */
+#toast { position: fixed; left: 16px; bottom: 16px; z-index: 60; width: min(328px, calc(100vw - 32px)); padding: 10px 14px; border-radius: var(--rayon); border: 1px solid var(--succes-bord); background: var(--succes-fond); color: var(--texte); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5); overflow-wrap: anywhere; cursor: pointer; opacity: 0; pointer-events: none; transform: translateY(6px); transition: opacity 0.2s, transform 0.2s; }
+#toast.visible { opacity: 1; pointer-events: auto; transform: translateY(0); }
 @media (prefers-reduced-motion: reduce) { #toast { transition: none; } }
 
 .bloc-table, .cette-salle { border: 1px solid var(--bord); border-radius: var(--rayon); padding: 10px; }
@@ -176,3 +177,23 @@ body.vue-table { overflow: hidden; background: #000; }
   #projection { padding: 0 8px; font-size: 13px; gap: 6px; }
   #projection button { flex: 1 1 0; padding: 4px; }
 }
+
+/* --- Jouer : départ, « ⋯ », aides sous « ? », « Qui joue ? » --- */
+.menu-plus { position: relative; }
+.menu-plus > summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; min-width: var(--cible); min-height: var(--cible); padding: 0 10px; border: 1px solid var(--bord); border-radius: var(--rayon); font-weight: 700; font-size: 18px; line-height: 1; }
+.menu-plus > summary::-webkit-details-marker { display: none; }
+.menu-plus[open] > summary { background: var(--champ); }
+.menu-plus-corps { position: absolute; right: 0; top: calc(100% + 4px); z-index: 20; min-width: 220px; display: flex; flex-direction: column; gap: 8px; padding: 10px; background: var(--panneau); border: 1px solid var(--bord); border-radius: var(--rayon); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5); }
+.menu-plus-corps .depart-choix { flex: none; }
+.menu-plus-corps .note { margin: 0; }
+
+.aide-bouton { min-width: 24px; min-height: 24px; width: 24px; height: 24px; padding: 0; margin-left: 6px; border-radius: 50%; border: 1px solid var(--bord); background: transparent; color: var(--texte-doux); font-size: 13px; font-weight: 700; line-height: 1; display: inline-flex; align-items: center; justify-content: center; vertical-align: middle; }
+.aide-bouton[aria-expanded="true"] { background: var(--accent); color: var(--accent-texte); border-color: transparent; }
+.aide-texte[hidden] { display: none; }
+.aide-texte { margin-top: 6px; }
+details.bloc > summary .aide-bouton { margin-left: auto; }
+
+#note-choix { margin-top: 12px; padding: 8px 10px; border-left: 3px solid var(--accent); background: var(--panneau); color: var(--texte); font-size: 14px; }
+/* Le lancement reste toujours visible, même avec beaucoup de fiches ou de joueurs. */
+#form-joueurs > .actions { position: sticky; bottom: 0; z-index: 5; margin: 16px -16px 0; padding: 12px 16px max(12px, env(safe-area-inset-bottom)); background: var(--fond); border-top: 1px solid var(--bord); }
+#lancer-joueurs { min-width: 200px; }

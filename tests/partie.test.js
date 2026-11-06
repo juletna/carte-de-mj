@@ -121,6 +121,17 @@ const TESTS = [
     egal(p.partieDemandee(d.id, undefined, presentations), null, 'aucun donjon dans ce navigateur');
   }],
 
+  ['Jouer : la liste à l’arrivée, la même régie au rechargement, le donjon ou le monde demandé par l’adresse', () => {
+    egal(p.ouvertureDemandee({}), { genre: 'liste' }, 'lien de navigation : la liste');
+    egal(p.ouvertureDemandee(), { genre: 'liste' }, 'sans rien');
+    egal(p.ouvertureDemandee({ rechargement: true }), { genre: 'reprise' }, 'F5 : on rouvre la régie');
+    egal(p.ouvertureDemandee({ donjon: 'd1' }), { genre: 'donjon', id: 'd1' }, '?donjon=');
+    egal(p.ouvertureDemandee({ univers: 'u1' }), { genre: 'univers', id: 'u1' }, '?univers=');
+    egal(p.ouvertureDemandee({ donjon: 'd1', rechargement: true }), { genre: 'donjon', id: 'd1' }, 'l’adresse prime sur le rechargement');
+    egal(p.ouvertureDemandee({ donjon: '', univers: null }), { genre: 'liste' }, 'paramètre vide ignoré');
+    egal([p.estRechargement('reload'), p.estRechargement('navigate'), p.estRechargement('back_forward'), p.estRechargement(undefined)], [true, false, false, false], 'type de navigation');
+  }],
+
   ['D3 notes de partie : séparées des notes de préparation, enregistrées, jamais dans la vue table', () => {
     const { d, a } = donjonDeTest();
     a.notes = 'préparation : le coffre est piégé';

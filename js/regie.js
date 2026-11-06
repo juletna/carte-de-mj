@@ -35,6 +35,8 @@ import { creerDepart } from './regie-depart.js';
 import { creerSelection } from './regie-selection.js';
 import { creerReglages } from './regie-reglages.js';
 import { creerRegieUnivers } from './regie-univers.js';
+import { lierPanneau } from './regie-panneau.js';
+import * as pu from './univers-partie.js';
 
 export function demarrerRegie() {
   // L'écran de table local (« Plein écran ici ») : créé le premier, comme ses écouteurs l'étaient à l'import.
@@ -240,10 +242,10 @@ export function demarrerRegie() {
     $('choix-joueurs').hidden = true;
     $('regie').hidden = false;
     $('nom-donjon').textContent = p.donjon.nom;
-    document.title = `${p.donjon.nom} · Présentation · Carte de MJ`;
+    document.title = `${p.donjon.nom} · Jouer · Carte de MJ`;
     if (!reprise) sauvegarder();
     if (main) stockage.memoriserPartieOuverte(p.donjon.id); // un rechargement rouvre cette partie
-    if (reprise) etat.message = `Partie « ${p.donjon.nom} » rouverte, salle « ${salleConsultee().nom} ». « ← Liste des donjons » ramène à l’écran de départ.`;
+    if (reprise) etat.message = `Partie « ${p.donjon.nom} » reprise, salle « ${salleConsultee().nom} ».`;
     rendre();
   }
   // En retrait, la partie ouverte mémorisée est celle de l'autre régie : on n'y touche pas.
@@ -612,6 +614,7 @@ export function demarrerRegie() {
   // --- Câblage des modules de la régie ---------------------------------------------------------------
   // Tout ce qui précède est déclaré (fonctions) ou défini (constantes) : on peut le donner aux modules. Ils ne l'appellent
   // qu'une fois la page démarrée, jamais pendant leur création.
+  lierPanneau();
   const ctx = { etat, r, commande, canal, affichageTable, prendreLaMain, annoncer, rendre, modifie, salleCourante, salleConsultee, entrer, viderSauvegarde, noterRetrait, quitterPleinIci, diffuser, montrerIci };
   const depart = creerDepart(ctx);
   ctx.depart = depart;
@@ -624,23 +627,52 @@ export function demarrerRegie() {
   // Écran étroit : onglets Carte / Actions ; la carte est redessinée à la taille qui tient quand on l'affiche.
   activerOnglets(document.querySelector('#regie .onglets'), { defaut: 'carte', onChange: (nom) => { if (nom === 'carte' && etat.p) rendre(); } });
 
-  // Démarrage : le bouton « Présenter » d'un donjon ouvre CE donjon. Sinon, la partie ouverte au dernier passage est
-  // rouverte telle quelle (rien n'est relancé ni écrasé) ; « ← Liste des donjons » ramène à l'écran de départ, et l'oublie.
+  // Démarrage (voir pres.ouvertureDemandee) : l'adresse peut demander un donjon (`?donjon=`, le bouton « Jouer » du Donjon) ou un monde
+  // (`?univers=`) ; un rechargement (F5) rouvre la régie qui était ouverte, telle quelle (rien n'est relancé ni écrasé) ; arriver par un lien
+  // de navigation montre la liste des parties. « ← Liste des parties » ramène à la liste et oublie la partie ouverte.
   // Une partie qui ne se relit pas en entier est copiée à part avant que quoi que ce soit puisse l'enregistrer.
   const miseDeCote = stockage.mettreDeCotePresentations();
   etat.presentations = stockage.chargerPresentations();
   const parametres = new URLSearchParams(location.search);
-  const demande = pres.partieDemandee(parametres.get('donjon'), stockage.chargerDonjons()?.donjons, etat.presentations);
-  // L'adresse perd sa demande : recharger la page ou revenir à la liste ne doit pas rouvrir ce donjon de force.
-  if (parametres.has('donjon')) history.replaceState(null, '', 'presentation.html');
-  // Rechargement : l'onglet qui avait la main la reprend (sinon la table resterait sans régie) ; celui qui était en retrait y reste,
-  // avec sa propre partie : recharger un vieil onglet ne doit pas renvoyer sa partie à la table.
-  const aReprendre = retraitAvantRechargement ? stockage.partieDuRetrait(retraitAvantRechargement, etat.presentations) : stockage.partieAReprendre(etat.presentations);
-  if (demande?.reprise) entrer(demande.partie, { reprise: true });
-  else if (demande) depart.demanderJoueurs(demande.partie);
-  else if (!retraitAvantRechargement && univers.reprendre()) { /* la carte d'univers rouverte */ }
-  else if (aReprendre) entrer(aReprendre, { reprise: true, main: !retraitAvantRechargement });
-  else depart.afficher();
+  const ouverture = pres.ouvertureDemandee({
+    donjon: parametres.get('donjon'),
+    univers: parametres.get('univers'),
+    rechargement: pres.estRechargement(globalThis.performance?.getEntriesByType?.('navigation')?.[0]?.type),
+  });
+  // L'adresse perd sa demande : recharger la page rouvre la régie ouverte, pas une demande de départ.
+  if (parametres.has('donjon') || parametres.has('univers')) history.replaceState(null, '', location.pathname.split('/').pop() || 'presentation.html');
+  /** Ouvre (ou commence) la partie de ce monde : la carte d'univers s'affiche. Faux si le monde n'existe plus ou n'a aucune carte. */
+  function ouvrirMonde(id) {
+    const monde = stockage.chargerUnivers().etat?.univers?.[id];
+    if (!monde || !Object.keys(monde.lieux).length) return false;
+    if (!stockage.chargerPartiesUnivers()[id]) stockage.enregistrerPartieUnivers(pu.creerPartieUnivers(monde));
+    stockage.memoriserPartieOuverte(pu.cleOuverteUnivers(id));
+    return univers.reprendre();
+  }
+  ctx.ouvrirMonde = ouvrirMonde;
+  function ouvrirDemande() {
+    if (ouverture.genre === 'donjon') {
+      const demande = pres.partieDemandee(ouverture.id, stockage.chargerDonjons()?.donjons, etat.presentations);
+      if (demande?.reprise) entrer(demande.partie, { reprise: true });
+      else if (demande) depart.demanderJoueurs(demande.partie);
+      else return false;
+      return true;
+    }
+    if (ouverture.genre === 'univers') return ouvrirMonde(ouverture.id);
+    if (ouverture.genre === 'reprise') {
+      // Rechargement : l'onglet qui avait la main la reprend (sinon la table resterait sans régie) ; celui qui était en retrait y reste,
+      // avec sa propre partie : recharger un vieil onglet ne doit pas renvoyer sa partie à la table.
+      const aReprendre = retraitAvantRechargement ? stockage.partieDuRetrait(retraitAvantRechargement, etat.presentations) : stockage.partieAReprendre(etat.presentations);
+      if (!retraitAvantRechargement && univers.reprendre()) return true; // la carte d'univers rouverte
+      if (aReprendre) { entrer(aReprendre, { reprise: true, main: !retraitAvantRechargement }); return true; }
+    }
+    return false;
+  }
+  if (!ouvrirDemande()) {
+    if (!retraitAvantRechargement) stockage.oublierPartieOuverte(); // la liste est affichée : un rechargement y reste
+    depart.afficher();
+    if (ouverture.genre === 'donjon' || ouverture.genre === 'univers') annoncer(`Ce ${ouverture.genre === 'donjon' ? 'donjon' : 'monde'} n’est plus dans ce navigateur, ou n’a rien à jouer.`, 9000);
+  }
   // Dit une fois, après le premier affichage ; un échec, lui, est redit à chaque ouverture puisque rien n'est enregistré.
   if (miseDeCote && (miseDeCote.nouvelle || !miseDeCote.ok)) {
     const phrase = stockage.phraseMiseDeCoteParties(miseDeCote);

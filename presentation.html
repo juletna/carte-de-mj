@@ -26,32 +26,32 @@
       </div>
     </header>
     <header>
-      <h1>Présentation</h1>
-      <p class="sous-titre">Ouvre un donjon déjà préparé. La partie se joue sur une copie : ta préparation n'est jamais modifiée.</p>
+      <h1>Jouer</h1>
+      <p class="sous-titre">Reprends une partie, ou lance-en une sur un donjon ou un monde préparés. La partie se joue sur une copie : ta préparation n'est jamais modifiée.</p>
     </header>
     <p id="alerte-parties" class="note" role="status" hidden></p>
 
+    <section id="section-en-cours" aria-labelledby="titre-en-cours" hidden>
+      <h2 id="titre-en-cours">Parties en cours</h2>
+      <ul id="liste-en-cours" class="liste-depart"></ul>
+    </section>
+
     <section id="section-univers" aria-labelledby="titre-univers" hidden>
-      <h2 id="titre-univers">Univers de ce navigateur</h2>
-      <p class="note">Des cartes qui s'emboîtent : du monde jusqu'au donjon. Prépare-les dans le Donjon, mode Univers.</p>
+      <h2 id="titre-univers">Mondes de ce navigateur</h2>
+      <p class="note">Des cartes qui s'emboîtent : du monde jusqu'au donjon. Prépare-les dans le Donjon.</p>
       <ul id="liste-univers" class="liste-depart"></ul>
     </section>
 
     <section aria-labelledby="titre-biblio">
       <h2 id="titre-biblio">Donjons de ce navigateur</h2>
       <ul id="liste-donjons" class="liste-depart"></ul>
-      <p id="biblio-vide" class="note" hidden>Aucun donjon enregistré ici. Prépare-en un dans <a href="donjon.html">l'outil Donjon</a>, ou ouvrez un fichier exporté ci-dessous.</p>
-    </section>
-
-    <section id="orphelines-presentations" aria-labelledby="titre-orphelines" hidden>
-      <h2 id="titre-orphelines">Autres parties en cours</h2>
-      <p class="note">Parties dont le donjon n'est plus dans ce navigateur (fichier ouvert, ou donjon supprimé).</p>
-      <ul id="liste-orphelines" class="liste-depart"></ul>
+      <p id="biblio-tous" class="note" hidden>Tous tes donjons ont une partie en cours, plus haut.</p>
+      <p id="biblio-vide" class="note" hidden>Aucun donjon à lancer ici. Prépare-en un dans <a href="donjon.html">l'outil Donjon</a>, ou ouvre un fichier exporté ci-dessous.</p>
     </section>
 
     <section aria-labelledby="titre-fichier">
       <h2 id="titre-fichier">Ou ouvrir un fichier exporté</h2>
-      <p class="note">Le fichier n'est pas ajouté à la bibliothèque du Donjon : il sert seulement à cette présentation.</p>
+      <p class="note">Le fichier n'est pas ajouté à la bibliothèque du Donjon : il sert seulement à cette partie.</p>
       <div class="actions"><label class="bouton">Choisir un fichier… <input id="fichier" type="file" accept=".json,application/json" hidden></label></div>
       <ul id="liste-fichier" class="liste-depart"></ul>
       <p id="erreur-fichier" class="note erreur" hidden></p>
@@ -92,7 +92,7 @@
     <form id="form-joueurs" autocomplete="off">
       <fieldset class="mode-joueurs">
         <legend>Pions de joueurs à poser dans la première salle</legend>
-        <label class="ligne case"><input type="radio" name="mode-joueurs" id="mode-fiches" value="fiches"> Choisir parmi les fiches du donjon</label>
+        <label class="ligne case"><input type="radio" name="mode-joueurs" id="mode-fiches" value="fiches"> <span id="texte-mode-fiches">Choisir parmi les fiches du donjon</span></label>
         <label class="ligne case"><input type="radio" name="mode-joueurs" id="mode-nombre" value="nombre"> Indiquer un nombre de joueurs, sans fiche</label>
         <label class="ligne case"><input type="radio" name="mode-joueurs" id="mode-aucun" value="aucun"> Aucun pion pour l’instant</label>
       </fieldset>
@@ -109,7 +109,7 @@
 
       <div class="actions">
         <button id="lancer-joueurs" type="submit"></button>
-        <button id="annuler-joueurs" type="button" class="discret">← Liste des donjons</button>
+        <button id="annuler-joueurs" type="button" class="discret">← Liste des parties</button>
       </div>
     </form>
   </main>
@@ -141,63 +141,8 @@
           <p id="texte-retrait" class="note erreur"></p>
           <button id="reprendre-main" type="button">Reprendre la main</button>
         </div>
-        <p class="note"><button id="quitter" type="button" class="discret petit">← Liste des donjons</button></p>
+        <p class="note"><button id="quitter" type="button" class="discret petit">← Liste des parties</button></p>
       </header>
-
-      <section class="bloc-table" aria-label="Table">
-        <h2>Table</h2>
-        <div class="actions">
-          <button id="ouvrir-table" type="button" title="Ouvre presentation.html?vue=table dans une nouvelle fenêtre, à glisser sur l'écran de la table">Ouvrir la fenêtre table</button>
-          <button id="plein-ici" type="button" title="Montre la vue table en plein écran sur cet écran">Plein écran ici</button>
-        </div>
-        <fieldset class="mode-table">
-          <legend>Taille de la carte à la table</legend>
-          <label class="ligne case"><input type="radio" name="mode-table" id="mode-remplir" value="remplir"> Remplir l’écran</label>
-          <label class="ligne case"><input type="radio" name="mode-table" id="mode-reel" value="reel"> Échelle réelle (figurines)</label>
-          <p id="aide-mode-table" class="note"></p>
-        </fieldset>
-        <label class="ligne case"><input id="mini-active" type="checkbox" checked> Mini-carte à la table (salles découvertes seulement)</label>
-        <details class="defilement">
-          <summary>Régler l'écran de table</summary>
-          <label class="ligne">Rotation
-            <select id="rotation-table">
-              <option value="0">Aucune</option>
-              <option value="90">90° à droite</option>
-              <option value="180">180°</option>
-              <option value="270">90° à gauche</option>
-            </select>
-          </label>
-          <label class="ligne case"><input id="miroir-table" type="checkbox"> Image en miroir</label>
-          <p class="note">Pour un projecteur sous la table dont le montage n'a pas de miroir, si le projecteur n'a pas lui-même de mode « rétroprojection ».</p>
-          <label class="ligne">Taille réelle d'une case (mm)
-            <input id="case-mm" type="number" inputmode="decimal" min="10" max="50" step="0.1">
-          </label>
-          <p class="note">25 mm pour les figurines courantes, 25,4 mm pour 1 pouce.</p>
-          <div class="actions"><button id="calibrer-table" type="button">Calibrer sur la table</button></div>
-          <div id="reglage-calibrage" hidden>
-            <div class="pas-calibrage" role="group" aria-label="Ajuster la taille d'une case">
-              <button type="button" class="discret" data-pas-taille="-1">−1</button>
-              <button type="button" class="discret" data-pas-taille="-0.1">−0,1</button>
-              <output id="calibrage-val" aria-live="polite">48 px</output>
-              <button type="button" class="discret" data-pas-taille="0.1">+0,1</button>
-              <button type="button" class="discret" data-pas-taille="1">+1</button>
-            </div>
-            <div class="actions"><button id="calibrage-fini" type="button">Terminer le calibrage</button></div>
-          </div>
-          <p class="note">Ouvre d'abord la fenêtre table et glisse-la sur l'écran de la table (sur un seul écran, ouvre-la sur celui-ci). Le calibrage vaut pour tous les donjons et tous les lieux.</p>
-        </details>
-        <details class="defilement">
-          <summary>Faire défiler la vue table</summary>
-          <p class="note">Utile si la carte dépasse l'écran de la table. Tu peux aussi réduire la taille d'une case dans les réglages.</p>
-          <div class="croix" role="group" aria-label="Faire défiler la vue table">
-            <button type="button" class="discret" data-defiler="0,-1" aria-label="Vers le haut">↑</button>
-            <button type="button" class="discret" data-defiler="-1,0" aria-label="Vers la gauche">←</button>
-            <button type="button" class="discret" data-defiler="0,0" aria-label="Recentrer" title="Recentrer">⌖</button>
-            <button type="button" class="discret" data-defiler="1,0" aria-label="Vers la droite">→</button>
-            <button type="button" class="discret" data-defiler="0,1" aria-label="Vers le bas">↓</button>
-          </div>
-        </details>
-      </section>
 
       <section class="commande" aria-label="Commande rapide">
         <h2>Commande rapide</h2>
@@ -206,7 +151,7 @@
           <input id="commande" type="text" spellcheck="false" placeholder="ajoute trois gobelins">
           <div class="actions">
             <button id="executer-commande" type="submit">Exécuter</button>
-            <button id="micro-commande" type="button" title="Dicter la commande, puis la valider avec Exécuter">🎙️ Dicter</button>
+            <button id="micro-commande" type="button" class="discret" title="Dicter la commande, puis la valider avec Exécuter">🎙️ Dicter</button>
           </div>
         </form>
         <p id="message-commande" class="note" role="status" aria-live="polite" hidden></p>
@@ -228,7 +173,7 @@
       <section class="cette-salle" aria-label="Cette salle">
         <h2>Cette salle</h2>
         <p id="comptage-caches" class="note"></p>
-        <div class="actions"><button id="reveler-tout" type="button">Révéler toute la salle</button></div>
+        <div class="actions"><button id="reveler-tout" type="button" class="discret">Révéler toute la salle</button></div>
         <p class="note">Portes de la salle :</p>
         <ul id="liste-portes" class="liste-portes"></ul>
         <details id="elements-salle" class="elements-salle">
@@ -238,14 +183,7 @@
         </details>
       </section>
 
-      <details class="bloc" open>
-        <summary><h2>Salles</h2></summary>
-        <div id="minicarte" class="minicarte" role="region" aria-label="Plan du donjon"></div>
-        <p class="note">Salle assombrie : non découverte. Cadre vert : salle à la table. Cadre doré : salle que tu regardes. Trait rouge : porte pas encore ouverte.
-          Cliquer une salle la consulte seulement ; elle n'est montrée aux joueurs qu'avec « Afficher à la table ».</p>
-      </details>
-
-      <details class="bloc" open>
+      <details class="bloc" data-memo="personnages" open>
         <summary><h2>Personnages</h2></summary>
         <ul id="personnages-liste" class="fiches"></ul>
         <p id="personnages-vide" class="note" hidden>Aucun personnage : ajoute des fiches dans le Donjon, outil « Personnages », et elles apparaîtront ici. Les joueurs sans fiche s’indiquent en lançant la partie, ou ci-dessous une fois la partie commencée.</p>
@@ -264,7 +202,14 @@
         </details>
       </details>
 
-      <details class="bloc">
+      <details class="bloc" data-memo="salles" open>
+        <summary><h2>Salles</h2><button type="button" class="aide-bouton" aria-expanded="false" aria-controls="aide-salles" aria-label="Aide : lire le plan des salles" title="Lire le plan des salles">?</button></summary>
+        <div id="minicarte" class="minicarte" role="region" aria-label="Plan du donjon"></div>
+        <p id="aide-salles" class="note aide-texte" hidden>Salle assombrie : non découverte. Cadre vert : salle à la table. Cadre doré : salle que tu regardes. Trait rouge : porte pas encore ouverte.
+          Cliquer une salle la consulte seulement ; elle n'est montrée aux joueurs qu'avec « Afficher à la table ».</p>
+      </details>
+
+      <details class="bloc" data-memo="notes">
         <summary><h2>Notes de la salle</h2></summary>
         <p class="note">Préparation (lecture seule) :</p>
         <div id="notes" class="notes-lecture" tabindex="0" role="region" aria-label="Notes de préparation du MJ pour cette salle (lecture seule)"></div>
@@ -272,8 +217,65 @@
         <textarea id="notes-partie" rows="5" placeholder="Ce qui se passe dans cette salle…"></textarea>
       </details>
 
-      <details class="bloc reglages">
-        <summary><h2>Réglages</h2></summary>
+      <details class="bloc bloc-table" data-memo="table">
+        <summary><h2>Table</h2></summary>
+        <div class="actions">
+          <button id="ouvrir-table" type="button" title="Ouvre presentation.html?vue=table dans une nouvelle fenêtre, à glisser sur l'écran de la table">Ouvrir la fenêtre table</button>
+          <button id="plein-ici" type="button" class="discret" title="Montre la vue table en plein écran sur cet écran">Plein écran ici</button>
+        </div>
+        <fieldset class="mode-table">
+          <legend>Taille de la carte à la table</legend>
+          <label class="ligne case"><input type="radio" name="mode-table" id="mode-remplir" value="remplir"> Remplir l’écran</label>
+          <label class="ligne case"><input type="radio" name="mode-table" id="mode-reel" value="reel"> Échelle réelle (figurines)</label>
+          <p id="aide-mode-table" class="note"></p>
+        </fieldset>
+        <label class="ligne case"><input id="mini-active" type="checkbox" checked> Mini-carte à la table (salles découvertes seulement)</label>
+        <details class="defilement">
+          <summary>Régler l'écran de table <button type="button" class="aide-bouton" aria-expanded="false" aria-controls="aide-ecran-table" aria-label="Aide : régler l'écran de table" title="Comment régler l'écran de table ?">?</button></summary>
+          <div id="aide-ecran-table" class="aide-texte" hidden>
+            <p class="note">Rotation et miroir : pour un projecteur sous la table dont le montage n'a pas de miroir, si le projecteur n'a pas lui-même de mode « rétroprojection ».</p>
+            <p class="note">Taille réelle d'une case : 25 mm pour les figurines courantes, 25,4 mm pour 1 pouce.</p>
+            <p class="note">Ouvre d'abord la fenêtre table et glisse-la sur l'écran de la table (sur un seul écran, ouvre-la sur celui-ci), puis « Calibrer sur la table » : pose une carte bancaire sur le rectangle affiché et ajuste jusqu'à ce qu'elle coïncide. Le calibrage vaut pour tous les donjons et tous les lieux.</p>
+          </div>
+          <label class="ligne">Rotation
+            <select id="rotation-table">
+              <option value="0">Aucune</option>
+              <option value="90">90° à droite</option>
+              <option value="180">180°</option>
+              <option value="270">90° à gauche</option>
+            </select>
+          </label>
+          <label class="ligne case"><input id="miroir-table" type="checkbox"> Image en miroir</label>
+          <label class="ligne">Taille réelle d'une case (mm)
+            <input id="case-mm" type="number" inputmode="decimal" min="10" max="50" step="0.1">
+          </label>
+          <div class="actions"><button id="calibrer-table" type="button" class="discret">Calibrer sur la table</button></div>
+          <div id="reglage-calibrage" hidden>
+            <div class="pas-calibrage" role="group" aria-label="Ajuster la taille d'une case">
+              <button type="button" class="discret" data-pas-taille="-1">−1</button>
+              <button type="button" class="discret" data-pas-taille="-0.1">−0,1</button>
+              <output id="calibrage-val" aria-live="polite">48 px</output>
+              <button type="button" class="discret" data-pas-taille="0.1">+0,1</button>
+              <button type="button" class="discret" data-pas-taille="1">+1</button>
+            </div>
+            <div class="actions"><button id="calibrage-fini" type="button">Terminer le calibrage</button></div>
+          </div>
+        </details>
+        <details class="defilement">
+          <summary>Faire défiler la vue table</summary>
+          <p class="note">Utile si la carte dépasse l'écran de la table. Tu peux aussi réduire la taille d'une case dans les réglages.</p>
+          <div class="croix" role="group" aria-label="Faire défiler la vue table">
+            <button type="button" class="discret" data-defiler="0,-1" aria-label="Vers le haut">↑</button>
+            <button type="button" class="discret" data-defiler="-1,0" aria-label="Vers la gauche">←</button>
+            <button type="button" class="discret" data-defiler="0,0" aria-label="Recentrer" title="Recentrer">⌖</button>
+            <button type="button" class="discret" data-defiler="1,0" aria-label="Vers la droite">→</button>
+            <button type="button" class="discret" data-defiler="0,1" aria-label="Vers le bas">↓</button>
+          </div>
+        </details>
+      </details>
+
+      <details class="bloc reglages" data-memo="reglages">
+        <summary><h2>Réglages</h2><button type="button" class="aide-bouton" aria-expanded="false" aria-controls="aide-reglages" aria-label="Aide : les réglages" title="À quoi servent ces réglages ?">?</button></summary>
         <label class="ligne">Taille d'une case
           <span><input id="taille" type="range" min="16" max="160" step="0.1" value="48"> <output id="taille-val">48 px</output></span>
         </label>
@@ -290,7 +292,7 @@
         <label class="ligne case"><input id="flammes" type="checkbox" checked> Flammes animées (à la table)</label>
         <label class="ligne case"><input id="reperes" type="checkbox" checked> Afficher les repères (A, B… et 1, 2…)</label>
         <label class="ligne case"><input id="ajuster" type="checkbox" checked> Adapter la carte de la régie à la fenêtre</label>
-        <p class="note">La taille d'une case sert à la table en « échelle réelle » (on la calibre une fois pour toutes avec une carte bancaire dans « Régler l'écran de table ») et de plafond à la régie.
+        <p id="aide-reglages" class="note aide-texte" hidden>La taille d'une case sert à la table en « échelle réelle » (on la calibre une fois pour toutes dans « Régler l'écran de table », bloc Table) et de plafond à la régie.
           « Adapter » ne change que l'affichage de cette régie.</p>
       </details>
 

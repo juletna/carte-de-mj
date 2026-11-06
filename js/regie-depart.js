@@ -1,6 +1,7 @@
 /**
- * Le départ de la régie : la liste des donjons (et des parties en cours), l'import d'un donjon depuis un fichier, puis
- * « Qui joue ? » (fiches du donjon, ou nombre de joueurs avec nom, race et classe) avant de lancer une partie neuve.
+ * Le départ de la régie (page « Jouer ») : les parties en cours d'abord (Reprendre, et « ⋯ » pour recommencer), puis les mondes et les
+ * donjons à lancer, l'import d'un donjon depuis un fichier, puis « Qui joue ? » (fiches du donjon, ou nombre de joueurs avec nom, race
+ * et classe) avant de lancer une partie neuve.
  * Fabrique `creerDepart(ctx)` ; `ctx` est celui de regie.js (`etat`, `r`, `annoncer`, `entrer`, `viderSauvegarde`, `noterRetrait`,
  * `quitterPleinIci`, `diffuser`, `salleCourante`), lu au moment de l'appel.
  */
@@ -23,47 +24,62 @@ export function creerDepart(ctx) {
 
   // --- Écran de départ -------------------------------------------------------------------------
   let compteurDepart = 0;
-  function ligneDonjon(d) {
-    const enCours = etat.presentations[d.id];
-    const n = Object.keys(d.salles).length;
-    const infos = h('div', { className: 'infos' }, h('b', { textContent: d.nom }),
-      h('span', { textContent: pluriel(n, 'salle', 'salles') }));
-    if (enCours) infos.append(h('br'), h('span', { className: 'en-cours', textContent: pres.resumePartie(enCours) }));
-    const boutons = h('div', { className: 'boutons' });
-    // « Commencer par » : la première salle du donjon est présélectionnée (pas la dernière modifiée dans le Donjon).
+  /** « ⋯ » : des actions rares (recommencer, abandonner) à côté du bouton principal, repliées. */
+  function menuPlus(...contenus) {
+    return h('details', { className: 'menu-plus' }, h('summary', { 'aria-label': 'Plus d’actions', title: 'Plus d’actions', textContent: '⋯' }), h('div', { className: 'menu-plus-corps' }, ...contenus));
+  }
+  document.addEventListener('click', (e) => { // un clic ailleurs referme les menus « ⋯ » ouverts
+    for (const m of document.querySelectorAll('.menu-plus[open]')) if (!m.contains(e.target)) m.open = false;
+  });
+  /** « Commencer par » : la première salle du donjon est présélectionnée (pas la dernière modifiée dans le Donjon). */
+  function choixSalleDepart(d, libelle) {
     const salles = Object.values(d.salles);
     const depart = h('select', { id: `depart-${++compteurDepart}` });
     salles.forEach((sa, i) => depart.append(h('option', { value: sa.id, textContent: `${i + 1}. ${sa.nom}` })));
     depart.value = pres.salleDepart(d);
-    const commencer = () => pres.creerPresentation(d, { salleDepart: depart.value });
-    const choix = salles.length > 1
-      ? h('div', { className: 'depart-choix' }, h('label', { htmlFor: depart.id, textContent: enCours ? 'Recommencer par' : 'Commencer par' }), depart)
-      : null;
+    const bloc = salles.length > 1 ? h('div', { className: 'depart-choix' }, h('label', { htmlFor: depart.id, textContent: libelle }), depart) : null;
+    return { depart, bloc };
+  }
+  const resume = (d) => h('span', { textContent: pluriel(Object.keys(d.salles).length, 'salle', 'salles') });
+
+  /** Un donjon à lancer (de la bibliothèque, ou d'un fichier ouvert). Sa partie en cours, s'il en a une, est dans « Parties en cours ». */
+  function ligneDonjon(d) {
+    const enCours = etat.presentations[d.id];
+    const infos = h('div', { className: 'infos' }, h('b', { textContent: d.nom }), resume(d));
+    const boutons = h('div', { className: 'boutons' });
     if (enCours) {
-      const reprendre = h('button', { type: 'button', textContent: 'Reprendre' });
-      reprendre.addEventListener('click', () => entrer(enCours, { reprise: true }));
-      const recommencer = h('button', { type: 'button', className: 'discret' });
-      // La partie en cours n'est remplacée qu'une fois le choix validé : « ← Liste des donjons » la laisse intacte.
-      deuxTemps(recommencer, 'Recommencer', 'Effacer la partie ?', () => demanderJoueurs(commencer(), enCours.joueurs));
-      boutons.append(reprendre, recommencer);
-    } else {
-      const demarrer = h('button', { type: 'button', textContent: 'Présenter' });
-      demarrer.addEventListener('click', () => demanderJoueurs(commencer()));
-      boutons.append(demarrer);
+      infos.append(h('br'), h('span', { className: 'en-cours', textContent: pres.resumePartie(enCours) }));
+      boutons.append(h('button', { type: 'button', textContent: 'Reprendre', onclick: () => entrer(enCours, { reprise: true }) }));
+      return h('li', {}, infos, boutons);
     }
-    return h('li', {}, infos, ...(choix ? [choix] : []), boutons);
+    const { depart, bloc } = choixSalleDepart(d, 'Commencer par');
+    boutons.append(h('button', { type: 'button', textContent: 'Jouer', onclick: () => demanderJoueurs(pres.creerPresentation(d, { salleDepart: depart.value })) }));
+    return h('li', {}, infos, ...(bloc ? [bloc] : []), boutons);
   }
 
-  function ligneOrpheline(p) {
-    const reprendre = h('button', { type: 'button', textContent: 'Reprendre' });
-    reprendre.addEventListener('click', () => entrer(p, { reprise: true }));
-    const abandonner = h('button', { type: 'button', className: 'discret' });
-    deuxTemps(abandonner, 'Abandonner', 'Supprimer la partie ?', () => {
-      stockage.supprimerPartie(p.donjon.id);
-      afficherDepart();
-    });
-    return h('li', {}, h('div', { className: 'infos' }, h('b', { textContent: p.donjon.nom }), h('span', { className: 'en-cours', textContent: pres.resumePartie(p) })),
-      h('div', { className: 'boutons' }, reprendre, abandonner));
+  /** Une partie de donjon en cours : Reprendre, et « ⋯ » pour la recommencer (donjon encore dans la bibliothèque) ou l'abandonner. */
+  function ligneEnCours(p, d) {
+    const infos = h('div', { className: 'infos' }, h('b', { textContent: p.donjon.nom }), h('span', { textContent: 'Donjon' }), h('br'), h('span', { className: 'en-cours', textContent: pres.resumePartie(p) }));
+    const reprendre = h('button', { type: 'button', textContent: 'Reprendre', onclick: () => entrer(p, { reprise: true }) });
+    const action = h('button', { type: 'button', className: 'discret' });
+    let corps;
+    if (d) {
+      // La partie en cours n'est remplacée qu'une fois le choix validé : « ← Liste des parties » la laisse intacte.
+      const { depart, bloc } = choixSalleDepart(d, 'Recommencer par');
+      deuxTemps(action, 'Recommencer', 'Effacer la partie ?', () => demanderJoueurs(pres.creerPresentation(d, { salleDepart: depart.value }), p.joueurs));
+      corps = [...(bloc ? [bloc] : []), action];
+    } else {
+      deuxTemps(action, 'Abandonner', 'Supprimer la partie ?', () => { stockage.supprimerPartie(p.donjon.id); afficherDepart(); });
+      corps = [h('p', { className: 'note', textContent: 'Le donjon n’est plus dans ce navigateur (fichier ouvert, ou donjon supprimé).' }), action];
+    }
+    return h('li', {}, infos, h('div', { className: 'boutons' }, reprendre, menuPlus(...corps)));
+  }
+
+  /** Une partie de monde en cours (la carte d'univers : js/regie-univers.js). */
+  function ligneMondeEnCours(u, partie) {
+    const infos = h('div', { className: 'infos' }, h('b', { textContent: u.nom }), h('span', { textContent: 'Monde' }), h('br'),
+      h('span', { className: 'en-cours', textContent: `Partie en cours : ${partie.dans ? 'dans un donjon, ' : ''}${u.lieux[partie.lieuCourant]?.nom ?? 'lieu disparu'}` }));
+    return h('li', {}, infos, h('div', { className: 'boutons' }, h('button', { type: 'button', textContent: 'Reprendre', onclick: () => ctx.ouvrirMonde?.(u.id) })));
   }
 
   function afficherDepart() {
@@ -75,16 +91,20 @@ export function creerDepart(ctx) {
     $('regie').hidden = true;
     $('choix-joueurs').hidden = true;
     $('depart').hidden = false;
-    document.title = 'Présentation · Carte de MJ';
+    document.title = 'Jouer · Carte de MJ';
     const charge = stockage.chargerDonjons();
     const donjons = charge ? Object.values(charge.donjons) : [];
     etat.presentations = stockage.chargerPresentations();
-    $('liste-donjons').replaceChildren(...donjons.map(ligneDonjon));
-    $('biblio-vide').hidden = donjons.length > 0;
-    const idsBiblio = new Set(donjons.map((d) => d.id));
-    const orphelines = Object.values(etat.presentations).filter((p) => !idsBiblio.has(p.donjon.id));
-    $('orphelines-presentations').hidden = orphelines.length === 0;
-    $('liste-orphelines').replaceChildren(...orphelines.map(ligneOrpheline));
+    const parId = Object.fromEntries(donjons.map((d) => [d.id, d]));
+    const parties = Object.values(etat.presentations);
+    const mondes = stockage.chargerUnivers().etat?.univers ?? {};
+    const partiesMondes = Object.values(stockage.chargerPartiesUnivers()).filter((pm) => mondes[pm.univers]?.lieux && Object.keys(mondes[pm.univers].lieux).length);
+    $('liste-en-cours').replaceChildren(...partiesMondes.map((pm) => ligneMondeEnCours(mondes[pm.univers], pm)), ...parties.map((p) => ligneEnCours(p, parId[p.donjon.id])));
+    $('section-en-cours').hidden = parties.length + partiesMondes.length === 0;
+    const alancer = donjons.filter((d) => !etat.presentations[d.id]);
+    $('liste-donjons').replaceChildren(...alancer.map(ligneDonjon));
+    $('biblio-vide').hidden = alancer.length > 0 || donjons.length > 0;
+    $('biblio-tous').hidden = alancer.length > 0 || donjons.length === 0;
     $('liste-fichier').replaceChildren(...(etat.fichier ? [ligneFichier(etat.fichier)] : []));
     ctx.univers?.listerDepart();
     diffuser(); // si cette régie a la main, la table n'affiche plus rien tant qu'aucune partie n'est ouverte
@@ -143,7 +163,7 @@ export function creerDepart(ctx) {
     $('zone-nombre').hidden = mode !== 'nombre';
     const n = mode === 'fiches' ? fichesCochees().length : mode === 'nombre' ? nombreJoueurs() : 0;
     const qui = mode === 'fiches' ? pluriel(n, 'personnage', 'personnages') : pluriel(n, 'joueur', 'joueurs');
-    $('lancer-joueurs').textContent = n ? `Présenter avec ${qui}` : 'Présenter sans pion';
+    $('lancer-joueurs').textContent = n ? `Jouer avec ${qui}` : 'Jouer sans pion';
   }
 
   /** `precedents` : les joueurs de la partie qu'on recommence, pour ne pas tout ressaisir. */
@@ -154,19 +174,20 @@ export function creerDepart(ctx) {
     const prepares = Object.values(partie.donjon.salles).flatMap((s) => s.plan.creatures).filter((k) => k.camp === 'pj').length;
     $('choix-donjon').textContent = partie.donjon.nom;
     $('mode-fiches').disabled = !fiches.length;
+    $('texte-mode-fiches').textContent = fiches.length ? 'Choisir parmi les fiches du donjon' : 'Choisir parmi les fiches du donjon (ce donjon n’en a aucune)';
     $('liste-fiches').replaceChildren(...fiches.map(({ id, fiche }) => {
       const coche = h('input', { type: 'checkbox', value: id, checked: true });
       const identite = [fiche.race, fiche.classe].filter(Boolean).join(' · ');
       return h('li', {}, h('label', {}, coche, h('span', {}, h('b', { textContent: fiche.nom }), identite ? h('span', { className: 'doux', textContent: ` ${identite}` }) : '')));
     }));
     const note = [
-      ...(fiches.length ? [] : ['Ce donjon n’a aucune fiche : elles s’ajoutent dans le Donjon, outil « Personnages ».']),
+      ...(fiches.length ? [] : ['Ce donjon n’a aucune fiche de personnage : indique les joueurs ci-dessous (leur pion sera posé dans la première salle), ou ajoute des fiches dans le Donjon, outil « Personnages ».']),
       ...(prepares ? [`Le donjon a déjà ${pluriel(prepares, 'pion de joueur', 'pions de joueurs')} dans ses salles : ${prepares > 1 ? 'ils restent' : 'il reste'} en plus.`] : []),
     ].join(' ');
     $('note-choix').hidden = !note;
     $('note-choix').textContent = note;
     $('nb-joueurs').max = String(MAX_JOUEURS);
-    $('nb-joueurs').value = String(precedents.length || 4);
+    $('nb-joueurs').value = String(precedents.length || 1); // un joueur : les autres s'ajoutent d'un chiffre, sans quatre champs vides à l'écran
     $(precedents.length ? 'mode-nombre' : fiches.length ? 'mode-fiches' : prepares ? 'mode-aucun' : 'mode-nombre').checked = true;
     dessinerLignesJoueurs();
     majChoix();
