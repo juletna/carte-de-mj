@@ -27,6 +27,13 @@ Chaque page commence par la même barre, tout en haut et sur toute la largeur : 
 
 `donjon.html` est un atelier à trois colonnes : l'**arbre** à gauche (monde → lieux → donjons → salles, puis « Donjons hors monde » ; un donjon relié à plusieurs lieux n'apparaît qu'une fois, « aussi depuis… » ; filtre, flèches du clavier, repli mémorisé), la **scène** au centre, l'**inspecteur** à droite (il n'occupe de la place que lorsqu'un type de sélection y est inscrit). Sous 760 px, l'arbre est un tiroir (bouton « Arbre » de la barre, Échap le ferme) et l'inspecteur un panneau bas repliable. L'adresse suit le nœud choisi et F5 le retrouve : `#monde`, `#monde=<id>`, `#monde=<id>&lieu=<id>`, `#donjon=<id>`, `#donjon=<id>&salle=<id>` (une adresse périmée retombe sur le donjon actif ; les anciennes `#monde` et `#monde=<id>` restent valides). Code : modules purs `js/atelier-arbre.js`, `js/atelier-selection.js`, `js/atelier-route.js` (testés : `tests/atelier-*.test.js`) ; DOM : `js/atelier/` (`coquille.js`, `arbre-vue.js`, `inspecteur.js`) ; conception : `docs/conception-atelier.md`.
 
+**Le Donjon dans l'atelier** (lot B : `js/atelier/inscrire-donjon.js`, `inspecteurs-donjon.js`, `barre-salle.js`). Plus de rail, de panneau, de bande des salles ni de bulle flottante :
+- **Arbre** : les salles sont les nœuds sous leur donjon (un clic affiche la salle, un clic sur le donjon montre la vue d'ensemble) ; le « ⋯ » de l'en-tête ouvre la feuille « Ajouter un donjon » (nouveau : vide, au hasard ou d'un modèle ; importer un fichier ; coller un donjon ; copies mises de côté).
+- **Barre d'outils de la scène** : Portes, Mobilier et Créatures ouvrent le catalogue de vignettes dans une colonne à gauche de la carte (re-cliquer l'outil la ferme, Échap aussi), la pastille « Pose : … » s'affiche sur la carte, « + Salle » ajoute une salle isolée, « Vue d'ensemble » montre tout le donjon, « Annuler » défait la dernière modification. Sous 760 px : « + Ajouter » ouvre le même catalogue en tiroir du bas, « + Salle », la vue d'ensemble et « Annuler » restent à portée.
+- **Inspecteur « salle »** (rien de sélectionné) : nom, description (dictée, Effacer, Annuler), « Compris », liaisons orphelines, notes, forme et ambiance, exemples, et « Avancé » (plan JSON modifiable, « Copier pour signaler une erreur de lecture »). « ⋯ » : supprimer la salle (deux clics).
+- **Inspecteur « donjon »** (nœud du donjon, ou « Vue d'ensemble ») : nom, miniature du plan, personnages (fiches, au hasard), affichage (échelle, thème, détails, grille, relief, pénombre, flammes, plein écran). Actions : Exporter, Imprimer, Copier. « ⋯ » : supprimer le donjon (deux clics, qui annoncent le nom, les salles et la partie en cours).
+- **Inspecteur « porte », « objet », « creature », « pion »** (un clic sur la carte) : relier ou créer la salle derrière, aller à la salle reliée, caché ou visible, aspect d'un objet, sens d'un escalier. « ⋯ » : délier, supprimer (une porte reliée demande confirmation). « Fermer » (ou un clic dans le vide de la carte) rend l'inspecteur à la salle.
+
 ## Système visuel
 
 Socle commun dans `css/base.css` (documenté en tête du fichier) et `js/icones.js`, à suivre sur toutes les pages.
@@ -55,10 +62,10 @@ Socle commun dans `css/base.css` (documenté en tête du fichier) et `js/icones.
 
 Au-dessus de 760 px, ni la mise en page ni la carte ne changent. En dessous, le **Donjon** et la **régie** de la Présentation affichent **une zone à la fois**, choisie par des onglets collants en haut (`js/telephone.js`, règles sous la media query de `css/style.css` et `css/presentation.css` ; sans script, tout reste empilé comme avant) :
 
-- **Donjon** : « Texte » (le panneau : donjons, description, salles, réglages, fichiers) et « Carte ». On tape dans Texte, un geste sur « Carte » montre le résultat (le « Compris » sous la description donne déjà le retour en texte). « ↩ Annuler » est aussi dans la barre quand un déplacement peut être annulé.
+- **Donjon** : la carte reste affichée, sous sa barre d'outils (« + Ajouter », « + Salle », vue d'ensemble, « Annuler ») ; l'arbre est le tiroir du bouton « Arbre », et l'inspecteur (description, notes, forme… ou l'élément touché) est un panneau bas de hauteur fixe (un tiers de l'écran), repliable d'un geste sur sa flèche pour rendre toute la place à la carte.
 - **Régie** (coquille de l'atelier, `js/atelier/jouer.js`) : à gauche l'**arbre de lecture** (monde, lieux, donjons, salles, pastilles « à la table / découvert / pas encore montré » ; toucher une salle du donjon en cours la consulte, un lieu du fil y remonte), au centre un **bandeau d'état unique** (fil du monde, « À LA TABLE / CONSULTATION / EN RETRAIT », « Afficher à la table », « Reprendre la main »), la **commande rapide en barre fixe** et la carte ; à droite les onglets **Salle** (projection, portes, éléments, notes), **Joueurs** (PV, pions, retardataires) et **Table** (« Ouvrir la fenêtre table », le seul doré ; plein écran, taille, calibrage, défilement, réglages). La régie d'une carte de monde a la même composition (onglets Lieu · Table). Sous 760 px : l'arbre est un tiroir (bouton à gauche du bandeau) et les onglets une barre du bas qui se replie.
-- **Sélection** : un bandeau fixé en bas de l'écran, dont la hauteur est **réservée sous la carte** (`--reserve-selection`, entre 150 et 260 px selon l'écran) : toucher une porte, un pion ou un objet montre ses actions sans défilement et sans que la carte bouge, et la carte n'est jamais recouverte. Le bandeau a un bouton « ✕ Fermer » ; vide, la zone dit quoi toucher. Téléphone couché (moins de 500 px de haut) : pas de bande réservée, le bandeau se pose par-dessus (60 % de la hauteur au plus).
-- **Apparence de la carte** (Donjon, onglet Réglages, et bloc Table de la régie ; la vue table suit la régie) :
+- **Sélection** (Donjon) : toucher une porte, un pion ou un objet montre ses actions dans le panneau bas, dont la hauteur est **réservée sous la carte** (rien ne bouge, la carte n'est jamais recouverte) ; son bouton « Fermer » rend le panneau à la salle. La régie garde son bandeau de sélection (`--reserve-selection`, entre 150 et 260 px selon l'écran ; téléphone couché : le bandeau se pose par-dessus).
+- **Apparence de la carte** (Donjon, section Affichage de l'inspecteur du donjon, et bloc Table de la régie ; la vue table suit la régie) :
   - **Thème** : « Peint » (par défaut) ou « Vectoriel » (l'ancien dessin, en aplats). L'impression garde son thème « papier », qui ne change pas.
     Le thème peint dessine un style « trait colorié » : contour brun irrégulier, sols à texture calculée (pierre, marbre, bois, terre, sable, herbe, glace), roche autour de la salle,
     ombre au pied des murs. Rien n'est une image : tout est généré par le code.
@@ -74,7 +81,7 @@ Au-dessus de 760 px, ni la mise en page ni la carte ne changent. En dessous, le 
     percé d'un trou radial autour de chaque source de lumière (torche, autel, brasero, bougies, feu de camp, champignons lumineux…), avec un halo coloré ; les pions, la case montrée, les éléments secrets et les marques de sélection restent au-dessus
     et lisibles. **La vue du MJ (Donjon et régie) n'en garde que 35 %** pour tout voir ; **la table a la pénombre pleine**. Le champ `eclairage` du plan multiplie la pénombre :
     `eclairee` ×0,4, `penombre` ×1, `obscurite` ×1,6 (jamais plus de 95 % d'opacité). Un objet qui brûle déclare sa source avec `V.lumiere(x, y, h, { s, r, c, k, petite? })` (voir `themes/peint/volumes.js`).
-  - **Ambiance, état et éclairage de la salle** (onglet Salle du Donjon, sous le sol : trois sélecteurs, avec « Annuler » ; ou dans la description, voir « Ce que comprend le parseur ») : la valeur par défaut (neutre, neuve, pénombre) n'écrit rien dans le plan.
+  - **Ambiance, état et éclairage de la salle** (inspecteur de la salle, sous le sol : trois sélecteurs, avec « Annuler » ; ou dans la description, voir « Ce que comprend le parseur ») : la valeur par défaut (neutre, neuve, pénombre) n'écrit rien dans le plan.
     L'**ambiance** teinte le sol et les murs (froide : bleutée ; chaude : ocre ; de nuit : bleu sombre et plus contrastée) et la pénombre. L'**état** (thème peint seulement) : *usée* = fissures, joints plus sombres où la mousse prend,
     blocs de mur ébréchés, un peu de mousse ; *en ruine* = en plus, la terre et l'herbe reprennent le dallage (un masque de bruit raccordable), des blocs manquent dans les murs et sur leur dessus, la mousse couvre le dessus des murs et le lierre grimpe sur les faces.
     Des petits détails sont semés selon l'état et l'ambiance (cailloux, mousse, feuilles mortes, touffes d'herbe en ruine, os et toiles d'araignée dans les coins des salles usées ou en ruine, froides ou de nuit) ; le tirage ne dépend que de l'identifiant de la salle et de la case
@@ -156,7 +163,7 @@ pour prouver qu'une refactorisation ne les change pas. Après un changement voul
 - **Escaliers** : un escalier descend, sauf « un escalier qui monte » (ou « montant », « deux escaliers qui montent ») ;
   « qui descend » se lit aussi. Le plan reçoit `sens: 'monte'` pour celui qui monte, rien pour l'autre, et la description
   réécrite redit « qui monte ». Le sens dit vers quel niveau mène l'escalier (voir « Niveaux et escaliers »).
-- **Variantes d'objet** : un objet peut déclarer des `variantes` dans `js/catalogue.js` (la première est la défaut, sans trace dans le plan ; les autres s'écrivent `variante: id`). Pour la torche, le brasero, les bougies et le feu de camp : normale, éteinte, bleue, verte, violette, argentée, infernale. Le texte les lit après le nom, accordées : « une torche à flamme bleue », « deux torches éteintes », « un brasero de feu vert », « des bougies magiques » (bleu), « un feu follet » (argenté), « infernal », « démoniaque », « rouge » (infernal), « mauve », « blanc »… La bulle de l'élément sélectionné propose une liste « Aspect » (annulable). Un feu éteint n'éclaire pas ; un feu magique pulse plus lentement et éclaire plus large. Les teintes sont dans `js/rendu/feu.js`.
+- **Variantes d'objet** : un objet peut déclarer des `variantes` dans `js/catalogue.js` (la première est la défaut, sans trace dans le plan ; les autres s'écrivent `variante: id`). Pour la torche, le brasero, les bougies et le feu de camp : normale, éteinte, bleue, verte, violette, argentée, infernale. Le texte les lit après le nom, accordées : « une torche à flamme bleue », « deux torches éteintes », « un brasero de feu vert », « des bougies magiques » (bleu), « un feu follet » (argenté), « infernal », « démoniaque », « rouge » (infernal), « mauve », « blanc »… L'inspecteur de l'élément sélectionné propose une liste « Aspect » (annulable). Un feu éteint n'éclaire pas ; un feu magique pulse plus lentement et éclaire plus large. Les teintes sont dans `js/rendu/feu.js`.
 - **États du mobilier** (mêmes variantes, dessinées dans les quatre thèmes : `peint/objets-etats.js` en sobres et en riches, puis `vectoriel.js` et `papier.js`) : coffre fermé / ouvert / vide / brisé, bibliothèque pleine / clairsemée / renversée / de grimoires, tonneau debout / couché / éventré, sarcophage fermé / ouvert, statue intacte / brisée, caisse fermée / ouverte. Le texte les lit : « coffre ouvert », « coffre au trésor » (ouvert), « coffre pillé » (vide), « bibliothèque renversée », « étagères à moitié vides », « bibliothèque de mage » ou « de grimoires », « tonneau couché », « tonneaux éventrés », « sarcophage profané », « statue brisée », « renversée » ou « en ruine », « caisse éventrée ».
 - **Conventions** : le nord est en haut. L'entrée est le mur de la première porte (sud par défaut).
   « Le fond » est le mur opposé à l'entrée.
@@ -172,7 +179,7 @@ En régie, le bloc « Personnages » montre les mêmes fiches, et « Poser dans 
 
 **PV en jeu :** chaque fiche de la régie a un champ avec « Dégâts » et « Soins », aux mêmes règles que la Fiche : les PV temporaires partent d'abord, jamais sous 0 ni au-dessus du max. Ces PV sont gardés dans la partie, à part des fiches, qui sont recopiées du donjon à chaque ouverture. Ni le donjon préparé ni le téléphone du joueur ne sont modifiés ; « PV de la fiche » y revient. Un joueur sans fiche n'a pas de PV, et les PV ne partent jamais à la table.
 
-**Au hasard :** « 🎲 Au hasard » tire une fiche complète (`js/fiche-hasard.js`, pur), sur le modèle du donjon au hasard : classe, race et niveau choisis ou tirés, numéro de tirage (le même numéro et les mêmes paramètres redonnent la même fiche), et un nouveau tirage remplace le précédent. Le bouton est à deux endroits. Dans le Donjon, outil « Personnages », on peut tirer plusieurs fiches d'un coup (les classes ne se répètent qu'une fois toutes tirées), le donjon en garde le résumé comme pour un fichier ajouté, et « Garder » fixe un tirage. Rien n'est écrit dans les fiches du navigateur. Dans la Fiche, depuis le nom en haut ou l'onglet Fiche, le personnage est enregistré dans ce navigateur, et le retoucher le garde. Il est alors proposé dans le Donjon comme les autres fiches.
+**Au hasard :** « 🎲 Au hasard » tire une fiche complète (`js/fiche-hasard.js`, pur), sur le modèle du donjon au hasard : classe, race et niveau choisis ou tirés, numéro de tirage (le même numéro et les mêmes paramètres redonnent la même fiche), et un nouveau tirage remplace le précédent. Le bouton est à deux endroits. Dans le Donjon, section Personnages de l'inspecteur du donjon, on peut tirer plusieurs fiches d'un coup (les classes ne se répètent qu'une fois toutes tirées), le donjon en garde le résumé comme pour un fichier ajouté, et « Garder » fixe un tirage. Rien n'est écrit dans les fiches du navigateur. Dans la Fiche, depuis le nom en haut ou l'onglet Fiche, le personnage est enregistré dans ce navigateur, et le retoucher le garde. Il est alors proposé dans le Donjon comme les autres fiches.
 
 **Jouer sans fiche :** quand une partie commence (« Présenter », « Recommencer »), la Présentation demande qui joue. Soit on coche des fiches du donjon, soit on indique un nombre de joueurs, puis le nom, la race et la classe de chacun (rien n'est obligatoire), soit on ne pose aucun pion. Les pions sont posés dans la première salle, numérotés P1, P2… dans l'ordre de saisie. Ces joueurs appartiennent à la partie et pas au donjon préparé, et aucune fiche n'est créée. En régie, ils sont dans le bloc « Personnages » et le pion sélectionné porte leur nom ; à la table, le pion reste « P1 », et ni le nom, ni la race, ni la classe n'y partent.
 
@@ -182,7 +189,7 @@ En régie, le bloc « Personnages » montre les mêmes fiches, et « Poser dans 
 
 ## Formes de salle
 
-Une salle reste un rectangle (largeur × longueur) auquel on retire des cases : croix, octogone, L, T, U, 8, E, F, H, O ou S (`js/formes.js`). Dans l'onglet Salle : un bouton par forme, l'épaisseur des bras, leur position, et le nombre de cases de sol. Le sol se choisit juste en dessous (pierre, bois, terre, sable, herbe, marbre, glace), et s'écrit « sol en bois » ; l'ambiance, l'état et l'éclairage de la salle aussi (voir « Apparence de la carte »). Les mêmes réglages s'écrivent en texte : « Salle en croix de 12 par 13 cases, bras de 2 cases, bras en haut », « en U ouverte au sud », « en L angle au nord-ouest », « en T barre au nord », « octogonale, pans de 2 cases », « en O de 9 par 9 cases » (le O et le 8 ont une cour fermée, vide).
+Une salle reste un rectangle (largeur × longueur) auquel on retire des cases : croix, octogone, L, T, U, 8, E, F, H, O ou S (`js/formes.js`). Dans l'inspecteur de la salle (Forme et ambiance) : un bouton par forme, l'épaisseur des bras, leur position, et le nombre de cases de sol. Le sol se choisit juste en dessous (pierre, bois, terre, sable, herbe, marbre, glace), et s'écrit « sol en bois » ; l'ambiance, l'état et l'éclairage de la salle aussi (voir « Apparence de la carte »). Les mêmes réglages s'écrivent en texte : « Salle en croix de 12 par 13 cases, bras de 2 cases, bras en haut », « en U ouverte au sud », « en L angle au nord-ouest », « en T barre au nord », « octogonale, pans de 2 cases », « en O de 9 par 9 cases » (le O et le 8 ont une cour fermée, vide).
 
 - Les cases retirées se recalculent toujours : agrandir une salle agrandit sa forme, et rien n'est stocké en plus.
 - Une porte garde son écriture (mur + position) : elle se pose sur le premier mur rencontré de ce côté, au fond de l'entaille si le coin est retiré.
@@ -190,7 +197,7 @@ Une salle reste un rectangle (largeur × longueur) auquel on retire des cases : 
 
 ## Nouveau donjon : vide, au hasard ou modèle
 
-« + Nouveau donjon », dans le menu du donjon, laisse le choix : partir d'un donjon vide, au hasard, ou d'un modèle.
+« Nouveau donjon… », dans le « ⋯ » de l'arbre (feuille « Ajouter un donjon »), laisse le choix : partir d'un donjon vide, au hasard, ou d'un modèle.
 
 **Modèles** (`js/modeles.js`) : quelques départs fournis par l'outil (église en croix, petite crypte, cloître, repaire gobelin), et ceux que tu gardes toi-même avec « Garder le donjon affiché comme modèle » : une copie dans ce navigateur (`carte-de-mj:modeles-v1`), notes et éléments cachés compris. Partir d'un modèle crée un donjon neuf, le modèle ne change jamais. Les modèles gardés ne partent pas avec « Exporter », qui ne concerne que le donjon affiché.
 
@@ -208,15 +215,13 @@ Une salle reste un rectangle (largeur × longueur) auquel on retire des cases : 
 Un **donjon** est un ensemble de salles, de liaisons entre leurs portes et d'un carnet de notes par salle.
 Dans chaque salle, la description reste la seule référence (texte → plan → carte et JSON).
 
-- **Salles** : liste dans le panneau (nom modifiable, salle affichée en évidence, « + Salle isolée », suppression
-  en deux clics). Supprimer un donjon se fait aussi en deux clics : un message donne son nom et son nombre de salles, le bouton
-  garde sa largeur, et « Présenter » est sur une autre ligne. Sa partie en cours reste dans la Présentation
+- **Salles** : les nœuds de l'arbre sous leur donjon (la salle affichée en évidence), « + Salle » dans la barre d'outils pour une salle isolée, le nom modifiable et la suppression en deux clics (« ⋯ ») dans l'inspecteur de la salle. Supprimer un donjon se fait aussi en deux clics, dans le « ⋯ » de son inspecteur : le bouton annonce son nom et son nombre de salles, et « Jouer » est à l'autre bout de la barre. Sa partie en cours reste dans la Présentation
   (« Autres parties en cours »). Supprimer une salle retire ses liaisons ; supprimer la dernière en recrée une vide.
-- **Miniature du plan** : le plan complet, le même dessin, réduit pour tenir dans le panneau (`js/miniplan.js`). Il n'y a qu'une façon de dessiner un plan (`dessinerPlanDonjon`, `js/rendu/plan.js`) : plan complet, miniature, encart de la table. Un clic, ou Tab puis Entrée, affiche la salle ; son nom s'affiche au survol.
+- **Miniature du plan** : le plan complet, le même dessin, réduit pour tenir dans l'inspecteur du donjon (`js/miniplan.js`). Il n'y a qu'une façon de dessiner un plan (`dessinerPlanDonjon`, `js/rendu/plan.js`) : plan complet, miniature, encart de la table. Un clic, ou Tab puis Entrée, affiche la salle ; son nom s'affiche au survol.
 - **Première utilisation** : tant qu'aucun donjon n'a plus d'une salle, les exemples sont dépliés au démarrage et le sous-titre
   dit « Décris une porte, puis clique dessus pour créer la salle suivante » ; il reprend son texte dès qu'une deuxième salle existe.
   Une salle sans porte l'indique dans la note de « Salles ».
-- **Changer de salle** : le panneau revient en haut ; une salle qui vient d'être créée donne le focus à sa description
+- **Changer de salle** : l'inspecteur revient en haut ; une salle qui vient d'être créée donne le focus à sa description
   (pas au doigt, ni quand le focus est sur la miniature).
 - **Relier** : un clic (sans glisser) sur une porte la sélectionne. Non reliée, elle propose « Nouvelle salle derrière cette
   porte » (6 × 6 cases, porte de retour sur le mur opposé, écrite dans sa description) ou « Relier à une salle existante »
@@ -255,7 +260,7 @@ Dans chaque salle, la description reste la seule référence (texte → plan →
   Un donjon (ou un modèle) enregistré qui ne se relit pas, par exemple écrit par une version plus récente de l'outil, n'est jamais
   écrasé en silence : il est copié tel quel dans `carte-de-mj:mis-de-cote-v1` avant que le reste soit réécrit (une seule fois, même
   si la page est rechargée), et l'outil le dit. Si cette copie échoue (stockage plein), les donjons ne sont plus enregistrés de la session.
-  Les fiches et les parties suivent la même règle. Le menu du donjon liste ces copies (« Copies mises de côté ») : on peut les télécharger ou les supprimer.
+  Les fiches et les parties suivent la même règle. Le « ⋯ » de l'arbre liste ces copies (« Copies mises de côté », dans la feuille « Ajouter un donjon ») : on peut les télécharger ou les supprimer.
 - **Exporter / importer** : « Exporter le donjon » écrit tout (salles, notes, liaisons, éléments cachés). « Importer un donjon »
   ajoute un donjon sans rien écraser (il garde l'identifiant de son fichier, sauf si un de vos donjons l'a déjà : importer deux fois le même fichier donne deux donjons) ; il accepte le format ci-dessous, l'ancien format `jdr-carte` (une salle) et un plan seul,
   et refuse proprement un fichier invalide ou d'une version plus récente. Rien de ce qui vient d'un fichier n'est interprété
@@ -467,7 +472,7 @@ tests.html          tous les tests dans le navigateur (la même liste que node t
 css/base.css        socle commun : jetons (couleurs du thème sombre et de rôle — erreur, accent, succès, arcane —, police du système, rayons, espacements, focus, taille de cible tactile) et en-tête de navigation
 css/fiche.css       feuille de la Fiche : mise en page seulement, couleurs, rayons et police viennent des jetons de css/base.css (thème sombre commun, comme le Donjon)
 css/style.css       styles communs au Donjon, à la Présentation et à l'Impression : panneau, champs, boutons, scène, onglets du téléphone, fiches de personnage
-css/donjon.css      mise en page du Donjon : barre, rail d'outils, panneau, bande des salles, bulle d'actions, zoom
+css/donjon.css      mise en page du Donjon : barre, scène sous sa barre d'outils, catalogue, blocs de l'inspecteur, feuille « Ajouter un donjon », zoom
 css/presentation.css  écran de départ, régie et vue table
 css/impression.css  pages A4 et réglages de l'impression (mesures reprises de js/impression.js par des variables CSS ; `@page` écrit en dur, comparé par un test)
 js/dom.js           outils DOM communs aux pages : `$`, `h`, bouton, confirmation en deux temps, choix d'un fichier à importer
@@ -475,12 +480,13 @@ js/univers.js, univers-validation.js, univers-partie.js, univers-protocole.js, u
 js/univers-carte.js, univers-images.js, univers-table.js, mj/univers-ui.js, mj/univers-calage.js, mj/univers-liste.js, atelier/inscrire-monde.js, atelier/inspecteurs-monde.js, atelier/barre-lieu.js, regie-univers.js ; css/univers.css  l'univers dans le navigateur : carte et points, accès à la bibliothèque, préparation (Donjon), régie et table (Présentation)
 js/bibliotheque/    bibliothèque de cartes : vocabulaire et catalogue (purs), images importées (IndexedDB), fenêtre de choix ; css/bibliotheque.css ; bibliotheque.html (page d'essai)
 js/format.js        pluriel, virgule française, sans accents, objet JSON, libellés communs « Fermer » et micro (pur, sans DOM)
-js/main-mj.js       racine de composition du Donjon : état, historique, rendu, navigation entre salles ; câble les modules ci-dessous par un contexte `ctx`
-js/mj/personnages-ui.js  Donjon : outil Personnages (fiches associées, tirage au hasard)
-js/mj/salles-liste.js  Donjon : onglets et liste des salles, liaisons orphelines, miniature du plan
-js/mj/menu-donjon.js  Donjon : menu du donjon (choix, nouveau, modèles, au hasard, suppression), rapport, fichiers (export, import, copier, coller, plan JSON)
+js/main-mj.js       racine de composition du Donjon : état, historique, rendu, navigation entre salles ; câble les modules ci-dessous par un contexte `ctx` et crée la coquille de l'atelier
+js/atelier/inscrire-donjon.js, inspecteurs-donjon.js, barre-salle.js  Donjon dans l'atelier : inspecteurs salle, donjon, porte, objet, creature et pion, barre d'outils de la scène, actions du « ⋯ » de l'arbre, accord des deux sélections
+js/mj/personnages-ui.js  Donjon : fiches associées, tirage au hasard (section Personnages de l'inspecteur du donjon)
+js/mj/salles-liste.js  Donjon : nom et suppression d'une salle, liaisons orphelines, miniature du plan (la liste des salles est l'arbre)
+js/mj/menu-donjon.js  Donjon : feuille « Ajouter un donjon » (nouveau, modèles, au hasard, import, coller, copies mises de côté), nom, export, copie et suppression d'un donjon, rapport, plan JSON
 js/mj/salle-forme.js  Donjon : forme, sol et dimensions de la salle (boutons, curseurs, bandes autour de la carte)
-js/mj/bulle.js    Donjon : bulle d'actions de l'élément sélectionné (relier, créer la salle derrière, cacher, supprimer) et sa position
+js/mj/bulle.js    Donjon : actions de l'élément sélectionné (relier, créer la salle derrière, cacher, supprimer), servies à l'inspecteur ; garde sélection de la carte et sélection commune d'accord
 js/mj/vue-carte.js  Donjon : la carte de la salle (taille, dessin, déplacement, pose, zoom, palette et tiroir)
 js/mj/vue-plan.js  Donjon : la vue Plan (tout le donjon d'un coup : dessin, survol, liste clavier, zoom du plan)
 js/mj/zoom.js     Donjon : le zoom de la scène (boutons, molette), un seul calcul pour la carte de la salle et pour le plan
@@ -488,7 +494,7 @@ js/historique.js     historique d'annulation du Donjon : une pile par salle (pur
 js/mise-en-page.js  calculs de mise en page du Donjon : position de la bulle, pas de zoom, taille du plan complet (pur, sans DOM)
 js/palette.js       palette du Donjon : vignettes de portes, de mobilier et de créatures, pose au clic ou au glisser
 js/vignettes.js     une vignette (petit canvas) par élément de la palette, dessinée avec le thème vectoriel
-js/rail.js          rail d'outils du Donjon et panneau contextuel ; la table `OUTILS` (identifiant, titre, catalogue) dont dérivent les titres et les outils du catalogue
+js/rail.js          la table `OUTILS` de la barre d'outils du Donjon (Portes, Mobilier, Créatures : identifiant, titre, icône), et l'état mémorisé de l'ancien rail
 js/pose.js          règle unique de « où poser un élément » (et élément qui gêne), chevauchement : ajouter, retirer, redimensionner, changer de forme (pur, sans DOM)
 js/plan-donjon.js   plan du donjon : salles posées à leur vraie taille, reliées par des couloirs (pur, sans DOM) ; façade : `disposerPlan` assemble, et tout ce qui s'importait de ce fichier s'y importe encore ; un plan par niveau, l'un sous l'autre
 js/niveaux.js       niveaux d'un donjon, déduits des escaliers reliés ; leurs noms (pur, sans DOM ni parseur : la table et l'impression le lisent)
@@ -512,7 +518,7 @@ js/protocole-table.js  canal et messages régie ↔ table : fabrication côté r
 js/commande-table.js  quelle régie commande la table quand plusieurs sont ouvertes (pur, sans DOM)
 js/impression.js    découpage en pages A4, mesures de la feuille (aussi données au CSS), échelle, proposition de réduction et phrases de la page (pages voisines, proposition, feuille du MJ), versions MJ / joueurs (pur, sans DOM)
 js/main-impression.js  page d'impression (DOM, aperçu, règle de contrôle, proposition de réduction, barre collante)
-js/telephone.js     sous 760 px : onglets Texte / Carte et Actions / Carte, taille de case qui tient dans la zone, défilement au doigt d'une grande carte
+js/telephone.js     sous 760 px : onglets Actions / Carte de la régie, taille de case qui tient dans la zone, défilement au doigt d'une grande carte
 js/donjon.js        modèle du donjon : salles, liaisons, orphelines, éléments, MJ débutant (pur, sans DOM)
 js/donjon-validation.js  validation d'un donjon venu de l'extérieur (`validerDonjon`) et import d'un fichier (`convertirImport`) ; lit donjon.js, que rien n'importe en retour (pur, sans DOM)
 js/miniplan.js      plan de donjon cliquable : survol, clic et liste clavier communs (`creerPlanInteractif`, aussi pour la vue Plan du Donjon) ; miniature (sidebar, régie) : même dessin que le plan complet

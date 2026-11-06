@@ -111,6 +111,11 @@ Règles : un seul lot enregistre un type (§3) ; `rendre` ne garde aucun état e
 suppression passe par l'annulation existante (`historique`, retrait annulable du monde), rien n'est supprimé en silence. Sans sélection,
 l'inspecteur montre le nœud actif de l'arbre (monde, lieu ou donjon), jamais un panneau vide.
 
+Ajouts du lot B au contrat (rétrocompatibles) : une action accepte `titre` (infobulle) et `confirmation` (libellé du second clic : le premier arme le bouton, le
+second, dans les 4 secondes, exécute ; le « ⋯ » reste ouvert) ; `inspecteur.surEffacement(f)` appelle `f` juste avant que le corps soit vidé (un lot qui y a posé des
+nœuds vivants, comme les blocs de formulaire de `donjon.html`, les reprend pour qu'ils restent dans la page) ; ouvert, le « ⋯ » se déplie dans le flux sous l'en-tête
+(un menu flottant serait rogné par le défilement de l'inspecteur). Un donjon choisi dans l'arbre montre ses salles (déplié) et sa scène est la vue d'ensemble.
+
 ### Coquille (`js/atelier/coquille.js`, lot A)
 
 `creerCoquille({ racine, mode: 'preparer'|'jouer' })` construit la colonne arbre (`.atelier-arbre`), le centre (`.atelier-barre` + `.atelier-scene`) et
