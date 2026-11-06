@@ -399,3 +399,4 @@ if (charge.miseDeCote) { // dit après le premier dessin : le bandeau de la cart
   annoncerCarte(phrase, !charge.miseDeCote.ok, 15000);
   if (charge.miseDeCote.ok) ctx.menu.messageFichier(phrase); else ctx.menu.messageFichier('', [phrase]);
 }
+requestAnimationFrame(() => document.documentElement.classList.add('pret')); // l'atelier est dessiné : le point de chargement (donjon.html) disparaît

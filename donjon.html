@@ -13,6 +13,16 @@
   <link rel="stylesheet" href="css/univers.css">
   <link rel="stylesheet" href="css/atelier.css">
   <link rel="stylesheet" href="css/panneaux.css">
+  <!-- Pendant le chargement des scripts, l'atelier (panneaux encore vides) est caché derrière un point de chargement ; js/main-mj.js pose `pret` au premier dessin.
+       Le délai de secours évite une page vide si un script échoue. -->
+  <style>
+    html:not(.pret) #atelier { opacity: 0; }
+    #atelier { transition: opacity .18s ease-out; }
+    html:not(.pret) body::after { content: ""; position: fixed; left: 50%; top: 50%; width: 26px; height: 26px; margin: -13px 0 0 -13px; border: 3px solid #3d3a44; border-top-color: #d9a929; border-radius: 50%; animation: chargement .8s linear infinite; }
+    @keyframes chargement { to { transform: rotate(360deg); } }
+    @media (prefers-reduced-motion: reduce) { html:not(.pret) body::after { animation-duration: 2.4s; } #atelier { transition: none; } }
+  </style>
+  <script>setTimeout(function () { document.documentElement.classList.add('pret'); }, 8000);</script>
 </head>
 <body>
   <!-- Barre de navigation commune (js/navigation.js). Il n'y a plus de deuxième barre en haut : le bouton de l'arbre et « Jouer » attendent ici,
