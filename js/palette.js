@@ -11,11 +11,17 @@
  * Le module ne sait rien du plan : il appelle `onArmer(item | null)` et `onDeposer(item, clientX, clientY)` ;
  * c'est l'appelant qui pose (js/pose.js), écrit la description et annonce le résultat.
  * Les éléments viennent du lexique (elementsPalette dans js/pose.js).
+ *
+ * Aspect (variante) : un objet qui en a plusieurs (torche éteinte ou bleue, coffre ouvert, tapis vert…) ouvre, dès qu'il est armé, une rangée
+ * « Aspect » de vignettes (les mêmes dessins que sur la carte) au-dessus du catalogue. Le choix est mémorisé par type : il s'applique à
+ * l'élément armé, à son libellé (« Torche bleue »), à sa vignette du catalogue et à un glisser-déposer. L'élément transmis à `onArmer` et
+ * `onDeposer` porte alors `variante` (absente pour l'aspect par défaut).
  */
 import { filtrerElements } from './pose.js';
 import { creerVignette, copierVignette } from './vignettes.js';
 import { h as el } from './dom.js';
 import { icone } from './icones.js';
+import { variantesDe, varianteParDefaut, nomVariante } from './catalogue.js';
 
 const SEUIL_GLISSEMENT_PALETTE = 5; // px : en dessous, c'est un clic
 
@@ -27,7 +33,7 @@ const SEUIL_GLISSEMENT_PALETTE = 5; // px : en dessous, c'est un clic
  *   sousGroupes?: Object<string, {id:string, titre:string}[]>,   intertitres par groupe
  *   pastille: HTMLButtonElement,               pastille d'état « Pose : … ✕ », ailleurs sur la page
  *   onFermer?: () => void,                     bouton « Fermer » du tiroir (téléphone)
- *   onArmer: (item: object|null) => void,
+ *   onArmer: (item: object|null, choixAspect?: boolean) => void,   choixAspect : l'élément était déjà armé, seul son aspect change
  *   onDeposer: (item: object, x: number, y: number) => void,
  *   survol?: (x: number, y: number) => boolean  vrai si ce point est sur la carte (le fantôme change de couleur)
  * }} options
@@ -35,7 +41,9 @@ const SEUIL_GLISSEMENT_PALETTE = 5; // px : en dessous, c'est un clic
  *             annulerGlisser: () => boolean }}
  */
 export function creerPalette(racine, { elements, groupes, sousGroupes = {}, pastille, onFermer, onArmer, onDeposer, survol }) {
-  let arme = null;
+  let arme = null;          // l'élément armé, avec son aspect (variante et libellé)
+  let armeBase = null;      // le même, tel que le catalogue le donne
+  const aspects = new Map(); // type -> id de l'aspect choisi (mémorisé par type)
   let groupeCourant = groupes[0].id;
   let glisse = null;        // { item, fantome } pendant un glisser-déposer
   let apresGlisser = false; // le clic qui suit un glisser ne doit pas armer
@@ -53,7 +61,10 @@ export function creerPalette(racine, { elements, groupes, sousGroupes = {}, past
   const aide = el('details', { className: 'aide palette-aide' },
     el('summary', { className: 'btn btn-icone btn-discret', 'aria-label': 'Aide : poser un élément', textContent: '?' }),
     el('div', { className: 'aide-texte', textContent: 'Clique une vignette puis une case de la carte (elle reste armée : pose-en plusieurs), ou glisse-la sur la carte. Une porte se pose sur le mur le plus proche.' }));
-  racine.replaceChildren(tete, onglets, recherche, aide, liste, vide);
+  const aspectTitre = el('h3', { className: 'palette-intertitre' });
+  const aspectGrille = el('div', { className: 'palette-grille' });
+  const aspectBloc = el('div', { className: 'palette-aspects', role: 'group', hidden: true }, aspectTitre, aspectGrille);
+  racine.replaceChildren(tete, onglets, recherche, aide, aspectBloc, liste, vide);
 
   const boutonsGroupes = groupes.map((g) => {
     const b = el('button', { type: 'button', className: 'btn btn-discret', textContent: g.titre, 'data-groupe': g.id });
@@ -91,7 +102,7 @@ export function creerPalette(racine, { elements, groupes, sousGroupes = {}, past
   function dessinerGroupe(id) {
     if (dessines.has(id)) return;
     dessines.add(id);
-    for (const { b, item } of boutons) if (item.groupe === id) b.querySelector('.palette-vignette').append(creerVignette(item));
+    for (const { b, item } of boutons) if (item.groupe === id) b.querySelector('.palette-vignette').append(creerVignette(avecAspect(item)));
   }
 
   function afficherGroupe(id) {
@@ -125,12 +136,52 @@ export function creerPalette(racine, { elements, groupes, sousGroupes = {}, past
     pastille.replaceChildren(...(arme ? [`Pose : ${arme.libelle}`, icone('fermer')] : []));
     racine.classList.toggle('arme', !!arme);
     document.body.classList.toggle('pose-armee', !!arme);
+    majAspects();
+  }
+
+  // --- Aspect de l'objet armé ---
+  const majuscule = (t) => t.charAt(0).toUpperCase() + t.slice(1);
+  const vignettesAspect = new Map(); // « type/variante » -> canvas (dessiné une seule fois)
+  /** L'élément du catalogue avec l'aspect mémorisé pour son type (variante et libellé : « Torche bleue ») ; inchangé pour tout ce qui n'a pas d'aspect. */
+  function avecAspect(item) {
+    if (!item || item.genre !== 'objet') return item;
+    const id = aspects.get(item.type);
+    if (!id || id === varianteParDefaut(item.type)) return item;
+    return { ...item, variante: id, libelle: `${item.libelle} ${nomVariante(item.type, id)}` };
+  }
+  /** Affiche, ou cache, la rangée des aspects de l'objet armé. */
+  function majAspects() {
+    const liste = armeBase && armeBase.genre === 'objet' ? variantesDe(armeBase.type) : [];
+    aspectBloc.hidden = liste.length < 2;
+    if (liste.length < 2) return;
+    const type = armeBase.type, courant = aspects.get(type) ?? varianteParDefaut(type);
+    aspectBloc.setAttribute('aria-label', `Aspect : ${armeBase.libelle}`);
+    aspectTitre.textContent = `Aspect · ${armeBase.libelle}`;
+    aspectGrille.replaceChildren(...liste.map((v) => {
+      const nom = nomVariante(type, v.id), cle = `${type}/${v.id}`;
+      if (!vignettesAspect.has(cle)) vignettesAspect.set(cle, creerVignette({ genre: 'objet', type, ...(v.id === varianteParDefaut(type) ? {} : { variante: v.id }) }));
+      const b = el('button', { type: 'button', className: 'palette-item palette-aspect', title: `${armeBase.libelle} ${nom}`, 'aria-label': `${armeBase.libelle} ${nom}`, 'aria-pressed': String(v.id === courant), 'data-variante': v.id },
+        el('span', { className: 'palette-vignette' }, vignettesAspect.get(cle)), el('span', { className: 'palette-nom', textContent: majuscule(nom) }));
+      b.addEventListener('click', () => choisirAspect(v.id));
+      return b;
+    }));
+  }
+  /** Choisit l'aspect de l'objet armé : l'élément armé, sa pastille et sa vignette du catalogue le suivent. */
+  function choisirAspect(id) {
+    if (!armeBase) return;
+    aspects.set(armeBase.type, id);
+    arme = avecAspect(armeBase);
+    const bouton = boutons.find((x) => x.item === armeBase);
+    if (bouton && dessines.has(armeBase.groupe)) bouton.b.querySelector('.palette-vignette').replaceChildren(creerVignette(arme));
+    majEtat();
+    onArmer(arme, true);
   }
 
   function armer(item) {
-    arme = item;
+    armeBase = item;
+    arme = avecAspect(item);
     majEtat();
-    onArmer(item);
+    onArmer(arme);
   }
   function desarmer() { if (arme) armer(null); }
   pastille.title = 'Arrêter la pose (Échap)';
@@ -169,7 +220,7 @@ export function creerPalette(racine, { elements, groupes, sousGroupes = {}, past
       document.body.classList.remove('palette-glisse');
       apresGlisser = true;
       setTimeout(() => { apresGlisser = false; }, 0);
-      if (e.type === 'pointerup') onDeposer(g.item, e.clientX, e.clientY);
+      if (e.type === 'pointerup') onDeposer(avecAspect(g.item), e.clientX, e.clientY);
     };
     b.addEventListener('pointerdown', (e) => {
       if (e.button !== 0 || !e.isPrimary) return;

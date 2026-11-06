@@ -11,7 +11,7 @@
  * Coordonnées : en cases, x de l'ouest vers l'est, y du nord vers le sud (voir schema.js).
  */
 import { PORTES, definition, nomAffiche } from './parseur/lexique.js';
-import { OBJETS, CREATURES, estSymetrique } from './catalogue.js';
+import { OBJETS, CREATURES, estSymetrique, varianteConnue, varianteParDefaut, nomVariante } from './catalogue.js';
 import { nomCase } from './coordonnees.js';
 import { normaliserForme, surLeSol } from './formes.js';
 import { MURS, REGARD, REGARD_VERS, estHorizontal, longueurMur, murEntree } from './murs.js';
@@ -158,7 +158,7 @@ const MESSAGES = {
  * Ajoute un élément au plan, au point visé (en cases, éventuellement fractionnaire : le coin de l'élément est
  * calé pour que le point tombe en son centre).
  * @param {object} plan
- * @param {{genre:'porte'|'objet'|'creature', type:string}} item  ce qu'on pose (voir elementsPalette)
+ * @param {{genre:'porte'|'objet'|'creature', type:string, variante?:string}} item  ce qu'on pose (voir elementsPalette) ; `variante` : l'aspect d'un objet
  * @param {number} cx  point visé, colonne en cases (2,5 = milieu de la case C)
  * @param {number} cy  point visé, rangée en cases
  * @returns {{plan:object, element:object, genre:string, message:string}|{erreur:string}}
@@ -195,8 +195,10 @@ export function ajouterElement(plan, item, cx, cy) {
   const pose = evaluerPose(plan, 'objet', modele, x, y);
   if (!pose.ok) return { erreur: MESSAGES[pose.raison] };
   const rotation = pose.modifs.rotation ?? REGARD_VERS[murEntree(plan)];
-  const element = { id: idLibre(plan.objets, 'o'), type: def.type, x, y, l, h, rotation };
-  return { plan: { ...plan, objets: [...plan.objets, element] }, element, genre: 'objet', message: `${libelle(def.type)} posé en ${nomCase(x, y)}.` };
+  // L'aspect choisi dans la palette (torche bleue, coffre ouvert…) : gardé s'il est connu du type et n'est pas la défaut, comme le fait le schéma.
+  const variante = item.variante && varianteConnue(def.type, item.variante) && item.variante !== varianteParDefaut(def.type) ? item.variante : null;
+  const element = { id: idLibre(plan.objets, 'o'), type: def.type, x, y, l, h, rotation, ...(variante ? { variante } : {}) };
+  return { plan: { ...plan, objets: [...plan.objets, element] }, element, genre: 'objet', message: `${libelle(def.type)}${variante ? ` ${nomVariante(def.type, variante)}` : ''} posé en ${nomCase(x, y)}.` };
 }
 
 // --- Retirer ---------------------------------------------------------------------------

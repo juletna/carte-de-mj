@@ -14,6 +14,7 @@ import { tailleRemplir, optionsRendu } from '../affichage.js';
 import { ZOOM_MIN, ZOOM_MAX, zoomBorne } from '../mise-en-page.js';
 import { ajouterElement, elementsPalette, GROUPES_PALETTE, SOUS_GROUPES } from '../pose.js';
 import { creerPalette } from '../palette.js';
+import { variantesDe } from '../catalogue.js';
 import { activerDeplacement } from '../deplacement.js';
 import * as modele from '../donjon.js';
 import { telephone, marquerDefilement } from '../telephone.js';
@@ -100,12 +101,13 @@ export function creerVueCarte(ctx) {
     sousGroupes: SOUS_GROUPES,
     pastille: $('pose-pastille'),
     onFermer: () => { ouvrirTiroir(false); $('ajouter').focus(); },
-    onArmer: (item) => {
+    onArmer: (item, choixAspect = false) => {
       $('carte').classList.toggle('arme', !!item);
       if (item) {
         etat.selection = null; // la bulle se ferme : le prochain clic sur la carte pose
         ctx.bulle.maj();
-        if (telephone()) ouvrirTiroir(false); // au doigt, le tiroir libère la carte une fois l'élément choisi
+        // Au doigt, le tiroir libère la carte une fois l'élément choisi ; un objet à plusieurs aspects le garde ouvert jusqu'au choix de l'aspect.
+        if (telephone() && (choixAspect || item.genre !== 'objet' || variantesDe(item.type).length < 2)) ouvrirTiroir(false);
         annoncerCarte(`${item.libelle} : clique une case de la carte pour le poser. Échap pour arrêter.`);
       } else $('message-carte').hidden = true;
     },

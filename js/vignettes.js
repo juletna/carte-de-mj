@@ -31,7 +31,7 @@ function dessinerPorte(ctx, type) {
 }
 
 /** Objet du mobilier, centré, vu de face comme sur la carte (rotation 180 : aucun pivotement). */
-function dessinerObjet(ctx, type) {
+function dessinerObjet(ctx, type, variante) {
   const def = definition(type);
   const cote = Math.max(def.l, def.h);
   const t = (TAILLE_VIGNETTE * 0.78) / cote;
@@ -39,7 +39,7 @@ function dessinerObjet(ctx, type) {
   const dessin = theme.objets[type] || theme.objets.inconnu;
   ctx.save();
   ctx.translate(TAILLE_VIGNETTE / 2, TAILLE_VIGNETTE / 2);
-  dessin(ctx, def.l * t, def.h * t, t, { type, l: def.l, h: def.h, x: 0, y: 0, rotation: 180 });
+  dessin(ctx, def.l * t, def.h * t, t, { type, l: def.l, h: def.h, x: 0, y: 0, rotation: 180, ...(variante ? { variante } : {}) });
   ctx.restore();
 }
 
@@ -54,7 +54,7 @@ function dessinerCreature(ctx, type) {
 }
 
 /**
- * Crée le canvas de la vignette d'un élément de la palette ({genre, type}) et le dessine.
+ * Crée le canvas de la vignette d'un élément de la palette ({genre, type, variante?}) et le dessine ; `variante` : l'aspect d'un objet (torche bleue…).
  * @returns {HTMLCanvasElement}
  */
 export function creerVignette(item) {
@@ -70,7 +70,7 @@ export function creerVignette(item) {
   ctx.clip();
   try {
     if (item.genre === 'porte') dessinerPorte(ctx, item.type);
-    else if (item.genre === 'objet') dessinerObjet(ctx, item.type);
+    else if (item.genre === 'objet') dessinerObjet(ctx, item.type, item.variante);
     else dessinerCreature(ctx, item.type);
   } catch (err) {
     console.error(`Vignette de ${item.type} :`, err); // une vignette ratée ne doit pas casser la palette

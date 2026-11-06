@@ -81,6 +81,11 @@ details.exemples summary { font-size: 13px; }
 .palette-vignette { display: block; width: 56px; height: 56px; line-height: 0; }
 .palette-vignette canvas { display: block; pointer-events: none; }
 .palette-nom { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; line-height: 1.2; }
+/* Aspect (variante) de l'objet armé : une rangée de vignettes au-dessus du catalogue, mêmes dessins que sur la carte. */
+.palette-aspects { flex: none; margin-bottom: 6px; padding-bottom: 8px; border-bottom: 1px solid var(--bord); }
+.palette-aspects .palette-intertitre { margin: 4px 0 6px; }
+.palette-aspects .palette-grille { grid-template-columns: repeat(auto-fill, minmax(62px, 1fr)); max-height: 204px; overflow-y: auto; scrollbar-width: thin; }
+.palette-aspect { cursor: pointer; touch-action: manipulation; }
 .palette-vide { margin: 8px 0 0; font-size: 13px; color: var(--texte-doux); }
 .palette-aide { flex: none; align-self: flex-start; }
 .palette-aide .aide-texte { max-width: none; font-size: 12px; line-height: 1.35; }

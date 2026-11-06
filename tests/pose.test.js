@@ -99,6 +99,22 @@ const TESTS = [
     allerRetour(r.plan, 'tonneau');
   }],
 
+  ['ajouter un objet avec un aspect de la palette (torche bleue, coffre ouvert) : gardé s’il est connu et n’est pas la défaut ; il survit à la description', () => {
+    const plan = planDe();
+    const bleue = ajouterElement(plan, { genre: 'objet', type: 'torche', variante: 'bleue' }, 0.5, 2.5);
+    verifier(!bleue.erreur, bleue.erreur);
+    egal(bleue.element.variante, 'bleue', 'l’aspect est écrit sur l’objet');
+    verifier(bleue.message.includes('bleue'), `message : ${bleue.message}`);
+    const relu = analyser(decrire(bleue.plan)).plan;
+    egal(relu.objets.filter((o) => o.type === 'torche').map((o) => o.variante), [...plan.objets.filter((o) => o.type === 'torche').map((o) => o.variante), 'bleue'], 'relue depuis la description : la torche bleue reste bleue');
+    const ouvert = ajouterElement(plan, { genre: 'objet', type: 'coffre', variante: 'ouvert' }, 4.5, 2.5);
+    egal(ouvert.element.variante, 'ouvert', 'coffre ouvert');
+    egal(analyser(decrire(ouvert.plan)).plan.objets.find((o) => o.x === 4 && o.y === 2).variante, 'ouvert', 'coffre ouvert relu');
+    egal('variante' in ajouterElement(plan, { genre: 'objet', type: 'coffre', variante: 'ferme' }, 4.5, 2.5).element, false, 'la défaut ne s’écrit pas');
+    egal('variante' in ajouterElement(plan, { genre: 'objet', type: 'coffre', variante: 'inconnue' }, 4.5, 2.5).element, false, 'une variante inconnue est ignorée');
+    egal('variante' in ajouterElement(plan, { genre: 'objet', type: 'pilier', variante: 'bleue' }, 4.5, 2.5).element, false, 'un type sans variantes n’en prend pas');
+  }],
+
   ['ajouter un objet de 2 cases : centré sur le point visé', () => {
     const plan = planDe('Salle de 6 par 6 cases, une porte au mur sud en B');
     const r = ajouterElement(plan, { genre: 'objet', type: 'table' }, 3, 2.5); // table 2×1 : de B3 à C3 ... (x = 2)
