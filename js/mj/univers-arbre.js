@@ -5,7 +5,9 @@
  * parcourir, droite/gauche pour déplier/replier ou changer de niveau, Entrée pour ouvrir, Début/Fin.
  * Renvoie `{ element, maj({ univers, donjons, lieuId }) , ouvert, ouvrir, fermer }`.
  */
-import { h, bouton } from '../dom.js';
+import { h } from '../dom.js';
+import { icone } from '../icones.js';
+import { btn } from '../univers-boutons.js';
 import * as images from '../univers-images.js';
 import { arbreLieux, filtrerArbre } from '../univers-vue.js';
 
@@ -21,18 +23,17 @@ export function creerArbre({ surLieu, surDonjon, surAjouter }) {
   const filtre = h('input', { type: 'search', className: 'univers-arbre-filtre', placeholder: 'Filtrer les lieux…', 'aria-label': 'Filtrer les lieux', spellcheck: false, hidden: true });
   const liste = h('ul', { className: 'univers-arbre-liste', role: 'tree', 'aria-label': 'Lieux du monde' });
   const vide = h('p', { className: 'note', hidden: true });
-  const ajouter = bouton('+ Lieu', () => surAjouter(), 'discret petit univers-arbre-ajout');
-  ajouter.title = 'Ajouter un lieu : choisir une carte dans la bibliothèque';
+  const ajouter = btn('Lieu', () => surAjouter(), { icone: 'plus', classe: 'btn-discret univers-arbre-ajout', titre: 'Ajouter un lieu : choisir une carte dans la bibliothèque' });
   const element = h('nav', { className: 'univers-arbre', 'aria-label': 'Lieux' }, filtre, liste, vide, ajouter);
 
   function vignette(n, univers) {
     const boite = h('span', { className: `univers-vignette${n.type === 'donjon' ? ' donjon' : ''}`, 'aria-hidden': 'true' });
-    if (n.type === 'donjon') { boite.textContent = '🏰'; return boite; }
+    if (n.type === 'donjon') { boite.append(icone('donjon')); return boite; }
     const ref = univers.lieux[n.id]?.image;
     const poser = (url) => { if (url) boite.replaceChildren(h('img', { src: url, alt: '', loading: 'lazy', decoding: 'async' })); };
     if (urls.has(cleImage(ref))) poser(urls.get(cleImage(ref)));
     else {
-      boite.textContent = '🗺';
+      boite.append(icone('monde'));
       images.urlImage(ref).then((url) => { if (url) { urls.set(cleImage(ref), url); poser(url); } });
     }
     return boite;
@@ -56,7 +57,7 @@ export function creerArbre({ surLieu, surDonjon, surAjouter }) {
       texte.append(h('span', { className: 'doux univers-arbre-aussi', textContent: m, title: m }));
     }
     const bascule = aEnfants
-      ? h('span', { className: 'univers-arbre-bascule', textContent: replie ? '▸' : '▾', 'aria-hidden': 'true' })
+      ? h('span', { className: `univers-arbre-bascule${replie ? ' replie' : ''}`, 'aria-hidden': 'true' }, h('span', { className: 'univers-chevron' }))
       : h('span', { className: 'univers-arbre-bascule vide', 'aria-hidden': 'true' });
     const ligne = h('div', { className: 'univers-arbre-ligne' }, bascule, groupe ? '' : vignette(n, donnees.univers), texte,
       n.depart ? h('span', { className: 'univers-arbre-badge', textContent: 'départ', title: 'Lieu de départ du monde' }) : '');
@@ -64,7 +65,7 @@ export function creerArbre({ surLieu, surDonjon, surAjouter }) {
     li.append(ligne);
     ligne.addEventListener('click', (e) => {
       li.focus({ preventScroll: true });
-      if (e.target === bascule && aEnfants) basculer(n.cle, replie);
+      if (bascule.contains(e.target) && aEnfants) basculer(n.cle, replie);
       else activer(n, replie);
     });
     if (aEnfants && !replie) li.append(h('ul', { role: 'group' }, ...n.enfants.map((e) => noeud(e, niveau + 1, forces))));

@@ -18,8 +18,11 @@
     .outil { display: block; padding: 16px; background: var(--panneau); border: 1px solid var(--bord); border-radius: var(--rayon); color: inherit; text-decoration: none; }
     a.outil:hover, a.outil:focus-visible { border-color: var(--accent); }
     a.outil:focus-visible { outline: var(--focus); outline-offset: var(--focus-decalage); }
-    .outil b { display: block; font-size: 18px; color: var(--accent); }
+    .outil b { display: flex; align-items: center; gap: var(--esp-2); font-size: 18px; color: var(--accent); }
+    .outil .icone { width: 22px; height: 22px; }
+    .outil > span { display: block; margin-top: 4px; }
     .outil span { color: var(--texte-doux); }
+    .outil b .icone-outil { color: var(--accent); display: inline-flex; margin: 0; }
     footer { margin-top: 24px; font-size: 13px; color: var(--texte-doux); }
   </style>
 </head>
@@ -30,23 +33,23 @@
     <p class="sous-titre">Des outils de jeu de rôle sur table. Chacun s'utilise seul, sans compte ni réseau.</p>
     <nav class="choix" aria-label="Outils">
       <a class="outil" href="donjon.html#monde">
-        <b>Monde</b>
+        <b><span class="icone-outil" data-icone="monde" aria-hidden="true"></span>Monde</b>
         <span>Des cartes imbriquées : un monde, ses continents, leurs lieux, et les donjons qui s'y cachent.</span>
       </a>
       <a class="outil" href="donjon.html">
-        <b>Donjons</b>
+        <b><span class="icone-outil" data-icone="donjon" aria-hidden="true"></span>Donjons</b>
         <span>Décris une salle en français, la carte s'affiche sur une grille. Relie les salles en un donjon.</span>
       </a>
       <a class="outil" href="presentation.html">
-        <b>Jouer</b>
+        <b><span class="icone-outil" data-icone="jouer" aria-hidden="true"></span>Jouer</b>
         <span>Ouvre un donjon ou un monde déjà prêt : régie pour le MJ, carte en grand pour la table.</span>
       </a>
       <a class="outil" href="bibliotheque.html">
-        <b>Bibliothèque</b>
+        <b><span class="icone-outil" data-icone="bibliotheque" aria-hidden="true"></span>Bibliothèque</b>
         <span>Les cartes illustrées du catalogue et tes propres images, à poser dans ton monde.</span>
       </a>
       <a class="outil" href="fiche.html">
-        <b>Fiche joueur</b>
+        <b><span class="icone-outil" data-icone="fiche" aria-hidden="true"></span>Fiche joueur</b>
         <span>La fiche de ton personnage sur téléphone, avec jets de dés et suivi des PV.</span>
       </a>
     </nav>
@@ -54,5 +57,6 @@
     <footer>Projet libre (MIT) · les données restent dans ton navigateur · outil non officiel, sans lien avec un éditeur de jeu</footer>
   </main>
   <script type="module" src="js/navigation.js"></script>
+  <script type="module" src="js/main-accueil.js"></script>
 </body>
 </html>

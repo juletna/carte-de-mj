@@ -1,19 +1,20 @@
 /**
- * Petits éléments d'interface de l'écran Monde (js/mj/univers-ui.js) : le menu « ⋯ », l'aide repliée sous un « ? »
+ * Petits éléments d'interface de l'écran Monde (js/mj/univers-ui.js) : le menu « plus d'actions » (trois points), l'aide repliable (.aide)
  * et les notifications temporaires. Du DOM seulement ; les règles (durées) sont dans js/univers-vue.js.
  */
-import { h, bouton, deuxTemps } from '../dom.js';
+import { h, deuxTemps } from '../dom.js';
+import { iconeHtml } from '../icones.js';
+import { btn } from '../univers-boutons.js';
 import { dureeNotification } from '../univers-vue.js';
 import { telephone } from '../telephone.js';
 
 /**
- * Un bouton « ⋯ » qui ouvre une courte liste d'actions. Les éléments : `{ libelle, faire }`, `{ libelle, confirmation, faire, danger: true }`
- * (suppression en deux clics, en rouge), `{ separateur: true }` ou `{ element }` (un contrôle déjà prêt, par exemple un import de fichier).
+ * Un bouton-icône « plus d'actions » qui ouvre une courte liste. Les éléments : `{ libelle, icone?, faire }`, `{ libelle, confirmation, faire, danger: true }`
+ * (suppression en deux clics, .btn-danger), `{ separateur: true }` ou `{ element }` (un contrôle déjà prêt, par exemple un import de fichier).
  * Se ferme à l'Échap, au clic ailleurs et après chaque action. Renvoie `{ element, fermer }`.
  */
 export function menuPlus({ libelle = 'Plus d’actions', items, classe = '' }) {
-  const declencheur = h('button', { type: 'button', className: `discret univers-plus ${classe}`.trim(), textContent: '⋯' });
-  declencheur.setAttribute('aria-label', libelle);
+  const declencheur = btn(libelle, null, { icone: 'plus-d-actions', iconeSeule: true, classe: `btn-discret univers-plus ${classe}`.trim() });
   declencheur.setAttribute('aria-haspopup', 'menu');
   declencheur.setAttribute('aria-expanded', 'false');
   const liste = h('div', { className: 'univers-menu', role: 'menu', hidden: true });
@@ -26,12 +27,13 @@ export function menuPlus({ libelle = 'Plus d’actions', items, classe = '' }) {
   for (const it of items) {
     if (it.separateur) { liste.append(h('hr', { role: 'separator' })); continue; }
     if (it.element) { liste.append(it.element); continue; }
-    const b = h('button', { type: 'button', role: 'menuitem', className: `univers-menu-item${it.danger ? ' univers-menu-danger' : ''}` });
+    const b = h('button', { type: 'button', role: 'menuitem', className: `btn ${it.danger ? 'btn-danger univers-menu-danger' : 'btn-discret'} univers-menu-item` });
     if (it.danger) {
       deuxTemps(b, it.libelle, it.confirmation ?? 'Confirmer', it.faire);
       b.addEventListener('click', () => { if (b.dataset.confirme !== '1') fermer(); }); // la première pression attend la confirmation, menu ouvert
     } else {
-      b.textContent = it.libelle;
+      b.innerHTML = `${it.icone ? iconeHtml(it.icone) : ''}<span></span>`;
+      b.lastChild.textContent = it.libelle;
       b.addEventListener('click', () => { fermer(); it.faire(); });
     }
     liste.append(b);
@@ -49,11 +51,12 @@ export function menuPlus({ libelle = 'Plus d’actions', items, classe = '' }) {
   return { element, fermer };
 }
 
-/** Une aide longue, repliée sous un « ? » (sans script : un <details>). */
+/** Une aide longue, repliée sous une icône « ? » (sans script : un <details class="aide"> du système visuel). */
 export function aide(texte, classe = '') {
-  const resume = h('summary', { textContent: '?', title: 'Afficher l’aide' });
+  const resume = h('summary', { className: 'btn btn-icone btn-discret', title: 'Afficher l’aide' });
   resume.setAttribute('aria-label', 'Aide');
-  return h('details', { className: `univers-aide ${classe}`.trim() }, resume, h('p', { className: 'note', textContent: texte }));
+  resume.innerHTML = iconeHtml('aide');
+  return h('details', { className: `aide ${classe}`.trim() }, resume, h('div', { className: 'aide-texte', textContent: texte }));
 }
 
 /**
@@ -68,10 +71,8 @@ export function creerNotifications(zone) {
     const carte = h('div', { className: `univers-notification${erreur ? ' erreur' : ''}` }, h('span', { textContent: texte }));
     let minuteur = null;
     const retirer = () => { clearTimeout(minuteur); carte.remove(); };
-    if (action) carte.append(bouton(action.libelle, () => { retirer(); action.faire(); }, 'discret petit'));
-    const x = bouton('✕', retirer, 'discret petit univers-notification-x');
-    x.setAttribute('aria-label', 'Fermer le message');
-    carte.append(x);
+    if (action) carte.append(btn(action.libelle, () => { retirer(); action.faire(); }, { classe: 'btn-discret' }));
+    carte.append(btn('Fermer le message', retirer, { icone: 'fermer', iconeSeule: true, classe: 'btn-discret univers-notification-x' }));
     while (zone.children.length >= (telephone() ? 2 : 3)) zone.firstChild.remove(); // au plus deux sur téléphone
     zone.append(carte);
     minuteur = setTimeout(retirer, dureeNotification(texte, { erreur, action: !!action }));

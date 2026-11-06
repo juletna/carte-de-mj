@@ -8,34 +8,26 @@ body.univers-ouvert { overflow: hidden; }
 .univers-barre { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: var(--esp-2); padding: var(--esp-2) var(--esp-3); background: var(--panneau); border-bottom: 1px solid var(--bord); }
 .univers-nom-monde { display: flex; align-items: center; gap: var(--esp-2); flex: 1 1 200px; min-width: 0; }
 .univers-nom-monde select, .univers-nom-monde input[type="text"] { flex: 0 1 280px; min-width: 0; font-weight: 600; }
-.univers-jouer { background: var(--accent); color: var(--accent-texte); border-color: var(--accent); font-weight: 700; margin: 0; }
 .univers-jouer[hidden] { display: none; }
-.univers-jouer:hover { filter: brightness(1.1); }
-.univers-jouer:focus-visible { outline: var(--focus); outline-offset: 2px; }
 .univers.sans-monde .univers-corps { align-items: flex-start; }
 /* Menu « ⋯ » */
 .univers-menu-cadre { position: relative; display: inline-block; }
-.univers-plus { min-width: var(--cible); font-size: 18px; line-height: 1; }
 .univers-menu { position: absolute; right: 0; top: calc(100% + 4px); z-index: 20; min-width: 210px; padding: 4px; background: var(--panneau); border: 1px solid var(--bord); border-radius: var(--rayon); box-shadow: 0 8px 24px rgba(0, 0, 0, .55); text-align: left; }
 .univers-menu[hidden] { display: none; }
 .univers-menu hr { border: 0; border-top: 1px solid var(--bord); margin: 4px 0; }
-.univers-menu .univers-menu-item { display: flex; width: 100%; justify-content: flex-start; margin: 0; background: transparent; border-color: transparent; color: var(--texte); text-align: left; cursor: pointer; box-sizing: border-box; }
-.univers-menu .univers-menu-item:hover, .univers-menu .univers-menu-item:focus-visible { background: var(--champ); }
-.univers-menu .univers-menu-danger { color: var(--erreur); }
+.univers-menu .univers-menu-item { display: flex; width: 100%; justify-content: flex-start; margin: 0; text-align: left; }
+.univers-menu .univers-menu-item:focus-visible { outline: var(--focus); outline-offset: -2px; }
 .univers-menu .univers-menu-danger.danger { background: var(--erreur); color: #fff; }
-/* Aide repliée sous un « ? » */
-.univers-aide { display: inline-block; vertical-align: middle; font-weight: 400; }
-.univers-aide > summary { list-style: none; display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--bord); color: var(--texte-doux); font-size: 13px; cursor: pointer; }
-.univers-aide > summary::-webkit-details-marker { display: none; }
-.univers-aide > summary:focus-visible { outline: var(--focus); outline-offset: 2px; }
-.univers-aide[open] > summary { color: var(--accent); border-color: var(--accent); }
-.univers-aide > .note { display: block; margin: var(--esp-2) 0; font-size: 13px; font-weight: 400; color: var(--texte-doux); }
+/* Aide repliable : .aide de css/base.css ; ici seulement son placement */
+h3 .aide, h2 .aide { margin-left: var(--esp-1); font-weight: 400; }
+.aide-texte { text-transform: none; letter-spacing: 0; }
+.univers-masque { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 /* Notifications temporaires : sur le panneau (jamais sur la carte) ; sur téléphone, en bas, jamais sur la barre du haut */
 .univers-notifications { position: absolute; right: 12px; bottom: 12px; z-index: 40; width: 316px; max-width: calc(100vw - 24px); display: flex; flex-direction: column; gap: var(--esp-2); pointer-events: none; }
 .univers-notification { pointer-events: auto; display: flex; align-items: center; gap: var(--esp-2); padding: var(--esp-2) var(--esp-3); background: var(--panneau); color: var(--texte); border: 1px solid var(--accent); border-radius: var(--rayon); box-shadow: 0 6px 20px rgba(0, 0, 0, .5); font-size: 13px; text-align: left; }
 .univers-notification > span { flex: 1 1 auto; }
 .univers-notification.erreur { border-color: var(--erreur); }
-.univers-notification button { flex: none; }
+.univers-notification .btn { flex: none; }
 .univers-corps { flex: 1 1 auto; min-height: 0; display: flex; }
 .univers.sans-monde .univers-arbre, .univers.sans-monde .univers-lieux-bouton { display: none; }
 
@@ -45,18 +37,24 @@ body.univers-ouvert { overflow: hidden; }
 .univers-arbre-liste, .univers-arbre-liste ul { list-style: none; margin: 0; padding: 0; }
 .univers-arbre-liste ul { margin-left: 14px; border-left: 1px solid var(--bord); }
 .univers-arbre-noeud { margin: 0; outline: none; }
-.univers-arbre-ligne { display: flex; align-items: center; gap: 6px; min-height: 48px; padding: 2px 6px 2px 2px; border-radius: var(--rayon); border: 1px solid transparent; cursor: pointer; color: var(--texte); }
+.univers-arbre-ligne { display: flex; align-items: center; gap: 6px; min-height: max(48px, var(--cible)); padding: 2px 6px 2px 2px; border-radius: var(--rayon); border: 1px solid transparent; cursor: pointer; color: var(--texte); }
 .univers-arbre-ligne:hover { background: var(--champ); }
 .univers-arbre-noeud:focus-visible > .univers-arbre-ligne { outline: var(--focus); outline-offset: -2px; }
 .univers-arbre-noeud.courant > .univers-arbre-ligne { background: var(--champ); border-color: var(--accent); color: var(--accent); }
-.univers-arbre-bascule { flex: none; width: 16px; text-align: center; color: var(--texte-doux); font-size: 12px; }
+.univers-arbre-bascule { flex: none; width: 16px; align-self: stretch; display: flex; align-items: center; justify-content: center; color: var(--texte-doux); }
+.univers-chevron { width: 6px; height: 6px; border-right: 1.75px solid currentColor; border-bottom: 1.75px solid currentColor; transform: translateY(-2px) rotate(45deg); transition: transform .12s; }
+.univers-arbre-bascule.replie .univers-chevron { transform: rotate(-45deg); }
+@media (prefers-reduced-motion: reduce) { .univers-chevron { transition: none; } }
 .univers-vignette { flex: none; box-sizing: border-box; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 4px; background: var(--scene); border: 1px solid var(--bord); font-size: 18px; line-height: 1; }
+.univers-vignette .icone { width: 55%; height: 55%; color: var(--texte-doux); }
+.univers-vignette.petite { width: 32px; height: 32px; }
 .univers-vignette img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .univers-arbre-texte { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; font-size: 13px; line-height: 1.25; }
 .univers-arbre-nom, .univers-arbre-aussi { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .univers-arbre-aussi { font-size: 11px; }
 .univers-arbre-badge { flex: none; padding: 1px 6px; border-radius: 999px; border: 1px solid var(--accent); color: var(--accent); font-size: 11px; }
 .univers-arbre-ajout { align-self: flex-start; margin-top: auto; }
+.univers-lieux-bouton .icone, .univers-arbre-ajout .icone { flex: none; }
 .univers-lieux-bouton { display: none; align-self: flex-start; margin: var(--esp-2) var(--esp-2) 0; }
 .univers-voile { display: none; }
 .univers-scene { position: relative; flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; background: var(--scene); }
@@ -110,14 +108,30 @@ body.univers-ouvert { overflow: hidden; }
 .univers-bulle select, .univers-bulle input[type="text"] { width: 100%; box-sizing: border-box; }
 .univers-bulle .note { margin: 0; }
 .univers-segment { display: flex; border: 1px solid var(--bord); border-radius: var(--rayon); overflow: hidden; }
-.univers-segment-bouton { flex: 1 1 0; margin: 0; border: 0; border-radius: 0; background: var(--champ); color: var(--texte); cursor: pointer; }
+.univers-segment-bouton { flex: 1 1 0; margin: 0; border: 0; border-radius: 0; background: var(--champ); }
 .univers-segment-bouton + .univers-segment-bouton { border-left: 1px solid var(--bord); }
-.univers-segment-bouton.choisi { background: var(--accent); color: var(--accent-texte); font-weight: 700; }
+.univers-segment-bouton[aria-pressed="true"] { box-shadow: inset 0 -3px 0 var(--accent); }
 .univers-segment-bouton:focus-visible { outline: var(--focus); outline-offset: -2px; }
 .univers-ligne-destination { display: flex; gap: var(--esp-2); }
-.univers-ligne-destination select { flex: 1 1 0; min-width: 0; width: auto; }
+.univers-ligne-destination select { flex: 1 1 0; min-width: 0; width: auto; min-height: var(--btn-h); }
+.univers-ligne-destination .univers-combo { flex: 1 1 0; min-width: 0; }
+
+/* --- Liste déroulante maison (js/mj/univers-liste.js) : vignette de 32 px + nom ; la liste est en position fixe sous le bouton --- */
+.univers-combo-bouton { width: 100%; justify-content: flex-start; gap: var(--esp-2); font-weight: 500; background: var(--champ); text-align: left; }
+.univers-combo-valeur { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: var(--esp-2); }
+.univers-combo-texte { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.univers-combo-fleche { flex: none; width: 7px; height: 7px; margin: 0 4px 3px 0; border-right: 1.75px solid currentColor; border-bottom: 1.75px solid currentColor; transform: rotate(45deg); color: var(--texte-doux); }
+.univers-combo-bouton[aria-expanded="true"] .univers-combo-fleche { transform: translateY(2px) rotate(-135deg); }
+.univers-combo-options { position: fixed; z-index: 100; margin: 0; padding: 4px; list-style: none; overflow-y: auto; box-sizing: border-box; background: var(--panneau); border: 1px solid var(--accent); border-radius: var(--rayon); box-shadow: 0 8px 24px rgba(0, 0, 0, .55); }
+.univers-combo-options[hidden] { display: none; }
+.univers-combo-option { display: flex; align-items: center; gap: var(--esp-2); min-height: max(40px, var(--cible)); padding: 4px var(--esp-2); border-radius: 4px; cursor: pointer; color: var(--texte); }
+.univers-combo-option.actif { background: var(--champ); outline: 1px solid var(--bord); }
+.univers-combo-option[aria-selected="true"] { color: var(--accent); font-weight: 600; }
+.univers-combo-option[aria-disabled="true"] { opacity: .5; cursor: default; }
+.univers-combo-option.ajout { margin-top: 4px; border-top: 1px solid var(--bord); border-radius: 0 0 4px 4px; color: var(--accent); }
+.univers-combo-option .icone { flex: none; width: 20px; margin: 0 6px; }
 .univers-bulle-pied { display: flex; align-items: center; justify-content: space-between; gap: var(--esp-2); }
-.univers-bulle-pied .principal { margin: 0; }
+.univers-entrer .icone { transform: scaleX(-1); }
 .univers-interrupteur { display: flex; align-items: center; gap: var(--esp-2); margin: 0; min-height: var(--cible); cursor: pointer; }
 .univers-interrupteur input { position: absolute; opacity: 0; width: 1px; height: 1px; }
 .univers-glissiere { flex: none; position: relative; width: 38px; height: 22px; border-radius: 11px; background: var(--champ); border: 1px solid var(--bord); transition: background .15s; }
@@ -151,6 +165,12 @@ body.univers-ouvert { overflow: hidden; }
   body.univers-bulle-ouverte .univers-image { max-height: 50vh; }
   #univers-bouton .libelle { display: none; }
   .univers-pastille { width: 26px; height: 26px; }
+  .univers-vignette { width: 44px; height: 44px; }
+  .univers-vignette.petite { width: 32px; height: 32px; }
+  .univers-arbre-bascule { width: 32px; }
+  .univers-arbre-ligne { min-height: 52px; }
+  .univers-segment-bouton, .univers-combo-bouton, .univers-ligne-destination select, .univers-bulle input[type="text"] { min-height: 44px; }
+  .univers-interrupteur { min-height: 44px; }
   /* Calage : la carte reste en haut de l'écran pendant qu'on règle les curseurs dessous, pour voir la grille bouger. */
   .univers.en-calage .univers-scene { position: sticky; top: 0; z-index: 2; min-height: 0; background: var(--scene); border-bottom: 1px solid var(--bord); }
   .univers.en-calage .univers-image { max-height: 38vh; }
@@ -205,7 +225,7 @@ body.univers-ouvert { overflow: hidden; }
 .univers-calage .calage-ligne { display: flex; align-items: center; gap: 6px; }
 .univers-calage input[type="range"] { flex: 1 1 auto; min-width: 0; min-height: 44px; }
 .univers-calage input[type="number"] { width: 76px; box-sizing: border-box; min-height: 44px; }
-.univers-calage .calage-ligne .bouton { min-width: 44px; min-height: 44px; }
+.univers-calage .calage-ligne .btn-icone { width: max(var(--cible), 36px); }
 .univers-calage .calage-geste { display: flex; flex-wrap: wrap; align-items: center; gap: var(--esp-2); margin: var(--esp-2) 0; }
 .univers-calage .calage-n { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; }
 .univers-calage .calage-n input { width: 64px; }

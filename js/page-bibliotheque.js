@@ -3,7 +3,8 @@
  * (importées, gardées dans ce navigateur). Filtres, recherche, aperçu, crédit, import et suppression d'une image importée.
  * Elle réutilise js/bibliotheque/ (lecture du catalogue, vocabulaire, images).
  */
-import { h, bouton, deuxTemps, fichierChoisi } from './dom.js';
+import { h, deuxTemps, fichierChoisi } from './dom.js';
+import { btn } from './univers-boutons.js';
 import { selectionner, creditAffiche } from './bibliotheque/catalogue.js';
 import { NIVEAUX, MILIEUX, NIVEAUX_AIDE, libelleNiveau, libelleMilieu } from './bibliotheque/vocabulaire.js';
 import { lireCatalogue } from './bibliotheque/index.js';
@@ -84,7 +85,7 @@ function dessinerDetail() {
   if (credit) lignes.push(h('span', { className: 'bib-credit', textContent: `Crédit : ${credit}` }));
   const actions = h('div', { className: 'bib-actions' });
   if (etat.onglet === 'navigateur') {
-    const sup = h('button', { type: 'button', className: 'discret' });
+    const sup = h('button', { type: 'button', className: 'btn btn-danger' });
     deuxTemps(sup, 'Supprimer cette image', 'Confirmer la suppression', async () => {
       try {
         const id = choisi.ref.id;
@@ -124,7 +125,7 @@ function dessinerImport() {
   if (zoneImport.hidden) return;
   const entree = h('input', { type: 'file', accept: '.webp,.png,.jpg,.jpeg,.svg,image/webp,image/png,image/jpeg,image/svg+xml', hidden: true });
   entree.addEventListener('change', (e) => { const f = fichierChoisi(e); if (f) ouvrirFormulaire(f); });
-  zoneImport.append(bouton('Importer une image…', () => entree.click(), 'principal'), entree);
+  zoneImport.append(btn('Importer une image…', () => entree.click(), { icone: 'importer', classe: 'btn-primaire' }), entree);
 }
 
 function ouvrirFormulaire(fichier) {
@@ -134,7 +135,7 @@ function ouvrirFormulaire(fichier) {
   const tags = h('input', { type: 'text', placeholder: 'tags séparés par des virgules', id: 'bib-f-tags' });
   const milieux = MILIEUX.map((m) => h('label', { className: 'bib-case' }, h('input', { type: 'checkbox', value: m.id }), ` ${m.libelle}`));
   const erreur = h('p', { className: 'bib-erreur', role: 'alert' });
-  const ajouter = h('button', { type: 'button', textContent: 'Ajouter', className: 'principal' });
+  const ajouter = btn('Ajouter', null, { icone: 'plus', classe: 'btn-primaire' });
   ajouter.addEventListener('click', async () => {
     ajouter.disabled = true; erreur.textContent = '';
     try {
@@ -153,7 +154,7 @@ function ouvrirFormulaire(fichier) {
     h('label', { htmlFor: 'bib-f-niveau', textContent: 'Niveau' }), niveau,
     h('fieldset', {}, h('legend', { textContent: 'Milieux' }), h('div', { className: 'bib-cases' }, ...milieux)),
     h('label', { htmlFor: 'bib-f-tags', textContent: 'Tags' }), tags,
-    erreur, h('div', { className: 'bib-actions' }, ajouter, bouton('Annuler l’import', () => dessinerImport(), 'discret'))));
+    erreur, h('div', { className: 'bib-actions' }, ajouter, btn('Annuler l’import', () => dessinerImport(), { classe: 'btn-discret' }))));
   nom.focus(); nom.select();
 }
 

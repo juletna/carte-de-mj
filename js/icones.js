@@ -41,6 +41,7 @@ export const ICONES = {
   annuler: '<path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>',
   'chevron-bas': '<path d="M6 9.5l6 6 6-6"/>',
   'chevron-gauche': '<path d="M14.5 5.5l-6.5 6.5 6.5 6.5"/>',
+  alerte: '<path d="M12 4.5l9 15.5H3z"/><path d="M12 10v4.5"/><circle cx="12" cy="17.2" r="0.9" fill="currentColor" stroke="none"/>',
 };
 
 /** Les noms disponibles, dans l'ordre de déclaration. */

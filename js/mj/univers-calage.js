@@ -12,7 +12,8 @@
  *  - `quitter()` : le MJ sort sans enregistrer ;
  *  - `surMarqueurs()` : les repères des deux clics ont changé, l'appelant redessine la carte avec `marqueurs()`.
  */
-import { $, h, bouton } from '../dom.js';
+import { $, h } from '../dom.js';
+import { btn } from '../univers-boutons.js';
 import { aide } from './univers-menu.js';
 import * as g from '../univers-grille.js';
 
@@ -95,10 +96,8 @@ export function creerCalage({ carte, enregistrer, quitter, surMarqueurs }) {
   function curseur(libelle, cle, { min, max, step, apres }) {
     const num = h('input', { type: 'number', min, max, step, inputMode: 'decimal', 'aria-label': `${libelle} (px de l’image)` });
     const cur = h('input', { type: 'range', min, max, step, 'aria-label': `${libelle}, curseur` });
-    const moins = bouton('−', () => apres(Number(num.value) - 1), 'discret petit');
-    const plus = bouton('+', () => apres(Number(num.value) + 1), 'discret petit');
-    moins.setAttribute('aria-label', `${libelle} : moins un pixel`);
-    plus.setAttribute('aria-label', `${libelle} : plus un pixel`);
+    const moins = btn(`${libelle} : moins un pixel`, () => apres(Number(num.value) - 1), { icone: 'moins', iconeSeule: true, classe: 'btn-discret' });
+    const plus = btn(`${libelle} : plus un pixel`, () => apres(Number(num.value) + 1), { icone: 'plus', iconeSeule: true, classe: 'btn-discret' });
     cur.addEventListener('input', () => apres(Number(cur.value)));
     num.addEventListener('change', () => { if (num.value !== '' && Number.isFinite(Number(num.value))) apres(Number(num.value)); else appliquer(s.courante); });
     champs[cle] = cur; champs[`${cle}Num`] = num;
@@ -112,8 +111,6 @@ export function creerCalage({ carte, enregistrer, quitter, surMarqueurs }) {
       s.mode = valeur; s.premier = null;
       champs.glisser.setAttribute('aria-pressed', String(valeur === 'glisser'));
       champs.mesurer.setAttribute('aria-pressed', String(valeur === 'mesurer'));
-      champs.glisser.classList.toggle('principal', valeur === 'glisser');
-      champs.mesurer.classList.toggle('principal', valeur === 'mesurer');
       champs.n.disabled = valeur !== 'mesurer';
       carte.cadre.classList.toggle('calage-mesure', valeur === 'mesurer');
       champs.etatMesure.textContent = valeur === 'mesurer'
@@ -121,14 +118,14 @@ export function creerCalage({ carte, enregistrer, quitter, surMarqueurs }) {
         : 'Glisse la carte (souris ou doigt) pour déplacer la grille.';
       surMarqueurs();
     };
-    champs.glisser = bouton('Glisser', () => mode('glisser'), 'petit');
-    champs.mesurer = bouton('Mesurer', () => mode('mesurer'), 'petit');
+    champs.glisser = btn('Glisser', () => mode('glisser'), { icone: 'fleches' });
+    champs.mesurer = btn('Mesurer', () => mode('mesurer'), { icone: 'grille' });
     champs.n = h('input', { type: 'number', min: 1, max: g.NB_CASES_MAX, step: 1, value: String(s.n), inputMode: 'numeric', 'aria-label': 'Nombre de cases entre les deux clics' });
     champs.n.addEventListener('change', () => { const v = Math.round(Number(champs.n.value)); s.n = v >= 1 && v <= g.NB_CASES_MAX ? v : s.n; champs.n.value = String(s.n); s.premier = null; surMarqueurs(); });
     champs.etatMesure = h('p', { className: 'note', role: 'status' });
     champs.resume = h('p', { className: 'note', role: 'status' });
     const catalogue = g.normaliserGrille(s.catalogue);
-    const revenir = bouton('Revenir à la grille du catalogue', () => enregistrer(undefined, s.dims), 'discret');
+    const revenir = btn('Revenir à la grille du catalogue', () => enregistrer(undefined, s.dims), { icone: 'retour', classe: 'btn-discret' });
     revenir.disabled = !catalogue;
     if (!catalogue) revenir.title = 'Cette image n’a pas de grille dans le catalogue.';
     const enonce = {
@@ -151,11 +148,11 @@ export function creerCalage({ carte, enregistrer, quitter, surMarqueurs }) {
       champs.etatMesure,
       aide('Au clavier : sélectionne la carte, puis les flèches décalent d’un pixel (Maj : dix), + et − changent la case. Les points du lieu restent visibles en transparence, sans pouvoir être touchés.'),
       h('div', { className: 'actions' },
-        bouton('Enregistrer', () => enregistrer(s.courante, s.dims), 'principal'),
-        bouton('Quitter sans enregistrer', () => quitter(), 'discret')),
+        btn('Enregistrer', () => enregistrer(s.courante, s.dims), { icone: 'sauvegarde', classe: 'btn-primaire' }),
+        btn('Quitter sans enregistrer', () => quitter(), { icone: 'fermer', classe: 'btn-discret' })),
       h('div', { className: 'actions' },
         revenir,
-        bouton('Pas de grille', () => enregistrer(null, s.dims), 'discret')));
+        btn('Pas de grille', () => enregistrer(null, s.dims), { classe: 'btn-discret' })));
     mode('glisser');
   }
 

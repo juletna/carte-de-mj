@@ -15,6 +15,7 @@ import {
   preparerImpression, messageEchelle, resolutionCanvas, variablesCss, voisinesTexte, phrasesProposition, phrasesFeuilleMJ as phrases, FEUILLE, REPERE_COLONNES_MM, REPERE_LIGNES_MM, REGLE_MM, MESSAGE_REGLE,
 } from './impression.js';
 import { $, h } from './dom.js';
+import { iconeHtml } from './icones.js';
 import { pluriel, virgule } from './format.js';
 
 const SVG = 'http://www.w3.org/2000/svg';
@@ -64,8 +65,8 @@ function afficherMessage(texte) {
 function remplirDonjons() {
   const choix = $('donjon-choix');
   choix.replaceChildren(...Object.values(etat.donjons).map((d) => h('option', { value: d.id, textContent: d.nom, selected: d.id === etat.idDonjon })));
-  choix.hidden = Object.keys(etat.donjons).length < 2;
-  choix.closest('fieldset').hidden = choix.hidden;
+  choix.disabled = Object.keys(etat.donjons).length < 2; // toujours visible : on voit quel donjon est imprimé
+  choix.closest('fieldset').hidden = false;
 }
 
 function remplirSalles() {
@@ -148,8 +149,8 @@ function creerPage(salle, decoupage, p, version) {
   const grille = h('div', { className: 'grille', style: `left:${mm(g.x)};top:${mm(g.y)};width:${mm(g.l)};height:${mm(g.h)}` }, lettres, numeros);
   if (p.voisins.ouest) grille.append(h('div', { className: 'coupe ouest', title: 'Trait de coupe' }));
   if (p.voisins.nord) grille.append(h('div', { className: 'coupe nord', title: 'Trait de coupe' }));
-  if (p.voisins.est) grille.append(h('div', { className: 'raccord est', textContent: `page ${p.voisins.est}/${p.total} recouvre cette colonne →` }));
-  if (p.voisins.sud) grille.append(h('div', { className: 'raccord sud', textContent: `↓ page ${p.voisins.sud}/${p.total} recouvre cette rangée` }));
+  if (p.voisins.est) grille.append(h('div', { className: 'raccord est', textContent: `page ${p.voisins.est}/${p.total} recouvre cette colonne (à droite)` }));
+  if (p.voisins.sud) grille.append(h('div', { className: 'raccord sud', textContent: `page ${p.voisins.sud}/${p.total} recouvre cette rangée (en bas)` }));
 
   const pied = h('div', { className: 'pied' }, regle(),
     h('div', { className: 'consigne-regle' }, h('b', { textContent: 'Règle de contrôle : 5 cm' }), MESSAGE_REGLE));
@@ -306,6 +307,7 @@ function ajusterApercu() {
 // --- Démarrage -------------------------------------------------------------------------
 
 function demarrer() {
+  for (const e of document.querySelectorAll('[data-icone]')) e.innerHTML = iconeHtml(e.dataset.icone);
   for (const [nom, valeur] of Object.entries(variablesCss())) document.documentElement.style.setProperty(nom, valeur);
   const lecture = lireDonjons();
   if (lecture.erreur) { afficherMessage(lecture.erreur); return; }

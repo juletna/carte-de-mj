@@ -23,9 +23,11 @@ body.impression a { color: var(--accent); }
 .salles-impression .detail { color: var(--texte-doux); font-size: 13px; }
 .options input[type="radio"], .options input[type="checkbox"] { accent-color: var(--accent); }
 .alerte { margin: 14px 0 0; padding: 10px 14px; border: 1px solid var(--erreur); border-radius: var(--rayon); color: var(--erreur); background: rgba(224, 108, 90, 0.08); }
-.consigne { margin-top: 14px; padding: 10px 14px; border: 2px solid var(--accent); border-radius: var(--rayon); }
-.consigne h2 { color: var(--accent); }
-.consigne ul { margin: 4px 0 0; padding-left: 20px; }
+.retour-donjons { margin-left: calc(-1 * var(--esp-3)); }
+.consigne { display: block; margin-top: 14px; }
+.consigne[hidden] { display: none; }
+.consigne > summary { border: 1px solid var(--accent); color: var(--accent); font-weight: 700; }
+.consigne > .aide-texte { display: block; max-width: none; margin: var(--esp-2) 0 0; padding: var(--esp-2) var(--esp-3) var(--esp-2) 32px; border: 2px solid var(--accent); color: var(--texte); font-size: 15px; }
 .consigne li { margin: 4px 0; }
 
 /* Proposition de réduire l'échelle : posée sous le choix de l'échelle, avec le bouton qui l'applique */
@@ -37,7 +39,7 @@ body.impression a { color: var(--accent); }
 .barre-impression { position: sticky; bottom: 0; z-index: 10; display: flex; align-items: center; gap: var(--esp-3); padding: var(--esp-2) max(var(--esp-4), env(safe-area-inset-right)) max(var(--esp-2), env(safe-area-inset-bottom)) max(var(--esp-4), env(safe-area-inset-left)); background: var(--panneau); border-top: 1px solid var(--bord); box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.4); }
 .barre-impression .etat-pages { flex: 1 1 auto; min-width: 0; margin: 0; font-size: 14px; color: var(--texte-doux); overflow-wrap: anywhere; }
 .barre-impression .etat-pages a { display: inline-flex; align-items: center; min-height: var(--cible); color: var(--accent); }
-.barre-impression button { flex: none; min-height: max(var(--cible), 40px); padding-inline: var(--esp-4); }
+.barre-impression .btn { flex: none; padding-inline: var(--esp-4); }
 
 /* --- Aperçu : pages posées sur un fond gris, avec leur marge blanche de 10 mm --- */
 .apercu { background: #3a3940; padding: 16px 0 32px; overflow-x: auto; }

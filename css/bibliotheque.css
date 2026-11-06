@@ -49,8 +49,6 @@ dialog.bib::backdrop { background: rgb(0 0 0 / 0.65); }
 .bib-actions { display: flex; flex-wrap: wrap; gap: var(--esp-2); margin-top: var(--esp-2); }
 /* Dans la fenêtre de choix, « Choisir cette carte » reste visible en bas du détail, même quand celui-ci défile. */
 .bib-detail > .bib-actions { margin-top: auto; position: sticky; bottom: 0; flex: 1 1 100%; padding: var(--esp-2) 0; background: var(--panneau); z-index: 1; }
-.bib-principal { background: var(--accent); color: var(--accent-texte); border: 1px solid var(--accent); border-radius: var(--rayon); padding: var(--esp-2) var(--esp-3); min-height: var(--cible); cursor: pointer; font: inherit; font-weight: 600; }
-.bib-principal:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .bib-formulaire { display: flex; flex-direction: column; gap: var(--esp-2); padding: var(--esp-3); border: 1px solid var(--bord); border-radius: var(--rayon); max-width: 520px; }
 .bib-formulaire fieldset { border: 1px solid var(--bord); border-radius: var(--rayon); margin: 0; padding: var(--esp-2); }
@@ -71,7 +69,10 @@ dialog.bib :focus-visible { outline: var(--focus); outline-offset: var(--focus-d
   .bib-grille { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); }
 }
 
-/* Boutons de la fenêtre : la feuille commune (style.css) n'est pas chargée partout, on pose ici ce qu'il faut. */
-dialog.bib button.discret { background: transparent; color: var(--texte); border: 1px solid var(--bord); border-radius: var(--rayon); padding: var(--esp-2) var(--esp-3); min-height: var(--cible); cursor: pointer; font: inherit; }
-dialog.bib button.discret:hover { filter: brightness(1.15); }
-dialog.bib button.danger { background: var(--erreur); color: #fff; border-color: var(--erreur); }
+/* Boutons : .btn, .btn-primaire, .btn-danger viennent de css/base.css. « Supprimer » (deux clics) passe en rouge plein à la confirmation. */
+dialog.bib .btn-danger.danger, #bibliotheque .btn-danger.danger { background: var(--erreur); color: #fff; }
+.bib-tete .btn, .bib-actions .btn { white-space: normal; }
+.bib-tuile, .bib-onglets button { min-height: var(--cible); }
+@media (max-width: 760px) {
+  .bib-tuile { min-height: 44px; }
+}

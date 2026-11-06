@@ -14,6 +14,9 @@ import { creerCarteUnivers } from '../univers-carte.js';
 import * as images from '../univers-images.js';
 import { creerCalage } from './univers-calage.js';
 import { menuPlus, aide, creerNotifications } from './univers-menu.js';
+import { creerListeDeroulante } from './univers-liste.js';
+import { btn, lienBtn } from '../univers-boutons.js';
+import { icone } from '../icones.js';
 import { creerArbre } from './univers-arbre.js';
 import { grilleEffective } from '../univers-grille.js';
 import { casesDeReglages } from '../affichage.js';
@@ -21,7 +24,7 @@ import { idUnique } from '../donjon.js';
 import { positionBulle } from '../mise-en-page.js';
 import { telephone } from '../telephone.js';
 import { analyserHash, hashMonde, lienJouer, calagePossible, genreDestination, nomDuNouveauLieu } from '../univers-vue.js';
-import { $, h, bouton, fichierChoisi } from '../dom.js';
+import { $, h, fichierChoisi } from '../dom.js';
 import { pluriel, sansAccents } from '../format.js';
 import { marquerCourant } from '../navigation.js';
 
@@ -50,18 +53,15 @@ export function creerUniversUI(ctx) {
   // --- Squelette -----------------------------------------------------------------------------------
   const choix = h('select', { id: 'univers-choix', 'aria-label': 'Monde' });
   const nom = h('input', { id: 'univers-nom', type: 'text', maxLength: 80, spellcheck: false, 'aria-label': 'Nom du monde', hidden: true });
-  const crayon = bouton('✎', () => renommer(true), 'discret univers-crayon');
-  crayon.setAttribute('aria-label', 'Renommer ce monde');
-  crayon.title = 'Renommer ce monde';
-  const jouer = h('a', { className: 'bouton univers-jouer', textContent: '▶ Jouer ce monde' });
-  jouer.title = 'Ouvre la Présentation sur ce monde, pour le jouer à la table';
+  const crayon = btn('Renommer ce monde', () => renommer(true), { icone: 'crayon', iconeSeule: true, classe: 'btn-discret univers-crayon' });
+  const jouer = lienBtn('Jouer ce monde', null, { icone: 'jouer', classe: 'btn-primaire univers-jouer', titre: 'Ouvre la Présentation sur ce monde, pour le jouer à la table' });
   const importer = h('input', { type: 'file', accept: '.json,application/json', hidden: true });
   const menu = menuPlus({
     libelle: 'Menu du monde',
     items: [
-      { libelle: 'Nouveau monde', faire: () => creerMondeNeuf() },
-      { libelle: 'Exporter ce monde', faire: () => exporterMonde() },
-      { element: h('label', { className: 'univers-menu-item bouton', role: 'menuitem' }, 'Importer un monde…', importer) },
+      { libelle: 'Nouveau monde', icone: 'plus', faire: () => creerMondeNeuf() },
+      { libelle: 'Exporter ce monde', icone: 'exporter', faire: () => exporterMonde() },
+      { element: h('label', { className: 'btn btn-discret univers-menu-item', role: 'menuitem' }, icone('importer'), 'Importer un monde…', importer) },
       { separateur: true },
       { libelle: 'Supprimer ce monde', confirmation: 'Confirmer la suppression', danger: true, faire: () => supprimerLeMonde() },
     ],
@@ -78,8 +78,7 @@ export function creerUniversUI(ctx) {
     surDonjon: (f) => { entrerDansDonjon({ donjon: f.id, ...(f.salle ? { salle: f.salle } : {}) }); },
     surAjouter: () => ajouterLieuLibre(),
   });
-  const boutonLieux = bouton('☰ Lieux', () => (arbre.ouvert() ? arbre.fermer() : arbre.ouvrir()), 'discret univers-lieux-bouton');
-  boutonLieux.setAttribute('aria-label', 'Lieux du monde');
+  const boutonLieux = btn('Lieux', () => (arbre.ouvert() ? arbre.fermer() : arbre.ouvrir()), { icone: 'menu', classe: 'btn-discret univers-lieux-bouton', titre: 'Lieux du monde' });
   const scene = h('section', { className: 'univers-scene' }, boutonLieux, filAriane, zoneCarte, bulle);
   const panneau = h('aside', { className: 'univers-panneau', 'aria-label': 'Ce lieu' });
   racine.replaceChildren(barre, h('div', { className: 'univers-corps' }, arbre.element, scene, panneau), arbre.voile, zoneNotifications);
@@ -148,6 +147,7 @@ export function creerUniversUI(ctx) {
     nom.hidden = !u || !renomme;
     crayon.hidden = !u || renomme;
     jouer.hidden = !u;
+    jouer.classList.toggle('btn-primaire', !calage.actif()); // pendant le calage, « Enregistrer » est l'unique action principale
     if (u) jouer.href = lienJouer(u.id); else jouer.removeAttribute('href');
     if (!renomme) nom.value = u?.nom ?? '';
     if (!racine.hidden) majAdresse();
@@ -335,9 +335,9 @@ export function creerUniversUI(ctx) {
       if (i) filAriane.append(h('span', { className: 'univers-sep', textContent: '›', 'aria-hidden': 'true' }));
       const nomLieu = u.lieux[id]?.nom ?? '(lieu disparu)';
       if (i === fil.length - 1) filAriane.append(h('strong', { textContent: nomLieu, 'aria-current': 'location' }));
-      else filAriane.append(bouton(nomLieu, () => { fil = fil.slice(0, i + 1); allerA(id, { nouveauFil: false }); rendre(); }, 'discret petit'));
+      else filAriane.append(btn(nomLieu, () => { fil = fil.slice(0, i + 1); allerA(id, { nouveauFil: false }); rendre(); }, { classe: 'btn-discret' }));
     });
-    if (fil.length > 1) filAriane.append(bouton('↑ Remonter', () => { const id = fil.at(-2); fil = fil.slice(0, -1); allerA(id, { nouveauFil: false }); rendre(); }, 'discret petit univers-remonter'));
+    if (fil.length > 1) filAriane.append(btn('Remonter', () => { const id = fil.at(-2); fil = fil.slice(0, -1); allerA(id, { nouveauFil: false }); rendre(); }, { icone: 'remonter', classe: 'btn-discret univers-remonter' }));
   }
 
   let imageAffichee = null; // clé de l'image déjà montrée : on ne la recharge pas à chaque rendu
@@ -398,6 +398,18 @@ export function creerUniversUI(ctx) {
   const option = (valeur, texte, disabled = false) => h('option', { value: valeur, textContent: texte, disabled });
   const avecCle = (el, cle) => { el.dataset.cle = cle; return el; };
 
+  const urlsVignettes = new Map(); // clé d'image → URL, pour que la vignette d'un lieu n'attende qu'une fois
+  /** La vignette de 32 px d'un lieu : l'icône du monde d'abord, puis l'image dès qu'elle est connue. */
+  function vignetteLieu(ref) {
+    const boite = h('span', { className: 'univers-vignette petite', 'aria-hidden': 'true' }, icone('monde'));
+    if (!ref) return boite;
+    const cle = cleImage(ref);
+    const poser = (url) => { if (url) boite.replaceChildren(h('img', { src: url, alt: '', loading: 'lazy', decoding: 'async' })); };
+    if (urlsVignettes.has(cle)) poser(urlsVignettes.get(cle));
+    else images.urlImage(ref).then((url) => { if (url) { urlsVignettes.set(cle, url); poser(url); } });
+    return boite;
+  }
+
   const NOUVELLE_CARTE = '__nouvelle-carte__';
   /**
    * Destination du point, sur deux lignes : le sélecteur [ Carte | Donjon | Rien ], puis selon le choix un seul menu de lieux
@@ -408,7 +420,7 @@ export function creerUniversUI(ctx) {
     const genre = genreDestination(p.vers);
     const actif = choixGenre ?? genre;
     const choisir = (id, libelle, cle, faire) => {
-      const b = avecCle(bouton(libelle, faire, `univers-segment-bouton${actif === id ? ' choisi' : ''}`), cle);
+      const b = avecCle(btn(libelle, faire, { classe: 'univers-segment-bouton' }), cle);
       b.setAttribute('aria-pressed', String(actif === id));
       return b;
     };
@@ -423,26 +435,32 @@ export function creerUniversUI(ctx) {
     const lignes = [];
     if (actif === 'carte') {
       const autres = modele.listerLieux(u).filter((x) => x.id !== lieuId || x.id === p.vers?.lieu);
-      const sel = avecCle(h('select', { 'aria-label': 'Lieu de destination' }), 'lieu');
-      if (genre !== 'carte') sel.append(option('', 'Choisir un lieu…'));
-      if (genre === 'carte' && !(p.vers.lieu in u.lieux)) sel.append(option(p.vers.lieu, '⚠ (lieu disparu)', true));
-      sel.append(...autres.map((x) => option(x.id, x.nom)), option(NOUVELLE_CARTE, '＋ Nouvelle carte…'));
       const avant = genre === 'carte' ? p.vers.lieu : '';
-      sel.value = avant;
-      sel.addEventListener('change', () => {
-        if (sel.value === NOUVELLE_CARTE) { sel.value = avant; destinationNouvelleCarte(); } else if (sel.value) changerDestination({ lieu: sel.value });
+      const opts = [
+        ...(genre === 'carte' && !(p.vers.lieu in u.lieux) ? [{ valeur: p.vers.lieu, libelle: '(lieu disparu)', desactive: true }] : []),
+        ...autres.map((x) => ({ valeur: x.id, libelle: x.nom, image: u.lieux[x.id]?.image ?? null })),
+        { valeur: NOUVELLE_CARTE, libelle: 'Nouvelle carte…', ajout: true },
+      ];
+      const liste = creerListeDeroulante({
+        libelle: 'Lieu de destination', options: opts, valeur: avant, vide: 'Choisir un lieu…', cle: 'lieu',
+        vignette: (o) => vignetteLieu(o.image),
+        surChoix: (o) => { if (o.valeur === NOUVELLE_CARTE) destinationNouvelleCarte(); else { cleFocus = 'lieu'; changerDestination({ lieu: o.valeur }); } },
       });
-      lignes.push(h('div', { className: 'univers-ligne-destination' }, sel));
+      lignes.push(h('div', { className: 'univers-ligne-destination' }, liste.element));
     } else if (actif === 'donjon') {
-      const sel = avecCle(h('select', { 'aria-label': 'Donjon' }, ...Object.values(donjons()).map((d) => option(d.id, d.nom))), 'donjon');
-      if (!donjons()[p.vers.donjon]) sel.prepend(option(p.vers.donjon, '⚠ (donjon disparu)', true));
-      sel.value = p.vers.donjon;
-      sel.addEventListener('change', () => changerDestination({ donjon: sel.value }));
-      const enfants = [sel];
+      const listeDonjon = creerListeDeroulante({
+        libelle: 'Donjon', cle: 'donjon', valeur: p.vers.donjon, vide: 'Choisir un donjon…',
+        options: [
+          ...(!donjons()[p.vers.donjon] ? [{ valeur: p.vers.donjon, libelle: '(donjon disparu)', desactive: true }] : []),
+          ...Object.values(donjons()).map((d) => ({ valeur: d.id, libelle: d.nom })),
+        ],
+        surChoix: (o) => { cleFocus = 'donjon'; changerDestination({ donjon: o.valeur }); },
+      });
+      const enfants = [listeDonjon.element];
       const d = donjons()[p.vers.donjon];
       if (d) {
         const salle = avecCle(h('select', { 'aria-label': 'Salle d’arrivée' }, option('', 'Salle affichée'), ...Object.values(d.salles).map((x) => option(x.id, x.nom))), 'salle');
-        if (p.vers.salle && !(p.vers.salle in d.salles)) salle.append(option(p.vers.salle, '⚠ (salle disparue)', true));
+        if (p.vers.salle && !(p.vers.salle in d.salles)) salle.append(option(p.vers.salle, '(salle disparue)', true));
         salle.value = p.vers.salle ?? '';
         salle.title = 'Salle d’arrivée : « Salle affichée » garde celle que le donjon montrait';
         salle.addEventListener('change', () => changerDestination({ donjon: d.id, ...(salle.value ? { salle: salle.value } : {}) }));
@@ -472,15 +490,15 @@ export function creerUniversUI(ctx) {
       libelle: 'Plus d’actions sur ce point',
       items: [{ libelle: 'Supprimer ce point', confirmation: 'Confirmer la suppression', danger: true, faire: () => { modele.supprimerPoint(univ(), lieuId, p.id); selectionner(null); sauver(); rendre(); } }],
     });
-    const entrer = avecCle(bouton('Entrer →', () => entrerDansPoint(), 'principal'), 'entrer');
+    const entrer = avecCle(btn('Entrer', () => entrerDansPoint(), { icone: 'retour', classe: 'univers-entrer' }), 'entrer');
     entrer.disabled = !p.vers || !!orph;
     entrer.title = p.vers?.donjon ? 'Entrer dans le donjon (double-clic sur le point : même chose)' : 'Double-clic sur le point : même chose';
-    const fermerBulle = bouton('✕', () => { selectionner(null); rendre(); }, 'discret petit');
-    fermerBulle.setAttribute('aria-label', 'Fermer la bulle du point');
+    entrer.append(entrer.firstChild); // l'icône (flèche) passe après le libellé et pointe vers la droite
+    const fermerBulle = btn('Fermer la bulle du point', () => { selectionner(null); rendre(); }, { icone: 'fermer', iconeSeule: true, classe: 'btn-discret' });
     bulle.replaceChildren(
       h('div', { className: 'univers-bulle-tete' }, nomPoint, plus.element, fermerBulle),
       ...destinationBulle(p),
-      ...(orph ? [h('p', { className: 'note erreur', textContent: `⚠ Destination perdue : ${orph}. Choisis-en une autre ; rien n’a été retiré.` })] : []),
+      ...(orph ? [h('p', { className: 'note erreur' }, icone('alerte'), ` Destination perdue : ${orph}. Choisis-en une autre ; rien n’a été retiré.`)] : []),
       h('div', { className: 'univers-bulle-pied' }, interrupteur, entrer));
     if (!telephone()) bulle.style.visibility = 'hidden'; // le temps de la placer à côté du point
     focusAttendu = !!cleFocus;
@@ -510,9 +528,9 @@ export function creerUniversUI(ctx) {
       champ('Nom', nomLieu), champ('Notes', notes), depart,
       ...(peutCaler ? [h('p', { className: 'note univers-etat-grille', textContent: etatGrille })] : []),
       h('div', { className: 'actions' },
-        ...(peutCaler ? [bouton('Caler la grille', () => ouvrirCalage(), 'discret')] : []),
-        bouton('Changer l’image', () => changerImage(), 'discret'), plus.element),
-      ...(orph.length ? [h('p', { className: 'note erreur', textContent: `${pluriel(orph.length, 'point mène', 'points mènent')} vers une destination qui n’existe plus : ils sont marqués ⚠, rien n’a été retiré.` })] : []));
+        ...(peutCaler ? [btn('Caler la grille', () => ouvrirCalage(), { icone: 'grille' })] : []),
+        btn('Changer l’image', () => changerImage(), { icone: 'bibliotheque' }), plus.element),
+      ...(orph.length ? [h('p', { className: 'note erreur' }, icone('alerte'), ` ${pluriel(orph.length, 'point mène', 'points mènent')} vers une destination qui n’existe plus : ils sont signalés, rien n’a été retiré.`)] : []));
   }
   let infosPanneauPerimees = false;
 
@@ -532,12 +550,13 @@ export function creerUniversUI(ctx) {
     const l = lieu();
     const items = l.points.map((p) => {
       const orph = orphelinDe(p);
-      const b = bouton(`${orph ? '⚠ ' : ''}${p.cache ? '🙈 ' : ''}${p.nom || 'Point sans nom'}`, () => { selectionner(p.id); rendre(); }, `discret petit univers-ligne-point${p.id === pointId ? ' choisi' : ''}`);
+      const b = btn(p.nom || 'Point sans nom', () => { selectionner(p.id); rendre(); }, { classe: `btn-discret univers-ligne-point${p.id === pointId ? ' choisi' : ''}` });
+      if (orph) { b.prepend(icone('alerte')); b.title = orph; }
+      if (p.cache) { b.prepend(icone('oeil-barre')); b.title = `${b.title ? `${b.title} · ` : ''}Caché à la table`; }
       if (p.id === pointId) b.setAttribute('aria-current', 'true');
       return h('li', {}, b, h('span', { className: 'doux', textContent: ` → ${modele.nomDestination(univ(), p.vers, donjons())}${orph ? ` (${orph})` : ''}` }));
     });
-    const auCentre = bouton('+ Point au centre', () => poserPoint(0.5, 0.5), 'discret petit');
-    auCentre.title = 'Pose un point au centre de la carte (pour le clavier) ; déplace-le ensuite avec les flèches';
+    const auCentre = btn('Point au centre', () => poserPoint(0.5, 0.5), { icone: 'point', classe: 'btn-discret', titre: 'Pose un point au centre de la carte (pour le clavier) ; déplace-le ensuite avec les flèches' });
     return h('section', {},
       h('h3', {}, `Points (${l.points.length}) `, aide('Clique sur une zone vide de la carte pour poser un point : sa bulle s’ouvre, nomme-le et choisis où il mène. Clique sur un point pour rouvrir sa bulle, double-clique pour entrer. Glisse un point, ou utilise les flèches du clavier, pour le déplacer. Un clic dans le vide ferme d’abord la bulle.')),
       items.length ? h('ul', { className: 'univers-liste' }, ...items) : h('p', { className: 'note', textContent: 'Aucun point : clique sur la carte pour en poser un.' }),
@@ -548,7 +567,7 @@ export function creerUniversUI(ctx) {
     const u = univ();
     if (!u) {
       panneau.replaceChildren(h('p', { className: 'note', textContent: 'Un monde rassemble des cartes qui s’emboîtent : le continent mène à une région, puis à un village, puis à un donjon.' }),
-        bouton('Créer un monde', () => creerMondeNeuf(), 'principal'));
+        btn('Créer un monde', () => creerMondeNeuf(), { icone: 'plus', classe: 'btn-primaire' }));
       return;
     }
     if (calage.actif() && lieu()) panneau.replaceChildren(calage.panneau());
@@ -577,6 +596,7 @@ export function creerUniversUI(ctx) {
 
   // --- Ouverture, adresse `#monde` ------------------------------------------------------------------------------------------------
   const declencheur = $('univers-bouton');
+  declencheur?.prepend(icone('monde')); // l'icône est posée ici : le balisage n'a pas d'emoji
   const sansHash = () => `${location.pathname}${location.search}`;
   function majAdresse() {
     const voulu = hashMonde(reserve.actif);

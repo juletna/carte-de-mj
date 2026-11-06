@@ -15,7 +15,10 @@ import { creerCarteUnivers } from './univers-carte.js';
 import * as images from './univers-images.js';
 import { affichageDeReglages, casesDeReglages } from './affichage.js';
 import { grilleEffective } from './univers-grille.js';
-import { $, h, bouton, deuxTemps } from './dom.js';
+import { $, h, deuxTemps } from './dom.js';
+import { btn } from './univers-boutons.js';
+import { icone } from './icones.js';
+import { aide } from './mj/univers-menu.js';
 import { pluriel } from './format.js';
 
 export function creerRegieUnivers(ctx) {
@@ -104,10 +107,10 @@ export function creerRegieUnivers(ctx) {
       const boutons = h('div', { className: 'boutons' });
       if (!n) infos.append(h('br'), h('span', { textContent: 'Aucune carte : prépare-la dans Monde.' }));
       else if (partie) {
-        const recommencer = h('button', { type: 'button', className: 'discret' });
+        const recommencer = h('button', { type: 'button', className: 'btn btn-danger' });
         deuxTemps(recommencer, 'Recommencer', 'Effacer la partie ?', () => ouvrir(u, pu.creerPartieUnivers(u)));
         boutons.append(recommencer); // « Reprendre » est dans « Parties en cours » (js/regie-depart.js)
-      } else boutons.append(bouton('Jouer', () => ouvrir(u, pu.creerPartieUnivers(u))));
+      } else boutons.append(btn('Jouer', () => ouvrir(u, pu.creerPartieUnivers(u)), { icone: 'jouer' }));
       return h('li', {}, infos, boutons);
     }));
   }
@@ -155,7 +158,7 @@ export function creerRegieUnivers(ctx) {
 
   function franchir(id) {
     const but = pu.franchir(courant.partie, courant.univers, id, donjons());
-    if (!but) { ctx.annoncer('Cette destination n’existe plus : le point est signalé ⚠. Rien n’a été retiré.', 8000); return; }
+    if (!but) { ctx.annoncer('Cette destination n’existe plus : le point est signalé comme orphelin. Rien n’a été retiré.', 8000); return; }
     sauver();
     pointId = null;
     recentrerTable();
@@ -191,8 +194,8 @@ export function creerRegieUnivers(ctx) {
     conteneur.replaceChildren(...items.flatMap((it, i) => {
       const sep = i ? [h('span', { className: 'univers-sep', textContent: '›', 'aria-hidden': 'true' })] : [];
       if (i === items.length - 1) return [...sep, h('strong', { textContent: it.nom, 'aria-current': 'location' })];
-      return [...sep, bouton(it.nom, () => versLe(it.index), 'discret petit')];
-    }), ...(items.length > 1 ? [bouton('↑ Remonter', () => remonter(), 'discret petit univers-remonter')] : []));
+      return [...sep, btn(it.nom, () => versLe(it.index), { classe: 'btn-discret' })];
+    }), ...(items.length > 1 ? [btn('Remonter', () => remonter(), { icone: 'remonter', classe: 'btn-discret univers-remonter' })] : []));
   }
   /** Dans la régie de donjon : le fil de l'univers d'où l'on vient, avec « Remonter ». Appelée à chaque rendu de la régie. */
   function majFil() {
@@ -252,11 +255,13 @@ export function creerRegieUnivers(ctx) {
       const orph = modele.raisonOrpheline(univers, p.vers, dons);
       const visible = pu.pointRevele(partie, lieu.id, p);
       choisi.push(h('h3', { textContent: p.nom || 'Point sans nom' }),
-        h('p', { className: 'note', textContent: `Mène à : ${modele.nomDestination(univers, p.vers, dons)}${orph ? ` ⚠ ${orph}` : ''}` }));
+        h('p', { className: 'note' }, `Mène à : ${modele.nomDestination(univers, p.vers, dons)}`, ...(orph ? [' ', icone('alerte'), ` ${orph}`] : [])));
       if (p.cache) choisi.push(h('p', { className: 'note', textContent: visible ? 'Révélé : la table le voit.' : 'Caché : la table ne le voit pas.' }));
       const actions = h('div', { className: 'actions' });
-      if (p.cache) actions.append(bouton(visible ? 'Cacher à nouveau' : 'Révéler à la table', () => { (visible ? pu.recacher : pu.reveler)(partie, lieu.id, p.id); sauver(); rendre(); }));
-      const entrer = bouton(p.vers?.donjon ? 'Entrer dans le donjon' : 'Entrer dans ce lieu', () => franchir(p.id), 'principal');
+      if (p.cache) actions.append(btn(visible ? 'Cacher à nouveau' : 'Révéler à la table', () => { (visible ? pu.recacher : pu.reveler)(partie, lieu.id, p.id); sauver(); rendre(); }, { icone: visible ? 'oeil-barre' : 'oeil' }));
+      // Pas de doré ici : l'action principale de la régie est « Ouvrir la fenêtre table » (presentation.html).
+      const entrer = btn(p.vers?.donjon ? 'Entrer dans le donjon' : 'Entrer dans ce lieu', () => franchir(p.id), { icone: 'retour', classe: 'univers-entrer' });
+      entrer.append(entrer.firstChild); // la flèche passe après le libellé et pointe vers la droite
       entrer.disabled = !p.vers || !!orph;
       actions.append(entrer);
       choisi.push(actions);
@@ -264,8 +269,13 @@ export function creerRegieUnivers(ctx) {
 
     const liste = lieu.points.map((q) => {
       const orph = modele.raisonOrpheline(univers, q.vers, dons);
-      const marque = [orph ? '⚠' : '', q.cache ? (pu.pointRevele(partie, lieu.id, q) ? '👁' : '🙈') : ''].filter(Boolean).join(' ');
-      const b = bouton(`${marque ? `${marque} ` : ''}${q.nom || 'Point sans nom'}`, () => { pointId = q.id; rendre(); }, `discret petit${q.id === pointId ? ' choisi' : ''}`);
+      const b = btn(q.nom || 'Point sans nom', () => { pointId = q.id; rendre(); }, { classe: `btn-discret${q.id === pointId ? ' choisi' : ''}` });
+      if (q.cache) {
+        const revele = pu.pointRevele(partie, lieu.id, q);
+        b.prepend(icone(revele ? 'oeil' : 'oeil-barre'));
+        b.title = revele ? 'Révélé à la table' : 'Caché à la table';
+      }
+      if (orph) { b.prepend(icone('alerte')); b.title = orph; }
       if (q.id === pointId) b.setAttribute('aria-current', 'true');
       return h('li', {}, b);
     });
@@ -277,9 +287,9 @@ export function creerRegieUnivers(ctx) {
         h('p', { className: 'note', textContent: ctx.commande.main ? `La table voit cette carte${nbCaches ? ` sans ${pluriel(nbCaches, 'point caché', 'points cachés')}` : ''}.` : 'Cette régie est en retrait : la table ne voit pas ce que tu fais ici.' }),
         h('label', { className: 'ligne case' }, masquer, ' Masquer les noms à la table')),
       h('section', { 'aria-label': 'Point choisi' }, ...choisi),
-      h('section', { 'aria-label': 'Points de ce lieu' }, h('h2', { textContent: `Points (${lieu.points.length})` }), lieu.points.length ? h('ul', { className: 'univers-liste' }, ...liste) : h('p', { className: 'note', textContent: 'Aucun point sur cette carte.' })),
+      h('section', { 'aria-label': 'Points de ce lieu' }, h('h2', {}, `Points (${lieu.points.length}) `, aide('Touche un point sur la carte, ou choisis-le dans la liste. Un point caché (œil barré) n’apparaît à la table qu’une fois révélé ; un point marqué d’un triangle mène à une destination qui n’existe plus, rien n’a été retiré.')), lieu.points.length ? h('ul', { className: 'univers-liste' }, ...liste) : h('p', { className: 'note', textContent: 'Aucun point sur cette carte.' })),
       ...(lieu.notes ? [h('section', { 'aria-label': 'Notes du lieu' }, h('h2', { textContent: 'Notes du lieu' }), h('p', { className: 'univers-notes', textContent: lieu.notes }))] : []),
-      h('p', { className: 'note' }, bouton('← Liste des parties', () => { ecran.hidden = true; rendreLesReglages(); if (!ctx.commande.retrait) stockage.oublierPartieOuverte(); ctx.depart.afficher(); }, 'discret petit')),
+      h('p', { className: 'note' }, btn('Liste des parties', () => { ecran.hidden = true; rendreLesReglages(); if (!ctx.commande.retrait) stockage.oublierPartieOuverte(); ctx.depart.afficher(); }, { icone: 'retour', classe: 'btn-discret' })),
       ...(reperes.size ? blocs : []));
   }
   /** Rouvre la carte d'univers qui était ouverte avant un rechargement (la partie mémorisée sait où l'on en était). Vrai si c'est fait. */

@@ -2,7 +2,13 @@
  * Tests des règles pures de l'écran Monde (js/univers-vue.js).
  */
 import * as v from '../js/univers-vue.js';
+import { indexApresTouche, indexParFrappe } from '../js/univers-liste.js';
+import { classesBouton } from '../js/univers-boutons.js';
 import { verifier, egal, executerSuite } from './mini-test.js';
+
+const FICHIERS = ['js/mj/univers-ui.js', 'js/mj/univers-menu.js', 'js/mj/univers-arbre.js', 'js/mj/univers-calage.js', 'js/mj/univers-liste.js', 'js/regie-univers.js',
+  'js/bibliotheque/index.js', 'js/page-bibliotheque.js', 'bibliotheque.html', 'index.html', 'impression.html', 'js/main-impression.js'];
+const sources = {};
 
 const TESTS = [
   ['calage : proposé à l’échelle des figurines ou sans niveau connu, pas pour un continent ni une région', () => {
@@ -75,6 +81,45 @@ const TESTS = [
     egal(v.filtrerArbre(t, 'zon').nonRelies.map((n) => n.id), ['z'], 'non reliés filtrés');
     egal(v.filtrerArbre(t, 'rien').racine, null, 'aucun résultat');
   }],
+  ['liste déroulante : Bas/Haut/Début/Fin sautent les options désactivées, sans boucler', () => {
+    const d = [false, true, false, false, true];
+    egal(indexApresTouche('ArrowDown', 0, d), 2, 'bas saute le désactivé');
+    egal(indexApresTouche('ArrowDown', 3, d), 3, 'bas à la fin : reste sur la dernière libre');
+    egal(indexApresTouche('ArrowUp', 2, d), 0, 'haut saute le désactivé');
+    egal(indexApresTouche('ArrowUp', 0, d), 0, 'haut au début : reste');
+    egal(indexApresTouche('Home', 3, d), 0, 'début');
+    egal(indexApresTouche('End', 0, d), 3, 'fin : dernière libre');
+    egal(indexApresTouche('ArrowDown', -1, d), 0, 'depuis rien : première');
+    egal(indexApresTouche('Home', 0, [true, true]), -1, 'tout désactivé');
+  }],
+  ['liste déroulante : une lettre saute à l’option qui commence ainsi (sans accents ni casse), en bouclant', () => {
+    const l = ['Auberge', 'Écurie', 'Bois', 'Bourg', 'Nouvelle carte…'];
+    egal(indexParFrappe(l, 'e', [], -1), 1, 'sans accent');
+    egal(indexParFrappe(l, 'b', [], -1), 2, 'première');
+    egal(indexParFrappe(l, 'b', [], 2), 3, 'suivante');
+    egal(indexParFrappe(l, 'b', [], 3), 2, 'boucle');
+    egal(indexParFrappe(l, 'bou', [], -1), 3, 'plusieurs lettres');
+    egal(indexParFrappe(l, 'z', [], -1), -1, 'aucune');
+    egal(indexParFrappe(l, ' ', [], -1), -1, 'espace seul');
+    egal(indexParFrappe(l, 'bo', [false, false, true, false, false], -1), 3, 'désactivée ignorée');
+  }],
+  ['boutons du système visuel : classes btn, btn-icone pour une icône seule', () => {
+    egal(classesBouton(), 'btn');
+    egal(classesBouton({ classe: 'btn-primaire' }), 'btn btn-primaire');
+    egal(classesBouton({ iconeSeule: true, classe: 'btn-discret' }), 'btn btn-icone btn-discret');
+  }],
+  ['écran Monde, bibliothèque, accueil, impression : plus d’emoji ni de caractère-icône (flèches ← ↑ ↓, ⋯, ✕, ＋…) dans le code et le balisage', () => {
+    // « → » reste permis dans un texte (« Forêt → Village » : mène à), jamais comme icône de bouton.
+    const INTERDITS = /[\u{1F300}-\u{1FAFF}\u2190\u2191\u2193-\u21FF\u2600-\u27BF\u2B00-\u2BFF\u22EF\u2715\uFF0B]/u;
+    for (const [f, texte] of Object.entries(sources)) {
+      const code = texte.split('\n').filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l)).join('\n');
+      const m = code.match(INTERDITS);
+      verifier(!m, `${f} : caractère-icône « ${m?.[0]} »`);
+    }
+  }],
 ];
 
-export const executer = () => executerSuite('univers (écran Monde) : ', TESTS);
+export async function executer({ lire }) {
+  for (const f of FICHIERS) sources[f] = await lire(f);
+  return executerSuite('univers (écran Monde) : ', TESTS);
+}

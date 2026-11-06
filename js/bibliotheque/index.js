@@ -6,7 +6,8 @@
  *   infosImage(ref)        → métadonnées (titre, niveau, milieux, largeur, hauteur, grille, credit…), ou null
  * Une référence est { source: 'bibliotheque' | 'navigateur', id } : jamais une URL, qui ne survivrait pas au rechargement.
  */
-import { h, bouton, deuxTemps, fichierChoisi } from '../dom.js';
+import { h, deuxTemps, fichierChoisi } from '../dom.js';
+import { btn } from '../univers-boutons.js';
 import { validerCatalogue, selectionner, creditAffiche } from './catalogue.js';
 import { NIVEAUX, MILIEUX, libelleNiveau, libelleMilieu } from './vocabulaire.js';
 import { importerImage, listerImages, lireImage, supprimerImage } from './images.js';
@@ -76,7 +77,7 @@ export function choisirCarte(options = {}) {
     let formulaireOuvert = false;
 
     const titre = h('h2', { id: 'bib-titre', textContent: 'Choisir une carte' });
-    const fermer = bouton('Annuler', () => dialogue.close(), 'discret');
+    const fermer = btn('Annuler', () => dialogue.close(), { icone: 'fermer', classe: 'btn-discret' });
     const bOnglets = [['bibliotheque', 'Bibliothèque'], ['navigateur', 'Mes images']].map(([id, libelle]) => {
       const b = h('button', { type: 'button', textContent: libelle, role: 'tab', id: `bib-onglet-${id}` });
       b.addEventListener('click', () => { onglet = id; choisi = null; formulaireOuvert = false; dessiner(); });
@@ -131,9 +132,9 @@ export function choisirCarte(options = {}) {
       if (e.description) lignes.push(h('span', { textContent: e.description }));
       if (e.tags?.length) lignes.push(h('span', { className: 'bib-doux', textContent: 'Tags : ' + e.tags.join(', ') }));
       if (credit) lignes.push(h('span', { className: 'bib-credit', textContent: `Crédit : ${credit}` }));
-      const actions = h('div', { className: 'bib-actions' }, bouton('Choisir cette carte', () => { resultat = choisi.ref; dialogue.close(); }, 'bib-principal'));
+      const actions = h('div', { className: 'bib-actions' }, btn('Choisir cette carte', () => { resultat = choisi.ref; dialogue.close(); }, { classe: 'btn-primaire' }));
       if (onglet === 'navigateur') {
-        const sup = h('button', { type: 'button', className: 'discret' });
+        const sup = h('button', { type: 'button', className: 'btn btn-danger' });
         deuxTemps(sup, 'Supprimer', 'Confirmer la suppression', async () => {
           try { await supprimerImage(choisi.ref.id); liberer(choisi.ref.id); choisi = null; await recharger(); }
           catch (err) { erreurImages = `Suppression impossible : ${err.message}`; dessiner(); }
@@ -168,7 +169,7 @@ export function choisirCarte(options = {}) {
       zoneImport.hidden = onglet !== 'navigateur';
       if (zoneImport.hidden) return;
       const entree = h('input', { type: 'file', accept: '.webp,.png,.jpg,.jpeg,.svg,image/webp,image/png,image/jpeg,image/svg+xml', hidden: true });
-      const importer = bouton('Importer une image…', () => entree.click(), 'discret');
+      const importer = btn('Importer une image…', () => entree.click(), { icone: 'importer' }); // jamais doré ici : « Choisir cette carte » est l'unique action principale
       entree.addEventListener('change', (e) => {
         const f = fichierChoisi(e);
         if (f) ouvrirFormulaire(f);
@@ -183,7 +184,7 @@ export function choisirCarte(options = {}) {
       const tags = h('input', { type: 'text', placeholder: 'tags séparés par des virgules', id: 'bib-f-tags' });
       const milieux = MILIEUX.map((m) => h('label', { className: 'bib-case' }, h('input', { type: 'checkbox', value: m.id }), ` ${m.libelle}`));
       const erreur = h('p', { className: 'bib-erreur', role: 'alert' });
-      const ajouter = h('button', { type: 'button', textContent: 'Ajouter', className: 'bib-principal' });
+      const ajouter = btn('Ajouter', null, { icone: 'plus' });
       ajouter.addEventListener('click', async () => {
         ajouter.disabled = true; erreur.textContent = '';
         try {
@@ -194,7 +195,7 @@ export function choisirCarte(options = {}) {
           formulaireOuvert = false; await recharger(); choisi = { ref: { source: 'navigateur', id: e.id }, entree: images.find((i) => i.id === e.id) ?? e, url: urlDepuisBlob(e) }; dessiner();
         } catch (err) { erreur.textContent = `Import impossible : ${err.message}`; ajouter.disabled = false; }
       });
-      const annuler = bouton('Annuler l’import', () => { zoneImport.replaceChildren(); dessinerImport(); }, 'discret');
+      const annuler = btn('Annuler l’import', () => { zoneImport.replaceChildren(); dessinerImport(); }, { classe: 'btn-discret' });
       zoneImport.replaceChildren(h('form', { className: 'bib-formulaire', onsubmit: (e) => e.preventDefault() },
         h('strong', { textContent: `Importer « ${fichier.name} »` }),
         h('label', { htmlFor: 'bib-f-titre', textContent: 'Titre' }), nom,
