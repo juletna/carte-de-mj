@@ -5,6 +5,7 @@
 import * as t from '../js/commande-table.js';
 import * as m from '../js/donjon.js';
 import * as p from '../js/presentation.js';
+import { cleOuverteUnivers, universOuvert } from '../js/univers-partie.js';
 import { chargerPresentations, sauverPresentations, enregistrerPartie, supprimerPartie, empreintePartie, memoriserRetrait, oublierRetrait, retraitMemorise, partieDuRetrait, CLE_PRESENTATIONS, CLE_RETRAIT } from '../js/stockage.js';
 import { verifier, egal, fauxStock, executerSuite } from './mini-test.js';
 
@@ -164,6 +165,13 @@ const TESTS = [
     egal(partieDuRetrait(retraitMemorise(onglet), parties), null, 'la liste reste la liste');
     egal(partieDuRetrait({ partie: '__proto__' }, parties), null, 'identifiant piégé : rien');
     egal(partieDuRetrait({ partie: 'disparue' }, parties), null, 'partie disparue : rien');
+    // Une régie en retrait sur la carte d'un monde retient `univers:<id>` : le rechargement la rouvre (js/regie.js), sans partie de donjon.
+    memoriserRetrait(cleOuverteUnivers('monde-1'), onglet);
+    egal(retraitMemorise(onglet), { partie: 'univers:monde-1' }, 'le monde est retenu');
+    egal(universOuvert(retraitMemorise(onglet).partie), 'monde-1', 'et se relit comme monde ouvert');
+    egal(partieDuRetrait(retraitMemorise(onglet), parties), null, 'ce n’est pas une partie de donjon');
+    egal(universOuvert(retraitMemorise({ donnees: {}, getItem: () => null, setItem() {}, removeItem() {} })?.partie), null, 'rien de retenu : pas de monde');
+    egal(universOuvert('x'), null, 'un identifiant de donjon n’est pas un monde');
     onglet.donnees[CLE_RETRAIT] = '{pas du json';
     egal(retraitMemorise(onglet), null, 'donnée corrompue : pas de retrait');
     memoriserRetrait('x', onglet);

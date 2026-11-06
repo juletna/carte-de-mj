@@ -113,11 +113,12 @@ export function creerRegieUnivers(ctx) {
     ctx.jouer?.mode('monde');
     document.title = `${courant.univers.nom} · Jouer · Carte de MJ`;
   }
-  function ouvrir(univers, partie, { reprise = false } = {}) {
+  /** `main` faux : un rechargement en retrait rouvre la carte sans reprendre la main (la table reste à l'autre régie). */
+  function ouvrir(univers, partie, { reprise = false, main = true } = {}) {
     const notes = pu.reconcilier(partie, univers, donjons());
     courant = { univers, partie };
     pointId = null;
-    ctx.prendreLaMain();
+    if (main) ctx.prendreLaMain();
     if (!ctx.commande.retrait) stockage.memoriserPartieOuverte(pu.cleOuverteUnivers(univers.id)); // un rechargement rouvre cette carte
     ctx.viderSauvegarde();
     etat.p = null; etat.consultee = null;
@@ -126,7 +127,7 @@ export function creerRegieUnivers(ctx) {
     recentrerTable();
     if (!partie.lieuCourant) { ctx.annoncer('Ce monde n’a plus aucune carte.', 8000); return; }
     sauver();
-    if (partie.dans && reprise && donjons()[partie.dans.donjon]) { entrerDonjon(partie.dans); return; }
+    if (partie.dans && reprise && donjons()[partie.dans.donjon]) { entrerDonjon(partie.dans, { main }); return; }
     afficherEcran();
     prendreLesReglages();
     rendre();
@@ -134,7 +135,7 @@ export function creerRegieUnivers(ctx) {
     titre.focus({ preventScroll: true });
   }
 
-  function entrerDonjon({ donjon: idDonjon, salle }) {
+  function entrerDonjon({ donjon: idDonjon, salle }, { main = true } = {}) {
     const d = donjons()[idDonjon];
     if (!d) return;
     ecran.hidden = true;
@@ -142,7 +143,7 @@ export function creerRegieUnivers(ctx) {
     ctx.jouer?.mode('donjon');
     const existante = stockage.chargerPresentations()[d.id];
     if (existante) {
-      ctx.entrer(existante, { reprise: true });
+      ctx.entrer(existante, { reprise: true, main });
       if (salle && salle in etat.p.donjon.salles) { etat.consultee = salle; ctx.rendre(); }
       return;
     }
@@ -348,13 +349,17 @@ export function creerRegieUnivers(ctx) {
       ...(lieu.notes ? [section('notes', 'Notes du lieu', [h('p', { className: 'univers-notes', textContent: lieu.notes })])] : []),
     );
   }
-  /** Rouvre la carte d'univers qui était ouverte avant un rechargement (la partie mémorisée sait où l'on en était). Vrai si c'est fait. */
-  function reprendre() {
-    const id = pu.universOuvert(stockage.idPartieOuverte());
+  /**
+   * Rouvre la carte d'univers qui était ouverte avant un rechargement (la partie mémorisée sait où l'on en était). Vrai si c'est fait.
+   * Une régie en retrait passe `{ id, main: false }` : le monde vient de son onglet (`univers:<id>` dans le retrait), pas de la partie
+   * ouverte commune, et la main n'est pas reprise.
+   */
+  function reprendre({ id: demande = null, main = true } = {}) {
+    const id = demande ?? pu.universOuvert(stockage.idPartieOuverte());
     const u = id && universEnregistres()[id];
     const partie = id && stockage.chargerPartiesUnivers()[id];
     if (!u || !partie) return false;
-    ouvrir(u, partie, { reprise: true });
+    ouvrir(u, partie, { reprise: true, main });
     return !ecran.hidden || !!etat.p;
   }
 
@@ -368,5 +373,7 @@ export function creerRegieUnivers(ctx) {
     return !ecran.hidden || !!etat.p;
   }
 
-  return { listerDepart, diffuser, majFil, monde, versLeLieu, fermer, reprendre, ouvrirParId, defiler, redessiner: () => { if (courant && !ecran.hidden) rendre(); }, actif: () => !ecran.hidden };
+  /** La clé `univers:<id>` du monde dont la carte est affichée (retenue par une régie en retrait), ou null. */
+  const cleOuverte = () => (courant && !ecran.hidden ? pu.cleOuverteUnivers(courant.univers.id) : null);
+  return { cleOuverte, listerDepart, diffuser, majFil, monde, versLeLieu, fermer, reprendre, ouvrirParId, defiler, redessiner: () => { if (courant && !ecran.hidden) rendre(); }, actif: () => !ecran.hidden };
 }

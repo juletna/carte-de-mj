@@ -138,14 +138,15 @@ export function demarrerRegie() {
     canal.onmessage = (ev) => {
       const m = ev.data;
       const action = table.surMessage(commande, m);
-      if (action === 'retrait') { noterRetrait(); if (etat.p) majRetrait(); }
+      if (action === 'retrait') { noterRetrait(); if (etat.p) majRetrait(); else univers.redessiner(); } // la carte d'un monde montre aussi son bandeau « En retrait »
       else if (action === 'diffuser') diffuser();
       else if (action === 'presence') canal.postMessage({ type: table.PRESENCE });
       else if (action === 'appliquer' && m.type === MESSAGES.TABLE_DEPLACER) deplacerDepuisTable(m.id, m.x, m.y);
       else if (action === 'appliquer' && etat.p) viserCase(etat.p.salleCourante, m.x, m.y);
     };
   }
-  const noterRetrait = () => { if (commande.retrait) stockage.memoriserRetrait(etat.p?.donjon.id); };
+  // Le retrait retient la partie de donjon ouverte, sinon le monde dont la carte est affichée (`univers:<id>`) : un rechargement les rouvre.
+  const noterRetrait = () => { if (commande.retrait) stockage.memoriserRetrait(etat.p?.donjon.id ?? ctx.univers?.cleOuverte() ?? null); };
   function prendreLaMain() {
     canal?.postMessage(table.prendreMain(commande, Date.now()));
     stockage.oublierRetrait();
@@ -669,7 +670,7 @@ export function demarrerRegie() {
   const reglages = creerReglages(ctx);
   // La coquille de l'atelier : arbre de lecture, onglets Salle · Joueurs · Table. Créée en dernier : elle lit `univers` et `etat`.
   const jouer = creerJouer({ racine: $('regie'), donnees: donneesJeu, partie: partieJeu, surChoix: choisirDansArbre,
-    grille: { lire: () => r, surChangement: () => { reglages.sauver(); rendre(); diffuser(); } } });
+    affichage: { lire: () => r, surChangement: () => { reglages.sauver(); rendre(); diffuser(); } } });
   ctx.jouer = jouer;
   let minuterie;
   window.addEventListener('resize', () => { clearTimeout(minuterie); minuterie = setTimeout(() => { if (etat.p) rendre(); }, 150); });
@@ -703,6 +704,8 @@ export function demarrerRegie() {
     if (ouverture.genre === 'reprise') {
       // Rechargement : l'onglet qui avait la main la reprend (sinon la table resterait sans régie) ; celui qui était en retrait y reste,
       // avec sa propre partie : recharger un vieil onglet ne doit pas renvoyer sa partie à la table.
+      const mondeEnRetrait = retraitAvantRechargement && pu.universOuvert(retraitAvantRechargement.partie);
+      if (mondeEnRetrait && univers.reprendre({ id: mondeEnRetrait, main: false })) return true; // la carte du monde, toujours en retrait
       const aReprendre = retraitAvantRechargement ? stockage.partieDuRetrait(retraitAvantRechargement, etat.presentations) : stockage.partieAReprendre(etat.presentations);
       if (!retraitAvantRechargement && univers.reprendre()) return true; // la carte d'univers rouverte
       if (aReprendre) { entrer(aReprendre, { reprise: true, main: !retraitAvantRechargement }); return true; }
