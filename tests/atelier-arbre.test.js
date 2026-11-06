@@ -60,13 +60,13 @@ const TESTS = [
     egal(crypte.enfants[0].contexte, { ...crypte.contexte, salle: Object.keys(e.crypte.salles)[0] }, 'contexte de salle');
     egal(crypte.enfants.every((s) => s.type === 'salle' && s.enfants.length === 0), true, 'les salles sont des feuilles');
   }],
-  ['départ de la partie ailleurs que sur la carte du monde : le badge est sur ce lieu, jamais sur le nœud monde', () => {
+  ['départ de la partie ailleurs que sur la carte du monde : le badge est sur ce lieu ; sur la carte du monde, le nœud monde le porte', () => {
     const e = exemple();
     const a0 = arbreAtelier({ univers: e.univ, donjons: e.donjons });
-    egal([...parcourir(a0)].filter((n) => n.depart).length, 0, 'vieux monde sans depart : aucun badge (le départ est la carte du monde)');
+    egal([...parcourir(a0)].filter((n) => n.depart).map((n) => n.type), ['monde'], 'vieux monde sans depart : le départ est la carte du monde, le badge est sur le nœud monde');
     u.definirDepart(e.univ, e.clairiere.id);
     const a = arbreAtelier({ univers: e.univ, donjons: e.donjons, actif: { monde: e.univ.id, lieu: e.clairiere.id } });
-    egal([...parcourir(a)].filter((n) => n.depart).map((n) => n.nom), ['Clairière'], 'badge sur la clairière seule');
+    egal([...parcourir(a)].filter((n) => n.depart).map((n) => n.nom), ['Clairière'], 'badge sur la clairière seule (plus sur le monde)');
     egal(a.mondes[0].racine, e.continent.id, 'la carte du monde ne bouge pas');
     egal(a.actif.cle, `l:${e.univ.id}:${e.clairiere.id}`, 'le lieu de départ reste choisissable');
     u.definirDepart(e.univ, e.perdu.id);

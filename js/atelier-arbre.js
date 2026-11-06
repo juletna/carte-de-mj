@@ -46,7 +46,8 @@ export function arbreAtelier({ univers, donjons = {}, actif = {} } = {}) {
     const { racine, nonRelies } = arbreLieux(u, donjons);
     const contexteMonde = { monde: u.id };
     const lieux = [racine, ...nonRelies].filter(Boolean);
-    if (racine) racine.depart = false; // la carte du monde est le nœud monde : le badge « départ » ne marque qu'un autre lieu
+    const departALaCarte = !!racine?.depart;
+    if (racine) racine.depart = false; // la carte du monde est le nœud monde : c'est lui qui porte le badge « départ » (ci-dessous), pas un lieu
     // Clés et contextes d'abord, puis les donjons par lieu en largeur : le donjon reste sous le lieu le plus proche de la racine.
     const habiller = (n) => { n.cle = `l:${u.id}:${n.id}`; n.contexte = { ...contexteMonde, lieu: n.id }; n.enfants.filter((e) => e.type === 'lieu').forEach(habiller); };
     lieux.forEach(habiller);
@@ -66,7 +67,7 @@ export function arbreAtelier({ univers, donjons = {}, actif = {} } = {}) {
     }
     for (const l of nonRelies) l.nonRelie = true;
     const enfants = [...(racine?.enfants ?? []), ...nonRelies];
-    return { cle: `m:${u.id}`, type: 'monde', id: u.id, nom: u.nom ?? u.id, ...(racine ? { racine: racine.id } : {}), enfants, contexte: contexteMonde };
+    return { cle: `m:${u.id}`, type: 'monde', id: u.id, nom: u.nom ?? u.id, depart: departALaCarte, ...(racine ? { racine: racine.id } : {}), enfants, contexte: contexteMonde };
   });
   const horsMonde = {
     cle: 'hors-monde', type: 'groupe', id: 'hors-monde', nom: 'Donjons hors monde', contexte: {},
