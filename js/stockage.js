@@ -25,7 +25,7 @@ import { validerDonjon } from './donjon-validation.js';
 import { validerPresentation } from './partie.js';
 import { fichesDuNavigateur } from './personnages.js';
 import { CLE_FICHES } from './fiche/format.js';
-import { TAILLE_PAR_DEFAUT, ECHELLE_PAR_DEFAUT, MODES_TABLE, tailleReglable, ROTATIONS_TABLE, caseMmValide, casesValides, THEMES_RENDU, THEME_PAR_DEFAUT, DETAILS_SOLS, DETAILS_PAR_DEFAUT, PENOMBRE_PAR_DEFAUT, penombreValide } from './affichage.js';
+import { TAILLE_PAR_DEFAUT, ECHELLE_PAR_DEFAUT, MODES_TABLE, tailleReglable, ROTATIONS_TABLE, caseMmValide, casesValides, CASES_PAR_DEFAUT, THEMES_RENDU, THEME_PAR_DEFAUT, DETAILS_SOLS, DETAILS_PAR_DEFAUT, PENOMBRE_PAR_DEFAUT, penombreValide } from './affichage.js';
 import { sansAccents, estObjet } from './format.js';
 import { CLE_MIS_DE_COTE, lireBrut, ecrireJson, mettreDeCote } from './mise-de-cote.js';
 import { validerUnivers } from './univers-validation.js';
@@ -54,7 +54,7 @@ export function chargerReglages(stock = stockParDefaut()) {
   const lu = lireJson(stock, CLE_REGLAGES);
   const r = estObjet(lu) ? lu : {};
   // Ce que cette version ne connaît pas (écrit par une version plus récente) est gardé tel quel : `sauverReglages` le réécrira.
-  const { echelle: _e, taille: _t, grille: _g, reperes: _r, calibre: _c, modeTable: _m, miniTable: _n, rotationTable: _o, miroirTable: _i, caseMm: _k, cases: _s, theme: _th, details: _de, relief: _re, penombre: _p, flammes: _fl, ...inconnus } = r;
+  const { echelle: _e, taille: _t, grille: _g, reperes: _r, calibre: _c, modeTable: _m, miniTable: _n, rotationTable: _o, miroirTable: _i, caseMm: _k, cases: _s, casesAvant: _ca, theme: _th, details: _de, relief: _re, penombre: _p, flammes: _fl, ...inconnus } = r;
   return {
     ...inconnus,
     echelle: Number(r.echelle) > 0 ? Number(r.echelle) : REGLAGES_DEFAUT.echelle,
@@ -75,6 +75,8 @@ export function chargerReglages(stock = stockParDefaut()) {
     // Rendu de la carte, seulement s'il diffère du défaut : `cases` (opacité des lignes, 0–100 %, remplace le oui/non de `grille` qui reste écrit
     // pour les versions précédentes), `theme` (vectoriel ; le thème peint est le défaut), `details` (sobres ; les sols riches sont le défaut) et `relief` (faux : vue à plat).
     ...(casesValides(r.cases) ? { cases: r.cases } : {}),
+    // `casesAvant` : la dernière opacité visible, gardée pendant que la grille est masquée (js/atelier/grille-affichage.js) ; absente si c'est la valeur par défaut.
+    ...(casesValides(r.casesAvant) && r.casesAvant > 0 && r.casesAvant !== CASES_PAR_DEFAUT ? { casesAvant: r.casesAvant } : {}),
     ...(THEMES_RENDU.includes(r.theme) && r.theme !== THEME_PAR_DEFAUT ? { theme: r.theme } : {}),
     ...(DETAILS_SOLS.includes(r.details) && r.details !== DETAILS_PAR_DEFAUT ? { details: r.details } : {}),
     ...(r.relief === false ? { relief: false } : {}),

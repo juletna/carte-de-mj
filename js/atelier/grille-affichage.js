@@ -12,22 +12,31 @@
  */
 import { h } from '../dom.js';
 import { icone } from '../icones.js';
-import { casesDeReglages, CASES_PAR_DEFAUT } from '../affichage.js';
+import { casesDeReglages, casesValides, CASES_PAR_DEFAUT } from '../affichage.js';
 
-/** Écrit l'opacité (0–100, entier) dans les réglages ; `grille` suit (vrai dès que les lignes se voient). Rend la valeur retenue. */
+/**
+ * Écrit l'opacité (0–100, entier) dans les réglages ; `grille` suit (vrai dès que les lignes se voient). Rend la valeur retenue.
+ * La dernière opacité visible survit au masquage dans le champ facultatif `casesAvant` (même clé de réglages) : écrit seulement quand la grille
+ * est masquée et que cette opacité n'est pas celle par défaut (60 %), effacé dès que les lignes réapparaissent.
+ */
 export function appliquerCases(r, v) {
+  const avant = casesDeReglages(r);
   const n = Math.max(0, Math.min(100, Math.round(Number(v)) || 0));
   r.cases = n;
   r.grille = n > 0;
+  if (n > 0) delete r.casesAvant;
+  else if (avant > 0 && avant !== CASES_PAR_DEFAUT) r.casesAvant = avant;
+  else if (avant > 0) delete r.casesAvant;
   return n;
 }
-/** La valeur après un clic sur l'interrupteur : 0 si la grille se voyait, sinon la dernière opacité visible (60 % à défaut). */
+/** La valeur après un clic sur l'interrupteur : 0 si la grille se voyait, sinon la dernière opacité visible (`casesAvant`, puis `derniere`, puis 60 %). */
 export function casesApresBascule(r, derniere = 0) {
-  return casesDeReglages(r) > 0 ? 0 : (derniere > 0 ? derniere : CASES_PAR_DEFAUT);
+  if (casesDeReglages(r) > 0) return 0;
+  return casesValides(r.casesAvant) && r.casesAvant > 0 ? r.casesAvant : (derniere > 0 ? derniere : CASES_PAR_DEFAUT);
 }
 
 export function creerGrilleAffichage({ lire, surChangement }) {
-  let derniere = 0; // la dernière opacité visible, pour que « Afficher » rende ce que « Masquer » a retiré
+  let derniere = 0; // la dernière opacité visible vue ici ; `casesAvant` (réglages) la garde d'une page à l'autre
   const bouton = h('button', { type: 'button', className: 'btn btn-icone btn-discret atelier-grille-bouton', 'aria-label': 'Grille', title: 'Grille : afficher ou masquer, opacité des lignes', 'aria-haspopup': 'dialog', 'aria-expanded': 'false' }, icone('grille'));
   const interrupteur = h('button', { type: 'button', className: 'btn atelier-grille-interrupteur', role: 'switch', 'aria-checked': 'true' });
   const curseur = h('input', { type: 'range', min: '0', max: '100', step: '5', id: 'cases', 'aria-label': 'Opacité des lignes de la grille' });
