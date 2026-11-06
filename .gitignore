@@ -2,4 +2,4 @@
 .claude/settings.local.json
 
 # Bibliothèque de cartes locale, remplie par le skill generer-carte (voir docs/conception-univers.md)
-bibliotheque/
+/bibliotheque/
