@@ -24,8 +24,6 @@ export function analyserHash(hash) {
 /** L'adresse qui ouvre l'écran Monde (sur ce monde si `id` est donné). */
 export const hashMonde = (id) => (id ? `#monde=${encodeURIComponent(id)}` : '#monde');
 
-/** L'adresse de la Présentation qui joue ce monde. */
-export const lienJouer = (id) => `presentation.html?univers=${encodeURIComponent(id)}`;
 
 /** Le genre d'une destination de point : '' (rien), 'carte' (un lieu) ou 'donjon'. */
 export function genreDestination(vers) {

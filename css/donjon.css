@@ -7,7 +7,6 @@
 /* --- Barre du haut (bouton de l'arbre, Jouer) --- */
 /* Le doré est réservé à « Jouer » : un seul .btn-primaire par écran (système visuel, css/base.css). Les états « choisi »
    (outil, bouton à bascule) s'écrivent en teinte dorée légère, comme .btn[aria-pressed="true"]. */
-#presenter { flex: none; margin-left: auto; }
 /* Actions destructives : à part, sous un filet, loin des actions courantes. */
 .zone-danger { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--bord); }
 

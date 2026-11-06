@@ -29,7 +29,7 @@ export async function executer({ lire }) {
     }],
     ['donjon.html : plus de rail ni de panneau, un catalogue, la barre d’outils et les blocs de l’inspecteur', () => {
       verifier(!/data-outil=|data-pour=|id="rail"|id="panneau"|id="selection"|id="menu-donjon"/.test(html), 'aucun reste de l’ancien rail, du panneau, de la bulle ou du menu');
-      for (const id of ['palette', 'barre-donjon', 'barre-catalogue', 'reserve', 'feuille-donjons', 'cadre-scene', 'scene', 'carte', 'presenter', 'arbre-bouton']) verifier(idsPage.has(id), `#${id} est dans la page`);
+      for (const id of ['palette', 'barre-donjon', 'barre-catalogue', 'reserve', 'feuille-donjons', 'cadre-scene', 'scene', 'carte', 'arbre-bouton']) verifier(idsPage.has(id), `#${id} est dans la page`);
       for (const id of ['bloc-salle-nom', 'bloc-description', 'bloc-orphelines', 'bloc-notes', 'bloc-forme', 'bloc-exemples', 'bloc-avance', 'bloc-donjon-nom', 'bloc-plan', 'bloc-personnages', 'bloc-reglages']) verifier(idsPage.has(id), `le bloc #${id} est dans la page`);
     }],
     ['les identifiants de la page sont uniques', () => {

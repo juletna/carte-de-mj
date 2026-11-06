@@ -5,7 +5,7 @@
 /* --- Le Monde est ouvert : les blocs du Donjon (rail, panneau, salles, scène de salle) s'effacent, la scène « lieu » prend leur place --- */
 body.univers-ouvert .salles-barre, body.univers-ouvert #rail, body.univers-ouvert #panneau, body.univers-ouvert #aide-carte,
 body.univers-ouvert #cadre-scene > :not(.atelier-barre):not(.univers-scene),
-body.univers-ouvert .menu-donjon, body.univers-ouvert #presenter { display: none !important; }
+body.univers-ouvert .menu-donjon { display: none !important; }
 body.univers-ouvert[data-onglet] #cadre-scene { display: flex; flex-direction: column; }
 .atelier-barre > .barre-lieu { display: flex; flex-wrap: wrap; align-items: center; gap: var(--esp-2); }
 .atelier-barre > .barre-lieu[hidden] { display: none; }

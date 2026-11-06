@@ -675,7 +675,7 @@ export function demarrerRegie() {
   let minuterie;
   window.addEventListener('resize', () => { clearTimeout(minuterie); minuterie = setTimeout(() => { if (etat.p) rendre(); }, 150); });
 
-  // Démarrage (voir pres.ouvertureDemandee) : l'adresse peut demander un donjon (`?donjon=`, le bouton « Jouer » du Donjon) ou un monde
+  // Démarrage (voir pres.ouvertureDemandee) : l'adresse peut demander un donjon (`?donjon=`, un lien direct : plus aucun bouton de l'appli n'y mène) ou un monde
   // (`?univers=`) ; un rechargement (F5) rouvre la régie qui était ouverte, telle quelle (rien n'est relancé ni écrasé) ; arriver par un lien
   // de navigation montre la liste des parties. « ← Liste des parties » ramène à la liste et oublie la partie ouverte.
   // Une partie qui ne se relit pas en entier est copiée à part avant que quoi que ce soit puisse l'enregistrer.

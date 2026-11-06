@@ -54,7 +54,6 @@ export function creerMenu(ctx) {
   // --- Donjons : nom, suppression ---------------------------------------------------
   function majDonjons() {
     if (document.activeElement !== $('donjon-nom')) $('donjon-nom').value = donjon().nom;
-    $('presenter').href = `presentation.html?donjon=${encodeURIComponent(etat.actif)}`;
     ctx.coquille?.rafraichir();
   }
 

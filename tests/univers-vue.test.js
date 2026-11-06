@@ -25,9 +25,7 @@ const TESTS = [
     egal(v.analyserHash(v.hashMonde('u 1')), { id: 'u 1' }, 'aller-retour');
     egal(v.hashMonde(null), '#monde', 'sans id');
   }],
-  ['lien Jouer et genre de destination', () => {
-    egal(v.lienJouer('u-1'), 'presentation.html?univers=u-1', 'lien');
-    egal(v.lienJouer('a&b'), 'presentation.html?univers=a%26b', 'encodé');
+  ['genre de destination', () => {
     egal(v.genreDestination(null), '', 'rien');
     egal(v.genreDestination({ lieu: 'l1' }), 'carte', 'carte');
     egal(v.genreDestination({ donjon: 'd1', salle: 's' }), 'donjon', 'donjon');
