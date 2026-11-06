@@ -157,3 +157,11 @@ Même grammaire dans le panneau bas. Replié, il ne montre que l'en-tête. Cible
 | Jouer · Lieu (monde) | `js/regie-univers.js` | oui |
 
 Nettoyage fait : les règles mortes des anciens panneaux (`.insp-section`, `.aide-bloc`, `.univers-liste`, `.univers-ligne-point`, titres et cadres des blocs de la régie) sont retirées d'`atelier.css`, `univers.css` et `presentation.css`. Les règles de panneau qui restent dans ces feuilles posent la structure (marges, mise en page) ; la typographie et les couleurs sont dans `css/panneaux.css`.
+
+## Idées pour plus tard (nice to have, non décidées)
+
+Tirées du panneau « Design » de Figma, le 6 novembre 2026. Rien n'est à faire tant que Julien ne les relance pas.
+
+- **Rien de sélectionné, dit explicitement** : l'inspecteur montre déjà la salle ou le donjon actif par défaut ; l'en-tête pourrait le dire (« Salle 1 · rien de sélectionné »).
+- **Œil et « − » par ligne dans les listes** : sur chaque rangée (éléments d'une salle, points d'un lieu), un œil (caché aux joueurs) et un « − » (supprimer) visibles au survol, pour agir sans ouvrir l'élément.
+- Écartées pour l'instant, à rediscuter : rangée d'icônes d'action sous les onglets (pivoter, miroir, dupliquer, masquer, supprimer), champs compacts à deux colonnes avec icône (L/H, case), ordre de sections identique pour porte, objet et créature, valeurs réglées en glissant l'étiquette, icône de type dans l'en-tête.
