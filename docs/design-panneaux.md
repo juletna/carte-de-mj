@@ -130,7 +130,7 @@ Texte 13,5px/600 en T3, l'onglet actif en T1 souligné de 2px d'or. Pas de fond 
 
 ### Vue dédiée (flux aval)
 
-Ce qui n'est pas un réglage de l'objet mais un flux en aval de son édition (consignes, tirage, on juge, on relance ou on annule) n'est **pas une section** parmi les autres : le tirage au hasard d'une salle en est le cas. L'inspecteur garde une **rangée** collée en bas (titre, résumé des consignes en T3, « Régler… » discret, le geste d'un clic), et « Régler… » ouvre une **vue** qui remplace les sections, avec une barre « ← Salle · Au hasard » collée en haut. Un seul primaire dans la vue (Générer). Les consignes qui répètent un réglage de la salle (forme, apparence) restent dans la vue, jamais dans les sections de la salle. Changer de sélection referme la vue.
+Ce qui n'est pas un réglage de l'objet mais un flux en aval de son édition (consignes, tirage, on juge, on relance ou on annule) n'est **pas une section** parmi les autres : le tirage au hasard d'une salle en est le cas. L'inspecteur garde une **rangée** en tête des sections (titre, le geste d'un clic en icône, l'icône réglages, avec un point doré quand des consignes sont imposées), et « Régler… » ouvre une **vue** qui remplace les sections, avec une barre « ← Salle · Au hasard » collée en haut. Un seul primaire dans la vue (Générer). Les consignes qui répètent un réglage de la salle (forme, apparence) restent dans la vue, jamais dans les sections de la salle. Changer de sélection referme la vue.
 
 ### Textes d'aide
 

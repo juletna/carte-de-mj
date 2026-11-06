@@ -2,7 +2,7 @@
  * Le tirage au hasard de la salle : remplit LA salle affichée (monstres, coffres, pièges, mobilier, et sa forme si on le demande ;
  * `genererSalle`, js/generateur.js, pur). Ce n'est pas un réglage de la salle mais un flux en aval : consignes, tirage, on juge, on
  * relance ou on annule. Il a donc sa propre vue dans l'inspecteur, pas une section parmi les autres :
- *   - `ligne(sel)` : une rangée en bas de la salle (le dé génère d'un clic avec les réglages courants ; « Régler… » ouvre la vue) ;
+ *   - `ligne(sel)` : une rangée en tête de la salle, deux icônes (le dé génère d'un clic avec les réglages courants ; les curseurs ouvrent la vue) ;
  *   - `vue(sel)`   : la vue dédiée, qui remplace les sections de la salle (retour « ← Salle ») : consignes, Générer, Relancer, résumé.
  *
  *   const hasard = creerSectionAuHasard(ctx);   // `ctx` : celui de main-mj.js (etat, donjon, salle, modifierPlan, annoncerCarte, activerSalle, salles, coquille)
@@ -97,26 +97,16 @@ export function creerSectionAuHasard(ctx) {
     ctx.coquille?.rafraichir({ inspecteur: true });
   }
 
-  /** Ce que les réglages imposent, en quelques mots (« Tout en auto », « 3 monstres · Cercle »). */
-  function resumeReglages() {
-    const dits = [];
-    if (reglages.familles.length) dits.push(reglages.familles.map((f) => FAMILLES[f]?.libelle ?? f).join(', '));
-    for (const [cle, libelle] of CHAMPS) if (reglages[cle] !== null) dits.push(`${reglages[cle]} ${libelle.toLowerCase()}`);
-    if (reglages.forme) dits.push(reglages.forme === 'actuelle' ? 'forme actuelle' : (LIBELLES_FORMES[reglages.forme] ?? reglages.forme).toLowerCase());
-    const n = Object.keys(reglages.apparence).length;
-    if (n) dits.push(n === 1 ? '1 aspect imposé' : `${n} aspects imposés`);
-    return dits.length ? dits.join(' · ') : 'Tout en auto';
-  }
+  /** Vrai quand le tirage impose quelque chose (un point doré le dit sur l'icône réglages). */
+  const reglagesImposes = () => reglages.familles.length > 0 || CHAMPS.some(([cle]) => reglages[cle] !== null) || reglages.forme !== null || Object.keys(reglages.apparence).length > 0;
 
-  /** La rangée de la salle : le dé génère tout de suite ; « Régler… » ouvre la vue dédiée. */
+  /** La rangée de la salle, en tête des sections : le dé génère tout de suite ; l'icône réglages ouvre la vue dédiée. */
   function ligne(sel) {
-    const de = h('button', { type: 'button', className: 'btn', title: 'Remplit la salle au hasard, avec les réglages courants' }, icone('de'), 'Générer');
+    const de = h('button', { type: 'button', className: 'btn btn-icone', title: 'Générer au hasard (remplit la salle, annulable)', 'aria-label': 'Générer au hasard' }, icone('de'));
     de.addEventListener('click', () => generer(sel.id));
-    const regler = h('button', { type: 'button', className: 'btn btn-discret hasard-ligne-regler', title: 'Choisir ce que le tirage impose, et le relancer' }, 'Régler…');
+    const regler = h('button', { type: 'button', className: `btn btn-icone btn-discret hasard-ligne-regler${reglagesImposes() ? ' impose' : ''}`, title: 'Régler le tirage', 'aria-label': reglagesImposes() ? 'Régler le tirage (des consignes sont imposées)' : 'Régler le tirage' }, icone('affichage'));
     regler.addEventListener('click', () => { vueOuverte = sel.id; redessiner(); });
-    return h('section', { className: 'hasard-ligne', 'aria-label': 'Au hasard' },
-      h('div', { className: 'hasard-ligne-texte' }, h('span', { className: 'hasard-ligne-titre', textContent: 'Au hasard' }), h('span', { className: 'hasard-ligne-resume', textContent: resumeReglages() })),
-      h('div', { className: 'hasard-ligne-actions' }, regler, de));
+    return h('section', { className: 'hasard-ligne', 'aria-label': 'Au hasard' }, h('span', { className: 'hasard-ligne-titre', textContent: 'Au hasard' }), de, regler);
   }
 
   /** La vue dédiée : un retour, puis les consignes du tirage. */

@@ -10,7 +10,7 @@
  * l'en-tête : il écrit dans `#salle-nom` / `#donjon-nom` (qui restent dans la réserve) et y déclenche « change ».
  *
  *   salle   « 9 × 12 m · pierre » ; Forme et dimensions (L, H, forme), Apparence (sol, ambiance, état, éclairage), description (dictée, « Compris »), liaisons orphelines, notes, éléments (liste), exemples.
- *           Au hasard : une rangée en bas (le dé génère d'un clic, « Régler… » ouvre sa vue dédiée, qui remplace les sections, avec « ← Salle » pour revenir) ; remplit la salle de monstres, coffres, pièges et mobilier (js/atelier/au-hasard-salle.js).
+ *           Au hasard : une rangée en tête (le dé génère d'un clic, l'icône réglages ouvre sa vue dédiée, qui remplace les sections, avec « ← Salle » pour revenir) ; remplit la salle de monstres, coffres, pièges et mobilier (js/atelier/au-hasard-salle.js).
  *           « ⋯ » : plan JSON, signaler une erreur de lecture, — , supprimer la salle.
  *   donjon  « 3 salles · 2 personnages » ; les personnages (liste, ajouter, au hasard) et, repliée, l'échelle (m par case) avec le plein écran. Le rendu (thème, grille…) est le bouton « Affichage » de la barre.
  *           « ⋯ » : exporter, imprimer, copier, — , supprimer le donjon. (L'arbre liste les salles ; la vue d'ensemble est celle du donjon.)
@@ -178,6 +178,7 @@ export function enregistrerInspecteursDonjon(coquille, ctx) {
       // « Au hasard » a sa propre vue (flux aval de l'édition : consignes, tirage, relance) : elle remplace les sections, avec un retour.
       if (hasard.ouverte(sel.id)) { conteneur.append(hasard.vue(sel)); return; }
       conteneur.append(
+        hasard.ligne(sel),
         section('salle-taille', 'Forme et dimensions', ['bloc-taille'], { repliee: true, apercu: apercuTaille, apercuIcone: p ? svgForme(p.forme || 'rectangle') : '' }),
         section('salle-apparence', 'Apparence', ['bloc-apparence'], { repliee: true, apercu: apercuApparence }),
         section('salle-description', 'Description', ['bloc-description', 'bloc-orphelines']),
@@ -185,8 +186,7 @@ export function enregistrerInspecteursDonjon(coquille, ctx) {
         ...[sectionLiaisons(sel)].filter(Boolean),
         sectionElements(sel),
         section('salle-exemples', 'Exemples', ['bloc-exemples'], { repliee: true }),
-        ...(avanceDemande ? [section('salle-avance', 'Avancé', ['bloc-avance'])] : []),
-        hasard.ligne(sel));
+        ...(avanceDemande ? [section('salle-avance', 'Avancé', ['bloc-avance'])] : []));
       // Demandé par le menu « ⋯ » : la section s'ouvre même si le MJ l'avait repliée.
       if (avanceDemande) conteneur.querySelector('[data-cle="donjon:salle-avance"] .p-section-bascule[aria-expanded="false"]')?.click();
     },
