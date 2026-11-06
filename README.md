@@ -400,6 +400,10 @@ Choisir une carte image (monde, région, zone, localité, bâtiment, souterrain)
 - Sans `bibliotheque/catalogue.json` (ou sur le site publié), la bibliothèque est vide avec un message ; l'import reste possible.
 - Interface pour les autres modules : `js/bibliotheque/index.js` (`choisirCarte`, `urlImage`, `infosImage`). Une carte se désigne par `{ source: 'bibliotheque' | 'navigateur', id }`, jamais par une URL. Format du catalogue : `docs/conception-univers.md`.
 
+## Sauvegarder et restaurer tout
+
+Donjon, menu du donjon, bloc « Tout mon univers » : **Sauvegarder tout** télécharge un seul `sauvegarde-carte-de-mj-AAAA-MM-JJ.zip` (toutes les clés `carte-de-mj:*`, `dd-fiche-*` et `jdr-carte:*` du navigateur, telles quelles, plus les images importées) ; **Restaurer…** relit un tel zip, en montre le contenu, puis « Tout remplacer » → « Confirmer » remplace tout (une sauvegarde `avant-restauration-…zip` de l'état actuel est téléchargée d'abord ; si l'espace manque, rien n'est modifié). Les images de la bibliothèque (dossier `bibliotheque/`) ne sont pas dans le zip : leurs identifiants sont cités et la restauration signale celles qui manquent. Code : `js/zip.js`, `js/sauvegarde.js` (purs, testés), `js/mj/sauvegarde-ui.js`.
+
 ## Univers : des cartes qui s'emboîtent
 
 Un **univers** relie des cartes image comme des poupées russes : le monde mène à une région, puis à un village, puis à un donjon du Donjon. Il se prépare dans le Donjon et se joue dans la Présentation. Conception et contrats : `docs/conception-univers.md`.

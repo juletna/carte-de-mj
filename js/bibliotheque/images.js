@@ -81,3 +81,9 @@ export const lireImage = (id) => transaction('readonly', (s) => s.get(id));
 
 /** Supprime une image importée (la confirmation en deux clics est dans l'interface). */
 export const supprimerImage = (id) => transaction('readwrite', (s) => s.delete(id));
+
+/** Remplace TOUTES les images importées par ces entrées (id conservés), en une seule transaction : tout ou rien. */
+export const remplacerToutesImages = (entrees) => transaction('readwrite', (s) => {
+  s.clear();
+  for (const e of entrees) s.put(e);
+});

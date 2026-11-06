@@ -53,6 +53,8 @@ import { executer as executerUnivers } from './univers.test.js';
 import { executer as executerOutilsCartes } from './outils-cartes.test.js';
 import { executer as executerUniversPartie } from './univers-partie.test.js';
 import { executer as executerBibliotheque } from './bibliotheque.test.js';
+import { executer as executerZip } from './zip.test.js';
+import { executer as executerSauvegarde } from './sauvegarde.test.js';
 
 /** Les suites, dans l'ordre d'exécution : chacune reçoit `{ lire }` et rend (ou promet) une liste de résultats. */
 export const SUITES = [
@@ -66,6 +68,7 @@ export const SUITES = [
   executerUnivers, executerOutilsCartes,
   executerUniversPartie,
   executerBibliotheque,
+  executerZip, executerSauvegarde,
 ];
 
 /** Joue toutes les suites ; renvoie les résultats { phrase, ecarts, resultat? } à la suite les uns des autres. */

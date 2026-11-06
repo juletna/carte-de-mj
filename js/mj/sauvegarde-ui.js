@@ -1,0 +1,97 @@
+/**
+ * « Tout mon univers » (menu du donjon) : un clic pour tout sauvegarder dans un .zip, un clic pour tout restaurer.
+ * La logique (zip, validation, remplacement sans perte) est dans sauvegarde.js et zip.js ; ici, seulement le DOM,
+ * le localStorage, IndexedDB et le téléchargement. Avant de remplacer quoi que ce soit, l'état actuel est téléchargé.
+ */
+import { $, deuxTemps, fichierChoisi } from '../dom.js';
+import { lireZip, creerZip } from '../zip.js';
+import { contenuSauvegarde, lireSauvegarde, entreesImages, resumeSauvegarde, restaurer, bibliothequeManquante, nomSauvegarde, nomAvantRestauration, TAILLE_MAX_SAUVEGARDE } from '../sauvegarde.js';
+import { listerImages, remplacerToutesImages } from '../bibliotheque/images.js';
+import { validerCatalogue } from '../bibliotheque/catalogue.js';
+
+/** Propose le téléchargement d'un fichier binaire (même méthode que stockage.js). */
+function proposerZip(octets, nom) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([octets], { type: 'application/zip' }));
+  a.download = nom;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+/** Les images importées ; si IndexedDB est indisponible, une liste vide et un avertissement (le reste se sauvegarde quand même). */
+async function imagesDuNavigateur() {
+  try { return { images: await listerImages(), avertissement: '' }; } catch (e) { return { images: [], avertissement: `Images importées non incluses : ${e.message}.` }; }
+}
+
+/** Les ids du catalogue de la bibliothèque, ou null s'il ne se charge pas (on ne bloque jamais pour ça). */
+async function idsDuCatalogue() {
+  try {
+    const rep = await fetch('bibliotheque/catalogue.json', { cache: 'no-store' });
+    return rep.ok ? validerCatalogue(await rep.json()).cartes.map((c) => c.id) : null;
+  } catch { return null; }
+}
+
+export function brancherSauvegarde() {
+  const zone = $('sauvegarde-etat'), erreur = $('sauvegarde-erreur'), detail = $('restaurer-detail'), confirmer = $('restaurer-confirmer');
+  let lue = null; // la sauvegarde choisie, en attente de confirmation
+  const dire = (texte, erreurs = []) => {
+    zone.hidden = !texte; zone.textContent = texte || '';
+    erreur.hidden = erreurs.length === 0; erreur.textContent = erreurs.join(' · ');
+  };
+  const annuler = () => { lue = null; detail.hidden = true; confirmer.hidden = true; };
+
+  $('sauvegarder-tout').addEventListener('click', async () => {
+    annuler();
+    try {
+      const { images, avertissement } = await imagesDuNavigateur();
+      const maintenant = new Date();
+      const contenu = await contenuSauvegarde({ stock: localStorage, images, maintenant });
+      proposerZip(creerZip(contenu.fichiers), nomSauvegarde(maintenant));
+      dire(`Sauvegarde téléchargée : ${resumeSauvegarde(contenu.manifeste)}.${avertissement ? ` ${avertissement}` : ''}`);
+    } catch (e) { dire('', [`Sauvegarde impossible : ${e.message}`]); }
+  });
+
+  $('restaurer').addEventListener('change', async (e) => {
+    const fichier = fichierChoisi(e);
+    annuler();
+    if (!fichier) return;
+    try {
+      if (fichier.size > TAILLE_MAX_SAUVEGARDE) throw new Error('fichier trop volumineux (500 Mo au plus)');
+      lue = lireSauvegarde(await lireZip(new Uint8Array(await fichier.arrayBuffer())));
+    } catch (err) { dire('', [`Restauration refusée : ${err.message}`]); return; }
+    const quand = lue.manifeste.cree ? ` faite le ${lue.manifeste.cree.slice(0, 10)}` : '';
+    dire('', lue.avertissements);
+    detail.textContent = `Cette sauvegarde${quand} contient : ${resumeSauvegarde(lue.manifeste)}. « Tout remplacer » efface ce que ce navigateur garde aujourd’hui (donjons, personnages, univers, modèles, parties, réglages, images importées) et le remplace par cela. Une sauvegarde de l’état actuel est téléchargée d’abord. Ferme avant les autres onglets de Carte de MJ (Présentation, Fiche) : ils pourraient réécrire leurs anciennes données.`;
+    detail.hidden = false;
+    confirmer.hidden = false;
+  });
+
+  deuxTemps(confirmer, 'Tout remplacer', 'Confirmer', async () => {
+    const choisie = lue;
+    annuler();
+    if (!choisie) return;
+    try {
+      const { images } = await imagesDuNavigateur();
+      const maintenant = new Date();
+      // 1. Filet de sécurité : l'état actuel part en téléchargement avant tout remplacement.
+      const avant = await contenuSauvegarde({ stock: localStorage, images, maintenant });
+      proposerZip(creerZip(avant.fichiers), nomAvantRestauration(maintenant));
+      // 2. localStorage (remis tel quel si une écriture échoue), puis les images (une transaction : tout ou rien).
+      const r = restaurer({ manifeste: choisie.manifeste, stock: localStorage });
+      if (!r.ok) { dire('', [r.erreur]); return; }
+      if (choisie.images.length || images.length) {
+        try { await remplacerToutesImages(entreesImages(choisie)); } catch (err) {
+          restaurer({ manifeste: avant.manifeste, stock: localStorage });
+          dire('', [`Images non restaurées (${err.message}) ; le reste a été remis comme avant.`]);
+          return;
+        }
+      }
+      // 3. Images de la bibliothèque citées mais absentes du disque : à signaler, sans bloquer.
+      const catalogue = await idsDuCatalogue();
+      const manquantes = catalogue ? bibliothequeManquante(choisie.manifeste.bibliotheque, catalogue) : [];
+      const notes = [choisie.avertissements.join(' · '), manquantes.length ? `${manquantes.length} image(s) de la bibliothèque citée(s) sont absentes du dossier bibliotheque/ : ${manquantes.slice(0, 5).join(', ')}.` : ''].filter(Boolean);
+      dire(`Tout est restauré : ${resumeSauvegarde(choisie.manifeste)}. La page se recharge… ${notes.join(' ')}`);
+      setTimeout(() => location.reload(), notes.length ? 4000 : 1800);
+    } catch (err) { dire('', [`Restauration impossible : ${err.message}`]); }
+  });
+}
