@@ -130,7 +130,7 @@ body.atelier-avec-inspecteur { --largeur-inspecteur: 330px; }
 /* --- Inspecteur : un en-tête collé en haut (type, nom, résumé, « ⋯ »), puis le corps en sections sobres (js/atelier/inspecteur.js) --- */
 .atelier-inspecteur { display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow-y: auto; padding: 0; background: var(--panneau); border-left: 1px solid var(--bord); }
 .atelier-inspecteur-plier { display: none; }
-.atelier-inspecteur-tete { position: sticky; top: 0; z-index: 5; flex: none; display: flex; align-items: flex-start; gap: var(--esp-2); padding: var(--esp-3) var(--esp-3) var(--esp-2); background: var(--panneau); border-bottom: 1px solid var(--bord); }
+.atelier-inspecteur-tete { position: sticky; top: 0; z-index: 5; flex: none; display: flex; align-items: center; gap: var(--esp-2); padding: var(--esp-3) var(--esp-3) var(--esp-2); background: var(--panneau); border-bottom: 1px solid var(--bord); }
 .atelier-inspecteur-id { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .atelier-inspecteur-type { margin: 0; font-size: 11px; line-height: 1.3; text-transform: uppercase; letter-spacing: 0.08em; color: var(--texte-doux); }
 /* Le nom : un champ qui ressemble à un titre (pas de cadre tant qu'on ne le survole pas). */
@@ -141,7 +141,7 @@ body.atelier-avec-inspecteur { --largeur-inspecteur: 330px; }
 .atelier-inspecteur .atelier-inspecteur-nom:focus { background: var(--champ); border-color: var(--accent); outline: none; }
 .atelier-inspecteur-nom::placeholder { color: var(--texte-doux); font-weight: 400; }
 .atelier-inspecteur-resume { margin: 2px 0 0; font-size: 13px; line-height: 1.35; color: var(--texte-doux); overflow-wrap: anywhere; }
-.atelier-inspecteur-menu-bouton { flex: none; margin-top: 12px; }
+.atelier-inspecteur-menu-bouton { flex: none; margin: 0; } /* centré sur le nom (align-items de la tête) */
 .atelier-inspecteur-menu-bouton[hidden] { display: none; }
 /* Le menu « ⋯ » : un popover de la couche supérieure, que le défilement de l'inspecteur ne rogne pas (position : js/atelier/inspecteur.js). */
 .atelier-inspecteur-menu { position: fixed; z-index: 60; box-sizing: border-box; min-width: 220px; max-width: calc(100vw - 16px); max-height: calc(100vh - 16px); overflow: auto; margin: 0; padding: 4px; background: var(--panneau); color: var(--texte); border: 1px solid var(--bord); border-radius: var(--rayon); box-shadow: 0 8px 24px rgba(0, 0, 0, .55); }
@@ -195,7 +195,6 @@ body.atelier-avec-inspecteur { --largeur-inspecteur: 330px; }
   .atelier-inspecteur-plier { display: inline-flex; position: absolute; top: var(--esp-1); right: var(--esp-1); z-index: 6; }
   /* « ⋯ » reste en haut du panneau, à gauche du bouton qui le replie. */
   .atelier-inspecteur-tete { border-radius: 12px 12px 0 0; padding-left: var(--esp-4); padding-right: 52px; }
-  .atelier-inspecteur-menu-bouton { margin-top: 4px; }
   .atelier-inspecteur-corps { padding-left: var(--esp-4); padding-right: var(--esp-4); }
   .atelier-inspecteur.replie { overflow: hidden; max-height: 76px; }
   .atelier-inspecteur.replie > :not(.atelier-inspecteur-plier):not(.atelier-inspecteur-tete) { display: none; }

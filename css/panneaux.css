@@ -22,7 +22,7 @@
 .atelier-noeud-aussi { color: var(--p-texte-3); }
 
 /* Inspecteur : en-tête */
-.atelier-inspecteur-tete { padding: 14px var(--esp-4) var(--esp-3); border-bottom-color: var(--p-filet-fort); }
+.atelier-inspecteur-tete { padding: 10px var(--esp-4) 10px; border-bottom-color: var(--p-filet-fort); }
 @media (max-width: 760px) { .atelier-inspecteur-tete { padding-right: 52px; } } /* place du chevron « replier le panneau » (atelier.css) */
 .atelier-inspecteur-type { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; letter-spacing: 0.09em; color: var(--accent); }
 .atelier-inspecteur-type .icone { order: -1; flex: none; width: 14px; height: 14px; }
