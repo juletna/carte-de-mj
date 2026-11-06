@@ -49,6 +49,7 @@ export const ICONES = {
   // Ajoutées avec la migration du Donjon et de la Fiche.
   moins: '<path d="M5 12h14"/>',
   annuler: '<path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>',
+  reinitialiser: '<path d="M20 12a8 8 0 1 1-2.8-6.1"/><path d="M20 4.5V9h-4.5"/>',
   'chevron-bas': '<path d="M6 9.5l6 6 6-6"/>',
   'chevron-gauche': '<path d="M14.5 5.5l-6.5 6.5 6.5 6.5"/>',
   'tout-replier': '<path d="M7.5 4l4.5 4.5L16.5 4M7.5 20l4.5-4.5 4.5 4.5M5 12h14"/>',

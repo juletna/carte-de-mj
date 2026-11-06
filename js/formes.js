@@ -141,6 +141,15 @@ export function casesRetirees(plan) {
   return vides;
 }
 
+/** Petit dessin d'une forme (SVG en texte, jamais une donnée du MJ : uniquement nos propres rectangles), tiré du même calcul que la vraie salle. */
+export function svgForme(forme) {
+  const plan = { largeur: 5, longueur: 5, forme, bras: forme === 'rectangle' ? undefined : 1 };
+  const vides = casesRetirees(plan);
+  let cases = '';
+  for (let y = 0; y < 5; y++) for (let x = 0; x < 5; x++) if (!vides.has(`${x},${y}`)) cases += `<rect x="${x}" y="${y}" width="1.02" height="1.02"/>`;
+  return `<svg viewBox="-0.5 -0.5 6 6" aria-hidden="true" fill="currentColor">${cases}</svg>`;
+}
+
 /** La case (x, y) est-elle du sol de la salle ? */
 export const estSol = (plan, x, y) => x >= 0 && y >= 0 && x < plan.largeur && y < plan.longueur && !casesRetirees(plan).has(`${x},${y}`);
 

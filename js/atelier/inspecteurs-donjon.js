@@ -20,6 +20,7 @@ import { $, h } from '../dom.js';
 import { NOMS_SOLS, NOMS_AMBIANCES, NOMS_ETATS_SALLE, NOMS_ECLAIRAGES } from '../schema.js';
 import { pluriel } from '../format.js';
 import { tailleEnMetres } from './dimensions.js';
+import { svgForme } from '../formes.js';
 import { creerSection } from './section.js';
 import { creerListe } from './liste.js';
 import { creerSectionAuHasard } from './au-hasard-salle.js';
@@ -175,7 +176,7 @@ export function enregistrerInspecteursDonjon(coquille, ctx) {
       const notes = (salle?.notes ?? '').trim().replace(/\s+/g, ' ');
       const apercuNotes = notes ? (notes.length > 32 ? `${notes.slice(0, 31)}…` : notes) : 'vide';
       conteneur.append(
-        section('salle-taille', 'Forme et dimensions', ['bloc-taille'], { repliee: true, apercu: apercuTaille }),
+        section('salle-taille', 'Forme et dimensions', ['bloc-taille'], { repliee: true, apercu: apercuTaille, apercuIcone: p ? svgForme(p.forme || 'rectangle') : '' }),
         section('salle-apparence', 'Apparence', ['bloc-apparence'], { repliee: true, apercu: apercuApparence }),
         section('salle-description', 'Description', ['bloc-description', 'bloc-orphelines']),
         section('salle-notes', 'Notes du MJ', ['bloc-notes'], { repliee: true, apercu: apercuNotes }),

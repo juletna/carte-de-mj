@@ -260,7 +260,10 @@
 .onglets-donjon .atelier-onglet:focus-visible { outline: 2px solid var(--accent); outline-offset: -4px; border-radius: 6px; }
 
 /* Aperçu d'une section repliée : « Taille · 12 × 12 m » (le texte s'efface dès qu'elle est ouverte). */
-.p-section-apercu { flex: 1 1 0; min-width: 0; margin: 0 3px 0 var(--esp-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right; color: var(--p-texte-3); font-size: 12.5px; font-weight: 400; } /* à droite, le texte au même bord que les chiffres des compteurs (Liaisons 1, Éléments 11) */
+.p-section-apercu { flex: 1 1 0; min-width: 0; margin: 0 3px 0 var(--esp-2); display: flex; align-items: center; justify-content: flex-end; gap: 6px; color: var(--p-texte-3); font-size: 12.5px; font-weight: 400; }
+.p-section-apercu-texte { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.p-section-apercu-icone { flex: none; display: inline-flex; width: 12px; height: 12px; }
+.p-section-apercu-icone svg { width: 100%; height: 100%; display: block; } /* à droite, le texte au même bord que les chiffres des compteurs (Liaisons 1, Éléments 11) */
 .p-section:not(.repliee) .p-section-apercu { display: none; }
 
 /* === Inspecteur de la salle : section « Au hasard » (js/atelier/au-hasard-salle.js) : étiquette T3 au-dessus du champ, trois nombres sur une rangée === */

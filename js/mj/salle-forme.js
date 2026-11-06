@@ -6,7 +6,7 @@
  */
 import { SOLS, NOMS_SOLS, CHAMPS_AMBIANCE, NOMS_AMBIANCES, NOMS_ETATS_SALLE, NOMS_ECLAIRAGES } from '../schema.js';
 import { redimensionner, changerForme } from '../pose.js';
-import { FORMES, LIBELLES_FORMES, POSITIONS_FORMES, LIBELLES_POSITIONS, NOMS_POSITIONS, libelleDesBras, casesRetirees, brasDe, brasMax, nombreCases } from '../formes.js';
+import { FORMES, svgForme, LIBELLES_FORMES, POSITIONS_FORMES, LIBELLES_POSITIONS, NOMS_POSITIONS, libelleDesBras, brasDe, brasMax } from '../formes.js';
 import { $, h } from '../dom.js';
 import { icone } from '../icones.js';
 
@@ -21,19 +21,10 @@ export function creerSalleForme(ctx) {
 
   // --- Forme de la salle : boutons, épaisseur et position (js/formes.js) ---
 
-  /** Petit dessin de la forme, tiré du même calcul que la vraie salle. */
-  function iconeForme(forme) {
-    const plan = { largeur: 5, longueur: 5, forme, bras: forme === 'rectangle' ? undefined : 1 };
-    const vides = casesRetirees(plan);
-    let cases = '';
-    for (let y = 0; y < 5; y++) for (let x = 0; x < 5; x++) if (!vides.has(`${x},${y}`)) cases += `<rect x="${x}" y="${y}" width="1.02" height="1.02"/>`;
-    return `<svg viewBox="-0.5 -0.5 6 6" aria-hidden="true" fill="currentColor">${cases}</svg>`;
-  }
-
   for (const forme of FORMES) {
     const b = h('button', { type: 'button', className: 'btn', title: LIBELLES_FORMES[forme] });
     b.dataset.forme = forme;
-    b.innerHTML = iconeForme(forme); // uniquement nos propres rectangles
+    b.innerHTML = svgForme(forme); // uniquement nos propres rectangles
     b.append(h('span', { textContent: LIBELLES_FORMES[forme] }));
     b.addEventListener('click', () => appliquerForme({ forme }));
     $('formes').append(b);
@@ -77,10 +68,10 @@ export function creerSalleForme(ctx) {
       }
       $('forme-position').value = positions.includes(plan.position) ? plan.position : positions[0];
     }
-    const n = nombreCases(plan);
-    $('forme-compte').textContent = decoupable && !max
-      ? `Salle de ${plan.largeur} × ${plan.longueur} : trop petite pour cette forme, agrandis-la avec les bandes autour de la carte.`
-      : `${plan.largeur} × ${plan.longueur}, soit ${n} case${n > 1 ? 's' : ''} de sol.`;
+    // Seul l'avertissement reste : le résumé « L × H, soit N cases de sol » doublait les champs L et H et l'aperçu de la section.
+    const trop = decoupable && !max;
+    $('forme-compte').textContent = trop ? `Salle de ${plan.largeur} × ${plan.longueur} : trop petite pour cette forme, agrandis-la avec les bandes autour de la carte.` : '';
+    $('forme-compte').hidden = !trop;
   }
 
   // Le sol : la description suit, comme si « sol en bois » y avait été écrit.
