@@ -400,6 +400,18 @@ Choisir une carte image (monde, région, zone, localité, bâtiment, souterrain)
 - Sans `bibliotheque/catalogue.json` (ou sur le site publié), la bibliothèque est vide avec un message ; l'import reste possible.
 - Interface pour les autres modules : `js/bibliotheque/index.js` (`choisirCarte`, `urlImage`, `infosImage`). Une carte se désigne par `{ source: 'bibliotheque' | 'navigateur', id }`, jamais par une URL. Format du catalogue : `docs/conception-univers.md`.
 
+## Univers : des cartes qui s'emboîtent
+
+Un **univers** relie des cartes image comme des poupées russes : le monde mène à une région, puis à un village, puis à un donjon du Donjon. Il se prépare dans le Donjon et se joue dans la Présentation. Conception et contrats : `docs/conception-univers.md`.
+
+- **Préparer (Donjon, bouton « 🌍 Univers »)** : créer, renommer, supprimer, exporter et importer un univers (JSON : il cite les images par leur référence, sans les contenir). Ajouter un lieu en choisissant sa carte dans la bibliothèque. Poser un point d'un clic (« + Poser un point », puis la carte), le nommer, le glisser ou le déplacer aux flèches, le cacher aux joueurs, lui donner une destination : nouveau lieu (carte choisie à l'instant), lieu existant, ou donjon existant avec sa salle d'arrivée. « Entrer » suit la destination ; le fil d'Ariane et « Remonter » reviennent en arrière.
+- **Orphelins** : supprimer un lieu ou un donjon ne retire jamais les points qui y menaient : ils restent, marqués ⚠, avec la raison. La suppression d'un lieu s'annule.
+- **Jouer (Présentation)** : l'écran de départ propose les univers. La régie navigue de carte en carte, voit tous les points (caché 🙈, révélé 👁), révèle ou cache un point, et entre dans un donjon : sa partie en cours est reprise (ou commencée, avec « Qui joue ? »), au format inchangé, avec le fil de l'univers et « ↑ Remonter » qui ramène à la carte. « Masquer les noms à la table » est dans la régie.
+- **Table (`?vue=table`)** : la carte en grand et seulement les points visibles ou révélés. Le message de la table porte la référence de l'image, jamais l'image, ni notes, ni destinations, ni points cachés (`js/univers-protocole.js`, relu champ par champ).
+- **Données** : `carte-de-mj:univers-v1` (univers) et `carte-de-mj:univers-parties-v1` (où en est la table : lieu courant, chemin, lieux découverts, points révélés, donjon ouvert). Même règle de mise de côté que les donjons : ce qui ne se relit pas est copié avant que la clé soit réécrite.
+- **Sans bibliothèque** (`js/bibliotheque/` absent) l'univers marche, mais les images ne s'affichent pas et on n'en choisit pas.
+- Hors du périmètre ici : le calage de la grille sur une carte image (le lieu accepte un champ `grille` facultatif, relu et gardé).
+
 ## Arborescence
 
 ```
@@ -417,6 +429,8 @@ css/donjon.css      mise en page du Donjon : barre, rail d'outils, panneau, band
 css/presentation.css  écran de départ, régie et vue table
 css/impression.css  pages A4 et réglages de l'impression (mesures reprises de js/impression.js par des variables CSS ; `@page` écrit en dur, comparé par un test)
 js/dom.js           outils DOM communs aux pages : `$`, `h`, bouton, confirmation en deux temps, choix d'un fichier à importer
+js/univers.js, univers-validation.js, univers-partie.js, univers-protocole.js  univers de cartes imbriquées : modèle, relecture d'un fichier, partie (lieu courant, chemin, points révélés), message de la table (purs)
+js/univers-carte.js, univers-images.js, univers-table.js, mj/univers-ui.js, regie-univers.js ; css/univers.css  l'univers dans le navigateur : carte et points, accès à la bibliothèque, préparation (Donjon), régie et table (Présentation)
 js/bibliotheque/    bibliothèque de cartes : vocabulaire et catalogue (purs), images importées (IndexedDB), fenêtre de choix ; css/bibliotheque.css ; bibliotheque.html (page d'essai)
 js/format.js        pluriel, virgule française, sans accents, objet JSON, libellés communs « Fermer » et micro (pur, sans DOM)
 js/main-mj.js       racine de composition du Donjon : état, historique, rendu, navigation entre salles ; câble les modules ci-dessous par un contexte `ctx`

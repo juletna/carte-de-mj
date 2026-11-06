@@ -4,6 +4,8 @@
 import * as u from '../js/univers.js';
 import * as p from '../js/univers-partie.js';
 import { creerDonjon } from '../js/donjon.js';
+import { messageUnivers, lireVueUnivers, TYPE_UNIVERS } from '../js/univers-protocole.js';
+import { AFFICHAGE_PAR_DEFAUT } from '../js/affichage.js';
 import { chargerUnivers, sauverUnivers, chargerPartiesUnivers, enregistrerPartieUnivers, supprimerPartieUnivers, misDeCote, CLE_UNIVERS, CLE_UNIVERS_PARTIES } from '../js/stockage.js';
 import { verifier, egal, fauxStock, executerSuite } from './mini-test.js';
 
@@ -116,6 +118,25 @@ const TESTS = [
     egal(v.avertissements.length >= 4, true, 'avertissements');
     const bonne = { univers: 'u1', lieuCourant: 'l1', chemin: [], decouverts: ['l1'], reveles: {}, dans: { donjon: 'd1', salle: 's1', depuis: 'pt-1' } };
     egal(p.validerPartieUnivers(bonne).partie, bonne, 'une bonne partie ne change pas');
+  }],
+  ['message de table : référence d’image, points visibles, aucun secret ; relu champ par champ', () => {
+    const { univ, m, pc, pr } = monde();
+    u.modifierPoint(univ, m.id, pr.id, { nom: 'Forêt' });
+    const pa = p.creerPartieUnivers(univ);
+    u.definirNotesLieu(univ, m.id, 'SECRET : le dragon dort ici');
+    const msg = messageUnivers(p.vueDeLaTable(pa, univ), { ...AFFICHAGE_PAR_DEFAUT });
+    const texte = JSON.stringify(msg);
+    verifier(!texte.includes('SECRET') && !texte.includes(pc.id) && !texte.includes('Secret') && !texte.includes('"vers"') && !texte.includes('"donjon"') && !texte.includes('"cache"') && !texte.includes('"notes"'), `rien de caché dans le message : ${texte}`);
+    const lu = lireVueUnivers(JSON.parse(texte), AFFICHAGE_PAR_DEFAUT);
+    egal(lu.vue, { image: { source: 'bibliotheque', id: 'm' }, points: [{ id: pr.id, x: 0.2, y: 0.2, nom: 'Forêt' }], nom: 'Monde' }, 'relu');
+    egal(msg.type, TYPE_UNIVERS, 'type');
+    for (const mauvais of [null, {}, { type: TYPE_UNIVERS }, { type: TYPE_UNIVERS, vue: { image: { source: 'http', id: 'x' }, points: [] } }, { type: TYPE_UNIVERS, vue: { image: { source: 'bibliotheque', id: '../x' }, points: [] } }, { type: 'etat', vue: msg.vue }]) {
+      egal(lireVueUnivers(mauvais, AFFICHAGE_PAR_DEFAUT), null, `refusé : ${JSON.stringify(mauvais)}`);
+    }
+    const sale = lireVueUnivers({ type: TYPE_UNIVERS, vue: { image: msg.vue.image, nom: 'x'.repeat(500), points: [{ id: 'ok', x: 0.5, y: 0.5, nom: '<b>x</b>' }, { id: 'a b', x: 0.5, y: 0.5 }, { id: 'hors', x: 2, y: 0 }, 'x', { id: 'nan', x: NaN, y: 0 }] }, affichage: 'n’importe quoi' }, AFFICHAGE_PAR_DEFAUT);
+    egal(sale.vue.points, [{ id: 'ok', x: 0.5, y: 0.5, nom: '<b>x</b>' }], 'points mal formés écartés (le nom reste un texte)');
+    egal(sale.vue.nom.length, 80, 'nom borné');
+    egal(JSON.stringify(sale.affichage, Object.keys(AFFICHAGE_PAR_DEFAUT).sort()), JSON.stringify(AFFICHAGE_PAR_DEFAUT, Object.keys(AFFICHAGE_PAR_DEFAUT).sort()), 'affichage invalide : valeur sûre');
   }],
   ['stockage des univers : aller-retour, actif corrigé, abîmés mis de côté AVANT réécriture', () => {
     const { univ } = monde();
