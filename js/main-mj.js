@@ -24,6 +24,7 @@ import { creerBulle } from './mj/bulle.js';
 import { creerZoom } from './mj/zoom.js';
 import { creerVueCarte } from './mj/vue-carte.js';
 import { creerVuePlan } from './mj/vue-plan.js';
+import { creerUniversUI } from './mj/univers-ui.js';
 import { lierReglagesRendu } from './reglages-rendu.js';
 import { $, h } from './dom.js';
 import { libelleMicro } from './format.js';
@@ -347,6 +348,9 @@ ctx.onglets = activerOnglets(document.querySelector('.onglets'), {
   defaut: 'texte',
   onChange: (nom) => { if (nom === 'carte' && $('scene').clientWidth) { ctx.carte.redessiner(salle().plan); ctx.carte.majCarteRef(); } },
 });
+
+// --- Univers : cartes imbriquées, préparation (js/mj/univers-ui.js) ---
+ctx.univers = creerUniversUI(ctx);
 
 // --- Démarrage ----------------------------------------------------------------
 afficherSalleActive();

@@ -1,0 +1,59 @@
+/* Univers de cartes imbriquées : préparation (Donjon), régie et vue table (Présentation). Jetons de base.css. */
+
+/* --- Écran de préparation (Donjon) : par-dessus la page --- */
+.univers { position: fixed; inset: 0; z-index: 100; display: flex; flex-direction: column; background: var(--fond); color: var(--texte); font-family: var(--police); overflow: hidden; }
+.univers[hidden] { display: none; }
+.univers-barre { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: var(--esp-2); padding: var(--esp-2) var(--esp-3); background: var(--panneau); border-bottom: 1px solid var(--bord); }
+.univers-barre input[type="text"] { flex: 1 1 140px; min-width: 0; max-width: 260px; }
+.univers-barre #univers-choix { max-width: 220px; }
+.univers-barre .bouton { margin: 0; }
+.univers > .note { flex: none; margin: 0; padding: var(--esp-2) var(--esp-3); background: var(--panneau); border-bottom: 1px solid var(--bord); }
+.univers-corps { flex: 1 1 auto; min-height: 0; display: flex; }
+.univers-scene { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; background: var(--scene); }
+.univers-panneau { flex: none; width: 340px; overflow-y: auto; padding: var(--esp-3); background: var(--panneau); border-left: 1px solid var(--bord); }
+.univers-panneau h3 { margin: var(--esp-4) 0 var(--esp-2); font-size: 14px; color: var(--accent); }
+.univers-panneau h3:first-child { margin-top: 0; }
+.univers-panneau .ligne { display: flex; flex-direction: column; gap: 2px; margin: var(--esp-2) 0; font-size: 13px; }
+.univers-panneau .ligne.case { flex-direction: row; align-items: center; gap: var(--esp-2); }
+.univers-panneau select, .univers-panneau input[type="text"], .univers-panneau textarea { width: 100%; box-sizing: border-box; }
+.univers-panneau .actions { display: flex; flex-wrap: wrap; gap: var(--esp-2); margin-top: var(--esp-3); }
+.univers-liste { list-style: none; margin: var(--esp-2) 0; padding: 0; }
+.univers-liste li { margin: 2px 0; }
+.univers-liste .doux, .doux { color: var(--texte-doux); font-size: 12px; }
+.univers-liste .choisi, .univers-fil .choisi { border-color: var(--accent); color: var(--accent); }
+
+.univers-fil { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: var(--esp-2); padding: var(--esp-2) var(--esp-3); font-size: 14px; background: var(--panneau); border-bottom: 1px solid var(--bord); }
+.univers-fil[hidden] { display: none; }
+.univers-sep { color: var(--texte-doux); }
+.univers-remonter { margin-left: auto; }
+
+.univers-zone-carte { flex: 1 1 auto; min-height: 0; display: flex; align-items: center; justify-content: center; padding: var(--esp-3); overflow: auto; }
+.univers-zone-carte[hidden] { display: none; }
+
+/* --- La carte et ses points (commune à toutes les vues) --- */
+.univers-cadre { position: relative; display: inline-block; line-height: 0; max-width: 100%; max-height: 100%; }
+.univers-image { display: block; max-width: 100%; max-height: calc(100vh - 150px); width: auto; height: auto; user-select: none; -webkit-user-drag: none; border-radius: var(--rayon); }
+.univers-cadre.sans-image { min-width: min(320px, 90vw); min-height: 240px; background: var(--champ); border: 1px dashed var(--bord); border-radius: var(--rayon); }
+.univers-manque { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; margin: 0; padding: var(--esp-4); text-align: center; line-height: 1.4; font-size: 14px; color: var(--texte-doux); }
+.univers-cadre.arme { cursor: crosshair; outline: 2px dashed var(--accent); outline-offset: 2px; }
+.univers-points { position: absolute; inset: 0; pointer-events: none; }
+.univers-point { position: absolute; transform: translate(-50%, -50%); display: flex; align-items: center; gap: 6px; padding: 0; margin: 0; background: transparent; border: 0; color: #fff; line-height: 1.2; pointer-events: auto; cursor: pointer; touch-action: none; }
+.univers-pastille { flex: none; box-sizing: border-box; width: 22px; height: 22px; border-radius: 50%; background: var(--accent); border: 3px solid #1a1508; box-shadow: 0 0 0 2px #fff, 0 2px 8px rgba(0, 0, 0, .6); }
+.univers-point::before { content: ''; position: absolute; left: 50%; top: 50%; width: max(44px, 100%); height: 44px; transform: translate(-50%, -50%); } /* cible tactile élargie */
+.univers-etiquette { position: absolute; left: 100%; top: 50%; transform: translateY(-50%); margin-left: 6px; padding: 2px 7px; border-radius: 4px; background: rgba(12, 11, 14, .85); color: #fff; font-size: 13px; font-weight: 600; white-space: nowrap; pointer-events: none; }
+.univers-point:focus-visible .univers-pastille, .univers-point.choisi .univers-pastille { box-shadow: 0 0 0 3px #fff, 0 0 0 6px var(--accent); }
+.univers-point.cache .univers-pastille { background: var(--arcane); border-style: dashed; opacity: .85; }
+.univers-point.orphelin .univers-pastille { background: var(--erreur); border-style: dotted; }
+.univers-point.libre .univers-pastille { background: var(--texte-doux); }
+
+/* --- Téléphone --- */
+@media (max-width: 760px) {
+  .univers-corps { flex-direction: column; overflow-y: auto; }
+  .univers-scene { flex: none; min-height: 60vh; }
+  .univers-panneau { flex: none; width: auto; overflow: visible; border-left: 0; border-top: 1px solid var(--bord); }
+  .univers-zone-carte { padding: var(--esp-2); }
+  .univers-image { max-height: 70vh; }
+  .univers-barre input[type="text"] { max-width: none; }
+  #univers-bouton .libelle { display: none; }
+  .univers-pastille { width: 26px; height: 26px; }
+}

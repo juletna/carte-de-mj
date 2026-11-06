@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/donjon.css">
+  <link rel="stylesheet" href="css/univers.css">
 </head>
 <body>
   <!-- Barre du haut, sur toute la largeur. Écran étroit (js/telephone.js, CSS sous 760 px) : une seule barre, avec les
@@ -117,6 +118,7 @@
       </div>
     </div>
 
+    <button id="univers-bouton" type="button" class="discret" aria-expanded="false" aria-controls="univers" title="Préparer un univers de cartes imbriquées : monde, régions, villages, donjons">🌍<span class="libelle"> Univers</span></button>
     <a id="presenter" class="bouton principal" href="presentation.html" title="Présente ce donjon : reprend sa partie en cours s'il en a une, sinon en commence une">Présenter</a>
   </header>
 
@@ -334,6 +336,8 @@
 
   <!-- Écran étroit, onglet Carte : la zone réservée aux actions de la sélection, quand rien n'est sélectionné. -->
   <p id="aide-carte" class="aide-carte">Touche une porte, un objet ou un pion : ses actions apparaissent ici.</p>
+
+  <div id="univers" class="univers" hidden></div>
 
   <script type="module" src="js/main-mj.js"></script>
 </body>
