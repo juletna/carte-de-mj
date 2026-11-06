@@ -97,7 +97,7 @@ export function flamme(ctx, V, x, y, h, s, r, teinte = teinteFlamme()) {
  * Déclare la source de lumière d'un feu, aux couleurs de sa variante : `base` est la source d'origine (orange) ; une variante colorée en change la couleur
  * (`c`), les couleurs de la flamme animée (`f`) et, pour un feu magique, la rend plus large et pulsée (`m`). Pour la variante normale, rien ne change.
  */
-function lumiereFeu(V, x, y, h, base, teinte) {
+export function lumiereFeu(V, x, y, h, base, teinte) {
   V.lumiere(x, y, h, { ...base, c: teinte.c ?? base.c, r: base.r * (teinte.magique ? RAYON_MAGIQUE : 1), f: { flamme: teinte.flamme, coeur: teinte.coeur }, m: teinte.magique });
 }
 

@@ -58,7 +58,7 @@ const canvasSimule =() => ({ width: 0, height: 0, style: {}, getContext: () => c
 /** Empreinte (FNV-1a) d'une suite de lignes de dessin. */
 const empreinte = (lignes) => { let h = 2166136261; const s = lignes.join('|'); for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0).toString(16); };
 /** Les objets du catalogue sans version « riches » : le garde de objets.js les laisse alors au dessin d'avant. Vide à la fin du chantier (le test le vérifie dans les deux sens). */
-const RICHES_A_FAIRE = ['torche', 'debris', 'puits', 'fontaine', 'sarcophage', 'brasero', 'bougies', 'tapis', 'banniere', 'feudecamp', 'flaque', 'rocher', 'champignons', 'toile', 'ossements'];
+const RICHES_A_FAIRE = [];
 /** Chaque objet du catalogue, avec chacune de ses variantes (null : sans variante). */
 const OBJETS_ET_VARIANTES = OBJETS.flatMap(({ type }) => (variantesDe(type).length ? variantesDe(type).map((v) => [type, v.id]) : [[type, null]]));
 /** Le dessin « sobres » de chaque objet tel qu'il était avant les objets riches (empreinte de 8 rendus : relief ou non × 4 rotations). */

@@ -12,8 +12,11 @@
  * pièces se voit : il porte les détails principaux pour rester lisible. Toutes les couleurs et épaisseurs à régler sont les constantes ci-dessous.
  */
 import { faceVisible } from '../../perspective.js';
-import { encre, trait, ton, arrondi, rectPts, ENCRE } from './trait.js';
-import { preparerObjet, face, ordonner, poly, milieu, distCentre, COTES, paroi, flamme } from './objets.js';
+import { encre, trait, ton, arrondi, rectPts, centre, ENCRE } from './trait.js';
+import { preparerObjet, face, ordonner, poly, milieu, distCentre, COTES, paroi, flamme, lumiereFeu } from './objets.js';
+import { etat } from './etat.js';
+import { sensDuCoin } from '../commun.js';
+import { teinteFlamme, fumee } from '../../feu.js';
 
 // --- Réglages -----------------------------------------------------------------------------------------------
 const EP = 1.3; // trait d'encre autour des formes
@@ -41,6 +44,11 @@ const ROUGE = '#cf4a3c', ROUGE_CLAIR = '#ef7a64', ROUGE_OMBRE = '#8e2a22';
 const BLEU = '#5a89cf', BLEU_CLAIR = '#8db3ea', BLEU_OMBRE = '#36609f';
 const DRAP = '#f8f2e2', DRAP_OMBRE = '#d8cdb0';
 const LIVRES = ['#d6584a', '#4d86c4', '#58a54a', '#e0a93a', '#8d62b8', '#c9794a', '#e6d6a0', '#3f9a96']; // dos des livres : francs et clairs
+// Eau : bleu clair franc, reflets en aplats. Mousse, os.
+const EAU = '#6cbdee', EAU_CLAIR = '#b2e1f9', EAU_REFLET = '#f4fbff', EAU_LISERE = 'rgba(255,255,255,0.55)', EAU_OMBRE = 'rgba(38,104,168,0.4)';
+const MOUSSE = '#7fbf4a', MOUSSE_CLAIR = '#a9dd6c';
+const OS = '#f4ecd2', OS_OMBRE = '#cdbf98';
+const CRANE = ['#f4ecd2', '#e8dcb8'];
 const VIDE = '#6a523b'; // le fond d'un creux : brun chaud, jamais noir
 const VIDE_FOND = '#4d3a2a';
 
@@ -142,6 +150,39 @@ function bandeFace(ctx, F, u0, u1, v0, v1, fond, reflet = true) {
   if (!F.visible) return;
   poly(ctx, [F.P(u0, v0), F.P(u1, v0), F.P(u1, v1), F.P(u0, v1)]); encre(ctx, fond, 0.8);
   if (reflet) ligne(ctx, [F.P(u0 + (u1 - u0) * 0.22, v0 + (v1 - v0) * 0.82), F.P(u0 + (u1 - u0) * 0.22, v0 + (v1 - v0) * 0.18)], FER_REFLET, 0.7);
+}
+
+/** Quelques reflets nets sur l'eau : trois traits courbes clairs, dans l'ellipse (cx, cy, rx, ry). */
+function reflets(ctx, cx, cy, rx, ry) {
+  for (const [a, b, l] of [[-0.5, -0.3, 0.5], [0.05, 0.25, 0.4], [-0.25, 0.5, 0.28]]) {
+    ctx.beginPath(); ctx.moveTo(cx + a * rx, cy + b * ry); ctx.quadraticCurveTo(cx + (a + l / 2) * rx, cy + (b - 0.1) * ry, cx + (a + l) * rx, cy + b * ry);
+    ctx.lineCap = 'round'; trait(ctx, EAU_REFLET, 1.4); ctx.lineCap = 'butt';
+  }
+}
+
+/** Le rocher dessiné : un bloc irrégulier bas au sommet étroit (mêmes pièces que `rocher` de objets.js), dessus clair éclairé, une fissure, un peu de mousse si `mousse`. */
+function bloc(ctx, V, r, cx, cy, R, h, c, dessus = DESSUS_PIERRE[0], mousse = false) {
+  const pts = [];
+  for (let i = 0; i < 9; i++) { const a = (i / 9) * Math.PI * 2 + r() * 0.3, rr = R * (0.78 + r() * 0.28); pts.push([cx + Math.cos(a) * rr, cy + Math.sin(a) * rr * 0.88]); }
+  const kf = r(), kc = (r() * 9) | 0;
+  V.prisme(ctx, r, pts, 0, h, c, (S) => {
+    const g = centre(S), A = S[kc % 9], k = 0.45 + kf * 0.2;
+    plaque(ctx, V, polygone(S), dessus, { ep: 1.1, dedans: () => {
+      ligne(ctx, [A, [A[0] + (g[0] - A[0]) * k, A[1] + (g[1] - A[1]) * k]], JOINT, 0.9); // la fissure
+      if (mousse) for (const [dx, dy, q] of [[-0.3, -0.2, 0.3], [-0.05, -0.32, 0.22], [-0.45, 0.05, 0.2]]) {
+        ctx.beginPath(); ctx.arc(g[0] + dx * R, g[1] + dy * R, R * q * 0.5, 0, 7); encre(ctx, MOUSSE, 0.7);
+        ctx.beginPath(); ctx.arc(g[0] + dx * R - R * 0.04, g[1] + dy * R - R * 0.04, R * q * 0.22, 0, 7); ctx.fillStyle = MOUSSE_CLAIR; ctx.fill();
+      }
+    } });
+  }, 0.62);
+}
+
+/** Le bout éteint d'un feu : un moignon de charbon gris clair, un peu de cendre blanche et un filet de fumée (`s` px : la taille de la flamme qu'il remplace). */
+function feuEteintRiche(ctx, V, x, y, h, s) {
+  const [fx, fy] = V.haut(x, y, h);
+  ctx.beginPath(); ctx.ellipse(fx, fy - s * 0.1, s * 0.55, s * 0.4, 0, 0, 7); encre(ctx, '#7f756c', 0.9);
+  ctx.beginPath(); ctx.ellipse(fx + s * 0.15, fy - s * 0.2, s * 0.3, s * 0.2, 0, 0, 7); encre(ctx, '#ddd7cc', 0.6);
+  fumee(ctx, fx, fy - s * 0.4, s * 3.2, { largeur: Math.max(1.1, s * 0.2), couleur: '176,170,164' });
 }
 
 // --- Les objets ---------------------------------------------------------------------------------------------
@@ -449,5 +490,275 @@ export const RICHES = {
       }
       ligne(ctx, [P(0.01, v0), P(0.99, v0)], '#e0a960', 1.8); ligne(ctx, [P(0.01, v0), P(0.99, v0)], ENCRE, 0.5); // la tablette claire
     }
+  },
+
+  // --- Partie 2 : torche, débris, puits, fontaine, sarcophage, brasero, bougies, tapis, bannière, feu de camp, flaque, rocher, champignons, toile, ossements ---
+
+  torche(ctx, w, h, t, o) {
+    // Accrochée à la face du mur, derrière la case (−y) : manche de bois cerclé de fer, coupelle de fer claire, flamme de la variante.
+    const { V } = preparerObjet(ctx, o, true), yMur = -h / 2, F = face(V, -w / 2, yMur, w, h, 'nord'), T = teinteFlamme(o);
+    const P = (v) => F.P(0.5, v), [tx, ty] = P(0.7), e = Math.max(2, t * 0.05);
+    ctx.beginPath(); ctx.ellipse(tx, ty - t * 0.05, t * 0.26, t * 0.3, 0, 0, 7); ctx.fillStyle = 'rgba(120,92,60,0.2)'; ctx.fill(); // la trace de suie sur le mur
+    const [ax, ay] = P(0.36), [bx, by] = P(0.64);
+    ctx.lineCap = 'round';
+    ligne(ctx, [[ax, ay], [bx, by]], ENCRE, e * 2 + 1.6); ligne(ctx, [[ax, ay], [bx, by]], PLANCHES[1], e * 2 - 0.4);
+    ligne(ctx, [[ax - e * 0.45, ay], [bx - e * 0.45, by]], PLANCHES[2], Math.max(0.8, e * 0.55)); // reflet du bois
+    ctx.lineCap = 'butt';
+    for (const u of [0.25, 0.7]) { const [cx, cy] = [ax + (bx - ax) * u, ay + (by - ay) * u]; poly(ctx, [[cx - e * 1.15, cy - e * 0.3], [cx + e * 1.15, cy - e * 0.3], [cx + e * 1.15, cy + e * 0.3], [cx - e * 1.15, cy + e * 0.3]]); encre(ctx, FER_CLAIR, 0.7); } // anneaux de fer
+    const k = t * 0.1;
+    plaque(ctx, V, polygone([[bx - k * 1.15, by - k * 1.2], [bx + k * 1.15, by - k * 1.2], [bx + k * 0.65, by + k * 0.2], [bx - k * 0.65, by + k * 0.2]]), FER_CLAIR, { bande: 1.6, ep: 1.1 });
+    ctx.beginPath(); ctx.ellipse(bx, by - k * 1.2, k * 1.15, k * 0.38, 0, 0, 7); encre(ctx, T.braises[1], 0.8); // les braises dans la coupelle
+    const [px, py] = [0, yMur + t * 0.1]; // la flamme est un peu en avant du mur
+    if (T.eteint) { feuEteintRiche(ctx, V, px, py, 0.7, t * 0.12); return; }
+    lumiereFeu(V, px, py, 0.7, { s: t * 0.13, r: t * 3, c: '255,170,80', k: 0.6 }, T);
+    flamme(ctx, V, px, py, 0.7, t * 0.12, undefined, T);
+  },
+
+  debris(ctx, w, h, t, o) {
+    const { V, r } = preparerObjet(ctx, o);
+    ctx.beginPath(); // la poussière claire sous les blocs
+    for (let i = 0; i < 12; i++) { const a = (i / 12) * 7; ctx.lineTo(Math.cos(a) * w * (0.32 + r() * 0.12), Math.sin(a) * h * (0.3 + r() * 0.12)); }
+    ctx.closePath(); ctx.fillStyle = 'rgba(140,112,76,0.28)'; ctx.fill();
+    const blocs = [];
+    for (let i = 0; i < 6; i++) blocs.push({ x: (r() - 0.5) * w * 0.66, y: (r() - 0.5) * h * 0.66, R: t * (0.09 + r() * 0.1), h: 0.06 + r() * 0.12, c: [34 + ((r() * 10) | 0), 20 + ((r() * 10) | 0), 74 + ((r() * 10) | 0)], d: DESSUS_PIERRE[(r() * 3) | 0] });
+    for (let i = 0; i < 6; i++) { const px = (r() - 0.5) * w * 0.9, py = (r() - 0.5) * h * 0.9, rr = 1.2 + r() * 1.8; plaque(ctx, V, disque(px, py, rr), PIERRE_CLAIRE, { ep: 0.7, bande: Math.min(1, rr * 0.5) }); }
+    ordonner(V, blocs.map((b) => ({ x: b.x, y: b.y, dessiner: () => bloc(ctx, V, r, b.x, b.y, b.R, b.h, b.c, b.d) })));
+  },
+
+  puits(ctx, w, h, t, o) {
+    const { V, r } = preparerObjet(ctx, o), R = Math.min(w, h) * 0.42, ri = R * 0.66, H1 = 0.22, bas = -0.14;
+    V.cylindre(ctx, r, 0, 0, R, 0, H1, PIERRE_C, () => {
+      const rel = V.echelle(bas) / V.echelle(H1), [wx, wy] = [V.vue.cx + (0 - V.vue.cx) * rel, V.vue.cy + (0 - V.vue.cy) * rel], rw = ri * 0.88 * rel;
+      plaque(ctx, V, disque(0, 0, R), DESSUS_PIERRE[1], { ep: EP * 1.3 });
+      ctx.beginPath(); // les pierres de la margelle : joints en rayons
+      for (let i = 0; i < 10; i++) { const a = (i / 10) * 7 + 0.3; ctx.moveTo(Math.cos(a) * ri * 1.05, Math.sin(a) * ri * 1.05); ctx.lineTo(Math.cos(a) * R * 0.97, Math.sin(a) * R * 0.97); }
+      trait(ctx, JOINT, EP_FIN);
+      plaque(ctx, V, disque(0, 0, ri), '#c4b08c', { ep: EP, ombre: 'rgba(80,56,30,0.4)' }); // la paroi du puits
+      ctx.save(); ctx.beginPath(); disque(0, 0, ri).trace(ctx); ctx.clip();
+      plaque(ctx, V, disque(wx, wy, rw), EAU, { ep: EP, lisere: EAU_LISERE, ombre: EAU_OMBRE, dedans: () => reflets(ctx, wx, wy, rw, rw * 0.8) });
+      ctx.restore();
+      ctx.beginPath(); disque(0, 0, ri).trace(ctx); trait(ctx, ENCRE, EP);
+    });
+  },
+
+  fontaine(ctx, w, h, t, o) {
+    const { V, r } = preparerObjet(ctx, o), R = Math.min(w, h) * 0.45, ri = R * 0.82, H1 = 0.16;
+    V.cylindre(ctx, r, 0, 0, R, 0, H1, MARBRE_C, () => {
+      const rel = V.echelle(H1 - 0.05) / V.echelle(H1), [wx, wy] = [V.vue.cx * (1 - rel), V.vue.cy * (1 - rel)];
+      plaque(ctx, V, disque(0, 0, R), MARBRE_DESSUS, { ep: EP * 1.3 });
+      ctx.beginPath(); ctx.arc(0, 0, R * 0.93, 0.2, 1.5); trait(ctx, MARBRE_VEINE, 0.9);
+      ctx.save(); ctx.beginPath(); disque(0, 0, ri).trace(ctx); ctx.clip();
+      plaque(ctx, V, disque(wx, wy, ri * 0.95 * rel), EAU, { ep: EP, lisere: EAU_LISERE, ombre: EAU_OMBRE, dedans: () => reflets(ctx, wx, wy, ri * rel, ri * rel * 0.8) });
+      ctx.restore();
+      ctx.beginPath(); disque(0, 0, ri).trace(ctx); trait(ctx, ENCRE, EP);
+    });
+    V.cylindre(ctx, r, 0, 0, R * 0.14, H1 - 0.05, 0.36, MARBRE_C, () => plaque(ctx, V, disque(0, 0, R * 0.14), MARBRE_DESSUS, { ep: 1 }));
+    V.cylindre(ctx, r, 0, 0, R * 0.38, 0.36, 0.42, MARBRE_C, () => {
+      plaque(ctx, V, disque(0, 0, R * 0.38), MARBRE_DESSUS, { ep: EP });
+      plaque(ctx, V, disque(0, 0, R * 0.3), EAU, { ep: 0.9, bande: 1.6, lisere: EAU_LISERE, ombre: EAU_OMBRE });
+      for (let i = 0; i < 6; i++) { const a = (i / 6) * 6.28; ctx.beginPath(); ctx.arc(Math.cos(a) * R * 0.14, Math.sin(a) * R * 0.14, 1.3, 0, 7); ctx.fillStyle = EAU_REFLET; ctx.fill(); }
+    });
+    const [jx, jy] = V.haut(0, 0, 0.55); // le jet d'eau
+    ctx.beginPath(); ctx.arc(jx, jy + R * 0.2, R * 0.2, Math.PI * 1.1, Math.PI * 1.9); trait(ctx, EAU, 3.4); trait(ctx, EAU_REFLET, 1.4);
+  },
+
+  sarcophage(ctx, w, h, t, o) {
+    const { V, r } = preparerObjet(ctx, o), sw = w * 0.76, sh = h - t * 0.12, x = -sw / 2, y = -sh / 2, long = sh >= sw, m = t * 0.05;
+    V.prisme(ctx, r, rectPts(x, y, sw, sh), 0, 0.2, PIERRE_C_SOMBRE, () => plaque(ctx, V, rect(x, y, sw, sh), DESSUS_PIERRE[2], { ep: EP * 1.2 }));
+    for (const c of COTES) { const F = face(V, x, y, sw, sh, c); joints(ctx, F, 0, 0.14, 2, 3); bandeFace(ctx, F, 0.03, 0.97, 0.15, 0.19, OR, false); aretes(ctx, V, F, c, 0, 0.2, 0.05); }
+    V.prisme(ctx, r, rectPts(x + m, y + m, sw - 2 * m, sh - 2 * m), 0.2, 0.3, PIERRE_C, () => {
+      const lx = x + m, ly = y + m, lw = sw - 2 * m, lh = sh - 2 * m;
+      plaque(ctx, V, rect(lx, ly, lw, lh, 5), DESSUS_PIERRE[0], { ep: EP * 1.2 });
+      ctx.beginPath(); rect(lx + 5, ly + 5, lw - 10, lh - 10).trace(ctx); trait(ctx, 'rgba(120,104,80,0.7)', 1);
+      // Le gisant : tête du côté du dos (−y, ou −x si couché), mains croisées, croix de pierre.
+      const L = long ? lh : lw, E = long ? lw : lh, P = (a, b) => (long ? [b * E, -L / 2 + a * L] : [-L / 2 + a * L, b * E]);
+      plaque(ctx, V, polygone([P(0.3, -0.3), P(0.34, -0.4), P(0.5, -0.4), P(0.62, -0.3), P(0.94, -0.16), P(0.98, 0), P(0.94, 0.16), P(0.62, 0.3), P(0.5, 0.4), P(0.34, 0.4), P(0.3, 0.3)]), MARBRE_DESSUS, { ep: 1.1 });
+      plaque(ctx, V, disque(...P(0.2, 0), E * 0.16), '#fbf7ee', { ep: 1.1 });
+      for (const [a0, b0, a1, b1] of [[0.5, -0.3, 0.5, 0.3], [0.4, 0, 0.88, 0]]) { ligne(ctx, [P(a0, b0), P(a1, b1)], ENCRE, 4); ligne(ctx, [P(a0, b0), P(a1, b1)], '#bdb6a4', 2.4); ligne(ctx, [[P(a0, b0)[0] - 0.7, P(a0, b0)[1] - 0.7], [P(a1, b1)[0] - 0.7, P(a1, b1)[1] - 0.7]], '#fbf7ee', 0.9); }
+    });
+  },
+
+  brasero(ctx, w, h, t, o) {
+    // Une vasque de fer clair sur trois pieds, pleine de braises de la couleur du feu.
+    const { V, r } = preparerObjet(ctx, o), R = Math.min(w, h) * 0.34, hb = 0.13, h1 = 0.28, k = t / 48, T = teinteFlamme(o);
+    for (let i = 0; i < 3; i++) {
+      const a = (i / 3) * 6.28 + 0.5, pied = [[Math.cos(a) * R * 1.2, Math.sin(a) * R * 1.2], V.haut(Math.cos(a) * R * 0.75, Math.sin(a) * R * 0.75, hb)];
+      ligne(ctx, pied, ENCRE, 4.8 * k); ligne(ctx, pied, FER, 2.9 * k); ligne(ctx, pied.map(([px, py]) => [px - 0.7 * k, py - 0.7 * k]), FER_REFLET, 0.8);
+    }
+    V.cylindre(ctx, r, 0, 0, R, hb, h1, [220, 12, 56], () => {
+      plaque(ctx, V, disque(0, 0, R), FER_CLAIR, { ep: EP * 1.3, lisere: 'rgba(255,255,255,0.6)' });
+      plaque(ctx, V, disque(0, 0, R * 0.8), '#6e5f52', { ep: 1, ombre: 'rgba(30,20,12,0.4)' });
+      for (let i = 0; i < 11; i++) {
+        const a = i * 2.4, d = (i % 4) * R * 0.17, bx = Math.cos(a) * d, by = Math.sin(a) * d, rr = R * (0.16 + r() * 0.08);
+        ctx.beginPath(); ctx.arc(bx, by, rr, 0, 7); encre(ctx, T.braises[i % 3], 0.8);
+        ctx.beginPath(); ctx.arc(bx - rr * 0.3, by - rr * 0.3, rr * 0.35, 0, 7); ctx.fillStyle = 'rgba(255,255,255,0.45)'; ctx.fill();
+      }
+      for (let i = 0; i < 6; i++) { const a = (i / 6) * 6.28 + 0.3; clou(ctx, [Math.cos(a) * R * 0.9, Math.sin(a) * R * 0.9], Math.max(0.8, R * 0.05)); } // rivets du rebord
+    });
+    if (T.eteint) { feuEteintRiche(ctx, V, 0, 0, h1, R * 0.5); return; }
+    lumiereFeu(V, 0, 0, h1, { s: R * 0.8, r: t * 4.4, c: '255,150,60', k: 0.7 }, T);
+    flamme(ctx, V, 0, 0, h1, R * 0.7, undefined, T);
+  },
+
+  bougies(ctx, w, h, t, o) {
+    // Trois bougies de cire crème sur une soucoupe dorée.
+    const { V, r } = preparerObjet(ctx, o), T = teinteFlamme(o);
+    plaque(ctx, V, disque(0, 0, t * 0.24), OR, { ep: 1.1, bande: 1.8, lisere: OR_REFLET, ombre: 'rgba(140,90,20,0.45)' });
+    ctx.beginPath(); ctx.arc(0, 0, t * 0.17, 0, 7); trait(ctx, OR_OMBRE, 0.8);
+    const cires = [0, 1, 2].map((i) => { const a = (i / 3) * 6.28 + 0.6, d = t * 0.1; return { x: Math.cos(a) * d, y: Math.sin(a) * d, rr: t * (0.055 + r() * 0.015), hb: 0.06 + r() * 0.05 }; });
+    ordonner(V, cires.map((b) => ({ x: b.x, y: b.y, dessiner: () => {
+      V.cylindre(ctx, r, b.x, b.y, b.rr, 0, b.hb, [44, 45, 86], () => {
+        plaque(ctx, V, disque(b.x, b.y, b.rr), '#fffaf0', { ep: 0.9, bande: Math.max(0.8, b.rr * 0.4), ombre: 'rgba(160,130,70,0.35)' });
+        ctx.beginPath(); ctx.arc(b.x + b.rr * 0.25, b.y + b.rr * 0.1, b.rr * 0.28, 0, 7); ctx.fillStyle = '#efe2bc'; ctx.fill(); // la cire fondue
+      });
+      if (T.eteint) { const [mx, my] = V.haut(b.x, b.y, b.hb); ctx.beginPath(); ctx.arc(mx, my, Math.max(1, t * 0.02), 0, 7); encre(ctx, '#4a423c', 0.5); fumee(ctx, mx, my - t * 0.02, t * 0.22, { largeur: Math.max(0.8, t * 0.016), couleur: '176,170,164' }); return; }
+      lumiereFeu(V, b.x, b.y, b.hb, { s: t * 0.07, r: t * 1.5, c: '255,190,110', k: 0.26, petite: true }, T);
+      flamme(ctx, V, b.x, b.y, b.hb, t * 0.06, undefined, T);
+    } })));
+  },
+
+  tapis(ctx, w, h, t, o) {
+    // À plat sur le sol : franges crème, bord rouge, galon doré perlé, losanges emboîtés, écoinçons.
+    const { V } = preparerObjet(ctx, o), tw = w - t * 0.2, th = h - t * 0.2, x = -tw / 2, y = -th / 2, long = tw >= th, k = t / 48;
+    ctx.beginPath();
+    for (let u = t * 0.05; u < (long ? th : tw) - t * 0.03; u += t * 0.065) {
+      if (long) { ctx.moveTo(x - 4 * k, y + u); ctx.lineTo(x, y + u); ctx.moveTo(x + tw, y + u); ctx.lineTo(x + tw + 4 * k, y + u); }
+      else { ctx.moveTo(x + u, y - 4 * k); ctx.lineTo(x + u, y); ctx.moveTo(x + u, y + th); ctx.lineTo(x + u, y + th + 4 * k); }
+    }
+    ctx.lineCap = 'round'; trait(ctx, ENCRE, 2.2); trait(ctx, '#f6ecd0', 1.2); ctx.lineCap = 'butt';
+    plaque(ctx, V, rect(x, y, tw, th), ROUGE, { ep: EP * 1.3, bande: 2.2, lisere: 'rgba(255,170,150,0.7)', ombre: 'rgba(90,20,14,0.35)' });
+    for (const [i, c, ep] of [[5 * k, OR, 3 * k], [10 * k, ROUGE_OMBRE, 1.1]]) { ctx.beginPath(); rect(x + i, y + i, tw - 2 * i, th - 2 * i).trace(ctx); trait(ctx, c, ep); }
+    ctx.beginPath(); rect(x + 3.4 * k, y + 3.4 * k, tw - 6.8 * k, th - 6.8 * k).trace(ctx); trait(ctx, ENCRE, 0.6);
+    ctx.beginPath(); // les perles du galon, sur les deux grands côtés
+    if (long) for (let u = x + 14 * k; u < x + tw - 12 * k; u += 9 * k) { ctx.moveTo(u + 1.3, y + 5 * k); ctx.arc(u, y + 5 * k, 1.3, 0, 7); ctx.moveTo(u + 1.3, y + th - 5 * k); ctx.arc(u, y + th - 5 * k, 1.3, 0, 7); }
+    else for (let u = y + 14 * k; u < y + th - 12 * k; u += 9 * k) { ctx.moveTo(x + 5 * k + 1.3, u); ctx.arc(x + 5 * k, u, 1.3, 0, 7); ctx.moveTo(x + tw - 5 * k + 1.3, u); ctx.arc(x + tw - 5 * k, u, 1.3, 0, 7); }
+    ctx.fillStyle = ROUGE_OMBRE; ctx.fill();
+    const a = Math.min(tw / 2 - 16 * k, th * 0.4 * (long ? 1.7 : 1)), b = Math.min(th / 2 - 16 * k, tw * 0.4 * (long ? 1 : 1.7));
+    for (const [s, fond] of [[1, OR], [0.72, BLEU], [0.42, OR], [0.2, ROUGE]]) { poly(ctx, [[-a * s, 0], [0, -b * s], [a * s, 0], [0, b * s]]); encre(ctx, fond, 1); }
+    for (const [ox, oy, sx, sy] of [[x + 10 * k, y + 10 * k, 1, 1], [x + tw - 10 * k, y + 10 * k, -1, 1], [x + 10 * k, y + th - 10 * k, 1, -1], [x + tw - 10 * k, y + th - 10 * k, -1, -1]]) {
+      poly(ctx, [[ox, oy], [ox + sx * 14 * k, oy], [ox, oy + sy * 14 * k]]); encre(ctx, OR, 0.9);
+    }
+  },
+
+  banniere(ctx, w, h, t, o) {
+    // Accrochée au mur, derrière la case (−y) : barre de bois aux pommeaux dorés, étoffe à queue d'hirondelle, liseré et emblème d'or. Sans relief, vue du dessus.
+    const { V, r } = preparerObjet(ctx, o, true), yMur = -h / 2, F = face(V, -w / 2, yMur, w, h, 'nord'), flat = !V.KP;
+    const [fond, lis, omb] = [[ROUGE, 'rgba(255,170,150,0.7)', 'rgba(90,20,14,0.4)'], [BLEU, 'rgba(200,225,255,0.7)', 'rgba(20,40,100,0.4)'], ['#58a54a', 'rgba(210,255,190,0.65)', 'rgba(20,70,20,0.4)']][(r() * 3) | 0];
+    const y0 = yMur + t * 0.03, bw = t * 0.46, lg = t * 0.58;
+    const pts = flat ? [[-bw / 2, y0], [bw / 2, y0], [bw / 2, y0 + lg], [0, y0 + lg * 0.78], [-bw / 2, y0 + lg]] : [F.P(0.2, 0.92), F.P(0.8, 0.92), F.P(0.8, 0.14), F.P(0.5, 0.3), F.P(0.2, 0.14)];
+    const [a, b] = flat ? [[-t * 0.31, y0 - t * 0.01], [t * 0.31, y0 - t * 0.01]] : [F.P(0.16, 0.95), F.P(0.84, 0.95)];
+    plaque(ctx, V, polygone(pts), fond, { ep: EP * 1.2, bande: 2.4, lisere: lis, ombre: omb });
+    const c = centre(pts), inner = pts.map(([px, py]) => [px + (c[0] - px) * 0.2, py + (c[1] - py) * 0.2]);
+    poly(ctx, inner); trait(ctx, OR, 1.3);
+    const [ex, ey] = flat ? [0, y0 + lg * 0.42] : F.P(0.5, 0.6);
+    plaque(ctx, V, disque(ex, ey, t * 0.065), OR, { ep: 0.9, bande: 1.2, lisere: OR_REFLET, ombre: 'rgba(140,90,20,0.45)' });
+    ctx.beginPath(); ctx.arc(ex, ey, t * 0.03, 0, 7); trait(ctx, OR_OMBRE, 0.8);
+    ctx.lineCap = 'round'; ligne(ctx, [a, b], ENCRE, 4.2); ligne(ctx, [a, b], PLANCHES[1], 2.4); ligne(ctx, [a, b].map(([px, py]) => [px, py - 0.7]), PLANCHES[2], 0.9); ctx.lineCap = 'butt';
+    for (const [px, py] of [a, b]) { ctx.beginPath(); ctx.arc(px, py, Math.max(1.4, t * 0.03), 0, 7); encre(ctx, OR, 0.8); }
+  },
+
+  feudecamp(ctx, w, h, t, o) {
+    // Un cercle de pierres claires, des bûches en étoile aux bouts rougeoyants, un lit de braises et une grande flamme de la couleur de la variante.
+    const { V, r } = preparerObjet(ctx, o), s = Math.min(w, h), k = t / 48, T = teinteFlamme(o);
+    plaque(ctx, V, disque(0, 0, s * 0.4), '#b59773', { ep: 1.1, bande: 2.4, ombre: 'rgba(80,52,28,0.4)' }); // la terre battue
+    ctx.beginPath(); ctx.arc(0, 0, s * 0.27, 0, 7); ctx.fillStyle = T.eteint ? '#cfc8bc' : 'rgba(255,255,255,0.18)'; ctx.fill();
+    V.auNiveau(ctx, 0.04, () => {
+      for (const a of [0.3, 1.9, 3.6]) {
+        const lx = Math.cos(a) * s * 0.28, ly = Math.sin(a) * s * 0.28;
+        ctx.lineCap = 'round'; ligne(ctx, [[-lx, -ly], [lx, ly]], ENCRE, 9.5 * k); ligne(ctx, [[-lx, -ly], [lx, ly]], T.eteint ? '#8e7a6a' : PLANCHES[3], 7 * k);
+        ligne(ctx, [[-lx - k, -ly - k], [lx - k, ly - k]], T.eteint ? '#a89684' : PLANCHES[2], 2 * k); ctx.lineCap = 'butt';
+        ctx.beginPath(); ctx.arc(lx, ly, 3.2 * k, 0, 7); encre(ctx, T.eteint ? '#c9b8a2' : T.braises[0], 0.7); // le bout scié : il rougeoie
+      }
+    });
+    const pierres = [];
+    for (let i = 0; i < 10; i++) { const a = (i / 10) * 6.28; pierres.push({ x: Math.cos(a) * s * 0.42, y: Math.sin(a) * s * 0.42, R: s * (0.085 + r() * 0.03), c: [34 + ((r() * 8) | 0), 20, 70 + ((r() * 8) | 0)], d: DESSUS_PIERRE[(r() * 3) | 0] }); }
+    ordonner(V, pierres.map((p) => ({ x: p.x, y: p.y, dessiner: () => bloc(ctx, V, r, p.x, p.y, p.R, 0.07, p.c, p.d) })));
+    if (T.eteint) { // des cendres sur le lit éteint, un filet de fumée
+      const [cx, cy] = V.haut(0, 0, 0.05);
+      ctx.beginPath(); ctx.ellipse(cx, cy, s * 0.3, s * 0.22, 0, 0, 7); encre(ctx, '#aaa39a', 0.9);
+      ctx.beginPath(); ctx.ellipse(cx - s * 0.05, cy - s * 0.04, s * 0.18, s * 0.12, 0, 0, 7); ctx.fillStyle = '#d6d0c6'; ctx.fill();
+      fumee(ctx, cx, cy - s * 0.05, t * 0.9, { largeur: Math.max(1.2, t * 0.035), couleur: '176,170,164' });
+      return;
+    }
+    const [cx, cy] = V.haut(0, 0, 0.05); // le lit de braises, de la couleur du feu
+    for (let i = 0; i < 7; i++) { const a = i * 2.4, d = (i % 3) * s * 0.07, rr = s * (0.055 + (i % 2) * 0.02); ctx.beginPath(); ctx.arc(cx + Math.cos(a) * d, cy + Math.sin(a) * d, rr, 0, 7); encre(ctx, T.braises[i % 3], 0.7); }
+    lumiereFeu(V, 0, 0, 0.08, { s: t * 0.3, r: t * 5.2, c: '255,150,60', k: 0.85 }, T);
+    flamme(ctx, V, 0, 0, 0.08, t * 0.26, undefined, T);
+  },
+
+  flaque(ctx, w, h, t, o) {
+    // De l'eau à plat : bord irrégulier, bleu clair franc, reflets nets, sol mouillé autour.
+    const { V, r } = preparerObjet(ctx, o), rx = w * 0.44, ry = h * 0.38, p1 = r() * 6, p2 = r() * 6, pts = [], bord = [];
+    for (let i = 0; i < 22; i++) {
+      const a = (i / 22) * 6.28, f = 0.9 + 0.1 * Math.sin(a * 2 + p1) + 0.06 * Math.sin(a * 3 + p2);
+      pts.push([Math.cos(a) * rx * f, Math.sin(a) * ry * f]); bord.push([Math.cos(a) * rx * f * 1.12, Math.sin(a) * ry * f * 1.14]);
+    }
+    poly(ctx, bord); ctx.fillStyle = 'rgba(96,130,160,0.22)'; ctx.fill(); // le sol mouillé
+    plaque(ctx, V, polygone(pts), EAU, { ep: EP * 1.2, bande: 2.6, lisere: EAU_LISERE, ombre: EAU_OMBRE, dedans: () => reflets(ctx, 0, 0, rx, ry) });
+    ctx.beginPath(); ctx.ellipse(rx * 0.35, ry * 0.3, rx * 0.16, ry * 0.1, 0, 0, 7); trait(ctx, EAU_CLAIR, 1); // une ride
+  },
+
+  rocher(ctx, w, h, t, o) {
+    // Un bloc de pierre claire aux éclats, un peu de mousse sur le plus gros.
+    const { V, r } = preparerObjet(ctx, o), s = Math.min(w, h);
+    const blocs = [
+      { x: (r() - 0.5) * s * 0.1, y: (r() - 0.5) * s * 0.1, R: s * 0.36, h: 0.3, mousse: true },
+      { x: -s * 0.3 + r() * s * 0.08, y: s * 0.28, R: s * 0.15, h: 0.12 },
+      { x: s * 0.3, y: -s * 0.25 + r() * s * 0.1, R: s * 0.1, h: 0.08 },
+    ];
+    ordonner(V, blocs.map((b) => ({ x: b.x, y: b.y, dessiner: () => bloc(ctx, V, r, b.x, b.y, b.R, b.h, [34 + ((r() * 8) | 0), 20, 68 + ((r() * 8) | 0)], DESSUS_PIERRE[(r() * 3) | 0], b.mousse) })));
+  },
+
+  champignons(ctx, w, h, t, o) {
+    // Des champignons qui luisent : chapeaux clairs mouchetés, pieds crème, halo de lumière cyan.
+    const { V, r } = preparerObjet(ctx, o), n = 6, liste = [], CHAPEAUX = ['#8fe8dc', '#b4f2e8', '#86d8ee', '#b8f0c8'];
+    for (let i = 0; i < n; i++) liste.push({ x: (r() - 0.5) * t * 0.7, y: (r() - 0.5) * t * 0.6, rr: t * (0.06 + r() * 0.07), hc: 0.05 + r() * 0.06, c: CHAPEAUX[(r() * CHAPEAUX.length) | 0] });
+    ordonner(V, liste.map((c) => ({ x: c.x, y: c.y, dessiner: () => V.cylindre(ctx, r, c.x, c.y, c.rr * 0.3, 0, c.hc, [44, 40, 84], () => {
+      plaque(ctx, V, disque(c.x, c.y, c.rr), c.c, { ep: 1, bande: Math.max(1, c.rr * 0.3), lisere: 'rgba(255,255,255,0.7)', ombre: 'rgba(20,120,130,0.4)', dedans: () => {
+        for (const [dx, dy, k] of [[-0.35, -0.25, 0.18], [0.3, 0.1, 0.14], [-0.05, 0.4, 0.12]]) { ctx.beginPath(); ctx.arc(c.x + dx * c.rr, c.y + dy * c.rr, c.rr * k, 0, 7); ctx.fillStyle = 'rgba(255,255,255,0.8)'; ctx.fill(); }
+      } });
+    }) })));
+    V.lumiere(0, 0, 0, { s: 0, r: t * 2.2, c: '90,230,215', k: 0.55 });
+  },
+
+  toile(ctx, w, h, t, o, plan) {
+    // Posée à plat dans l'angle de la case le plus proche d'un coin : fils crème cernés d'un trait gris-bleu, gouttes de rosée, et son araignée.
+    const { r } = preparerObjet(ctx, o), [sx, sy] = sensDuCoin(o, plan || etat.plan), x = sx * w / 2, y = sy * h / 2, dx = -sx, dy = -sy, s = Math.min(w, h);
+    const L = s * (0.8 + r() * 0.2), rayons = [0, 0.25, 0.5, 0.75, 1].map((u) => (u * Math.PI) / 2), P = (a, kk) => [x + dx * Math.cos(a) * L * kk, y + dy * Math.sin(a) * L * kk];
+    const fils = () => {
+      ctx.beginPath();
+      for (const a of rayons) { ctx.moveTo(x, y); ctx.lineTo(...P(a, 1)); }
+      for (const kk of [0.3, 0.5, 0.7, 0.9]) rayons.forEach((a, i) => { const [px, py] = P(a, kk); if (i) ctx.quadraticCurveTo(...P(a - 0.4, kk * 0.82), px, py); else ctx.moveTo(px, py); });
+    };
+    ctx.save(); ctx.lineCap = 'round';
+    fils(); trait(ctx, 'rgba(96,108,130,0.7)', 2); fils(); trait(ctx, '#fbf8ee', 0.9);
+    for (const [a, kk] of [[0.3, 0.7], [0.9, 0.5], [1.3, 0.9], [0.6, 0.3]]) { const [px, py] = P(a, kk); ctx.beginPath(); ctx.arc(px, py, Math.max(0.9, s * 0.02), 0, 7); encre(ctx, EAU_CLAIR, 0.5); }
+    const [bx, by] = P(0.7, 0.5), q = Math.max(1.6, s * 0.035); // l'araignée : un corps rond et quatre pattes de chaque côté
+    ctx.beginPath(); for (const sg of [-1, 1]) for (let i = 0; i < 4; i++) { ctx.moveTo(bx, by); ctx.lineTo(bx + sg * q * 1.8, by + (i - 1.5) * q * 0.9); }
+    trait(ctx, ENCRE, 0.8);
+    ctx.beginPath(); ctx.arc(bx, by, q, 0, 7); encre(ctx, '#7b5aa6', 0.8);
+    ctx.beginPath(); ctx.arc(bx - q * 0.3, by - q * 0.3, q * 0.3, 0, 7); ctx.fillStyle = '#d8c4f2'; ctx.fill();
+    ctx.restore();
+  },
+
+  ossements(ctx, w, h, t, o) {
+    // Le crâne et les os croisés des salles en ruine : os crème cernés d'encre aux extrémités rondes, deux éclats autour.
+    const { V, r } = preparerObjet(ctx, o);
+    const os = (ax, ay, bx, by, e) => {
+      ctx.lineCap = 'round'; ligne(ctx, [[ax, ay], [bx, by]], ENCRE, e * 2 + 1.6); ligne(ctx, [[ax, ay], [bx, by]], OS, e * 2 - 0.2); ctx.lineCap = 'butt';
+      const a = Math.atan2(by - ay, bx - ax), nx = -Math.sin(a) * e * 0.8, ny = Math.cos(a) * e * 0.8;
+      for (const [px, py] of [[ax, ay], [bx, by]]) for (const sg of [-1, 1]) { ctx.beginPath(); ctx.arc(px + nx * sg, py + ny * sg, e * 0.85, 0, 7); encre(ctx, OS, 0.8); }
+      ligne(ctx, [[ax + nx * 0.2 + 1, ay + ny * 0.2 - 0.6], [bx + nx * 0.2 + 1, by + ny * 0.2 - 0.6]], OS_OMBRE, 0.8);
+    };
+    for (let i = 0; i < 2; i++) {
+      const a = r() * 6.28, d = t * (0.28 + r() * 0.08), x = Math.cos(a) * d, y = Math.sin(a) * d, b = a + 1 + r(), l = t * 0.07;
+      os(x - Math.cos(b) * l, y - Math.sin(b) * l, x + Math.cos(b) * l, y + Math.sin(b) * l, Math.max(1.1, t * 0.03));
+    }
+    const k = t * 0.55, a = r() * 6.28, c = Math.cos(a), s = Math.sin(a), R = (u, v) => [(u * c - v * s) * k, (u * s + v * c) * k];
+    for (const [ax, ay, bx, by] of [[-0.38, 0.17, 0.08, 0.34], [0.12, -0.28, 0.42, 0.06]]) os(...R(ax, ay), ...R(bx, by), Math.max(1.5, t * 0.045));
+    plaque(ctx, V, { taille: k * 0.34, trace: (c2, ddx = 0, ddy = 0) => { c2.moveTo(k * 0.15 + ddx, ddy); c2.ellipse(ddx, ddy, k * 0.15, k * 0.18, a - 0.3, 0, 7); } }, CRANE[0], { ep: 1.1, bande: Math.max(1, k * 0.05), ombre: 'rgba(150,130,90,0.4)' }); // le crâne
+    for (const u of [-0.055, 0.055]) { const [ex, ey] = R(u, 0.02); ctx.beginPath(); ctx.ellipse(ex, ey, Math.max(1, k * 0.045), Math.max(1.2, k * 0.057), 0, 0, 7); ctx.fillStyle = '#5a4630'; ctx.fill(); }
+    ctx.beginPath(); ctx.moveTo(...R(0, 0.1)); ctx.lineTo(...R(-0.02, 0.15)); ctx.lineTo(...R(0.02, 0.15)); ctx.closePath(); trait(ctx, '#5a4630', 0.9); // le nez
+    ligne(ctx, [R(-0.07, 0.19), R(0.07, 0.19)], '#5a4630', 0.9); // les dents
   },
 };
