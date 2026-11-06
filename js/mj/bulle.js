@@ -95,7 +95,7 @@ export function creerBulle(ctx) {
 
     if (reliable) {
       if (lien) {
-        actions.push({ libelle: `Aller à « ${autre.nom} »`, iconeApres: 'fleche-droite', executer: () => ctx.activerSalle(autre.id) });
+        actions.push({ libelle: `Aller à « ${autre.nom} »`, iconeApres: 'liaison', executer: () => ctx.activerSalle(autre.id) });
         destructives.push({
           libelle: 'Délier', titre: `Retire la liaison avec « ${autre.nom} » (les deux portes restent)`,
           executer: () => { modele.delier(d, lien.liaison.id); etat.message = 'Liaison retirée.'; rendre(); },

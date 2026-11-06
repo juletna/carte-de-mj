@@ -189,7 +189,7 @@ export function enregistrerInspecteursDonjon(coquille, ctx) {
       if (avanceDemande) conteneur.querySelector('[data-cle="donjon:salle-avance"] .p-section-bascule[aria-expanded="false"]')?.click();
     },
     menu: (sel) => [
-      { libelle: 'Plan JSON…', icone: 'copier', titre: 'Affiche le plan de la salle en JSON, modifiable', executer: () => ouvrirAvance(sel, () => { $('bloc-avance').scrollIntoView?.({ block: 'nearest' }); $('json').focus(); }) },
+      { libelle: 'Plan JSON…', icone: 'json', titre: 'Affiche le plan de la salle en JSON, modifiable', executer: () => ouvrirAvance(sel, () => { $('bloc-avance').scrollIntoView?.({ block: 'nearest' }); $('json').focus(); }) },
       { libelle: 'Signaler une erreur de lecture', icone: 'alerte', titre: 'Copie la description, ce qui a été compris et la carte, à coller dans ton message', executer: () => ouvrirAvance(sel, () => $('copier-rapport').click()) },
     ],
     destructives: (sel) => [{

@@ -31,7 +31,7 @@ export function inscrireDonjon(coquille, ctx) {
   const feuille = (section) => () => { if (telephone()) coquille.fermerTiroir({ rendreFocus: false }); ctx.menu.ouvrir(section); };
   // (L'import d'un fichier est commun au monde et au donjon : js/atelier/importer.js. La feuille garde son propre bouton « Importer un fichier ».)
   coquille.arbre.ajouterAction({ groupe: 'creer', ordre: 2, libelle: 'Donjon…', icone: 'donjon', aide: 'Nouveau donjon : vide, au hasard ou d’un modèle', executer: feuille('nouveau') });
-  coquille.arbre.ajouterAction({ groupe: 'apporter', ordre: 2, libelle: 'Coller un donjon…', icone: 'copier', executer: feuille('coller') });
+  coquille.arbre.ajouterAction({ groupe: 'apporter', ordre: 2, libelle: 'Coller un donjon…', icone: 'coller', executer: feuille('coller') });
   const copies = ctx.menu.nombreCopies();
   if (copies) coquille.arbre.ajouterAction({ groupe: 'signal', libelle: `Copies mises de côté (${copies})`, icone: 'alerte', executer: feuille('copies') });
 

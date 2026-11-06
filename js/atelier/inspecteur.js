@@ -114,7 +114,8 @@ export function creerInspecteur({ racine, ctx = () => ({}), parDefaut = () => nu
     const classe = dansMenu ? `atelier-menu-ligne${danger ? ' destructif' : ''}` : 'btn';
     const b = h('button', { type: 'button', className: classe });
     if (dansMenu && b.setAttribute) b.setAttribute('role', 'menuitem');
-    if (a.icone) { try { b.append(icone(a.icone)); } catch { /* icône inconnue : le libellé suffit */ } }
+    const pic = a.icone ?? (danger && /^(Supprimer|Retirer)/.test(a.libelle) ? 'supprimer' : null); // « Supprimer la salle », « Retirer la carte… » : la corbeille, comme les autres lignes du menu ont leur icône
+    if (pic) { try { b.append(icone(pic)); } catch { /* icône inconnue : le libellé suffit */ } }
     if (a.titre) b.title = a.titre;
     const texte = h('span', { textContent: a.libelle });
     b.append(texte);
