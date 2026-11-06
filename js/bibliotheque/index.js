@@ -14,13 +14,12 @@ import { importerImage, listerImages, lireImage, supprimerImage } from './images
 const DOSSIER = 'bibliotheque/';
 const COMMENT_REMPLIR = 'Pour la remplir : lance la génération avec le skill « generer-carte » de Claude Code, ou, pour essayer, « node outils/demo-bibliotheque.mjs » depuis la racine du projet. Tu peux aussi importer tes propres images dans « Mes images ».';
 
-/** Le catalogue local : { cartes, avertissements, message } ; `message` dit pourquoi il est vide ou incomplet. */
 let catalogueEnCours;
 function chargerCatalogue(rafraichir = false) {
   if (rafraichir || !catalogueEnCours) catalogueEnCours = lireCatalogue();
   return catalogueEnCours;
 }
-async function lireCatalogue() {
+export async function lireCatalogue() {
   try {
     const rep = await fetch(`${DOSSIER}catalogue.json`, { cache: 'no-store' });
     if (!rep.ok) return { cartes: [], avertissements: [], message: `Aucun catalogue (${DOSSIER}catalogue.json est absent). ${COMMENT_REMPLIR}` };
@@ -141,7 +140,7 @@ export function choisirCarte(options = {}) {
         });
         actions.append(sup);
       }
-      detail.append(h('div', { className: 'bib-apercu' }, h('img', { src: choisi.url, alt: `Aperçu : ${e.titre}` })), h('div', { className: 'bib-fiche' }, ...lignes, actions));
+      detail.append(h('div', { className: 'bib-apercu' }, h('img', { src: choisi.url, alt: `Aperçu : ${e.titre}` })), h('div', { className: 'bib-fiche' }, ...lignes), actions);
     }
 
     function dessinerListe() {

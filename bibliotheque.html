@@ -20,14 +20,14 @@
     button.principal:disabled { opacity: 0.5; cursor: not-allowed; }
     button.discret { background: transparent; color: var(--texte); border: 1px solid var(--bord); }
     :focus-visible { outline: var(--focus); outline-offset: var(--focus-decalage); }
-    .bib-corps { min-height: 360px; }
-    .bib-grille { max-height: 70vh; }
-    .bib-detail { position: sticky; top: var(--esp-4); align-self: start; max-height: 80vh; }
-    .bib-message p { background: var(--panneau); border: 1px solid var(--bord); border-radius: var(--rayon); padding: var(--esp-3); }
+    #bibliotheque .bib-corps { min-height: 360px; }
+    #bibliotheque .bib-grille { max-height: 70vh; }
+    #bibliotheque .bib-detail { position: sticky; top: var(--esp-4); align-self: start; max-height: 80vh; }
+    #bibliotheque .bib-message p { background: var(--panneau); border: 1px solid var(--bord); border-radius: var(--rayon); padding: var(--esp-3); }
     @media (max-width: 760px) {
-      .bib-corps { grid-template-columns: 1fr; grid-template-rows: auto; }
-      .bib-grille { max-height: none; }
-      .bib-detail { position: static; max-height: none; }
+      #bibliotheque .bib-corps { grid-template-columns: 1fr; grid-template-rows: auto; }
+      #bibliotheque .bib-grille { max-height: none; }
+      #bibliotheque .bib-detail { position: static; max-height: none; }
     }
   </style>
 </head>

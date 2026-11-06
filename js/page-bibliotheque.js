@@ -1,29 +1,15 @@
 /**
  * Page « Bibliothèque » (bibliotheque.html) : les cartes du catalogue local (dossier bibliotheque/) et « Mes images »
  * (importées, gardées dans ce navigateur). Filtres, recherche, aperçu, crédit, import et suppression d'une image importée.
- * Elle réutilise les fonctions pures de js/bibliotheque/ (catalogue, vocabulaire, images) ; seul le chargement du catalogue est refait ici,
- * parce que js/bibliotheque/index.js ne l'exporte pas (il ne sert qu'à sa fenêtre de choix).
+ * Elle réutilise js/bibliotheque/ (lecture du catalogue, vocabulaire, images).
  */
 import { h, bouton, deuxTemps, fichierChoisi } from './dom.js';
-import { validerCatalogue, selectionner, creditAffiche } from './bibliotheque/catalogue.js';
+import { selectionner, creditAffiche } from './bibliotheque/catalogue.js';
 import { NIVEAUX, MILIEUX, NIVEAUX_AIDE, libelleNiveau, libelleMilieu } from './bibliotheque/vocabulaire.js';
+import { lireCatalogue } from './bibliotheque/index.js';
 import { importerImage, listerImages, supprimerImage } from './bibliotheque/images.js';
 
 const DOSSIER = 'bibliotheque/';
-const COMMENT_REMPLIR = 'Pour la remplir : lance la génération avec le skill « generer-carte » de Claude Code, ou, pour essayer, « node outils/demo-bibliotheque.mjs » depuis la racine du projet. Tu peux aussi importer tes propres images dans « Mes images ».';
-
-async function lireCatalogue() {
-  try {
-    const rep = await fetch(`${DOSSIER}catalogue.json`, { cache: 'no-store' });
-    if (!rep.ok) return { cartes: [], avertissements: [], message: `Aucun catalogue : le fichier ${DOSSIER}catalogue.json est absent. ${COMMENT_REMPLIR}` };
-    let brut;
-    try { brut = await rep.json(); } catch { return { cartes: [], avertissements: [], message: `${DOSSIER}catalogue.json est illisible (ce n’est pas du JSON valide).` }; }
-    const r = validerCatalogue(brut);
-    return { ...r, message: r.cartes.length ? '' : `Le catalogue est vide. ${COMMENT_REMPLIR}` };
-  } catch {
-    return { cartes: [], avertissements: [], message: `Le catalogue n’a pas pu être lu : ouvre l’appli avec « python3 outils/serveur.py », pas en double-cliquant sur le fichier. ${COMMENT_REMPLIR}` };
-  }
-}
 
 const racine = document.getElementById('bibliotheque');
 const etat = { onglet: 'bibliotheque', niveau: '', milieux: new Set(), requete: '' };

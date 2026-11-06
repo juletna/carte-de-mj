@@ -31,7 +31,7 @@ dialog.bib::backdrop { background: rgb(0 0 0 / 0.65); }
 .bib-message:empty { display: none; }
 .bib-import[hidden] { display: none; }
 
-.bib-corps { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: var(--esp-4); }
+.bib-corps { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 280px; grid-template-rows: minmax(0, 1fr); gap: var(--esp-4); }
 .bib-grille { overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: var(--esp-3); align-content: start; padding: 2px; }
 .bib-tuile { display: flex; flex-direction: column; gap: 2px; text-align: left; padding: var(--esp-2); background: var(--champ); color: var(--texte); border: 1px solid var(--bord); border-radius: var(--rayon); cursor: pointer; font: inherit; }
 .bib-tuile[aria-pressed="true"] { border-color: var(--accent); outline: 1px solid var(--accent); }
@@ -46,7 +46,7 @@ dialog.bib::backdrop { background: rgb(0 0 0 / 0.65); }
 .bib-apercu img { display: block; width: 100%; max-height: 300px; object-fit: contain; }
 .bib-fiche { display: flex; flex-direction: column; gap: var(--esp-2); font-size: 14px; }
 .bib-credit { color: var(--accent); }
-.bib-actions { display: flex; flex-wrap: wrap; gap: var(--esp-2); margin-top: var(--esp-2); }
+.bib-actions { display: flex; flex-wrap: wrap; gap: var(--esp-2); margin-top: auto; position: sticky; bottom: 0; flex: 1 1 100%; padding: var(--esp-2) 0; background: var(--panneau); z-index: 1; }
 .bib-principal { background: var(--accent); color: var(--accent-texte); border: 1px solid var(--accent); border-radius: var(--rayon); padding: var(--esp-2) var(--esp-3); min-height: var(--cible); cursor: pointer; font: inherit; font-weight: 600; }
 .bib-principal:disabled { opacity: 0.5; cursor: not-allowed; }
 
