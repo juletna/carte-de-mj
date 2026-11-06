@@ -29,7 +29,6 @@ import { themeParNom } from '../rendu/themes/index.js';
 import { couleurAmbiance } from '../rendu/lumiere.js';
 import { libelleSelection, nomCase } from '../coordonnees.js';
 import { descripteur } from '../donjon.js';
-import { telephone } from '../telephone.js';
 import { LISTES } from '../schema.js';
 
 const BLOCS_SALLE = ['bloc-description', 'bloc-orphelines', 'bloc-taille', 'bloc-apparence', 'bloc-notes', 'bloc-exemples'];
@@ -119,7 +118,7 @@ export function enregistrerInspecteursDonjon(coquille, ctx) {
     apres?.();
   };
 
-  /** La section « Éléments » : les portes, le mobilier et les créatures de la salle, en liste ; « + » ouvre le catalogue (onglets Portes · Mobilier · Créatures, tiroir sur téléphone). */
+  /** La section « Éléments » : les portes, le mobilier et les créatures de la salle, en liste. Pas de « + » ici : le catalogue est à un clic dans les onglets Portes · Mobilier · Créatures du panneau (tiroir sur téléphone). */
   const sectionElements = (sel) => {
     const salle = donjonDe(sel).salles[sel.id];
     const majuscule = (t) => t.charAt(0).toUpperCase() + t.slice(1);
@@ -134,11 +133,9 @@ export function enregistrerInspecteursDonjon(coquille, ctx) {
         });
       }
     }
-    const ouvrirCatalogue = () => { if (telephone()) ctx.carte.ouvrirTiroir(true); else coquille.onglets.choisir('ajouter'); };
     return creerSection({
       cle: 'donjon:salle-elements', titre: 'Éléments', compte: String(rangees.length),
-      action: { libelle: 'Ajouter un élément', icone: 'plus', executer: ouvrirCatalogue },
-      enfants: [rangees.length ? creerListe(rangees) : h('p', { className: 'note', textContent: 'Rien pour l’instant : « + » ouvre le catalogue.' })],
+      enfants: [rangees.length ? creerListe(rangees) : h('p', { className: 'note', textContent: 'Rien pour l’instant : ajoute des portes, du mobilier ou des créatures depuis le catalogue.' })],
     }).element;
   };
 
