@@ -2,10 +2,10 @@
  * Les inspecteurs du Monde dans l'atelier (lot C) : les types `monde`, `lieu` et `point` de la colonne de droite (panneau bas sous 760 px).
  * Ils reprennent ce que faisaient le panneau « Ce lieu », la bulle d'un point et la barre du monde, sur le contrat de js/atelier/inspecteur.js :
  *   - monde : nom, résumé (lieux, départ de la partie s'il n'est pas la carte du monde) ; le nœud monde PORTE la carte du monde (le lieu racine) :
- *             son panneau montre ce que montre un lieu (points, notes, carte), ou « Choisir la carte du monde » s'il n'en a pas ; action Ajouter un lieu
- *             (Jouer est dans la barre de la scène) ; ⋯ Exporter, Retirer la carte du monde (annulable), Supprimer ce monde ;
+ *             son panneau montre ce que montre un lieu (notes, carte), ou « Choisir la carte du monde » s'il n'en a pas (Ajouter un lieu
+ *             est dans l'arbre, Jouer dans la barre de la scène) ; ⋯ Changer l'image, Exporter, Retirer la carte du monde (annulable), Supprimer ce monde ;
  *   - lieu  : nom, notes, départ de la partie, grille (l'outil Calage de la barre ouvre le calage, dont les réglages remplacent ce panneau),
- *             image, liste des points ; ⋯ Supprimer ce lieu (annulable) ;
+ *             orphelins ; ⋯ Changer l'image, Supprimer ce lieu (annulable) ; les points, eux, se règlent dans leur bulle sur la carte ;
  *   - point : nom, Carte | Donjon | Rien, liste déroulante à vignettes (js/mj/univers-liste.js), Visible / Caché ; action Entrer ; ⋯ Supprimer ce point.
  * L'en-tête (type, nom modifiable, résumé, « ⋯ ») est celui de tous les types. Une suppression se confirme en deux temps dans le menu « ⋯ » ; celle d'un lieu s'annule ensuite.
  * `rendre` ne garde aucun état : tout vient de `U` (js/mj/univers-ui.js) et du stockage. Le champ qui avait le focus (`U.saisie.cle`, `data-cle`)
@@ -78,8 +78,13 @@ export function enregistrerInspecteursMonde(coquille, U) {
       const ailleurs = depart && depart !== modele.carteDuMonde(u) ? u.lieux[depart]?.nom : ''; // le départ n'est dit que s'il n'est pas la carte du monde
       return lieux ? `${pluriel(lieux, 'lieu', 'lieux')}${ailleurs ? ` · départ : ${ailleurs}` : ''}` : 'Aucune carte';
     },
-    actions: (sel, c) => (modele.carteDuMonde(mondeDe(sel, c) ?? { lieux: {} }) && !U.calage.actif() ? [{ libelle: 'Ajouter un lieu', icone: 'plus', executer: () => U.ajouterLieuLibre() }] : []),
-    menu: () => (U.calage.actif() ? [] : [{ libelle: 'Exporter', icone: 'exporter', executer: () => { U.exporterMonde(); } }]),
+    // (Pas d'action « Ajouter un lieu » ici : c'est la dernière ligne de la branche du monde, dans l'arbre.)
+    menu: (sel, c) => {
+      if (U.calage.actif()) return [];
+      const u = mondeDe(sel, c);
+      const carte = u && carteAffichee(u) ? u.lieux[modele.carteDuMonde(u)] : null;
+      return [...(carte ? [actionImage(carte)] : []), { libelle: 'Exporter', icone: 'exporter', executer: () => { U.exporterMonde(); } }];
+    },
     destructives: (sel, c) => {
       const u = mondeDe(sel, c);
       const carte = u && !U.calage.actif() ? modele.carteDuMonde(u) : null;
@@ -128,6 +133,10 @@ export function enregistrerInspecteursMonde(coquille, U) {
       const taille = l.image ? resumeTailleLieu(grilleEffective(l, info ?? null).grille, info?.largeur, info?.hauteur, chargerReglages().echelle) : 'à illustrer';
       return [taille, l.points.length ? pluriel(l.points.length, 'point', 'points') : 'Aucun point', modele.lieuDeDepart(mondeDe(sel, c)) === l.id ? 'départ de la partie' : ''].filter(Boolean).join(' · ');
     },
+    menu: (sel, c) => {
+      const l = mondeDe(sel, c)?.lieux?.[sel.id];
+      return l && U.lieu() === l.id && !U.calage.actif() ? [actionImage(l)] : [];
+    },
     destructives: (sel, c) => {
       if (U.calage.actif()) return [];
       const u = mondeDe(sel, c);
@@ -150,9 +159,12 @@ export function enregistrerInspecteursMonde(coquille, U) {
     },
   });
 
-  /** Le corps d'un lieu, et de la carte du monde dans le panneau du monde : orphelins, notes, carte (départ de la partie, grille, image). */
+  /** Changer l'image d'une carte : rare, donc dans le « ⋯ » (un lieu sans image a aussi « Choisir une image » sur son fond, dans la scène). */
+  const actionImage = (l) => ({ libelle: l.image ? 'Changer l’image' : 'Choisir une image', icone: 'bibliotheque', executer: () => U.changerImage() });
+
+  /** Le corps d'un lieu, et de la carte du monde dans le panneau du monde : orphelins, notes (la place libre leur revient), carte (départ, grille). */
   function contenuCarte(conteneur, u, l) {
-    const notes = avecCle(h('textarea', { rows: 3, maxLength: 20000, value: l.notes, spellcheck: true, placeholder: 'Ce que les joueurs savent, ce qui se cache ici…', 'aria-label': 'Notes du lieu' }), 'lieu-notes');
+    const notes = avecCle(h('textarea', { rows: 12, className: 'univers-notes', maxLength: 20000, value: l.notes, spellcheck: true, placeholder: 'Ce que les joueurs savent, ce qui se cache ici…', 'aria-label': 'Notes du lieu' }), 'lieu-notes');
     notes.addEventListener('change', () => U.notesDuLieu(notes.value));
     const departCoche = avecCle(h('input', { type: 'checkbox', checked: modele.lieuDeDepart(u) === l.id, role: 'switch' }), 'lieu-depart');
     departCoche.addEventListener('change', () => { if (departCoche.checked) U.definirDepart(); else departCoche.checked = true; }); // on change de départ en le cochant ailleurs
@@ -170,10 +182,7 @@ export function enregistrerInspecteursMonde(coquille, U) {
       section('lieu-carte', 'Carte', [
         depart,
         ...(!l.image ? [h('p', { className: 'note', textContent: 'Pas d’image pour l’instant : un fond neutre tient lieu de carte. Les points posés gardent leur place quand l’image arrive.' })] : []),
-        ...(peutCaler ? [h('div', { className: 'ligne' }, h('span', { className: 'univers-etat-grille doux', textContent: etatGrille }), avecCle(btn('Caler la grille', () => U.definirMode('grille'), { icone: 'grille', classe: 'btn-discret' }), 'caler'))] : []),
-        h('div', { className: 'actions' }, btn(l.image ? 'Changer l’image' : 'Choisir une image', () => U.changerImage(), { icone: 'bibliotheque', classe: 'btn-discret' }),
-          // Pour le clavier (la souris pose un point d'un clic sur la carte) : un point au centre, sa bulle ouverte sur son nom.
-          btn('Point au centre', () => U.poserPoint(0.5, 0.5), { icone: 'point', classe: 'btn-discret', titre: 'Pose un point au centre de la carte (au clavier) ; à la souris, clique sur la carte' }))]));
+        ...(peutCaler ? [h('div', { className: 'ligne' }, h('span', { className: 'univers-etat-grille doux', textContent: etatGrille }), avecCle(btn('Caler la grille', () => U.definirMode('grille'), { icone: 'grille', classe: 'btn-discret' }), 'caler'))] : [])]));
     retrouverFocus();
   }
 

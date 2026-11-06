@@ -39,6 +39,9 @@ h3 .aide, h2 .aide { margin-left: var(--esp-1); font-weight: 400; }
 .univers-insp .ligne { display: flex; flex-direction: column; align-items: stretch; gap: 2px; margin: 0; font-size: 13px; }
 .univers-insp .ligne.case { flex-direction: row; align-items: center; gap: var(--esp-2); }
 .univers-insp select, .univers-insp input[type="text"], .univers-insp textarea { width: 100%; box-sizing: border-box; }
+/* Les notes d'un lieu : le panneau n'a plus la liste des points, la place leur revient (12 lignes) ; sous 760 px, le panneau bas reste court. */
+.univers-notes { resize: vertical; line-height: 1.45; }
+@media (max-width: 760px) { .univers-notes { height: 8.5em; } }
 .univers-insp .actions { display: flex; flex-wrap: wrap; gap: var(--esp-2); margin-top: var(--esp-1); }
 .univers-insp .note { margin: 0; }
 .univers-confirmation { padding: var(--esp-2); border: 1px solid var(--erreur); border-radius: var(--rayon); }
