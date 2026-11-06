@@ -64,7 +64,8 @@ export function creerPalette(racine, { elements, groupes, sousGroupes = {}, past
   const aspectTitre = el('h3', { className: 'palette-intertitre' });
   const aspectGrille = el('div', { className: 'palette-grille' });
   const aspectBloc = el('div', { className: 'palette-aspects', role: 'group', hidden: true }, aspectTitre, aspectGrille);
-  racine.replaceChildren(tete, onglets, recherche, aide, aspectBloc, liste, vide);
+  const ligneRecherche = el('div', { className: 'palette-ligne' }, recherche, aide); // le « ? » à droite du champ, pas sur sa propre ligne
+  racine.replaceChildren(tete, onglets, ligneRecherche, aspectBloc, liste, vide);
 
   const boutonsGroupes = groupes.map((g) => {
     const b = el('button', { type: 'button', className: 'btn btn-discret', textContent: g.titre, 'data-groupe': g.id });

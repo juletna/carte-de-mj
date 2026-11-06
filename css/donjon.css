@@ -88,8 +88,11 @@ details.exemples summary { font-size: 13px; }
 .aspect-grille { display: grid; grid-template-columns: repeat(auto-fill, minmax(62px, 1fr)); gap: 6px; }
 .aspect-grille .palette-item[aria-pressed="true"] .palette-nom { color: var(--accent); font-weight: 600; }
 .palette-vide { margin: 8px 0 0; font-size: 13px; color: var(--texte-doux); }
-.palette-aide { flex: none; align-self: flex-start; }
-.palette-aide .aide-texte { max-width: none; font-size: 12px; line-height: 1.35; }
+.palette-ligne { position: relative; display: flex; align-items: center; gap: var(--esp-1); flex: none; }
+.palette-ligne .palette-recherche { flex: 1 1 auto; min-width: 0; width: auto; }
+.palette-aide { flex: none; position: static; }
+/* L'explication s'ouvre sous la ligne, par-dessus le catalogue : rien ne se décale. */
+.palette-aide .aide-texte { position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 5; max-width: none; margin: 0; font-size: 12px; line-height: 1.35; box-shadow: 0 6px 18px rgba(0, 0, 0, .5); }
 .palette-fantome { position: fixed; z-index: 100; pointer-events: none; transform: translate(-50%, -110%); padding: 3px; line-height: 0; background: rgba(0, 0, 0, 0.85); border: 1px dashed var(--texte-doux); border-radius: var(--rayon); opacity: 0.92; }
 .palette-fantome canvas { display: block; }
 .palette-fantome.sur-carte { background: var(--accent); border: 1px solid var(--accent); }
