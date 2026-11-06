@@ -38,7 +38,8 @@ export { marqueLiaison } from './vectoriel.js';
 
 const FOND_ROCHE = '#141316';
 const GRILLE_COULEUR = '20,14,10'; // brun très sombre
-const GRILLE_PART = 0.7; // opacité du trait à 100 % du réglage « Cases » : plein, la grille mangerait le décor
+const GRILLE_CLAIR = '255,240,215'; // liseré clair à côté du trait sombre
+const GRILLE_PART = 0.85; // opacité du trait à 100 % du réglage « Grille » : plein, la grille mangerait le décor
 
 /**
  * Prépare le dessin d'une salle : le centre de la vue, KP (0 sans relief), la graine tirée de l'identifiant de la salle, la matrice de base.
@@ -128,20 +129,28 @@ export function sol(ctx, plan, t) {
 export function murs(ctx, plan, t) { dessinerMurs(ctx, plan, t); }
 export function porte(ctx, p, plan, t) { dessinerPorte(ctx, p, plan, t); }
 
-/** Grille en pointillés sombres sur le sol ; `opacite` de 0 à 1 (le réglage « Cases »). */
-export function grille(ctx, plan, t, opacite = 0.5) {
+/**
+ * Grille sur le sol ; `opacite` de 0 à 1 (le réglage « Grille »). Un trait clair continu doublé d'une ombre sombre : il ne se
+ * confond pas avec les joints sombres des planches ou des dalles, et se lit sur un sol sombre (bois, terre) comme clair (marbre).
+ */
+export function grille(ctx, plan, t, opacite = 0.6) {
   const a = Math.max(0, Math.min(1, opacite)) * GRILLE_PART;
   if (!a) return;
   ctx.save();
   tracerSol(ctx, plan, t);
   ctx.clip();
-  ctx.setLineDash([t * 0.06, t * 0.1]);
-  ctx.strokeStyle = `rgba(${GRILLE_COULEUR},${a})`;
-  ctx.lineWidth = 1 + a;
-  ctx.beginPath();
-  for (let x = 1; x < plan.largeur; x++) { ctx.moveTo(x * t, 0); ctx.lineTo(x * t, plan.longueur * t); }
-  for (let y = 1; y < plan.longueur; y++) { ctx.moveTo(0, y * t); ctx.lineTo(plan.largeur * t, y * t); }
-  ctx.stroke();
+  const lignes = (d) => {
+    ctx.beginPath();
+    for (let x = 1; x < plan.largeur; x++) { ctx.moveTo(x * t + d, 0); ctx.lineTo(x * t + d, plan.longueur * t); }
+    for (let y = 1; y < plan.longueur; y++) { ctx.moveTo(0, y * t + d); ctx.lineTo(plan.largeur * t, y * t + d); }
+    ctx.stroke();
+  };
+  ctx.strokeStyle = `rgba(${GRILLE_COULEUR},${a * 0.8})`;
+  ctx.lineWidth = 1.2;
+  lignes(1.1);
+  ctx.strokeStyle = `rgba(${GRILLE_CLAIR},${a * 0.75})`;
+  ctx.lineWidth = 1 + a * 0.4;
+  lignes(0);
   ctx.restore();
 }
 

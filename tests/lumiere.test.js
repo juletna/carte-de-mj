@@ -140,7 +140,7 @@ const TESTS = [
       [45, 0, 80, 45, 45, 45], 'pénombre');
     egal([flammesDeReglages({}), flammesDeReglages({ flammes: false }), flammesDeReglages({ flammes: 0 }), flammesDeReglages({ flammes: true })], [true, false, true, true], 'seul faux éteint les flammes');
     egal([penombreValide(0), penombreValide(100), penombreValide(-1), penombreValide(50.5)], [true, true, false, false], 'penombreValide');
-    egal(optionsRendu({ penombre: 70, flammes: false }), { grille: 0.4, theme: 'peint', relief: true, penombre: 70, flammes: false }, 'ce que le moteur reçoit');
+    egal(optionsRendu({ penombre: 70, flammes: false }), { grille: 0.6, theme: 'peint', relief: true, penombre: 70, flammes: false }, 'ce que le moteur reçoit');
   }],
   ['réglages enregistrés : un fichier d’avant la pénombre se relit sans rien perdre ; 45 % et « flammes oui » ne sont pas écrits', () => {
     egal(reglagesDe({ echelle: 1.5, taille: 48, grille: true }), { echelle: 1.5, taille: 48, grille: true }, 'ancien fichier : rien de plus');
