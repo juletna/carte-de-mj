@@ -25,6 +25,8 @@ import { DESSINS as DETAILS } from './details.js';
 import * as vectoriel from '../vectoriel.js';
 import { RICHES } from './objets-dessines.js';
 import { etatPeint } from './objets-etats.js';
+import { TEINTES_TISSU } from '../../teintes-tissu.js';
+import { aUneVariante, varianteDe } from '../../../catalogue.js';
 import { teinteFlamme, RAYON_MAGIQUE, fumee, cendres } from '../../feu.js';
 
 export const PIERRE = [40, 6, 60], PIERRE_SOMBRE = [40, 5, 46], MARBRE = [40, 8, 74];
@@ -562,25 +564,26 @@ const sobres = {
   tapis(ctx, w, h, t, o) {
     // À plat sur le sol (couche basse, sous la grille et sous les autres objets) : bordure dorée, losanges emboîtés, franges aux deux bouts les plus courts.
     const { r } = preparerObjet(ctx, o), tw = w - t * 0.2, th = h - t * 0.2, x = -tw / 2, y = -th / 2, long = tw >= th, k = t / 48;
+    const T = aUneVariante(o) ? TEINTES_TISSU[varianteDe(o)]?.s : null; // une autre couleur : même motif, autres teintes (rendu/teintes-tissu.js)
     ctx.beginPath();
     for (let u = t * 0.05; u < (long ? th : tw) - t * 0.03; u += t * 0.065) {
       if (long) { ctx.moveTo(x - 4 * k, y + u); ctx.lineTo(x, y + u); ctx.moveTo(x + tw, y + u); ctx.lineTo(x + tw + 4 * k, y + u); }
       else { ctx.moveTo(x + u, y - 4 * k); ctx.lineTo(x + u, y); ctx.moveTo(x + u, y + th); ctx.lineTo(x + u, y + th + 4 * k); }
     }
     trait(ctx, '#e6d7b0', 1);
-    chemin(ctx, rectPts(x, y, tw, th), true, r, 0.4); encre(ctx, dl(ctx, x, y, x + tw, y + th, '#9b302a', '#5f1918'), 1.6, true);
-    chemin(ctx, rectPts(x + 5 * k, y + 5 * k, tw - 10 * k, th - 10 * k), true, r, 0.3); trait(ctx, '#d8b257', 3 * k);
-    chemin(ctx, rectPts(x + 10 * k, y + 10 * k, tw - 20 * k, th - 20 * k), true, r, 0.3); trait(ctx, '#3a0f0e', 1.2);
+    chemin(ctx, rectPts(x, y, tw, th), true, r, 0.4); encre(ctx, dl(ctx, x, y, x + tw, y + th, T?.c ?? '#9b302a', T?.d ?? '#5f1918'), 1.6, true);
+    chemin(ctx, rectPts(x + 5 * k, y + 5 * k, tw - 10 * k, th - 10 * k), true, r, 0.3); trait(ctx, T?.g ?? '#d8b257', 3 * k);
+    chemin(ctx, rectPts(x + 10 * k, y + 10 * k, tw - 20 * k, th - 20 * k), true, r, 0.3); trait(ctx, T?.x ?? '#3a0f0e', 1.2);
     ctx.beginPath();                                                   // des perles le long des deux grands côtés
     if (long) for (let u = x + 14 * k; u < x + tw - 12 * k; u += 9 * k) { ctx.moveTo(u + 1.3, y + 5 * k); ctx.arc(u, y + 5 * k, 1.3, 0, 7); ctx.moveTo(u + 1.3, y + th - 5 * k); ctx.arc(u, y + th - 5 * k, 1.3, 0, 7); }
     else for (let u = y + 14 * k; u < y + th - 12 * k; u += 9 * k) { ctx.moveTo(x + 5 * k + 1.3, u); ctx.arc(x + 5 * k, u, 1.3, 0, 7); ctx.moveTo(x + tw - 5 * k + 1.3, u); ctx.arc(x + tw - 5 * k, u, 1.3, 0, 7); }
-    ctx.fillStyle = '#5a1614'; ctx.fill();
+    ctx.fillStyle = T?.p ?? '#5a1614'; ctx.fill();
     const a = Math.min(tw / 2 - 16 * k, th * 0.4 * (long ? 1.7 : 1)), b = Math.min(th / 2 - 16 * k, tw * 0.4 * (long ? 1 : 1.7));
-    for (const [s, fond] of [[1, '#d8b257'], [0.72, '#26335f'], [0.42, '#d8b257'], [0.2, '#7a1e1c']]) {
+    for (const [s, fond] of [[1, T?.g ?? '#d8b257'], [0.72, T?.acc ?? '#26335f'], [0.42, T?.g ?? '#d8b257'], [0.2, T?.ctr ?? '#7a1e1c']]) {
       chemin(ctx, [[-a * s, 0], [0, -b * s], [a * s, 0], [0, b * s]], true, r, 0.3); encre(ctx, fond, 1);
     }
     for (const [ox, oy, sx, sy] of [[x + 10 * k, y + 10 * k, 1, 1], [x + tw - 10 * k, y + 10 * k, -1, 1], [x + 10 * k, y + th - 10 * k, 1, -1], [x + tw - 10 * k, y + th - 10 * k, -1, -1]]) {
-      chemin(ctx, [[ox, oy], [ox + sx * 14 * k, oy], [ox, oy + sy * 14 * k]], true, r, 0.2); encre(ctx, '#d8b257', 0.9);   // les écoinçons
+      chemin(ctx, [[ox, oy], [ox + sx * 14 * k, oy], [ox, oy + sy * 14 * k]], true, r, 0.2); encre(ctx, T?.g ?? '#d8b257', 0.9);   // les écoinçons
     }
   },
 
@@ -589,12 +592,13 @@ const sobres = {
     const { V, r } = preparerObjet(ctx, o, true);
     if (!V.KP) return vectoriel.objets.banniere(ctx, w, h, t, o);
     const yMur = -h / 2, F = face(V, -w / 2, yMur, w, h, 'nord'), u0 = 0.2, u1 = 0.8, um = 0.5;
+    const T = aUneVariante(o) ? TEINTES_TISSU[varianteDe(o)]?.s : null, g = T?.g ?? '#d8b257'; // une couleur choisie : celle de la variante ; sinon rouge, bleue ou verte selon la place
     const [fond, ombre] = [['#a5302a', '#5b1513'], ['#2f4f9a', '#17274f'], ['#3f7a3a', '#1f3d1c']][(r() * 3) | 0];
     const pts = [F.P(u0, 0.92), F.P(u1, 0.92), F.P(u1, 0.14), F.P(um, 0.3), F.P(u0, 0.14)];
-    chemin(ctx, pts, true, r, 0.3); encre(ctx, dl(ctx, pts[0][0], pts[0][1], pts[0][0], pts[2][1], fond, ombre), 1.3, true);
+    chemin(ctx, pts, true, r, 0.3); encre(ctx, dl(ctx, pts[0][0], pts[0][1], pts[0][0], pts[2][1], T?.c ?? fond, T?.d ?? ombre), 1.3, true);
     const c = centre(pts);
-    chemin(ctx, pts.map(([x, y]) => [x + (c[0] - x) * 0.2, y + (c[1] - y) * 0.2]), true, r, 0.2); trait(ctx, '#d8b257', 1.1);
-    const [ex, ey] = F.P(um, 0.6); cercle(ctx, ex, ey, t * 0.065, r, 0.2); encre(ctx, '#d8b257', 0.8);
+    chemin(ctx, pts.map(([x, y]) => [x + (c[0] - x) * 0.2, y + (c[1] - y) * 0.2]), true, r, 0.2); trait(ctx, g, 1.1);
+    const [ex, ey] = F.P(um, 0.6); cercle(ctx, ex, ey, t * 0.065, r, 0.2); encre(ctx, g, 0.8);
     const [ax, ay] = F.P(u0 - 0.04, 0.95), [bx, by] = F.P(u1 + 0.04, 0.95);
     ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); trait(ctx, ENCRE, 3); trait(ctx, '#8a5a2a', 1.6);
   },

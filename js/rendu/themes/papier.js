@@ -11,7 +11,8 @@ import { casesRetirees } from '../../formes.js';
 import { tracerSol, dessinerMursDecoupes } from '../trace.js';
 import { rect, rectArrondi, rond, sensDuCoin, contourIrregulier, toileDans, hasard } from './commun.js';
 import { EPAISSEUR_MUR, ancragePorte } from '../geometrie.js';
-import { CREATURES, varianteDe } from '../../catalogue.js';
+import { CREATURES, varianteDe, aUneVariante } from '../../catalogue.js';
+import { TEINTES_TISSU } from '../teintes-tissu.js';
 import { teinteFlamme, fumee, cendres } from '../feu.js';
 import { dessinerPortrait } from '../portraits.js';
 
@@ -363,7 +364,7 @@ export const objets = {
     }
   },
 
-  tapis(ctx, w, h, t) {
+  tapis(ctx, w, h, t, o) {
     const tw = w - t * 0.22, th = h - t * 0.22, x = -tw / 2, y = -th / 2, long = tw >= th;
     ctx.beginPath();                                                 // les franges, aux deux bouts les plus courts
     for (let k = t * 0.05; k < (long ? th : tw) - t * 0.03; k += t * 0.07) {
@@ -371,7 +372,8 @@ export const objets = {
       else { ctx.moveTo(x + k, y - t * 0.1); ctx.lineTo(x + k, y); ctx.moveTo(x + k, y + th); ctx.lineTo(x + k, y + th + t * 0.1); }
     }
     ctx.strokeStyle = NOIR; ctx.lineWidth = trait(t, 0.012); ctx.stroke();
-    rect(ctx, x, y, tw, th, TRES_CLAIR, NOIR, trait(t, 0.03));
+    const gris = aUneVariante(o) ? TEINTES_TISSU[varianteDe(o)]?.gris : null; // une autre couleur : son niveau de gris (noir et blanc)
+    rect(ctx, x, y, tw, th, gris ?? TRES_CLAIR, NOIR, trait(t, 0.03));
     rect(ctx, x + t * 0.1, y + t * 0.1, tw - t * 0.2, th - t * 0.2, null, GRIS, trait(t, 0.02));
     const a = Math.min(tw / 2 - t * 0.2, th * 0.4 * (long ? 1.7 : 1)), b = Math.min(th / 2 - t * 0.2, tw * 0.4 * (long ? 1 : 1.7));
     for (const [k, fond] of [[1, '#fff'], [0.55, CLAIR], [0.2, NOIR]]) {   // le motif central : losanges emboîtés
@@ -380,12 +382,13 @@ export const objets = {
     }
   },
 
-  banniere(ctx, w, h, t) {
+  banniere(ctx, w, h, t, o) {
     // Accrochée au mur, à l'arrière de la case : la barre, puis l'étoffe qui pend vers l'avant, à queue d'hirondelle.
     const y0 = -h / 2 + t * 0.03, lg = t * 0.58, bw = t * 0.46;
     ctx.beginPath(); ctx.moveTo(-bw / 2, y0); ctx.lineTo(bw / 2, y0); ctx.lineTo(bw / 2, y0 + lg); ctx.lineTo(0, y0 + lg * 0.78); ctx.lineTo(-bw / 2, y0 + lg); ctx.closePath();
-    ctx.fillStyle = CLAIR; ctx.fill(); ctx.strokeStyle = NOIR; ctx.lineWidth = trait(t, 0.025); ctx.stroke();
-    rond(ctx, 0, y0 + lg * 0.42, t * 0.07, NOIR);                      // l'emblème
+    const gris = aUneVariante(o) ? TEINTES_TISSU[varianteDe(o)]?.gris : null, sombre = gris === '#5a5a5a'; // une couleur choisie : son niveau de gris ; l'emblème devient clair sur le noir
+    ctx.fillStyle = gris ?? CLAIR; ctx.fill(); ctx.strokeStyle = NOIR; ctx.lineWidth = trait(t, 0.025); ctx.stroke();
+    rond(ctx, 0, y0 + lg * 0.42, t * 0.07, sombre ? '#fff' : NOIR);   // l'emblème
     rect(ctx, -t * 0.31, y0 - t * 0.04, t * 0.62, t * 0.07, NOIR);     // la barre
   },
 
@@ -569,6 +572,71 @@ const ETATS = {
       rect(ctx, x, y, s, s, TRES_CLAIR, NOIR, trait(t, 0.03));
       for (let i = 0; i < 12; i++) { const px = x + s * (0.15 + 0.7 * hasard(o, i)), py = y + s * (0.15 + 0.7 * hasard(o, i + 30)), a = hasard(o, i + 60) * 6.28; ligne(ctx, px, py, px + Math.cos(a) * t * 0.14, py + Math.sin(a) * t * 0.14, trait(t, 0.012), GRIS); } // la paille
       rect(ctx, x + s + t * 0.01, y + s * 0.05, t * 0.2, s * 0.9, CLAIR, NOIR, trait(t, 0.02)); // le couvercle appuyé contre le flanc
+    },
+  },
+  fontaine: {
+    asec(ctx, w, h, t, o) {
+      const r = Math.min(w, h) * 0.44;
+      rond(ctx, 0, 0, r, TRES_CLAIR, NOIR, trait(t, 0.03));
+      rond(ctx, 0, 0, r * 0.76, CLAIR, GRIS, trait(t, 0.015));
+      ligne(ctx, -r * 0.55, -r * 0.2, -r * 0.3, 0, trait(t, 0.012), GRIS); ligne(ctx, -r * 0.3, 0, -r * 0.4, r * 0.25, trait(t, 0.012), GRIS); // une fissure
+      for (let i = 0; i < 4; i++) { const a = hasard(o, i) * 6.28, d = r * (0.3 + hasard(o, i + 9) * 0.35); rond(ctx, Math.cos(a) * d, Math.sin(a) * d, t * 0.03, '#fff', NOIR, trait(t, 0.01)); } // feuilles mortes
+      rond(ctx, 0, 0, r * 0.22, CLAIR, NOIR, trait(t, 0.02));
+    },
+    sombre(ctx, w, h, t, o) {
+      const r = Math.min(w, h) * 0.44;
+      rond(ctx, 0, 0, r, TRES_CLAIR, NOIR, trait(t, 0.03));
+      rond(ctx, 0, 0, r * 0.76, GRIS, GRIS, trait(t, 0.015));                                  // l'eau trouble : un gris
+      for (let i = 0; i < 4; i++) { const a = hasard(o, i) * 6.28, d = r * (0.25 + hasard(o, i + 9) * 0.4); rond(ctx, Math.cos(a) * d, Math.sin(a) * d, t * 0.04, '#fff', NOIR, trait(t, 0.01)); } // les bulles
+      rond(ctx, 0, 0, r * 0.22, CLAIR, NOIR, trait(t, 0.02));
+    },
+    sacree(ctx, w, h, t) {
+      const r = Math.min(w, h) * 0.44;
+      rond(ctx, 0, 0, r, TRES_CLAIR, NOIR, trait(t, 0.03));
+      rond(ctx, 0, 0, r * 0.76, null, GRIS, trait(t, 0.015));
+      ctx.setLineDash([t * 0.05, t * 0.05]); rond(ctx, 0, 0, r * 1.18, null, NOIR, trait(t, 0.012)); ctx.setLineDash([]);   // la lueur, en pointillés
+      rond(ctx, 0, 0, r * 0.22, CLAIR, NOIR, trait(t, 0.02));
+      for (const [x, y] of [[-0.4, -0.3], [0.35, 0.3], [0.2, -0.45]]) { ligne(ctx, x * r - t * 0.04, y * r, x * r + t * 0.04, y * r, trait(t, 0.012)); ligne(ctx, x * r, y * r - t * 0.04, x * r, y * r + t * 0.04, trait(t, 0.012)); }
+    },
+  },
+  autel: {
+    rituel(ctx, w, h, t) {
+      const aw = w - t * 0.14, ah = h - t * 0.3;
+      rect(ctx, -aw / 2, -ah / 2, aw, ah, CLAIR, NOIR, trait(t, 0.03));
+      rect(ctx, -aw * 0.34, -ah / 2, aw * 0.68, ah, GRIS, NOIR, trait(t, 0.015));                                 // la nappe
+      for (const [x, y] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { rond(ctx, x * aw * 0.43, y * ah * 0.28, t * 0.055, '#fff', NOIR, trait(t, 0.015)); rond(ctx, x * aw * 0.43, y * ah * 0.28, t * 0.02, NOIR); }
+      rond(ctx, 0, 0, t * 0.07, '#fff', NOIR, trait(t, 0.02));                                                     // la coupe
+    },
+    ensanglante(ctx, w, h, t, o) {
+      const aw = w - t * 0.14, ah = h - t * 0.3;
+      rect(ctx, -aw / 2, -ah / 2, aw, ah, CLAIR, NOIR, trait(t, 0.03));
+      for (const [u, v, k] of [[-0.2, 0, 0.17], [0.08, 0.1, 0.12], [0.3, -0.1, 0.09]]) rond(ctx, aw * u, ah * v, ah * k * 1.4, NOIR);   // les taches, en noir plein
+      for (const u of [-0.3, 0, 0.22]) ligne(ctx, aw * u, ah * 0.3, aw * u, ah * 0.5, trait(t, 0.035), NOIR);                              // les coulures
+    },
+    sacre(ctx, w, h, t) {
+      const aw = w - t * 0.14, ah = h - t * 0.3, rs = ah * 0.15;
+      rect(ctx, -aw / 2, -ah / 2, aw, ah, TRES_CLAIR, NOIR, trait(t, 0.035));
+      rect(ctx, -aw * 0.23, -ah / 2, aw * 0.46, ah, '#fff', NOIR, trait(t, 0.015));
+      for (let i = 0; i < 8; i++) { const a = (i / 8) * 6.28; ligne(ctx, Math.cos(a) * rs * 1.3, Math.sin(a) * rs * 1.3, Math.cos(a) * rs * 2, Math.sin(a) * rs * 2, trait(t, 0.02)); }   // les rayons du soleil
+      rond(ctx, 0, 0, rs, '#fff', NOIR, trait(t, 0.02));
+      rond(ctx, -aw * 0.42, 0, t * 0.05, '#fff', NOIR, trait(t, 0.015)); rond(ctx, aw * 0.42, 0, t * 0.05, '#fff', NOIR, trait(t, 0.015));
+    },
+  },
+  puits: {
+    couvert(ctx, w, h, t) {
+      const r = Math.min(w, h) * 0.42;
+      rond(ctx, 0, 0, r, CLAIR, NOIR, trait(t, 0.03));
+      rond(ctx, 0, 0, r * 0.76, '#fff', NOIR, trait(t, 0.02));
+      for (const k of [-0.45, -0.15, 0.15, 0.45]) ligne(ctx, k * r * 0.76, -r * 0.7, k * r * 0.76, r * 0.7, trait(t, 0.01), GRIS);   // les planches
+      for (const k of [-0.4, 0.4]) rect(ctx, -r * 0.7, k * r * 0.76 - r * 0.06, r * 1.4, r * 0.12, CLAIR, NOIR, trait(t, 0.012));
+    },
+    treuil(ctx, w, h, t) {
+      const r = Math.min(w, h) * 0.42;
+      rond(ctx, 0, 0, r, CLAIR, NOIR, trait(t, 0.03));
+      rond(ctx, 0, 0, r * 0.64, '#fff', NOIR, trait(t, 0.02));
+      ligne(ctx, -r * 0.92, 0, r * 0.92, 0, trait(t, 0.05), NOIR);                              // la poutre
+      rect(ctx, -r * 0.98, -t * 0.05, t * 0.1, t * 0.1, '#fff', NOIR, trait(t, 0.015)); rect(ctx, r * 0.98 - t * 0.1, -t * 0.05, t * 0.1, t * 0.1, '#fff', NOIR, trait(t, 0.015));
+      rond(ctx, 0, 0, r * 0.2, '#fff', NOIR, trait(t, 0.02)); rond(ctx, 0, 0, r * 0.1, null, GRIS, trait(t, 0.012));       // le seau
     },
   },
 };

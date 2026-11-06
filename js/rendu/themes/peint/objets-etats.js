@@ -16,13 +16,14 @@ import {
   PIERRE, PIERRE_SOMBRE, MARBRE, BOIS, BOIS_SOMBRE, BOIS_CLAIR,
 } from './objets.js';
 import { BRIQUES as B } from './objets-dessines.js';
+import { etatsDecor } from './objets-etats-decor.js';
 
 // --- Géométrie -----------------------------------------------------------------------------------------------
 
 /** Les points `pts` tournés de `a` radians autour de (cx, cy). */
-const tourner = (pts, a, cx = 0, cy = 0) => pts.map(([x, y]) => [cx + (x - cx) * Math.cos(a) - (y - cy) * Math.sin(a), cy + (x - cx) * Math.sin(a) + (y - cy) * Math.cos(a)]);
+export const tourner = (pts, a, cx = 0, cy = 0) => pts.map(([x, y]) => [cx + (x - cx) * Math.cos(a) - (y - cy) * Math.sin(a), cy + (x - cx) * Math.sin(a) + (y - cy) * Math.cos(a)]);
 /** Un rectangle centré en (cx, cy), de côtés l × h, tourné de `a`. */
-const rectC = (cx, cy, l, h, a = 0) => tourner(rectPts(cx - l / 2, cy - h / 2, l, h), a, cx, cy);
+export const rectC = (cx, cy, l, h, a = 0) => tourner(rectPts(cx - l / 2, cy - h / 2, l, h), a, cx, cy);
 /** Le point de la forme S = [nord-ouest, nord-est, sud-est, sud-ouest] à l'abscisse u et à l'ordonnée v (0–1). */
 const pQ = (S) => (u, v) => milieu(milieu(S[0], S[1], u), milieu(S[3], S[2], u), v);
 
@@ -480,6 +481,7 @@ function etats(K) {
     sarcophage: { ouvert: sarcophageOuvert(K) },
     statue: { brisee: statueBrisee(K) },
     caisse: { ouverte: caisseOuverte(K) },
+    ...etatsDecor(K), // fontaine, autel, puits (objets-etats-decor.js)
   };
 }
 

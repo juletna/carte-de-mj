@@ -28,8 +28,9 @@ import { rect, rectArrondi, rond, sensDuCoin, contourIrregulier, toileDans, hasa
 import { EPAISSEUR_MUR, ancragePorte } from '../geometrie.js';
 import { dessinerPortrait } from '../portraits.js';
 import { COULEURS } from '../../parseur/lexique.js';
-import { CREATURES, varianteDe } from '../../catalogue.js';
+import { CREATURES, varianteDe, aUneVariante } from '../../catalogue.js';
 import { teinteFlamme, fumee, cendres } from '../feu.js';
+import { TEINTES_TISSU } from '../teintes-tissu.js';
 
 const C = {
   roche: '#23211f', rocheClair: '#2e2b28',
@@ -477,7 +478,7 @@ export const objets = {
     }
   },
 
-  tapis(ctx, w, h, t) {
+  tapis(ctx, w, h, t, o) {
     const tw = w - t * 0.22, th = h - t * 0.22, x = -tw / 2, y = -th / 2, long = tw >= th;
     ctx.strokeStyle = '#e6d7b0'; ctx.lineWidth = 1; ctx.beginPath();     // les franges, aux deux bouts les plus courts
     for (let k = t * 0.05; k < (long ? th : tw) - t * 0.03; k += t * 0.06) {
@@ -485,22 +486,24 @@ export const objets = {
       else { ctx.moveTo(x + k, y - t * 0.1); ctx.lineTo(x + k, y); ctx.moveTo(x + k, y + th); ctx.lineTo(x + k, y + th + t * 0.1); }
     }
     ctx.stroke();
-    rect(ctx, x, y, tw, th, C.rouge, '#4a1010', 1.5);
-    rect(ctx, x + t * 0.1, y + t * 0.1, tw - t * 0.2, th - t * 0.2, null, C.or, Math.max(1.5, t * 0.04));   // la bordure dorée
+    const T = aUneVariante(o) ? TEINTES_TISSU[varianteDe(o)]?.s : null; // une autre couleur : même motif, autres teintes (rendu/teintes-tissu.js)
+    rect(ctx, x, y, tw, th, T?.c ?? C.rouge, T?.x ?? '#4a1010', 1.5);
+    rect(ctx, x + t * 0.1, y + t * 0.1, tw - t * 0.2, th - t * 0.2, null, T?.g ?? C.or, Math.max(1.5, t * 0.04));   // la bordure dorée
     const cx = 0, cy = 0, a = Math.min(tw / 2 - t * 0.2, th * 0.4 * (long ? 1.7 : 1)), b = Math.min(th / 2 - t * 0.2, tw * 0.4 * (long ? 1 : 1.7));
-    for (const [k, fond] of [[1, C.or], [0.7, C.tissu], [0.38, C.or], [0.16, C.rouge]]) {
+    for (const [k, fond] of [[1, T?.g ?? C.or], [0.7, T?.acc ?? C.tissu], [0.38, T?.g ?? C.or], [0.16, T?.ctr ?? C.rouge]]) {
       ctx.beginPath(); ctx.moveTo(cx - a * k, cy); ctx.lineTo(cx, cy - b * k); ctx.lineTo(cx + a * k, cy); ctx.lineTo(cx, cy + b * k); ctx.closePath();
       ctx.fillStyle = fond; ctx.fill();
     }
   },
 
-  banniere(ctx, w, h, t) {
+  banniere(ctx, w, h, t, o) {
     // Accrochée au mur, à l'arrière de la case : une barre, et l'étoffe qui pend vers l'avant, à queue d'hirondelle.
     const y0 = -h / 2 + t * 0.03, bl = t * 0.62, lg = t * 0.58, bw = t * 0.46;
-    ombre(ctx, t, () => rect(ctx, -bw / 2, y0, bw, lg, '#6b1717'));
+    const T = aUneVariante(o) ? TEINTES_TISSU[varianteDe(o)]?.s : null; // une couleur choisie ; sinon le rouge d'origine
+    ombre(ctx, t, () => rect(ctx, -bw / 2, y0, bw, lg, T?.d ?? '#6b1717'));
     ctx.beginPath(); ctx.moveTo(-bw / 2, y0); ctx.lineTo(bw / 2, y0); ctx.lineTo(bw / 2, y0 + lg); ctx.lineTo(0, y0 + lg * 0.78); ctx.lineTo(-bw / 2, y0 + lg); ctx.closePath();
-    ctx.fillStyle = C.rouge; ctx.fill(); ctx.strokeStyle = C.or; ctx.lineWidth = Math.max(1.5, t * 0.03); ctx.stroke();
-    rond(ctx, 0, y0 + lg * 0.42, t * 0.07, C.or);                         // l'emblème
+    ctx.fillStyle = T?.c ?? C.rouge; ctx.fill(); ctx.strokeStyle = T?.g ?? C.or; ctx.lineWidth = Math.max(1.5, t * 0.03); ctx.stroke();
+    rond(ctx, 0, y0 + lg * 0.42, t * 0.07, T?.g ?? C.or);                         // l'emblème
     rect(ctx, -bl / 2, y0 - t * 0.04, bl, t * 0.07, C.boisFonce);         // la barre
   },
 
@@ -715,6 +718,88 @@ const ETATS = {
       for (let i = 0; i < 12; i++) { const px = x + s * (0.15 + 0.7 * hasard(o, i)), py = y + s * (0.15 + 0.7 * hasard(o, i + 30)), a = hasard(o, i + 60) * 6.28; trace(ctx, [[px, py], [px + Math.cos(a) * t * 0.14, py + Math.sin(a) * t * 0.14]], PAILLE, 1.8); }
       rect(ctx, x + s + t * 0.01, y + s * 0.05, t * 0.2, s * 0.9, C.bois, C.boisFonce, 1.5); // le couvercle appuyé contre le flanc
       trace(ctx, [[x + s + t * 0.1, y + s * 0.05], [x + s + t * 0.1, y + s * 0.95]], C.boisFonce, 1);
+    },
+  },
+  fontaine: {
+    asec(ctx, w, h, t, o) {
+      const r = Math.min(w, h) * 0.44;
+      ombre(ctx, t, () => rond(ctx, 0, 0, r, C.pierreClair));
+      rond(ctx, 0, 0, r, C.pierreClair, C.pierreFonce, 1.5);
+      rond(ctx, 0, 0, r * 0.78, '#bfb391', C.pierreFonce, 1);
+      trace(ctx, [[-r * 0.6, -r * 0.2], [-r * 0.35, -r * 0.05], [-r * 0.4, r * 0.2], [-r * 0.15, r * 0.3]], '#6a604a', 1.2);
+      trace(ctx, [[r * 0.6, r * 0.25], [r * 0.4, r * 0.1], [r * 0.5, -r * 0.1]], '#6a604a', 1.2);
+      for (let i = 0; i < 4; i++) { const a = hasard(o, i) * 6.28, d = r * (0.3 + hasard(o, i + 9) * 0.35); rond(ctx, Math.cos(a) * d, Math.sin(a) * d, t * 0.04, i % 2 ? '#b8762a' : '#8a5a2a'); } // feuilles mortes
+      rond(ctx, 0, 0, r * 0.22, C.pierreClair, C.pierreFonce, 1);
+    },
+    sombre(ctx, w, h, t, o) {
+      const r = Math.min(w, h) * 0.44;
+      ombre(ctx, t, () => rond(ctx, 0, 0, r, C.pierreClair));
+      rond(ctx, 0, 0, r, C.pierreClair, C.pierreFonce, 1.5);
+      rond(ctx, 0, 0, r * 0.78, '#58558f');
+      rond(ctx, -r * 0.3, r * 0.25, r * 0.2, '#4f7a58');
+      for (let i = 0; i < 4; i++) { const a = hasard(o, i) * 6.28, d = r * (0.25 + hasard(o, i + 9) * 0.4); rond(ctx, Math.cos(a) * d, Math.sin(a) * d, t * 0.04, 'rgba(255,255,255,0.3)', '#2a2850', 1); }
+      rond(ctx, 0, 0, r * 0.22, C.pierreClair, C.pierreFonce, 1);
+    },
+    sacree(ctx, w, h, t) {
+      const r = Math.min(w, h) * 0.44;
+      halo(ctx, 0, 0, t * 0.95, '120,232,226', 0.55);
+      ombre(ctx, t, () => rond(ctx, 0, 0, r, C.pierreClair));
+      rond(ctx, 0, 0, r, C.pierreClair, C.pierreFonce, 1.5);
+      rond(ctx, 0, 0, r * 0.78, '#6fe0d8');
+      rond(ctx, 0, 0, r * 0.5, null, 'rgba(255,255,255,0.7)', 1.2);
+      rond(ctx, 0, 0, r * 0.22, '#e6fffb', C.pierreFonce, 1);
+      for (const [x, y] of [[-0.4, -0.3], [0.35, 0.3], [0.2, -0.45]]) rond(ctx, x * r, y * r, t * 0.025, '#fff');
+    },
+  },
+  autel: {
+    rituel(ctx, w, h, t) {
+      const aw = w - t * 0.14, ah = h - t * 0.3;
+      ombre(ctx, t, () => rect(ctx, -aw / 2, -ah / 2, aw, ah, C.pierre));
+      rect(ctx, -aw / 2, -ah / 2, aw, ah, C.pierre, C.pierreFonce, 1.5);
+      rect(ctx, -aw * 0.34, -ah / 2, aw * 0.68, ah, '#5c3a7e', C.or, 1.2);                                 // la nappe
+      for (const [x, y] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { halo(ctx, x * aw * 0.43, y * ah * 0.28, t * 0.3, '255,190,110', 0.4); rond(ctx, x * aw * 0.43, y * ah * 0.28, t * 0.055, '#f1e7c9'); rond(ctx, x * aw * 0.43, y * ah * 0.28, t * 0.025, C.flamme); }
+      rond(ctx, 0, 0, t * 0.075, C.or, C.boisFonce, 1); rond(ctx, 0, 0, t * 0.045, '#8a2a3a');            // la coupe
+    },
+    ensanglante(ctx, w, h, t, o) {
+      const aw = w - t * 0.14, ah = h - t * 0.3, fl = [];
+      for (let i = 0; i < 10; i++) { const a = (i / 10) * 6.28, k = 0.8 + hasard(o, i) * 0.35; fl.push([-aw * 0.1 + Math.cos(a) * aw * 0.18 * k, ah / 2 + t * 0.06 + Math.sin(a) * t * 0.09 * k]); }
+      polygone(ctx, fl, '#9a1f26', null);
+      ombre(ctx, t, () => rect(ctx, -aw / 2, -ah / 2, aw, ah, C.pierre));
+      rect(ctx, -aw / 2, -ah / 2, aw, ah, C.pierre, C.pierreFonce, 1.5);
+      for (const [u, v, k] of [[-0.2, 0, 0.17], [0.08, 0.1, 0.12], [0.3, -0.1, 0.09]]) { rond(ctx, aw * u, ah * v, ah * k * 1.4, '#9a1f26'); rond(ctx, aw * u - ah * k * 0.4, ah * v - ah * k * 0.3, ah * k * 0.4, '#c9484c'); }
+      for (const u of [-0.3, 0, 0.22]) trace(ctx, [[aw * u, ah * 0.3], [aw * u, ah * 0.5]], '#9a1f26', Math.max(2, t * 0.04));  // les coulures
+      polygone(ctx, rectTourne(aw * 0.26, ah * 0.02, t * 0.3, t * 0.05, 0.45), '#c4cbd4', '#2a2018', 0.8);
+    },
+    sacre(ctx, w, h, t) {
+      const aw = w - t * 0.14, ah = h - t * 0.3, rs = ah * 0.17;
+      halo(ctx, 0, 0, t * 1.1, '255,214,118', 0.4);
+      ombre(ctx, t, () => rect(ctx, -aw / 2, -ah / 2, aw, ah, C.pierreClair));
+      rect(ctx, -aw / 2, -ah / 2, aw, ah, C.pierreClair, C.or, 2);
+      rect(ctx, -aw * 0.23, -ah / 2, aw * 0.46, ah, '#f1ece0', C.or, 1.2);                                    // la nappe blanche
+      for (let i = 0; i < 8; i++) { const a = (i / 8) * 6.28 + 0.2; polygone(ctx, [[Math.cos(a - 0.26) * rs * 1.1, Math.sin(a - 0.26) * rs * 1.1], [Math.cos(a) * rs * 2, Math.sin(a) * rs * 2], [Math.cos(a + 0.26) * rs * 1.1, Math.sin(a + 0.26) * rs * 1.1]], C.or, null); }
+      rond(ctx, 0, 0, rs, C.or, '#8a6a20', 1);                                                                // le soleil
+      rond(ctx, -aw * 0.42, 0, t * 0.05, C.or, '#8a6a20', 1); rond(ctx, aw * 0.42, 0, t * 0.05, C.or, '#8a6a20', 1);
+    },
+  },
+  puits: {
+    couvert(ctx, w, h, t) {
+      const r = Math.min(w, h) * 0.42;
+      ombre(ctx, t, () => rond(ctx, 0, 0, r, C.pierre));
+      rond(ctx, 0, 0, r, C.pierre, C.murFonce, 1.5);
+      rond(ctx, 0, 0, r * 0.76, C.bois, C.boisFonce, 1.5);
+      for (const k of [-0.45, -0.15, 0.15, 0.45]) trace(ctx, [[k * r * 0.76, -r * 0.7], [k * r * 0.76, r * 0.7]], C.boisFonce, 1);
+      for (const k of [-0.4, 0.4]) rect(ctx, -r * 0.75, k * r * 0.76 - r * 0.07, r * 1.5, r * 0.14, C.boisFonce);
+      rond(ctx, 0, 0, r * 0.12, null, '#4a4a4a', 2);
+    },
+    treuil(ctx, w, h, t) {
+      const r = Math.min(w, h) * 0.42;
+      ombre(ctx, t, () => rond(ctx, 0, 0, r, C.pierre));
+      rond(ctx, 0, 0, r, C.pierre, C.murFonce, 1.5);
+      rond(ctx, 0, 0, r * 0.66, '#14202a', C.pierreFonce, 1.5);
+      rond(ctx, -r * 0.15, -r * 0.15, r * 0.15, 'rgba(120,170,200,0.35)');
+      trace(ctx, [[-r * 0.9, 0], [r * 0.9, 0]], C.boisFonce, Math.max(3, t * 0.07)); trace(ctx, [[-r * 0.9, 0], [r * 0.9, 0]], C.bois, Math.max(1.6, t * 0.04)); // la poutre
+      rect(ctx, -r * 0.98, -t * 0.05, t * 0.1, t * 0.1, C.bois, C.boisFonce, 1); rect(ctx, r * 0.98 - t * 0.1, -t * 0.05, t * 0.1, t * 0.1, C.bois, C.boisFonce, 1); // les montants
+      rond(ctx, 0, 0, r * 0.2, C.boisClair, C.boisFonce, 1.5); rond(ctx, 0, 0, r * 0.13, '#4f7f9a');           // le seau
     },
   },
 };

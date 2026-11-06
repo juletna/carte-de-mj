@@ -98,6 +98,23 @@ const TESTS = [
     egal(v.plan.objets.map((o) => o.variante), ['ouvert', undefined, undefined, 'eventre'], 'états gardés ou retirés');
     verifier(v.erreurs.some((e) => e.includes('« ouvert »')), 'avertissement pour la statue');
   }],
+  ['décor : le parseur lit l’eau de la fontaine, l’état de l’autel, le puits et la couleur des étoffes', () => {
+    const lire = (texte) => variantesPlan(`salle 12 par 10, ${texte}`);
+    egal([lire('une fontaine à sec'), lire('une fontaine tarie'), lire('une fontaine sacrée'), lire('une fontaine bénite'), lire('une fontaine d’eau croupie'), lire('une fontaine à l’eau trouble'), lire('une fontaine')],
+      [['fontaine:asec'], ['fontaine:asec'], ['fontaine:sacree'], ['fontaine:sacree'], ['fontaine:sombre'], ['fontaine:sombre'], ['fontaine:-']], 'fontaine');
+    egal([lire('un autel ensanglanté'), lire('un autel de rituel'), lire('un autel avec des bougies'), lire('un autel sacré'), lire('un autel doré'), lire('un autel')],
+      [['autel:ensanglante'], ['autel:rituel'], ['autel:rituel'], ['autel:sacre'], ['autel:sacre'], ['autel:-']], 'autel');
+    egal([lire('un puits couvert'), lire('un puits à treuil'), lire('un puits avec un seau'), lire('un puits')], [['puits:couvert'], ['puits:treuil'], ['puits:treuil'], ['puits:-']], 'puits');
+    egal([lire('une bannière bleue'), lire('une bannière dorée'), lire('une bannière'), lire('un tapis rouge'), lire('un tapis vert')], [['banniere:bleue'], ['banniere:doree'], ['banniere:-'], ['tapis:-'], ['tapis:verte']], 'étoffes');
+    egal(lire('deux tapis noirs'), ['tapis:noire', 'tapis:noire'], 'tapis noirs');
+    egal(analyser('salle 12 par 10, un autel avec des bougies, un puits avec un seau, une fontaine à sec').ignores, [], 'rien d’incompris');
+    const texte = decrire(analyser('salle 12 par 10, une fontaine à sec, une bannière bleue, deux tapis noirs, un autel ensanglanté').plan);
+    for (const motif of [/une fontaine asséchée en/, /une bannière bleue en/, /deux tapis noirs en/, /un autel ensanglanté en/]) verifier(motif.test(texte), `${motif} : ${texte}`);
+  }],
+  ['schéma : une couleur de tapis ou une eau de fontaine est gardée pour son type seulement ; la défaut n’est pas écrite', () => {
+    const v = validerPlan({ largeur: 8, longueur: 6, objets: [{ type: 'tapis', x: 0, y: 0, l: 3, h: 2, variante: 'bleue' }, { type: 'tapis', x: 4, y: 0, l: 3, h: 2, variante: 'rouge' }, { type: 'puits', x: 3, y: 3, variante: 'bleue' }] });
+    egal(v.plan.objets.map((o) => o.variante), ['bleue', undefined, undefined], 'gardée ou retirée');
+  }],
   ['listeSources : la couleur de flamme est validée (orange par défaut) et « magique » passe tel quel', () => {
     const [a, b, c] = listeSources([
       { x: 10, y: 10, r: 50 }, { x: 60, y: 10, r: 50, f: { flamme: '#2f7be8', coeur: '#a8e4ff' }, m: true }, { x: 110, y: 10, r: 50, f: { flamme: 'rouge', coeur: 3 }, m: 'oui' }]);

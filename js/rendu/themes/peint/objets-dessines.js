@@ -18,6 +18,8 @@ import { etat } from './etat.js';
 import { etatPeint } from './objets-etats.js';
 import { sensDuCoin } from '../commun.js';
 import { teinteFlamme, fumee } from '../../feu.js';
+import { TEINTES_TISSU } from '../../teintes-tissu.js';
+import { aUneVariante, varianteDe } from '../../../catalogue.js';
 
 // --- Réglages -----------------------------------------------------------------------------------------------
 const EP = 1.3; // trait d'encre autour des formes
@@ -288,6 +290,8 @@ export const RICHES = {
   },
 
   autel(ctx, w, h, t, o) {
+    const etatRiche = etatPeint(true, 'autel', o); // une variante : objets-etats-decor.js
+    if (etatRiche) return etatRiche(ctx, w, h, t, o);
     const { V, r } = preparerObjet(ctx, o), aw = w - t * 0.14, ah = h - t * 0.3, x = -aw / 2, y = -ah / 2;
     V.prisme(ctx, r, rectPts(x + t * 0.05, y + t * 0.04, aw - t * 0.1, ah - t * 0.08), 0, 0.24, PIERRE_C_SOMBRE, () => plaque(ctx, V, rect(x, y, aw, ah), DESSUS_PIERRE[2]));
     for (const c of COTES) { const F = face(V, x + t * 0.05, y + t * 0.04, aw - t * 0.1, ah - t * 0.08, c); joints(ctx, F, 0, 0.24, 3, 4); aretes(ctx, V, F, c, 0, 0.24); }
@@ -537,6 +541,8 @@ export const RICHES = {
   },
 
   puits(ctx, w, h, t, o) {
+    const etatRiche = etatPeint(true, 'puits', o); // une variante : objets-etats-decor.js
+    if (etatRiche) return etatRiche(ctx, w, h, t, o);
     const { V, r } = preparerObjet(ctx, o), R = Math.min(w, h) * 0.42, ri = R * 0.66, H1 = 0.22, bas = -0.14;
     V.cylindre(ctx, r, 0, 0, R, 0, H1, PIERRE_C, () => {
       const rel = V.echelle(bas) / V.echelle(H1), [wx, wy] = [V.vue.cx + (0 - V.vue.cx) * rel, V.vue.cy + (0 - V.vue.cy) * rel], rw = ri * 0.88 * rel;
@@ -553,6 +559,8 @@ export const RICHES = {
   },
 
   fontaine(ctx, w, h, t, o) {
+    const etatRiche = etatPeint(true, 'fontaine', o); // une variante : objets-etats-decor.js
+    if (etatRiche) return etatRiche(ctx, w, h, t, o);
     const { V, r } = preparerObjet(ctx, o), R = Math.min(w, h) * 0.45, ri = R * 0.82, H1 = 0.16;
     V.cylindre(ctx, r, 0, 0, R, 0, H1, MARBRE_C, () => {
       const rel = V.echelle(H1 - 0.05) / V.echelle(H1), [wx, wy] = [V.vue.cx * (1 - rel), V.vue.cy * (1 - rel)];
@@ -633,38 +641,41 @@ export const RICHES = {
   tapis(ctx, w, h, t, o) {
     // À plat sur le sol : franges crème, bord rouge, galon doré perlé, losanges emboîtés, écoinçons.
     const { V } = preparerObjet(ctx, o), tw = w - t * 0.2, th = h - t * 0.2, x = -tw / 2, y = -th / 2, long = tw >= th, k = t / 48;
+    const T = aUneVariante(o) ? TEINTES_TISSU[varianteDe(o)]?.r : null; // une autre couleur : même motif, autres teintes (rendu/teintes-tissu.js)
+    const [fond, lis, om, ombre, acc, ctr, g] = T ? [T.fond, T.lis, T.om, T.ombre, T.acc, T.ctr, T.g] : [ROUGE, 'rgba(255,170,150,0.7)', 'rgba(90,20,14,0.35)', ROUGE_OMBRE, BLEU, ROUGE, OR];
     ctx.beginPath();
     for (let u = t * 0.05; u < (long ? th : tw) - t * 0.03; u += t * 0.065) {
       if (long) { ctx.moveTo(x - 4 * k, y + u); ctx.lineTo(x, y + u); ctx.moveTo(x + tw, y + u); ctx.lineTo(x + tw + 4 * k, y + u); }
       else { ctx.moveTo(x + u, y - 4 * k); ctx.lineTo(x + u, y); ctx.moveTo(x + u, y + th); ctx.lineTo(x + u, y + th + 4 * k); }
     }
     ctx.lineCap = 'round'; trait(ctx, ENCRE, 2.2); trait(ctx, '#f6ecd0', 1.2); ctx.lineCap = 'butt';
-    plaque(ctx, V, rect(x, y, tw, th), ROUGE, { ep: EP * 1.3, bande: 2.2, lisere: 'rgba(255,170,150,0.7)', ombre: 'rgba(90,20,14,0.35)' });
-    for (const [i, c, ep] of [[5 * k, OR, 3 * k], [10 * k, ROUGE_OMBRE, 1.1]]) { ctx.beginPath(); rect(x + i, y + i, tw - 2 * i, th - 2 * i).trace(ctx); trait(ctx, c, ep); }
+    plaque(ctx, V, rect(x, y, tw, th), fond, { ep: EP * 1.3, bande: 2.2, lisere: lis, ombre: om });
+    for (const [i, c, ep] of [[5 * k, g, 3 * k], [10 * k, ombre, 1.1]]) { ctx.beginPath(); rect(x + i, y + i, tw - 2 * i, th - 2 * i).trace(ctx); trait(ctx, c, ep); }
     ctx.beginPath(); rect(x + 3.4 * k, y + 3.4 * k, tw - 6.8 * k, th - 6.8 * k).trace(ctx); trait(ctx, ENCRE, 0.6);
     ctx.beginPath(); // les perles du galon, sur les deux grands côtés
     if (long) for (let u = x + 14 * k; u < x + tw - 12 * k; u += 9 * k) { ctx.moveTo(u + 1.3, y + 5 * k); ctx.arc(u, y + 5 * k, 1.3, 0, 7); ctx.moveTo(u + 1.3, y + th - 5 * k); ctx.arc(u, y + th - 5 * k, 1.3, 0, 7); }
     else for (let u = y + 14 * k; u < y + th - 12 * k; u += 9 * k) { ctx.moveTo(x + 5 * k + 1.3, u); ctx.arc(x + 5 * k, u, 1.3, 0, 7); ctx.moveTo(x + tw - 5 * k + 1.3, u); ctx.arc(x + tw - 5 * k, u, 1.3, 0, 7); }
-    ctx.fillStyle = ROUGE_OMBRE; ctx.fill();
+    ctx.fillStyle = ombre; ctx.fill();
     const a = Math.min(tw / 2 - 16 * k, th * 0.4 * (long ? 1.7 : 1)), b = Math.min(th / 2 - 16 * k, tw * 0.4 * (long ? 1 : 1.7));
-    for (const [s, fond] of [[1, OR], [0.72, BLEU], [0.42, OR], [0.2, ROUGE]]) { poly(ctx, [[-a * s, 0], [0, -b * s], [a * s, 0], [0, b * s]]); encre(ctx, fond, 1); }
+    for (const [s, fond] of [[1, g], [0.72, acc], [0.42, g], [0.2, ctr]]) { poly(ctx, [[-a * s, 0], [0, -b * s], [a * s, 0], [0, b * s]]); encre(ctx, fond, 1); }
     for (const [ox, oy, sx, sy] of [[x + 10 * k, y + 10 * k, 1, 1], [x + tw - 10 * k, y + 10 * k, -1, 1], [x + 10 * k, y + th - 10 * k, 1, -1], [x + tw - 10 * k, y + th - 10 * k, -1, -1]]) {
-      poly(ctx, [[ox, oy], [ox + sx * 14 * k, oy], [ox, oy + sy * 14 * k]]); encre(ctx, OR, 0.9);
+      poly(ctx, [[ox, oy], [ox + sx * 14 * k, oy], [ox, oy + sy * 14 * k]]); encre(ctx, g, 0.9);
     }
   },
 
   banniere(ctx, w, h, t, o) {
     // Accrochée au mur, derrière la case (−y) : barre de bois aux pommeaux dorés, étoffe à queue d'hirondelle, liseré et emblème d'or. Sans relief, vue du dessus.
     const { V, r } = preparerObjet(ctx, o, true), yMur = -h / 2, F = face(V, -w / 2, yMur, w, h, 'nord'), flat = !V.KP;
+    const T = aUneVariante(o) ? TEINTES_TISSU[varianteDe(o)]?.r : null, g = T?.g ?? OR; // une couleur choisie : celle de la variante ; sinon rouge, bleue ou verte selon la place
     const [fond, lis, omb] = [[ROUGE, 'rgba(255,170,150,0.7)', 'rgba(90,20,14,0.4)'], [BLEU, 'rgba(200,225,255,0.7)', 'rgba(20,40,100,0.4)'], ['#58a54a', 'rgba(210,255,190,0.65)', 'rgba(20,70,20,0.4)']][(r() * 3) | 0];
     const y0 = yMur + t * 0.03, bw = t * 0.46, lg = t * 0.58;
     const pts = flat ? [[-bw / 2, y0], [bw / 2, y0], [bw / 2, y0 + lg], [0, y0 + lg * 0.78], [-bw / 2, y0 + lg]] : [F.P(0.2, 0.92), F.P(0.8, 0.92), F.P(0.8, 0.14), F.P(0.5, 0.3), F.P(0.2, 0.14)];
     const [a, b] = flat ? [[-t * 0.31, y0 - t * 0.01], [t * 0.31, y0 - t * 0.01]] : [F.P(0.16, 0.95), F.P(0.84, 0.95)];
-    plaque(ctx, V, polygone(pts), fond, { ep: EP * 1.2, bande: 2.4, lisere: lis, ombre: omb });
+    plaque(ctx, V, polygone(pts), T?.fond ?? fond, { ep: EP * 1.2, bande: 2.4, lisere: T?.lis ?? lis, ombre: T?.om ?? omb });
     const c = centre(pts), inner = pts.map(([px, py]) => [px + (c[0] - px) * 0.2, py + (c[1] - py) * 0.2]);
-    poly(ctx, inner); trait(ctx, OR, 1.3);
+    poly(ctx, inner); trait(ctx, g, 1.3);
     const [ex, ey] = flat ? [0, y0 + lg * 0.42] : F.P(0.5, 0.6);
-    plaque(ctx, V, disque(ex, ey, t * 0.065), OR, { ep: 0.9, bande: 1.2, lisere: OR_REFLET, ombre: 'rgba(140,90,20,0.45)' });
+    plaque(ctx, V, disque(ex, ey, t * 0.065), g, { ep: 0.9, bande: 1.2, lisere: OR_REFLET, ombre: 'rgba(140,90,20,0.45)' });
     ctx.beginPath(); ctx.arc(ex, ey, t * 0.03, 0, 7); trait(ctx, OR_OMBRE, 0.8);
     ctx.lineCap = 'round'; ligne(ctx, [a, b], ENCRE, 4.2); ligne(ctx, [a, b], PLANCHES[1], 2.4); ligne(ctx, [a, b].map(([px, py]) => [px, py - 0.7]), PLANCHES[2], 0.9); ctx.lineCap = 'butt';
     for (const [px, py] of [a, b]) { ctx.beginPath(); ctx.arc(px, py, Math.max(1.4, t * 0.03), 0, 7); encre(ctx, OR, 0.8); }

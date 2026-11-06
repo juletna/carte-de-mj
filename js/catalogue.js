@@ -87,6 +87,40 @@ const VARIANTES_CAISSE = [
   { id: 'ouverte', nom: 'ouvert', mots: ['ouvert', 'ouverte', 'entrouvert', 'entrouverte', 'eventre', 'eventree', 'defonce', 'defoncee', 'pille', 'pillee', 'vide'] },
 ];
 
+/**
+ * Le décor : l'eau d'une fontaine, l'état d'un autel, la couverture d'un puits, la couleur d'une étoffe. La première entrée de chaque liste est le dessin
+ * d'origine ; chaque variante est dessinée dans les quatre thèmes (peint/objets-etats-decor.js, vectoriel, papier ; teintes d'étoffe dans rendu/teintes-tissu.js).
+ * Le tapis d'origine est rouge ; la bannière d'origine tire sa couleur de sa place (rouge, bleue ou verte) : elle s'appelle « variée ».
+ */
+const VARIANTES_FONTAINE = [
+  { id: 'eau', nom: 'limpide', fem: 'limpide', mots: ['limpide', 'claire', 'propre', 'pure', 'vive'] },
+  { id: 'asec', nom: 'asséché', fem: 'asséchée', mots: ['sec', 'seche', 'tari', 'tarie', 'asseche', 'assechee', 'desseche', 'dessechee', 'vide'] },
+  { id: 'sombre', nom: 'sombre', fem: 'sombre', mots: ['sombre', 'trouble', 'croupi', 'croupie', 'stagnant', 'stagnante', 'sale', 'pollue', 'polluee', 'vaseux', 'vaseuse', 'empoisonne', 'empoisonnee', 'maudit', 'maudite'] },
+  { id: 'sacree', nom: 'sacré', fem: 'sacrée', mots: ['sacre', 'sacree', 'benit', 'benite', 'saint', 'sainte', 'miraculeux', 'miraculeuse', 'enchante', 'enchantee', 'magique', 'lumineux', 'lumineuse'] },
+];
+const VARIANTES_AUTEL = [
+  { id: 'nu', nom: 'nu', fem: 'nue', mots: ['nu', 'nue', 'simple', 'depouille', 'depouillee'] },
+  { id: 'rituel', nom: 'rituel', fem: 'rituelle', mots: ['rituel', 'rituelle', 'cultuel', 'cultuelle'] },
+  { id: 'ensanglante', nom: 'ensanglanté', fem: 'ensanglantée', mots: ['ensanglante', 'ensanglantee', 'sanglant', 'sanglante', 'sanguinolent', 'sanguinolente', 'sacrificiel', 'sacrificielle', 'macule', 'maculee', 'souille', 'souillee'] },
+  { id: 'sacre', nom: 'sacré', fem: 'sacrée', mots: ['sacre', 'sacree', 'dore', 'doree', 'benit', 'benite', 'consacre', 'consacree', 'saint', 'sainte', 'divin', 'divine', 'solaire'] },
+];
+const VARIANTES_PUITS = [
+  { id: 'ouvert', nom: 'ouvert', fem: 'ouverte', mots: ['ouvert', 'ouverte', 'decouvert', 'decouverte'] },
+  { id: 'couvert', nom: 'couvert', fem: 'couverte', mots: ['couvert', 'couverte', 'ferme', 'fermee', 'bouche', 'bouchee', 'condamne', 'condamnee', 'planche', 'planches', 'scelle', 'scellee'] },
+  { id: 'treuil', nom: 'à treuil', fem: 'à treuil', pluriel: 'à treuil', mots: ['treuil', 'seau', 'corde', 'portique', 'potence', 'poulie', 'manivelle'] },
+];
+const COULEURS_TISSU = [
+  { id: 'rouge', nom: 'rouge', fem: 'rouge', mots: ['rouge', 'ecarlate', 'cramoisi', 'cramoisie'] },
+  { id: 'bleue', nom: 'bleu', fem: 'bleue', mots: ['bleu', 'bleue', 'azur', 'marine'] },
+  { id: 'verte', nom: 'vert', fem: 'verte', mots: ['vert', 'verte', 'emeraude'] },
+  { id: 'noire', nom: 'noir', fem: 'noire', mots: ['noir', 'noire'] },
+  { id: 'doree', nom: 'doré', fem: 'dorée', mots: ['dore', 'doree', 'or', 'jaune'] },
+  { id: 'violette', nom: 'violet', fem: 'violette', mots: ['violet', 'violette', 'mauve', 'pourpre'] },
+  { id: 'blanche', nom: 'blanc', fem: 'blanche', mots: ['blanc', 'blanche', 'ivoire', 'creme'] },
+];
+const VARIANTES_TAPIS = COULEURS_TISSU;
+const VARIANTES_BANNIERE = [{ id: 'variee', nom: 'varié', fem: 'variée', mots: ['varie', 'variee', 'multicolore', 'bigarre', 'bigarree'] }, ...COULEURS_TISSU];
+
 export const OBJETS = [
   { type: 'pilier',       mots: ['pilier'],                                   l: 1, h: 1, zone: 'grille',    lettre: 'P', symetrique: true, auLarge: true },
   { type: 'colonne',      mots: ['colonne'],                                  l: 1, h: 1, zone: 'grille',    lettre: 'C', feminin: true, symetrique: true, auLarge: true },
@@ -94,7 +128,7 @@ export const OBJETS = [
   { type: 'statue',       mots: ['statue', 'gargouille', 'idole'],            l: 1, h: 1, zone: 'centre',    lettre: 'S', feminin: true, auLarge: true, variantes: VARIANTES_STATUE },
   { type: 'table',        mots: ['table'],                                    l: 2, h: 1, zone: 'centre',    lettre: 'T', feminin: true },
   { type: 'chaise',       mots: ['chaise', 'tabouret', 'banc'],               l: 1, h: 1, zone: 'centre',    lettre: 'h', feminin: true },
-  { type: 'autel',        mots: ['autel'],                                    l: 2, h: 1, zone: 'fond',      lettre: 'A' },
+  { type: 'autel',        mots: ['autel'],                                    l: 2, h: 1, zone: 'fond',      lettre: 'A', variantes: VARIANTES_AUTEL },
   { type: 'trone',        mots: ['trone'],                                    l: 1, h: 1, zone: 'fond',      lettre: 'R', nom: 'trône' },
   { type: 'tonneau',      mots: ['tonneau', 'baril', 'barrique', 'fut'],      l: 1, h: 1, zone: 'coins',     lettre: 'O', symetrique: true, variantes: VARIANTES_TONNEAU },
   { type: 'caisse',       mots: ['caisse', 'caisson', 'cageot'],              l: 1, h: 1, zone: 'coins',     lettre: 'X', feminin: true, symetrique: true, variantes: VARIANTES_CAISSE },
@@ -104,13 +138,13 @@ export const OBJETS = [
   { type: 'bibliotheque', mots: ['bibliotheque', 'etagere', 'rayonnage'],     l: 2, h: 1, zone: 'fond',      lettre: 'B', nom: 'bibliothèque', feminin: true, variantes: VARIANTES_BIBLIOTHEQUE },
   { type: 'torche',       mots: ['torche', 'flambeau'], l: 1, h: 1, zone: 'perimetre', lettre: '*', feminin: true, bloquant: false, couche: 9, variantes: VARIANTES_FEU },
   { type: 'debris',       mots: ['debris', 'gravat', 'eboulis', 'decombre', 'ruine'], l: 1, h: 1, zone: 'aleatoire', lettre: '%', nom: 'débris', symetrique: true, couche: 1 },
-  { type: 'puits',        mots: ['puits'],                                    l: 1, h: 1, zone: 'centre',    lettre: 'U', symetrique: true },
-  { type: 'fontaine',     mots: ['fontaine', 'bassin'],                       l: 1, h: 1, zone: 'centre',    lettre: 'W', feminin: true, symetrique: true },
+  { type: 'puits',        mots: ['puits'],                                    l: 1, h: 1, zone: 'centre',    lettre: 'U', symetrique: true, variantes: VARIANTES_PUITS },
+  { type: 'fontaine',     mots: ['fontaine', 'bassin'],                       l: 1, h: 1, zone: 'centre',    lettre: 'W', feminin: true, symetrique: true, variantes: VARIANTES_FONTAINE },
   { type: 'sarcophage',   mots: ['sarcophage', 'tombeau', 'cercueil'],        l: 1, h: 2, zone: 'centre',    lettre: 'Z', variantes: VARIANTES_SARCOPHAGE },
   { type: 'brasero',      mots: ['brasero', 'brasier', 'vasque de feu'],      l: 1, h: 1, zone: 'coins',     lettre: 'V', symetrique: true, variantes: VARIANTES_FEU },
   { type: 'bougies',      mots: ['bougie', 'chandelle', 'chandelier', 'cierge'], l: 1, h: 1, zone: 'aleatoire', lettre: '!', nom: 'bougie', feminin: true, symetrique: true, bloquant: false, couche: 6, variantes: VARIANTES_FEU },
-  { type: 'tapis',        mots: ['tapis', 'carpette'],                        l: 3, h: 2, zone: 'centre',    lettre: '=', symetrique: true, bloquant: false, couche: -1 },
-  { type: 'banniere',     mots: ['banniere', 'etendard', 'tenture', 'tapisserie', 'oriflamme'], l: 1, h: 1, zone: 'perimetre', lettre: 'N', nom: 'bannière', feminin: true, bloquant: false, couche: 8 },
+  { type: 'tapis',        mots: ['tapis', 'carpette'],                        l: 3, h: 2, zone: 'centre',    lettre: '=', symetrique: true, bloquant: false, couche: -1, variantes: VARIANTES_TAPIS },
+  { type: 'banniere',     mots: ['banniere', 'etendard', 'tenture', 'tapisserie', 'oriflamme'], l: 1, h: 1, zone: 'perimetre', lettre: 'N', nom: 'bannière', feminin: true, bloquant: false, couche: 8, variantes: VARIANTES_BANNIERE },
   { type: 'feudecamp',    mots: ['feu de camp', 'feu de bois', 'feu de joie', 'foyer', 'feu'], l: 1, h: 1, zone: 'centre', lettre: 'Y', nom: 'feu de camp', pluriel: 'feux de camp', symetrique: true, variantes: VARIANTES_FEU },
   { type: 'flaque',       mots: ['flaque', 'mare'],                           l: 2, h: 1, zone: 'aleatoire', lettre: '~', feminin: true, symetrique: true, bloquant: false, couche: 0 },
   { type: 'rocher',       mots: ['rocher', 'roc', 'bloc de pierre', 'bloc de roche'], l: 1, h: 1, zone: 'aleatoire', lettre: '^', symetrique: true },

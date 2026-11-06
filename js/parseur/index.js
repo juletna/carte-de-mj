@@ -26,7 +26,7 @@ import { variantesDe, variantePourMot, varianteParDefaut } from '../catalogue.js
 
 // Quantité retenue pour un pluriel sans nombre (« des torches »), selon la zone par défaut.
 /** Mots qui introduisent la couleur d'un feu (« à flamme bleue », « de feu vert ») : lus avec elle, jamais signalés. */
-const LIAISONS_VARIANTE = new Set(['a', 'au', 'aux', 'de', 'd', 'en', 'flamme', 'flammes', 'feu', 'feux', 'moitie', 'demi']);
+const LIAISONS_VARIANTE = new Set(['a', 'au', 'aux', 'de', 'd', 'en', 'flamme', 'flammes', 'feu', 'feux', 'moitie', 'demi', 'eau', 'l', 'la', 'le']);
 const QUANTITE_PLURIEL = { grille: 4, perimetre: 4, aleatoire: 5 };
 
 /**
@@ -57,6 +57,9 @@ function extraireNom(texte) {
 export function decouper(texte) {
   return texte
     .replace(/de part et d autre/g, 'de_part_d_autre')
+    // « autel avec des bougies », « puits avec un seau » : le « avec » est ici l'état de l'objet, pas une nouvelle proposition (sinon il le couperait).
+    .replace(/\bautel\s+avec\s+(?:(?:des|les|quelques|de)\s+)?(?:bougies?|chandelles?|cierges?)\b/g, 'autel rituel')
+    .replace(/\bpuits\s+avec\s+(?:(?:un|une|le|la|1)\s+)?(?:seau|corde|treuil|poulie)\b/g, 'puits treuil')
     .split(/[;:!?,]|\.(?!\d)|\b(?:et|avec|ainsi que|puis|plus loin)\b/)
     .map((s) => s.replace(/de_part_d_autre/g, 'de part et d autre').replace(/\s+/g, ' ').trim())
     .filter(Boolean);
