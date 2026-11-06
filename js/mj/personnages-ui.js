@@ -23,7 +23,9 @@ export function creerPersonnages(ctx) {
     const d = donjon();
     const persos = d.personnages || [];
     $('personnages-vide').hidden = persos.length > 0;
-    $('personnages-compte').textContent = persos.length ? `· ${persos.length}` : '';    $('personnages-liste').replaceChildren(...persos.map((p) => {
+    $('personnages-compte').textContent = persos.length ? `· ${persos.length}` : '';
+    ctx.coquille?.inspecteur.majTete(); // « 3 salles · 2 personnages » suit
+    $('personnages-liste').replaceChildren(...persos.map((p) => {
       const retirer = h('button', { type: 'button', className: 'btn btn-danger' });
       deuxTemps(retirer, 'Retirer', 'Confirmer', () => { retirerPersonnage(d, p.id); messagePersonnages(`${p.fiche.nom} retiré de ce donjon.`); rendre(); });
       return carteFiche(p.fiche, [retirer]);

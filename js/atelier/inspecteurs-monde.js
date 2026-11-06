@@ -1,7 +1,7 @@
 /**
  * Les inspecteurs du Monde dans l'atelier (lot C) : les types `monde`, `lieu` et `point` de la colonne de droite (panneau bas sous 760 px).
  * Ils reprennent ce que faisaient le panneau « Ce lieu », la bulle d'un point et la barre du monde, sur le contrat de js/atelier/inspecteur.js :
- *   - monde : nom, résumé ; actions Jouer ce monde et Ajouter un lieu ; ⋯ Exporter, Supprimer ce monde ;
+ *   - monde : nom, résumé ; action Ajouter un lieu (Jouer est dans la barre de la scène) ; ⋯ Exporter, Supprimer ce monde ;
  *   - lieu  : nom, notes, lieu de départ, grille (l'outil Calage de la barre ouvre le calage, dont les réglages remplacent ce panneau),
  *             image, liste des points ; ⋯ Supprimer ce lieu (annulable) ;
  *   - point : nom, Carte | Donjon | Rien, liste déroulante à vignettes (js/mj/univers-liste.js), Visible / Caché ; action Entrer ; ⋯ Supprimer ce point.
@@ -16,7 +16,7 @@ import * as images from '../univers-images.js';
 import { btn } from '../univers-boutons.js';
 import { grilleEffective } from '../univers-grille.js';
 import { creerListeDeroulante } from '../mj/univers-liste.js';
-import { calagePossible, genreDestination, lienJouer } from '../univers-vue.js';
+import { calagePossible, genreDestination } from '../univers-vue.js';
 import { pluriel } from '../format.js';
 
 const NOUVELLE_CARTE = '__nouvelle-carte__';
@@ -80,7 +80,6 @@ export function enregistrerInspecteursMonde(coquille, U) {
       return lieux ? `${pluriel(lieux, 'lieu', 'lieux')}${depart ? ` · départ : ${depart}` : ''}` : 'Aucun lieu';
     },
     actions: (sel) => [
-      { libelle: 'Jouer ce monde', icone: 'jouer', executer: () => { location.href = lienJouer(sel.id); } },
       { libelle: 'Ajouter un lieu', icone: 'plus', executer: () => U.ajouterLieuLibre() },
     ],
     menu: () => [{ libelle: 'Exporter', icone: 'exporter', executer: () => { U.exporterMonde(); } }],
@@ -93,7 +92,6 @@ export function enregistrerInspecteursMonde(coquille, U) {
       const conteneur = preparer(corps);
       const u = mondeDe(sel, c);
       if (!u) { conteneur.append(soustitre('Ce monde n’existe plus.')); return; }
-      if (!Object.keys(u.lieux).length) conteneur.append(soustitre('Aucun lieu : ajoute la première carte (le continent, la région, le village…).'));
       retrouverFocus();
     },
   });

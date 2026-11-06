@@ -149,6 +149,7 @@ export function creerInspecteur({ racine, ctx = () => ({}), parDefaut = () => nu
     const def = sel && definitions.get(sel.type);
     const c = ctx();
     racine.hidden = false;
+    fermerMenu();
     if (!def) {
       renommerCourant = null;
       etiquette.textContent = ''; resume.textContent = ''; resume.hidden = true;
@@ -177,11 +178,22 @@ export function creerInspecteur({ racine, ctx = () => ({}), parDefaut = () => nu
     return sel.type;
   }
 
+  /** Remet à jour le seul résumé (et le nom, s'il n'a pas le focus) : un compte a changé, le corps ne doit pas bouger (focus, saisie en cours). */
+  function majTete() {
+    const sel = courante ?? parDefaut();
+    const def = sel && definitions.get(sel.type);
+    if (!def) return;
+    const c = ctx();
+    const texteResume = def.resume?.(sel, c) ?? '';
+    resume.textContent = texteResume; resume.hidden = !texteResume;
+    if (globalThis.document?.activeElement !== champNom) poserNom(def.titre(sel, c) ?? '', def);
+  }
+
   /** Redessine la sélection courante (les données ont changé). */
   function rafraichir() { return dessiner(); }
 
   return {
-    enregistrer, afficher, rafraichir, surEffacement: (f) => { avantEffacer.push(f); },
+    enregistrer, afficher, rafraichir, majTete, surEffacement: (f) => { avantEffacer.push(f); },
     courante: () => courante,
     enregistres: () => [...definitions.keys()],
     a: (type) => definitions.has(type),

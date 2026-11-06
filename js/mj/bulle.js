@@ -123,7 +123,7 @@ export function creerBulle(ctx) {
     const parType = { porte: 'Porte', objet: 'Objet', creature: 'Créature', pion: 'Pion' };
     const porte = trouve.genre === 'porte';
     const etiquette = escalier ? 'Escalier' : porte ? majuscule(debut) : parType[typeDe(trouve)];
-    const nom = porte ? majuscule(reste) : debut;
+    const nom = majuscule(porte ? reste : debut);
     const morceaux = [];
     if (!porte && reste) morceaux.push(`Case ${reste}`);
     if (reliable) {
