@@ -18,6 +18,7 @@
 import { $ } from '../dom.js';
 import { NOMS_SOLS } from '../schema.js';
 import { pluriel } from '../format.js';
+import { resumeTaille } from './dimensions.js';
 
 const BLOCS_SALLE = ['bloc-description', 'bloc-orphelines', 'bloc-forme', 'bloc-notes', 'bloc-exemples'];
 const BLOCS_DONJON = ['bloc-personnages', 'bloc-reglages'];
@@ -56,7 +57,7 @@ export function enregistrerInspecteursDonjon(coquille, ctx) {
     renommer: renommerVia('salle-nom'),
     resume: (sel) => {
       const p = donjonDe(sel).salles[sel.id]?.plan;
-      return p ? `${p.largeur} × ${p.longueur} cases · ${(NOMS_SOLS[p.sol] ?? 'Pierre').toLowerCase()}` : '';
+      return p ? `${resumeTaille(p.largeur, p.longueur, etat.reglages.echelle)} · ${(NOMS_SOLS[p.sol] ?? 'Pierre').toLowerCase()}` : '';
     },
     rendre: (conteneur, sel) => {
       if (avanceDemande !== sel.id) avanceDemande = null;

@@ -18,6 +18,8 @@ import { grilleEffective } from '../univers-grille.js';
 import { creerListeDeroulante } from '../mj/univers-liste.js';
 import { calagePossible, genreDestination } from '../univers-vue.js';
 import { pluriel } from '../format.js';
+import { resumeTailleLieu } from './dimensions.js';
+import { chargerReglages } from '../stockage.js';
 
 const NOUVELLE_CARTE = '__nouvelle-carte__';
 const cleImage = (ref) => `${ref?.source}:${ref?.id}`;
@@ -106,7 +108,9 @@ export function enregistrerInspecteursMonde(coquille, U) {
     resume: (sel, c) => {
       const l = mondeDe(sel, c)?.lieux?.[sel.id];
       if (!l || (U.calage.actif() && U.lieu() === sel.id)) return '';
-      return `${l.points.length ? pluriel(l.points.length, 'point', 'points') : 'Aucun point'}${mondeDe(sel, c).racine === l.id ? ' · départ du monde' : ''}`;
+      const info = U.infosEnCache(l.image);
+      const taille = resumeTailleLieu(grilleEffective(l, info ?? null).grille, info?.largeur, info?.hauteur, chargerReglages().echelle);
+      return [taille, l.points.length ? pluriel(l.points.length, 'point', 'points') : 'Aucun point', mondeDe(sel, c).racine === l.id ? 'départ du monde' : ''].filter(Boolean).join(' · ');
     },
     destructives: (sel, c) => {
       if (U.calage.actif()) return [];

@@ -5,6 +5,7 @@ import * as u from '../js/univers.js';
 import { creerDonjon, descripteur, supprimerElement } from '../js/donjon.js';
 import { selection, selectionElement, meme, parent, position, retrouver, selectionValide } from '../js/atelier-selection.js';
 import { creerInspecteur, TYPES_INSPECTEUR } from '../js/atelier/inspecteur.js';
+import { resumeTaille, tailleEnMetres, resumeTailleLieu } from '../js/atelier/dimensions.js';
 import { verifier, egal, executerSuite } from './mini-test.js';
 
 function exemple() {
@@ -179,6 +180,17 @@ const TESTS = [
     egal(identite.enfants[0].textContent, 'Région', 'étiquette de la définition');
     egal([identite.enfants[1].hidden, identite.enfants[2].hidden], [true, false], 'pas renommable : titre simple');
     egal(declencheur.hidden, true, 'pas de « ⋯ »');
+  }],
+  ['dimensions : taille en cases et en mètres (virgule française), lieu sans grille muet', () => {
+    egal(resumeTaille(8, 6, 1.5), '8 × 6 cases · 12 × 9 m', 'salle de 8 × 6 à 1,5 m');
+    egal(resumeTaille(3, 8, 1.5), '3 × 8 cases · 4,5 × 12 m', 'virgule');
+    egal(resumeTaille(5, 5, 0.5), '5 × 5 cases · 2,5 × 2,5 m', 'demi-mètre');
+    egal(resumeTaille(4, 4, 0), '4 × 4 cases', 'sans échelle valide : les cases seules');
+    egal(resumeTaille(0, 4, 1.5), '', 'taille invalide');
+    egal(tailleEnMetres(24, 36, 1.5), '36 × 54 m', 'mètres seuls');
+    egal(resumeTailleLieu({ case: 50, dx: 0, dy: 0 }, 1200, 1800, 1.5), '24 × 36 cases · 36 × 54 m', 'lieu à grille');
+    egal(resumeTailleLieu(null, 1200, 1800, 1.5), '', 'lieu sans grille');
+    egal(resumeTailleLieu({ case: 50 }, undefined, 1800, 1.5), '', 'dimensions inconnues');
   }],
 ];
 
