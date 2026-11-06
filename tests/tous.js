@@ -50,6 +50,7 @@ import { executer as executerLumiere } from './lumiere.test.js';
 import { executer as executerObjetsNouveaux } from './objets-nouveaux.test.js';
 import { executer as executerEscaliers } from './escaliers.test.js';
 import { executer as executerUnivers } from './univers.test.js';
+import { executer as executerOutilsCartes } from './outils-cartes.test.js';
 
 /** Les suites, dans l'ordre d'exécution : chacune reçoit `{ lire }` et rend (ou promet) une liste de résultats. */
 export const SUITES = [
@@ -59,8 +60,12 @@ export const SUITES = [
   executerThemes, executerReferences, executerOutils, executerMurs, executerCoordonnees, executerSchema,
   executerGeometrie, executerAffichage, executerVisibilite, executerParseurCommun, executerMesuresImpression,
   executerHistorique, executerMiseEnPage, executerRegie, executerStockage, executerContratFiche, executerCatalogue,
+<<<<<<< HEAD
   executerVuePublique, executerProtocoleTable, executerFicheDes, executerFicheJeu, executerFicheBase, executerRail, executerPeint, executerLumiere, executerAmbiance, executerObjetsNouveaux, executerEscaliers,
   executerUnivers,
+=======
+  executerVuePublique, executerProtocoleTable, executerFicheDes, executerFicheJeu, executerFicheBase, executerRail, executerPeint, executerLumiere, executerAmbiance, executerObjetsNouveaux, executerEscaliers, executerOutilsCartes,
+>>>>>>> 7b303e4 (Skill generer-carte : style peint-v1, scripts de génération et d'ajout au catalogue, tests, README [skip ci])
 ];
 
 /** Joue toutes les suites ; renvoie les résultats { phrase, ecarts, resultat? } à la suite les uns des autres. */

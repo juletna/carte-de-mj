@@ -490,6 +490,17 @@ outils/serveur.py   serveur local sans cache
 - **Signaler un résultat bizarre** : « 📋 Copier pour signaler une erreur de lecture » copie la description, ce qui a été compris,
   les mots ignorés et la carte en caractères, pour la salle affichée.
 
+## Générer des cartes
+
+Pour remplir la bibliothèque de cartes (monde, région, village, souterrain…) avec des images peintes, demandez à Claude Code
+dans ce dépôt : « génère une carte de forêt avec des ruines » (skill `.claude/skills/generer-carte/`). Il compose le prompt, appelle `gpt-image-1`
+d'OpenAI, vous montre l'image, puis l'ajoute à `bibliotheque/catalogue.json` si vous la validez.
+
+- Il faut votre propre clé : `export OPENAI_API_KEY=…` avant de lancer Claude Code. Elle n'est jamais écrite ni affichée.
+- `bibliotheque/` est ignoré par git : les images et vos références de style restent sur votre disque.
+- À la main : `node outils/cartes/generer.mjs --niveau zone --id foret-01 --scene "…" [--essai]` puis `node outils/cartes/ajouter.mjs entree.json`.
+  `--essai` montre la requête sans rien envoyer.
+
 ## Bon à savoir
 
 - **Dictée vocale** : disponible dans Chrome, Edge et Safari, pas dans Firefox. Dans Chrome et Edge,
