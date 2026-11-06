@@ -1,5 +1,5 @@
 /**
- * La barre d'outils de la scène « lieu » du Monde (lot C) : Sélection · Point · Grille, dans `coquille.barreOutils`.
+ * La barre d'outils de la scène « lieu » du Monde (lot C) : Sélection · Point · Calage, dans `coquille.barreOutils`.
  *   - Sélection : un clic sur un point le choisit (son inspecteur s'ouvre), un clic dans le vide le lâche ; glisser un point le déplace ;
  *   - Point     : le prochain clic dans le vide pose un point, puis on revient à Sélection ;
  *   - Grille    : le calage de la grille du lieu (réglages dans l'inspecteur) ; proposé pour une zone, une localité, un bâtiment ou un souterrain.
@@ -19,7 +19,7 @@ export function creerBarreLieu(coquille, U) {
   const boutons = {
     selection: btn('Sélection', () => U.definirMode('selection'), { icone: 'fleches', classe: 'btn-discret', titre: 'Choisir et déplacer les points' }),
     point: btn('Point', () => U.definirMode(U.mode() === 'point' ? 'selection' : 'point'), { icone: 'point', classe: 'btn-discret', titre: 'Poser un point sur la carte' }),
-    grille: btn('Grille', () => U.definirMode(U.mode() === 'grille' ? 'selection' : 'grille'), { icone: 'grille', classe: 'btn-discret', titre: 'Caler la grille de cases sur la carte' }),
+    grille: btn('Calage', () => U.definirMode(U.mode() === 'grille' ? 'selection' : 'grille'), { icone: 'grille', classe: 'btn-discret', titre: 'Caler la grille de cases sur la carte' }),
   };
   const aide = h('span', { className: 'barre-lieu-aide doux', 'aria-live': 'polite' });
   const groupe = h('div', { className: 'barre-lieu', role: 'group', 'aria-label': 'Outils de la carte', hidden: true }, boutons.selection, boutons.point, boutons.grille, aide);

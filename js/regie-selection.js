@@ -121,6 +121,7 @@ export function creerSelection(ctx) {
     etat.selection = { genre, id };
     etat.focusSelection = clavier;
     etat.message = '';
+    ctx.jouer?.replier(); // sous 760 px : la bulle de sélection se pose au-dessus des onglets, elle ne recouvre pas l'onglet ouvert
     rendre();
   }
   /** Ferme la sélection (bouton, Échap ou clic dans le vide) ; le focus revient à l'élément dans la liste. */

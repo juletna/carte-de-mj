@@ -2,7 +2,7 @@
  * Les inspecteurs du Monde dans l'atelier (lot C) : les types `monde`, `lieu` et `point` de la colonne de droite (panneau bas sous 760 px).
  * Ils reprennent ce que faisaient le panneau « Ce lieu », la bulle d'un point et la barre du monde, sur le contrat de js/atelier/inspecteur.js :
  *   - monde : nom, résumé, ajouter un lieu ; actions Jouer ce monde et Exporter ; ⋯ Supprimer ce monde ;
- *   - lieu  : nom, notes, lieu de départ, grille (l'outil Grille de la barre ouvre le calage, dont les réglages remplacent ce panneau),
+ *   - lieu  : nom, notes, lieu de départ, grille (l'outil Calage de la barre ouvre le calage, dont les réglages remplacent ce panneau),
  *             image, liste des points ; ⋯ Supprimer ce lieu (annulable) ;
  *   - point : nom, Carte | Donjon | Rien, liste déroulante à vignettes (js/mj/univers-liste.js), Visible / Caché ; action Entrer ; ⋯ Supprimer ce point.
  * Une suppression demande d'abord une confirmation dans le panneau (rien ne part sur un seul clic) ; celle d'un lieu s'annule ensuite.
@@ -116,7 +116,7 @@ export function enregistrerInspecteursMonde(coquille, U) {
       const l = u?.lieux?.[sel.id];
       if (!l) { conteneur.append(soustitre('Ce lieu n’existe plus.')); return; }
       if (U.lieu() !== l.id) { conteneur.append(soustitre('Ouvre ce lieu dans l’arbre pour le modifier.')); return; }
-      if (U.calage.actif()) { conteneur.append(U.calage.panneau()); return; } // l'outil Grille : ses réglages prennent la place du lieu
+      if (U.calage.actif()) { conteneur.append(U.calage.panneau()); return; } // l'outil Calage : ses réglages prennent la place du lieu
       const entrees = modele.pointsVers(u, l.id).length;
       const bandeau = bandeauConfirmation(sel, `Retirer « ${l.nom} » ?${entrees ? ` ${pluriel(entrees, 'point y mène', 'points y mènent')} : ils resteront signalés comme orphelins.` : ''} Tu pourras annuler juste après.`, () => U.supprimerLeLieu());
       if (bandeau) conteneur.append(bandeau);

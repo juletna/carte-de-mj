@@ -44,7 +44,6 @@ export function creerGrilleAffichage({ lire, surChangement }) {
     interrupteur.textContent = n > 0 ? 'Grille affichée' : 'Grille masquée';
     curseur.value = String(n);
     valeur.textContent = `${n} %`;
-    bouton.setAttribute('aria-pressed', String(n > 0));
   }
   function ecrire(v) { appliquerCases(lire(), v); maj(); surChangement(); }
   function ouvrir() { maj(); panneau.hidden = false; bouton.setAttribute('aria-expanded', 'true'); }

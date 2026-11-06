@@ -3,7 +3,7 @@
  *   coquille : js/atelier/coquille.js ; ctx.univers : js/mj/univers-ui.js (la carte du lieu et les données du monde).
  * Le Monde n'est plus un écran par-dessus la page : c'est une scène de l'atelier.
  *   - inspecteurs monde, lieu et point (js/atelier/inspecteurs-monde.js) ;
- *   - barre d'outils Sélection · Point · Grille (js/atelier/barre-lieu.js) ;
+ *   - barre d'outils Sélection · Point · Calage (js/atelier/barre-lieu.js) ;
  *   - arbre : vignettes des lieux, et dans son « ⋯ » Nouveau monde, Importer un monde, Nouveau lieu ;
  *   - barre du haut : « Monde · nom » et « Jouer ce monde » (le seul bouton doré de l'écran) à la place des commandes du donjon ;
  *   - le point choisi est la sélection commune (type 'point') ; sur téléphone, l'inspecteur se déplie quand on choisit un point.

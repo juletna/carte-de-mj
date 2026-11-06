@@ -79,5 +79,8 @@ export function creerJouer({ racine, donnees, partie, surChoix, grille }) {
     } finally { enCours = deja; }
   }
 
-  return { coquille, mode, synchroniser, choisirOnglet: (id) => coquille.onglets.choisir(id), position: () => derniere };
+  /** Sous 760 px : replie le panneau bas (la carte et la bulle de sélection reprennent la place). */
+  function replier() { if (telephone() && !colonne.classList.contains('replie')) plier.click(); }
+
+  return { coquille, mode, replier, synchroniser, choisirOnglet: (id) => coquille.onglets.choisir(id), position: () => derniere };
 }

@@ -3,7 +3,7 @@
  * et docs/conception-atelier.md). Ce module ne construit plus d'écran : il pose la scène « lieu » (fil d'Ariane, carte, points, notifications)
  * dans `#cadre-scene`, et expose ses opérations à l'atelier. Le DOM des réglages est ailleurs :
  *   - js/atelier/inspecteurs-monde.js : les inspecteurs monde, lieu et point (nom, destination, grille, suppression…) ;
- *   - js/atelier/barre-lieu.js        : la barre d'outils Sélection · Point · Grille ;
+ *   - js/atelier/barre-lieu.js        : la barre d'outils Sélection · Point · Calage ;
  *   - js/atelier/inscrire-monde.js    : le branchement sur la coquille (arbre, « ⋯ », barre du haut, adresse).
  * Fabrique `creerUniversUI(ctx)` ; `ctx` est celui de main-mj.js (`etat`, `annoncerCarte`, `coquille` plus tard). Les identifiants de code, le
  * stockage et le format de fichier gardent le mot « univers » (compatibilité) ; seul ce qui s'affiche dit « monde ».
@@ -84,7 +84,7 @@ export function creerUniversUI(ctx) {
   });
   zoneCarte.addEventListener('click', (e) => { if (e.target === zoneCarte && pointId) { selectionner(null); rendre(); } });
 
-  // Le calage de la grille d'un lieu (js/mj/univers-calage.js) : l'outil Grille de la barre ; ses réglages sont dans l'inspecteur du lieu.
+  // Le calage de la grille d'un lieu (js/mj/univers-calage.js) : l'outil Calage de la barre ; ses réglages sont dans l'inspecteur du lieu.
   const calage = creerCalage({
     carte,
     surMarqueurs: () => rendreCarte(),
