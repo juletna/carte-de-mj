@@ -364,7 +364,7 @@ export function creerRegieUnivers(ctx) {
     return !ecran.hidden || !!etat.p;
   }
 
-  /** Ouvre le monde `id` (`presentation.html?univers=<id>`) : reprend sa partie, ou en commence une. Faux s'il n'existe plus ou n'a aucune carte. */
+  /** Ouvre le monde `id` (depuis la liste des parties) : reprend sa partie, ou en commence une. Faux s'il n'existe plus ou n'a aucune carte. */
   function ouvrirParId(id) {
     const u = universEnregistres()[id];
     if (!u || !Object.keys(u.lieux).length) return false;

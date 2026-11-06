@@ -210,5 +210,5 @@ de pousser) ; commit en français, ` [skip ci]`, push sur `main` quand c'est fin
 | Donjon supprimé laissant des points orphelins | Comportement actuel gardé (points signalés, jamais retirés en silence), visible dans l'inspecteur « point ». |
 | Mobile (écran étroit, clavier virtuel, panneau bas qui couvre la carte) | Vérifier à 375 px à chaque lot ; inspecteur à 45 vh au plus, repliable ; tiroir avec fond cliquable ; rien ne dépend du survol. |
 | Collision avec la session rendu et objets | Seules les API publiques de `js/rendu/moteur.js` sont appelées ; `git diff --stat` d'un lot ne montre aucun fichier de `js/rendu/`, `js/parseur/`, `js/catalogue.js`. Un test de rendu cassé après rebase n'est pas à réparer par ce lot. |
-| Perte de données au changement d'adresse | Les anciennes adresses (`#monde`, `#monde=<id>`, `presentation.html?univers=`, `impression.html?donjon=`) restent valides ; test dans `atelier-route.test.js`. |
+| Perte de données au changement d'adresse | Les anciennes adresses (`#monde`, `#monde=<id>`, `impression.html?donjon=`) restent valides ; test dans `atelier-route.test.js`. |
 | Performance de l'arbre (gros donjon généré) | Salles d'un donjon replié rendues à l'ouverture seulement ; pas de redessin complet à chaque frappe de la description. |

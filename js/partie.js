@@ -409,27 +409,13 @@ export function synchroniserPersonnages(p, donjon) {
 }
 
 /**
- * La partie à ouvrir quand on arrive du bouton « Présenter » d'un donjon : celle de ce donjon, sinon une nouvelle.
- * @returns {{partie:object, reprise:boolean}|null}  null : ce donjon n'est pas (ou plus) dans ce navigateur
- */
-export function partieDemandee(idDonjon, donjons, presentations) {
-  const a = (objet, cle) => !!objet && Object.prototype.hasOwnProperty.call(objet, cle);
-  if (!idDonjon || !a(donjons, idDonjon)) return null;
-  if (a(presentations, idDonjon)) return { partie: presentations[idDonjon], reprise: true };
-  return { partie: creerPresentation(donjons[idDonjon]), reprise: false };
-}
-
-/**
  * Que montre la page « Jouer » à son ouverture ? Une fonction pure, d'après l'adresse et la façon d'arriver.
- *  - `?donjon=<id>` / `?univers=<id>` : ce donjon (ou ce monde) directement ;
  *  - un rechargement (F5) : la régie ouverte avant, telle quelle ;
  *  - sinon (lien de navigation, signet, retour) : la liste des parties.
- * @param {{donjon?:string|null, univers?:string|null, rechargement?:boolean}} entree
- * @returns {{genre:'donjon'|'univers', id:string}|{genre:'reprise'}|{genre:'liste'}}
+ * @param {{rechargement?:boolean}} entree
+ * @returns {{genre:'reprise'}|{genre:'liste'}}
  */
-export function ouvertureDemandee({ donjon = null, univers = null, rechargement = false } = {}) {
-  if (typeof donjon === 'string' && donjon) return { genre: 'donjon', id: donjon };
-  if (typeof univers === 'string' && univers) return { genre: 'univers', id: univers };
+export function ouvertureDemandee({ rechargement = false } = {}) {
   return rechargement ? { genre: 'reprise' } : { genre: 'liste' };
 }
 

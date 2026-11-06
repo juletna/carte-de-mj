@@ -105,30 +105,10 @@ const TESTS = [
     egal([pj.x, pj.y], [5, 5], 'les refus ne bougent rien');
   }],
 
-  ['Présenter : ouvre le donjon demandé, pas la dernière partie', () => {
-    const { d, a } = donjonDeTest();
-    const autre = donjonDeTest().d;
-    const partieAutre = p.creerPresentation(autre);
-    const presentations = { [autre.id]: partieAutre };
-    const donjons = { [d.id]: d, [autre.id]: autre };
-    const neuve = p.partieDemandee(d.id, donjons, presentations);
-    egal([neuve.partie.donjon.id, neuve.reprise, neuve.partie.salleCourante], [d.id, false, a.id], 'pas de partie : une nouvelle, sur ce donjon');
-    const reprise = p.partieDemandee(autre.id, donjons, presentations);
-    verifier(reprise.partie === partieAutre && reprise.reprise, 'une partie en cours : on la reprend');
-    egal(p.partieDemandee('inconnu', donjons, presentations), null, 'donjon absent');
-    egal(p.partieDemandee('constructor', donjons, presentations), null, 'nom piégé');
-    egal(p.partieDemandee(null, donjons, presentations), null, 'sans demande');
-    egal(p.partieDemandee(d.id, undefined, presentations), null, 'aucun donjon dans ce navigateur');
-  }],
-
-  ['Jouer : la liste à l’arrivée, la même régie au rechargement, le donjon ou le monde demandé par l’adresse', () => {
+  ['Jouer : la liste à l’arrivée, la même régie au rechargement', () => {
     egal(p.ouvertureDemandee({}), { genre: 'liste' }, 'lien de navigation : la liste');
     egal(p.ouvertureDemandee(), { genre: 'liste' }, 'sans rien');
     egal(p.ouvertureDemandee({ rechargement: true }), { genre: 'reprise' }, 'F5 : on rouvre la régie');
-    egal(p.ouvertureDemandee({ donjon: 'd1' }), { genre: 'donjon', id: 'd1' }, '?donjon=');
-    egal(p.ouvertureDemandee({ univers: 'u1' }), { genre: 'univers', id: 'u1' }, '?univers=');
-    egal(p.ouvertureDemandee({ donjon: 'd1', rechargement: true }), { genre: 'donjon', id: 'd1' }, 'l’adresse prime sur le rechargement');
-    egal(p.ouvertureDemandee({ donjon: '', univers: null }), { genre: 'liste' }, 'paramètre vide ignoré');
     egal([p.estRechargement('reload'), p.estRechargement('navigate'), p.estRechargement('back_forward'), p.estRechargement(undefined)], [true, false, false, false], 'type de navigation');
   }],
 

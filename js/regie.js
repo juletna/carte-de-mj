@@ -675,32 +675,18 @@ export function demarrerRegie() {
   let minuterie;
   window.addEventListener('resize', () => { clearTimeout(minuterie); minuterie = setTimeout(() => { if (etat.p) rendre(); }, 150); });
 
-  // Démarrage (voir pres.ouvertureDemandee) : l'adresse peut demander un donjon (`?donjon=`, un lien direct : plus aucun bouton de l'appli n'y mène) ou un monde
-  // (`?univers=`) ; un rechargement (F5) rouvre la régie qui était ouverte, telle quelle (rien n'est relancé ni écrasé) ; arriver par un lien
-  // de navigation montre la liste des parties. « ← Liste des parties » ramène à la liste et oublie la partie ouverte.
+  // Démarrage (voir pres.ouvertureDemandee) : un rechargement (F5) rouvre la régie qui était ouverte, telle quelle (rien n'est relancé ni écrasé) ;
+  // arriver par un lien de navigation montre la liste des parties. « ← Liste des parties » ramène à la liste et oublie la partie ouverte.
   // Une partie qui ne se relit pas en entier est copiée à part avant que quoi que ce soit puisse l'enregistrer.
   const miseDeCote = stockage.mettreDeCotePresentations();
   etat.presentations = stockage.chargerPresentations();
-  const parametres = new URLSearchParams(location.search);
   const ouverture = pres.ouvertureDemandee({
-    donjon: parametres.get('donjon'),
-    univers: parametres.get('univers'),
     rechargement: pres.estRechargement(globalThis.performance?.getEntriesByType?.('navigation')?.[0]?.type),
   });
-  // L'adresse perd sa demande : recharger la page rouvre la régie ouverte, pas une demande de départ.
-  if (parametres.has('donjon') || parametres.has('univers')) history.replaceState(null, '', location.pathname.split('/').pop() || 'presentation.html');
   /** Ouvre (ou commence) la partie de ce monde : la carte d'univers s'affiche. Faux si le monde n'existe plus ou n'a aucune carte. */
   function ouvrirMonde(id) { return univers.ouvrirParId(id); }
   ctx.ouvrirMonde = ouvrirMonde;
   function ouvrirDemande() {
-    if (ouverture.genre === 'donjon') {
-      const demande = pres.partieDemandee(ouverture.id, stockage.chargerDonjons()?.donjons, etat.presentations);
-      if (demande?.reprise) entrer(demande.partie, { reprise: true });
-      else if (demande) depart.demanderJoueurs(demande.partie);
-      else return false;
-      return true;
-    }
-    if (ouverture.genre === 'univers') return ouvrirMonde(ouverture.id);
     if (ouverture.genre === 'reprise') {
       // Rechargement : l'onglet qui avait la main la reprend (sinon la table resterait sans régie) ; celui qui était en retrait y reste,
       // avec sa propre partie : recharger un vieil onglet ne doit pas renvoyer sa partie à la table.
@@ -715,7 +701,6 @@ export function demarrerRegie() {
   if (!ouvrirDemande()) {
     if (!retraitAvantRechargement) stockage.oublierPartieOuverte(); // la liste est affichée : un rechargement y reste
     depart.afficher();
-    if (ouverture.genre === 'donjon' || ouverture.genre === 'univers') annoncer(`Ce ${ouverture.genre === 'donjon' ? 'donjon' : 'monde'} n’est plus dans ce navigateur, ou n’a rien à jouer.`, 9000);
   }
   // Dit une fois, après le premier affichage ; un échec, lui, est redit à chaque ouverture puisque rien n'est enregistré.
   if (miseDeCote && (miseDeCote.nouvelle || !miseDeCote.ok)) {
