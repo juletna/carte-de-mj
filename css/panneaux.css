@@ -254,8 +254,8 @@
 .rang-choix .rang-rendu { width: 36px; height: 36px; margin: 3px 0; }
 
 /* === Onglets-icônes du Donjon : Salle · Portes · Mobilier · Créatures (js/atelier/catalogue-onglet.js) === */
-.onglets-donjon .atelier-onglet.avec-icone.btn { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 52px; padding: 6px 0 4px; font-size: 11px; }
-.onglets-donjon .atelier-onglet.avec-icone .icone { width: 18px; height: 18px; }
+.onglets-donjon .atelier-onglet.avec-icone.btn { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; min-height: calc(var(--hauteur-barre) - 1px); padding: 2px 0; font-size: 11px; line-height: 1.15; } /* même hauteur que la barre de l'arbre et celle de la scène (le filet de 1 px compris) : les lignes s'alignent */
+.onglets-donjon .atelier-onglet.avec-icone .icone { width: 16px; height: 16px; }
 .onglets-donjon .atelier-onglet.avec-icone[aria-selected="true"] .icone { color: var(--accent); }
 .onglets-donjon .atelier-onglet:focus-visible { outline: 2px solid var(--accent); outline-offset: -4px; border-radius: 6px; }
 

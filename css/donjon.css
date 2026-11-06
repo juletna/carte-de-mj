@@ -147,7 +147,7 @@ body.vue-plan #palette { display: none; }
   .atelier-inspecteur .palette-groupes { display: none; } /* les onglets-icônes en tête du panneau choisissent la catégorie */
   .atelier-inspecteur .palette-tete { display: none; } /* les onglets-icônes disent déjà de quoi il s'agit */
   .onglets-donjon { position: sticky; top: 0; z-index: 6; }
-  [data-atelier="preparer"] .atelier-inspecteur-tete { top: 53px; } /* sous les onglets */
+  [data-atelier="preparer"] .atelier-inspecteur-tete { top: var(--hauteur-barre); } /* sous les onglets */
 }
 
 /* --- Écran étroit (sous 760 px) : une seule colonne, la scène sous sa barre d'outils, l'inspecteur en panneau bas (css/atelier.css) --- */
