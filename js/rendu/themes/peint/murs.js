@@ -21,9 +21,11 @@ import { etat } from './etat.js';
 import { alea, graineDeTexte } from './bruit.js';
 import { chemin, encre, trait, dl, ENCRE } from './trait.js';
 import { couleurMur, usureDe } from './ambiance.js';
+import { dessinerFaceDessinee, tacheMousseDessinee } from './murs-dessines.js';
 
 const DESSUS = '#060504'; // le dessus des murs : presque noir, bien distinct des faces et du sol
 const FOND_FACE = '#120f0c';
+const LISERE_DESSUS = 'rgba(255,236,200,0.4)'; // murs dessinés : fin liseré clair sur l'arête intérieure du dessus
 
 /** Couleur de pierre des murs selon le sol : teinte, saturation, luminosité [clair, foncé]. */
 export const MURS_PEINTS = {
@@ -72,6 +74,9 @@ function dessinerFace(ctx, r, s, mur, t) {
   const P = (u, v) => hautVue(vue, s.A[0] + (s.B[0] - s.A[0]) * u, s.A[1] + (s.B[1] - s.A[1]) * u, v);
   const long = Math.hypot(s.B[0] - s.A[0], s.B[1] - s.A[1]);
   const k = 11 * eclairage(vue, s.normale[0], s.normale[1]) - 11; // de −22 (face à l'opposé de la lumière) à 0
+  if (etat.details === 'riches') { // murs dessinés (murs-dessines.js) ; « sobres » continue ci-dessous, inchangé
+    return dessinerFaceDessinee(ctx, r, mur, t, P, long, k, -(s.B[0] - s.A[0]) - (s.B[1] - s.A[1]));
+  }
   ctx.beginPath();
   [P(0, 0), P(1, 0), P(1, 1), P(0, 1)].forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
   ctx.closePath();
@@ -181,6 +186,10 @@ function dessinerDessus(ctx, r, s, mur, t, e) {
     }
     p += l;
   }
+  if (etat.details === 'riches') { // liseré clair sur l'arête côté salle, trait d'encre sur l'arête extérieure
+    ctx.beginPath(); ctx.moveTo(...Q(0, 0)); ctx.lineTo(...Q(long, 0)); trait(ctx, LISERE_DESSUS, 1.3);
+    ctx.beginPath(); ctx.moveTo(...Q(0, ep)); ctx.lineTo(...Q(long, ep)); trait(ctx, ENCRE, 1.6);
+  }
   // La mousse prend sur le dessus des murs : quelques plaques sur un mur usé, de nombreuses en ruine (rognées aux bords de la bande).
   const nMousse = usure ? Math.round(long / (t * (usure === 2 ? 0.6 : 2.2))) : 0;
   if (!nMousse) return;
@@ -191,7 +200,8 @@ function dessinerDessus(ctx, r, s, mur, t, e) {
   ctx.clip();
   for (let k = 0; k < nMousse; k++) {
     const [mx, my] = Q(r() * long, ep * (0.2 + r() * 0.6));
-    tacheMousse(ctx, mx, my, ep * (0.4 + r() * 0.5), usure === 2 ? 0.9 : 0.6);
+    if (etat.details === 'riches') tacheMousseDessinee(ctx, mx, my, ep * (0.3 + r() * 0.3));
+    else tacheMousse(ctx, mx, my, ep * (0.4 + r() * 0.5), usure === 2 ? 0.9 : 0.6);
   }
   ctx.restore();
 }

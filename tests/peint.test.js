@@ -494,6 +494,28 @@ const TESTS = [
     egal(F.P(0, 0), [40, 70], 'au sol, le coin de la face est sur le sol');
     verifier(F.P(0, 1)[0] < 40, 'monté d’un mur, le point s’écarte du centre');
   }],
+  ['murs dessinés : riches se dessinent sans exception (neuf, usé, ruine ; avec et sans relief ; en croix), déterministes ; sobres ne touche pas au dessin d’avant', () => {
+    const murs = (plan, details, relief) => {
+      const { ctx, lignes } = ctxJournal();
+      THEMES.peint.preparer(ctx, plan, 48, { relief, details });
+      THEMES.peint.murs(ctx, plan, 48);
+      return lignes;
+    };
+    for (const forme of [undefined, 'croix']) for (const etatSalle of ['neuve', 'usee', 'ruine']) for (const relief of [true, false]) {
+      const plan = rect(9, 7, { id: 'mr', etat: etatSalle, ...(forme ? { forme } : {}) }), quoi = `${forme || 'rect'} · ${etatSalle} · relief ${relief}`;
+      const riches = murs(plan, 'riches', relief), sobres = murs(plan, 'sobres', relief);
+      verifier(riches.length > 20, `${quoi} : riches trace quelque chose`);
+      verifier(riches.every((l) => !/NaN|undefined|Infinity/.test(l)), `${quoi} : valeur invalide en riches : ${riches.find((l) => /NaN|undefined|Infinity/.test(l))}`);
+      egal(riches, murs(plan, 'riches', relief), `${quoi} : riches déterministe`);
+      egal(sobres, murs(plan, 'sobres', relief), `${quoi} : sobres déterministe`);
+      verifier(riches.some((l) => l.startsWith('strokeStyle=rgba(255,236,200')), `${quoi} : liseré du dessus en riches`);
+      verifier(!sobres.some((l) => l.startsWith('strokeStyle=rgba(255,236,200')), `${quoi} : sobres n’a pas le liseré dessiné`);
+      if (relief) {
+        verifier(riches.join('|') !== sobres.join('|'), `${quoi} : riches et sobres diffèrent`);
+        verifier(!sobres.some((l) => /fillStyle=#(6fae3c|9ad04f|5e9a34|8cc84b|5a4636)/.test(l)), `${quoi} : sobres n’emploie aucune couleur des murs dessinés`);
+      }
+    }
+  }],
   ['peint : les pions se dessinent pour chaque état, avec leur abréviation ; mort et blessé se distinguent d’un pion normal', () => {
     const tracer = (k) => { const { ctx, lignes } = ctxJournal(); THEMES.peint.preparer(ctx, rect(9, 7, { id: 'p' }), 48, { relief: true }); pionPeint(ctx, { type: 'gobelin', camp: 'monstre', numero: 2, x: 3, y: 2, taille: 1, ...k }, 48); return lignes; };
     const normal = tracer({}), blesse = tracer({ etat: 'blesse' }), mort = tracer({ etat: 'mort' });
