@@ -22,6 +22,7 @@ import { resumeTailleLieu } from './dimensions.js';
 import { chargerReglages } from '../stockage.js';
 import { vignetteLieu } from './vignette-lieu.js';
 import { creerSection } from './section.js';
+import { creerListe } from './liste.js';
 
 const NOUVELLE_CARTE = '__nouvelle-carte__';
 export { vignetteLieu };
@@ -145,16 +146,22 @@ export function enregistrerInspecteursMonde(coquille, U) {
 
   function listePoints(u, l) {
     const choisi = U.pointId();
-    const items = l.points.map((p) => {
+    const ICONE_GENRE = { carte: 'monde', donjon: 'donjon', '': 'point' };
+    const rangees = l.points.map((p) => {
       const orph = U.orphelinDe(p);
-      const b = btn(p.nom || 'Point sans nom', () => U.selectionnerPoint(p.id), { classe: `btn-discret univers-ligne-point${p.id === choisi ? ' choisi' : ''}` });
-      if (orph) { b.prepend(icone('alerte')); b.title = orph; }
-      if (p.cache) { b.prepend(icone('oeil-barre')); b.title = `${b.title ? `${b.title} · ` : ''}Caché à la table`; }
-      return h('li', {}, b, h('span', { className: 'doux', textContent: ` → ${modele.nomDestination(u, p.vers, U.donjons())}${orph ? ` (${orph})` : ''}` }));
+      const dest = modele.nomDestination(u, p.vers, U.donjons());
+      return {
+        nom: p.nom, vide: 'Point sans nom', choisie: p.id === choisi,
+        icone: orph ? 'alerte' : p.cache ? 'oeil-barre' : ICONE_GENRE[genreDestination(p.vers)],
+        alerte: !!orph,
+        detail: p.vers ? ['vers ', { fort: dest }, ...(orph ? [` (${orph})`] : [])] : dest,
+        titre: [orph, p.cache ? 'Caché à la table' : ''].filter(Boolean).join(' · ') || undefined,
+        surChoix: () => U.selectionnerPoint(p.id),
+      };
     });
     return section('lieu-points', 'Points', [
-      items.length
-        ? h('ul', { className: 'univers-liste' }, ...items)
+      rangees.length
+        ? creerListe(rangees)
         : h('p', { className: 'note', textContent: 'Aucun point : choisis l’outil Point, puis clique sur la carte.' })], {
       compte: l.points.length || null,
       aide: 'Choisis l’outil Point, puis clique sur une zone vide de la carte : son panneau s’ouvre, nomme-le et choisis où il mène. Clique sur un point (outil Sélection) pour rouvrir son panneau, double-clique pour entrer. Glisse un point, ou utilise les flèches du clavier, pour le déplacer. Un clic dans le vide lâche le point.',

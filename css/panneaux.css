@@ -92,3 +92,23 @@
 .p-section-corps #bloc-description .retour > h2 { margin: 0 0 5px; font-size: 12.5px; font-weight: 500; color: var(--p-texte-3); }
 .p-section-corps > .bloc-inspecteur, .p-section-corps > .champ-inspecteur { margin: 0; padding: 0; border: 0; }
 .p-section-corps .forme-salle > h3 { margin: 0 0 5px; font-size: 12.5px; font-weight: 500; color: var(--p-texte-3); }
+
+/* === Panneaux : la liste (js/atelier/liste.js, étape 3) ===
+   Bloc en creux ; rangées de même hauteur : icône · nom · position, sous-ligne tronquée ; la choisie en or sur fond doré léger. */
+.p-liste { list-style: none; margin: 0; padding: var(--esp-1); display: flex; flex-direction: column; gap: 1px; background: var(--p-surface-1); border-radius: 8px; }
+.p-liste > li { margin: 0; }
+.p-rang { display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; column-gap: var(--esp-2); row-gap: 1px; align-items: center; box-sizing: border-box; width: 100%; min-height: max(36px, var(--cible)); padding: 6px var(--esp-2); background: none; border: 0; border-radius: var(--rayon); color: var(--p-texte-1); font: inherit; font-size: 14px; text-align: left; cursor: pointer; }
+.p-rang:hover { background: var(--p-surface-survol); }
+.p-rang:focus-visible { outline: var(--focus); outline-offset: -2px; }
+.p-rang-icone { display: inline-flex; width: 16px; height: 16px; color: var(--p-texte-3); }
+.p-rang-icone .icone { width: 16px; height: 16px; vertical-align: 0; }
+.p-rang-nom { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+.p-rang-nom.vide { color: var(--p-texte-3); font-style: italic; font-weight: 400; }
+.p-rang-position { color: var(--p-texte-4); font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12px; }
+.p-rang-detail { grid-column: 2 / 4; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12.5px; color: var(--p-texte-3); }
+.p-rang-detail b { font-weight: 500; color: var(--p-texte-2); }
+.p-rang.choisie { background: var(--p-choisi); }
+.p-rang.choisie .p-rang-nom, .p-rang.choisie .p-rang-icone { color: var(--accent); }
+.p-rang.alerte .p-rang-icone { color: var(--erreur); }
+.p-rang.compacte { min-height: max(30px, var(--cible)); padding-block: 4px; }
+.p-rang.compacte .p-rang-nom { font-weight: 400; color: var(--p-texte-2); }

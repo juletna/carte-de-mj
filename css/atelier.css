@@ -210,59 +210,6 @@ body.atelier-avec-inspecteur { --largeur-inspecteur: 330px; }
   .cartouche-monde { left: var(--esp-2); bottom: var(--esp-2); }
 }
 
-/* === Panneaux : typographie et niveaux de texte (docs/design-panneaux.md, étape 1) ===
-   Bloc à part, en fin de feuille : il prend le pas sur les styles des inspecteurs ci-dessus et de donjon.css / univers.css.
-   Majuscules réservées au type de l'objet et aux groupes de l'arbre ; titres de section clairs en casse normale ;
-   étiquettes plus discrètes que les valeurs ; un seul bord gauche. */
-
-/* Arbre */
-.atelier-arbre-tete { padding-left: var(--esp-4); border-bottom-color: var(--p-filet-fort); }
-.atelier-arbre .atelier-arbre-titre { font-size: 13px; font-weight: 650; text-transform: none; letter-spacing: 0; color: var(--p-texte-1); }
-.atelier-noeud-texte { font-size: 14px; }
-.atelier-ligne { color: var(--p-texte-2); }
-.atelier-ligne:hover { background: var(--p-surface-survol); }
-.atelier-icone { color: var(--p-texte-3); }
-.atelier-bascule { color: var(--p-texte-4); }
-.atelier-noeud.type-monde > .atelier-ligne, .atelier-noeud.type-donjon > .atelier-ligne { color: var(--p-texte-1); font-weight: 600; }
-.atelier-noeud.type-groupe > .atelier-ligne { margin-top: var(--esp-2); font-size: 11px; font-weight: 600; letter-spacing: 0.09em; color: var(--p-texte-4); }
-.atelier-noeud.type-groupe > .atelier-ligne .atelier-icone { display: none; }
-.atelier-noeud.type-groupe > .atelier-ligne .atelier-noeud-texte { font-size: 11px; }
-.atelier-noeud.courant > .atelier-ligne { background: var(--p-choisi); border-color: transparent; color: var(--accent); font-weight: 600; }
-.atelier-noeud-aussi { color: var(--p-texte-3); }
-
-/* Inspecteur : en-tête */
-.atelier-inspecteur-tete { padding: 14px var(--esp-4) var(--esp-3); border-bottom-color: var(--p-filet-fort); }
-.atelier-inspecteur-type { font-size: 11px; font-weight: 600; letter-spacing: 0.09em; color: var(--accent); }
-.atelier-inspecteur .atelier-inspecteur-nom, .atelier-inspecteur .atelier-inspecteur-titre { font-size: 18px; font-weight: 650; color: var(--p-texte-1); }
-.atelier-inspecteur-nom::placeholder { color: var(--p-texte-4); }
-.atelier-inspecteur-resume { font-size: 12.5px; color: var(--p-texte-3); font-variant-numeric: tabular-nums; }
-
-/* Inspecteur : corps (marge de 16 px, texte courant en T2) */
-.atelier-inspecteur-corps { padding: var(--esp-4); gap: 20px; font-size: 14px; color: var(--p-texte-2); }
-/* Titres de section : 13 px, gras, clairs, casse normale */
-.atelier-inspecteur .insp-section > h3, .atelier-inspecteur .bloc-inspecteur > h3, .atelier-inspecteur .retour > h2,
-.atelier-inspecteur .univers-insp h3, .atelier-inspecteur .forme-salle > h3,
-.atelier-inspecteur details.bloc-inspecteur > summary, .atelier-inspecteur details.exemples > summary {
-  margin: 0 0 var(--esp-2); font-size: 13px; font-weight: 650; line-height: 1.35; letter-spacing: 0; text-transform: none; color: var(--p-texte-1);
-}
-.atelier-inspecteur details.bloc-inspecteur:not([open]) > summary, .atelier-inspecteur details.exemples:not([open]) > summary { margin-bottom: 0; color: var(--p-texte-2); font-weight: 600; }
-/* Étiquettes de champ : plus discrètes que la valeur */
-.atelier-inspecteur .champ-inspecteur > label, .atelier-inspecteur .outil-etiquette, .atelier-inspecteur .univers-insp .ligne:not(.case) {
-  margin: 0 0 5px; font-size: 12.5px; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--p-texte-3);
-}
-.atelier-inspecteur .univers-insp .ligne:not(.case) { margin: 0; gap: 5px; }
-.atelier-inspecteur .univers-insp .ligne.case { font-size: 14px; color: var(--p-texte-1); }
-/* Valeurs saisies en T1, placeholders en T4 */
-.atelier-inspecteur-corps input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), .atelier-inspecteur-corps textarea, .atelier-inspecteur-corps select { font-size: 14px; color: var(--p-texte-1); }
-.atelier-inspecteur-corps ::placeholder { color: var(--p-texte-4); }
-/* Notes et aides : T3 */
-.atelier-inspecteur .note, .atelier-inspecteur .doux, .atelier-inspecteur .aide-bloc > summary { font-size: 12.5px; color: var(--p-texte-3); }
-.atelier-inspecteur .note.erreur { color: var(--erreur); }
-/* Un seul bord gauche : les boutons discrets du corps (hors icônes et rangées de liste) deviennent des liens d'action sans marge interne */
-.atelier-inspecteur-corps .btn-discret:not(.btn-icone):not(.univers-ligne-point) { padding-inline: 0; color: var(--p-texte-3); }
-.atelier-inspecteur-corps .btn-discret:not(.btn-icone):not(.univers-ligne-point):hover { background: transparent; text-decoration: underline; text-underline-offset: 3px; }
-.atelier-inspecteur-corps .actions { justify-content: flex-start; }
-
 /* Sous 760 px, les champs et les titres repliables de l'inspecteur ont une cible de 44 px (nom éditable, « Forme et ambiance », « Exemples », aides). */
 @media (max-width: 760px) {
   .atelier-inspecteur .atelier-inspecteur-nom { min-height: var(--cible); }

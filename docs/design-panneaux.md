@@ -140,16 +140,16 @@ Même grammaire dans le panneau bas. Replié, il ne montre que l'en-tête. Cible
 À faire dans l'ordre ; cocher ici à chaque étape livrée.
 
 - [x] **1. Jetons et typographie** : ajouter les `--p-*` dans `css/base.css`, réécrire la typographie de `.atelier-inspecteur` et `.atelier-arbre` dans `css/atelier.css` (règles 1, 2, 4). CSS seul.
-- [ ] **2. Composant section** : `creerSection({ cle, titre, compte, aide, action, repliee, enfants })` dans `js/atelier/section.js` (fait, testé : `tests/section.test.js`), état replié en session. Adoptée par les inspecteurs Monde, Lieu, Point, Donjon, Salle.
-- [ ] **3. Listes** : composant rangée pour les points, les éléments de Jouer et les personnages.
+- [x] **2. Composant section** : `creerSection({ cle, titre, compte, aide, action, repliee, enfants })` dans `js/atelier/section.js` (fait, testé : `tests/section.test.js`), état replié en session. Adoptée par les inspecteurs Monde, Lieu, Point, Donjon, Salle.
+- [ ] **3. Listes** : `creerListe([...])` dans `js/atelier/liste.js` (fait, testé : `tests/liste.test.js`) ; adopté par les points d'un lieu. Restent les éléments de Jouer et les personnages.
 - [ ] **4. Jouer** : les onglets de la régie au même modèle (en-tête, sections), onglets soulignés.
 - [ ] **5. Téléphone** : vérifier le panneau bas avec la nouvelle grammaire.
 
 | Panneau | Code | Suit ce document |
 |---|---|---|
 | Arbre | `js/atelier/arbre-vue.js` | oui (CSS) |
-| Inspecteur Monde, Lieu, Point | `js/atelier/inspecteurs-monde.js` | typographie, sections (listes : non) |
+| Inspecteur Monde, Lieu, Point | `js/atelier/inspecteurs-monde.js` | oui (typographie, sections, liste des points) |
 | Inspecteur Calage | univers (calage) | non |
 | Inspecteur Donjon, Salle | `js/atelier/inspecteurs-donjon.js`, `js/mj/salle-forme.js` | typographie, sections (propriétés, « Compris » en pastilles : non) |
-| Porte, Objet, Créature | `js/mj/bulle.js` | non |
+| Porte, Objet, Créature | `js/mj/bulle.js` | typographie seulement (sections : après la recette de la refonte UI) |
 | Jouer · Salle, Joueurs, Table | régie (`js/main-presentation.js` et voisins) | non |
