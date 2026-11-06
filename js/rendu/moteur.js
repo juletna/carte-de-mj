@@ -32,6 +32,7 @@ const GRILLE_TRAIT = 'rgba(0, 0, 0, 0.45)'; // lignes de la grille
  *        taille = côté d'une case en pixels CSS
  *        grille = lignes de la grille (le thème peut fournir les siennes : `theme.grille`). Un booléen, ou une OPACITÉ de 0 à 1
  *          (0 : pas de grille). `true` garde le trait habituel du thème ; un nombre le règle (réglage « Cases »)
+ *        details = détails des sols, 'riches' (sols dessinés, défaut) ou 'sobres', pour le thème peint (`theme.preparer`) ; les autres l'ignorent
  *        relief = fausse 3D des murs vus du centre de la salle, pour les thèmes qui la savent (`theme.preparer`) ; les autres l'ignorent
  *        reperes = lettres et numéros dans la marge (par défaut : suit `grille`)
  *        penombre = obscurité de la salle, 0–100 % (thème qui a `creerCouche`, c'est-à-dire peint ; défaut : PENOMBRE_PAR_DEFAUT)
@@ -47,7 +48,7 @@ const GRILLE_TRAIT = 'rgba(0, 0, 0, 0.45)'; // lignes de la grille
  * @returns {{anime:boolean, image:(ms:number)=>void}} la scène : `anime` vrai quand il y a des flammes à animer (l'appelant appelle alors `image(ms)` à chaque image,
  *          voir animation-carte.js), sinon le dessin est complet et `image` ne fait rien
  */
-export function dessiner(canvas, plan, { taille = TAILLE_PAR_DEFAUT, grille = true, theme = vectoriel, marques = {}, reperes = !!grille, relief = true, penombre = PENOMBRE_PAR_DEFAUT, vue = 'mj', animer = false } = {}) {
+export function dessiner(canvas, plan, { taille = TAILLE_PAR_DEFAUT, grille = true, theme = vectoriel, marques = {}, reperes = !!grille, relief = true, details = 'riches', penombre = PENOMBRE_PAR_DEFAUT, vue = 'mj', animer = false } = {}) {
   const t = taille;
   const largeurPx = (plan.largeur + 2 * MARGE) * t;
   const hauteurPx = (plan.longueur + 2 * MARGE) * t;
@@ -63,9 +64,9 @@ export function dessiner(canvas, plan, { taille = TAILLE_PAR_DEFAUT, grille = tr
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, largeurPx, hauteurPx);
 
-  const options = { grille, reperes, theme, marques, relief };
+  const options = { grille, reperes, theme, marques, relief, details };
   if (typeof theme.creerCouche !== 'function') {
-    theme.preparer?.(ctx, plan, t, { relief }); // le fond de roche du thème peint est semé selon la salle
+    theme.preparer?.(ctx, plan, t, { relief, details }); // le fond de roche du thème peint est semé selon la salle
     theme.roche(ctx, largeurPx, hauteurPx, t);
     ctx.translate(MARGE * t, MARGE * t); // à partir d'ici, l'origine est le coin nord-ouest de la pièce
     peindre(ctx, plan, t, options);
@@ -79,7 +80,7 @@ export function dessiner(canvas, plan, { taille = TAILLE_PAR_DEFAUT, grille = tr
   const cible = hors ? hors.getContext('2d') : ctx; // animé : le décor va dans un canevas gardé, recopié à chaque image
   const decor = { ...options, flammes: !!hors };
   cible.setTransform(dpr, 0, 0, dpr, 0, 0);
-  theme.preparer?.(cible, plan, t, { relief, flammes: !!hors });
+  theme.preparer?.(cible, plan, t, { relief, details, flammes: !!hors });
   theme.roche(cible, largeurPx, hauteurPx, t);
   cible.translate(MARGE * t, MARGE * t);
   peindreDecor(cible, plan, t, decor);
@@ -88,7 +89,7 @@ export function dessiner(canvas, plan, { taille = TAILLE_PAR_DEFAUT, grille = tr
   const eclairer = (ms) => theme.eclairer(ctx, couche, { sources, opacite, ms, salle, anime: !!hors });
   const dessus = () => {
     ctx.setTransform(...salle);
-    theme.preparer(ctx, plan, t, { relief, flammes: !!hors }); // un autre dessin a pu changer l'état du thème depuis la dernière image
+    theme.preparer(ctx, plan, t, { relief, details, flammes: !!hors }); // un autre dessin a pu changer l'état du thème depuis la dernière image
     peindreDessus(ctx, plan, t, decor);
   };
   if (!hors) { eclairer(0); dessus(); return SCENE_FIXE; }
@@ -154,8 +155,8 @@ export function peindre(ctx, plan, t, options) {
 const reperesApresLumiere = (theme) => typeof theme.creerCouche === 'function';
 
 /** Le décor : sol, objets, grille, murs, portes (et repères pour un thème sans lumière). `flammes` : voir `preparer` du thème peint. */
-function peindreDecor(ctx, plan, t, { grille, reperes, theme, relief = true, flammes = false }) {
-  theme.preparer?.(ctx, plan, t, { relief, flammes });
+function peindreDecor(ctx, plan, t, { grille, reperes, theme, relief = true, details = 'riches', flammes = false }) {
+  theme.preparer?.(ctx, plan, t, { relief, details, flammes });
   theme.sol(ctx, plan, t);
 
   // Un thème en fausse 3D (`preparer`) veut aussi le plus loin du centre d'abord, au sein d'une couche (voir ordonnerObjets).

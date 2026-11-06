@@ -10,6 +10,7 @@
  *   graine   nombre dérivé de l'identifiant de la salle : tout aléa du décor en est tiré (même salle, même rendu, partout)
  *   relief   la perspective est-elle active ? (kp > 0)
  *   ambiance, etatSalle   neutre/froide/chaude/nuit et neuve/usee/ruine : champs du plan prévus pour le lot 4, valeurs neutres d'ici là
+ *   details  « riches » (sols dessinés, peint/dessin/) ou « sobres » (sols procéduraux simples) : posé par `preparer` (option `details`), lu par la tuile de sol (clé de cache)
  *   lumieres sources de lumière relevées pendant le dessin des objets, vidées par `preparer` : { x, y, s, r, c, k, petite? } en pixels, dans le repère de la
  *            salle (origine : coin nord-ouest de la pièce) ; s = taille de la flamme, r = rayon de la lumière, c = 'r,g,b', k = intensité (0–1).
  *            Un objet les déclare avec `V.lumiere(x, y, h, source)` (volumes.js) ; la couche de lumière (lumiere.js) les lit après avoir dessiné les objets.
@@ -26,6 +27,7 @@ export const etat = {
   relief: false,
   ambiance: 'neutre',
   etatSalle: 'neuve',
+  details: 'riches',
   plan: null,
   t: 48,
   lumieres: [],

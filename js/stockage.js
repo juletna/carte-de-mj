@@ -4,7 +4,7 @@
  *
  * Clés :
  *   carte-de-mj:donjons-v1    { actif, donjons: { <id>: donjon } }   (voir donjon.js)
- *   carte-de-mj:reglages-v1   { echelle, taille, grille, reperes?, cases?, theme?, relief?, penombre?, flammes? }  (affichage, hors donjons)
+ *   carte-de-mj:reglages-v1   { echelle, taille, grille, reperes?, cases?, theme?, details?, relief?, penombre?, flammes? }  (affichage, hors donjons)
  *   carte-de-mj:presentations-v1  { presentations: { <idDonjon>: présentation } }  (parties en cours : voir partie.js)
  *   carte-de-mj:modeles-v1    { modeles: [donjon] }  (donjons gardés comme modèles : voir modeles.js)
  *   dd-fiche-personnages-v1   { actif, persos }  (outil Fiche : lue ici seulement, jamais écrite)
@@ -25,7 +25,7 @@ import { validerDonjon } from './donjon-validation.js';
 import { validerPresentation } from './partie.js';
 import { fichesDuNavigateur } from './personnages.js';
 import { CLE_FICHES } from './fiche/format.js';
-import { TAILLE_PAR_DEFAUT, ECHELLE_PAR_DEFAUT, MODES_TABLE, tailleReglable, ROTATIONS_TABLE, caseMmValide, casesValides, THEMES_RENDU, THEME_PAR_DEFAUT, PENOMBRE_PAR_DEFAUT, penombreValide } from './affichage.js';
+import { TAILLE_PAR_DEFAUT, ECHELLE_PAR_DEFAUT, MODES_TABLE, tailleReglable, ROTATIONS_TABLE, caseMmValide, casesValides, THEMES_RENDU, THEME_PAR_DEFAUT, DETAILS_SOLS, DETAILS_PAR_DEFAUT, PENOMBRE_PAR_DEFAUT, penombreValide } from './affichage.js';
 import { sansAccents, estObjet } from './format.js';
 import { CLE_MIS_DE_COTE, lireBrut, ecrireJson, mettreDeCote } from './mise-de-cote.js';
 import { validerUnivers } from './univers-validation.js';
@@ -54,7 +54,7 @@ export function chargerReglages(stock = stockParDefaut()) {
   const lu = lireJson(stock, CLE_REGLAGES);
   const r = estObjet(lu) ? lu : {};
   // Ce que cette version ne connaît pas (écrit par une version plus récente) est gardé tel quel : `sauverReglages` le réécrira.
-  const { echelle: _e, taille: _t, grille: _g, reperes: _r, calibre: _c, modeTable: _m, miniTable: _n, rotationTable: _o, miroirTable: _i, caseMm: _k, cases: _s, theme: _th, relief: _re, penombre: _p, flammes: _fl, ...inconnus } = r;
+  const { echelle: _e, taille: _t, grille: _g, reperes: _r, calibre: _c, modeTable: _m, miniTable: _n, rotationTable: _o, miroirTable: _i, caseMm: _k, cases: _s, theme: _th, details: _de, relief: _re, penombre: _p, flammes: _fl, ...inconnus } = r;
   return {
     ...inconnus,
     echelle: Number(r.echelle) > 0 ? Number(r.echelle) : REGLAGES_DEFAUT.echelle,
@@ -73,9 +73,10 @@ export function chargerReglages(stock = stockParDefaut()) {
     ...(r.miroirTable === true ? { miroirTable: true } : {}),
     ...(caseMmValide(r.caseMm) ? { caseMm: r.caseMm } : {}),
     // Rendu de la carte, seulement s'il diffère du défaut : `cases` (opacité des lignes, 0–100 %, remplace le oui/non de `grille` qui reste écrit
-    // pour les versions précédentes), `theme` (vectoriel ; le thème peint est le défaut) et `relief` (faux : vue à plat).
+    // pour les versions précédentes), `theme` (vectoriel ; le thème peint est le défaut), `details` (sobres ; les sols riches sont le défaut) et `relief` (faux : vue à plat).
     ...(casesValides(r.cases) ? { cases: r.cases } : {}),
     ...(THEMES_RENDU.includes(r.theme) && r.theme !== THEME_PAR_DEFAUT ? { theme: r.theme } : {}),
+    ...(DETAILS_SOLS.includes(r.details) && r.details !== DETAILS_PAR_DEFAUT ? { details: r.details } : {}),
     ...(r.relief === false ? { relief: false } : {}),
     // Pénombre (0–100 %, 45 par défaut) et flammes animées (vrai par défaut) : seulement s'ils diffèrent du défaut.
     ...(penombreValide(r.penombre) && r.penombre !== PENOMBRE_PAR_DEFAUT ? { penombre: r.penombre } : {}),

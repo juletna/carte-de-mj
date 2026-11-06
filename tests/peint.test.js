@@ -16,7 +16,7 @@ import { dessiner, ordonnerObjets } from '../js/rendu/moteur.js';
 import { objets as objetsPeints, ordonner, face } from '../js/rendu/themes/peint/objets.js';
 import { pion as pionPeint } from '../js/rendu/themes/peint/pions.js';
 import { etat } from '../js/rendu/themes/peint/etat.js';
-import { casesDeReglages, themeDeReglages, reliefDeReglages, optionsRendu, affichageDeReglages, validerAffichage, CASES_PAR_DEFAUT, AFFICHAGE_PAR_DEFAUT } from '../js/affichage.js';
+import { casesDeReglages, themeDeReglages, detailsDeReglages, reliefDeReglages, optionsRendu, affichageDeReglages, validerAffichage, CASES_PAR_DEFAUT, AFFICHAGE_PAR_DEFAUT } from '../js/affichage.js';
 import { chargerReglages, CLE_REGLAGES } from '../js/stockage.js';
 import { planPublic } from '../js/vue-publique.js';
 import { casesRetirees, nombreCases } from '../js/formes.js';
@@ -307,8 +307,8 @@ const TESTS = [
   ['Thème et Relief : peint et relief par défaut, valeurs inconnues ignorées', () => {
     egal([themeDeReglages({}), themeDeReglages({ theme: 'vectoriel' }), themeDeReglages({ theme: 'pixel' }), themeDeReglages({ theme: 'papier' })], ['peint', 'vectoriel', 'peint', 'peint'], 'thème');
     egal([reliefDeReglages({}), reliefDeReglages({ relief: false }), reliefDeReglages({ relief: 0 })], [true, false, true], 'relief : seul faux l’éteint');
-    egal(optionsRendu({ grille: true, theme: 'vectoriel', relief: false, cases: 25 }), { grille: 0.25, theme: 'vectoriel', relief: false, penombre: 45, flammes: true }, 'optionsRendu');
-    egal(optionsRendu({ grille: false }), { grille: 0, theme: 'peint', relief: true, penombre: 45, flammes: true }, 'ancien réglage « sans grille »');
+    egal(optionsRendu({ grille: true, theme: 'vectoriel', relief: false, cases: 25 }), { grille: 0.25, theme: 'vectoriel', details: 'riches', relief: false, penombre: 45, flammes: true }, 'optionsRendu');
+    egal(optionsRendu({ grille: false }), { grille: 0, theme: 'peint', details: 'riches', relief: true, penombre: 45, flammes: true }, 'ancien réglage « sans grille »');
     egal(themeParNom('vectoriel'), THEMES.vectoriel, 'themeParNom');
     egal(themeParNom('inconnu'), THEMES.peint, 'thème inconnu : peint');
     egal(Object.keys(THEMES), ['peint', 'vectoriel'], 'les thèmes de l’écran');
@@ -328,7 +328,47 @@ const TESTS = [
     egal(a, { taille: 48, grille: true, reperes: true, mode: 'remplir', cases: 30, theme: 'vectoriel', relief: false }, 'tout réglé');
     egal(validerAffichage(a, AFFICHAGE_PAR_DEFAUT), { mode: 'remplir', taille: 48, grille: true, reperes: true, cases: 30, theme: 'vectoriel', relief: false }, 'aller-retour');
     egal(validerAffichage({ theme: 'x', cases: 'beaucoup', relief: 'non' }, AFFICHAGE_PAR_DEFAUT), { mode: 'remplir', taille: 48, grille: true, reperes: true }, 'valeurs invalides : le défaut');
-    egal(optionsRendu(a), { grille: 0.3, theme: 'vectoriel', relief: false, penombre: 45, flammes: true }, 'ce que la table dessine');
+    egal(optionsRendu(a), { grille: 0.3, theme: 'vectoriel', details: 'riches', relief: false, penombre: 45, flammes: true }, 'ce que la table dessine');
+  }],
+
+  ['Détails des sols : riches par défaut, sobres seulement s’ils sont réglés, et ils voyagent jusqu’au dessin', () => {
+    egal([detailsDeReglages({}), detailsDeReglages({ details: 'sobres' }), detailsDeReglages({ details: 'riches' }), detailsDeReglages({ details: 'luxe' })], ['riches', 'sobres', 'riches', 'riches'], 'detailsDeReglages');
+    egal(optionsRendu({ details: 'sobres' }).details, 'sobres', 'optionsRendu');
+    egal(optionsRendu({}).details, 'riches', 'optionsRendu : défaut');
+    const a = affichageDeReglages({ taille: 48, grille: true, details: 'sobres' });
+    egal(a.details, 'sobres', 'affichage : sobres voyage');
+    egal(validerAffichage(a, AFFICHAGE_PAR_DEFAUT).details, 'sobres', 'aller-retour');
+    verifier(!('details' in affichageDeReglages({ taille: 48, grille: true, details: 'riches' })), 'riches (défaut) : non écrit');
+    verifier(!('details' in validerAffichage({ details: 'luxe' }, AFFICHAGE_PAR_DEFAUT)), 'valeur inconnue ignorée');
+    verifier(!('details' in validerAffichage({ details: 'riches' }, AFFICHAGE_PAR_DEFAUT)), 'défaut non gardé');
+    egal(reglagesDe({ echelle: 1.5, taille: 48, grille: true, details: 'sobres' }), { echelle: 1.5, taille: 48, grille: true, details: 'sobres' }, 'chargerReglages garde sobres');
+    egal(reglagesDe({ echelle: 1.5, taille: 48, grille: true, details: 'riches' }), { echelle: 1.5, taille: 48, grille: true }, 'défaut non gardé');
+    egal(reglagesDe({ echelle: 1.5, taille: 48, grille: true, details: 'luxe' }), { echelle: 1.5, taille: 48, grille: true }, 'valeur inconnue : ni gardée ni « inconnue »');
+    THEMES.peint.preparer(ctxJournal().ctx, rect(9, 7, { id: 'd' }), 48, { details: 'sobres' });
+    egal(etat.details, 'sobres', 'preparer range details');
+    THEMES.peint.preparer(ctxJournal().ctx, rect(9, 7, { id: 'd' }), 48);
+    egal(etat.details, 'riches', 'preparer : riches par défaut');
+  }],
+  ['sols : la clé de tuile distingue les détails, et « sobres » garde les sols simples', () => {
+    verifier(cleTuile('pierre', 48, { details: 'sobres' }) !== cleTuile('pierre', 48, { details: 'riches' }), 'clés différentes');
+    egal(cleTuile('pierre', 48), cleTuile('pierre', 48, { details: 'riches' }), 'riches par défaut');
+    const ancien = (X, Y) => { const c = [0, 0, 0]; SOLS_PEINTS.pierre.fn(X, Y, SOLS_PEINTS.pierre.o, c); return c; };
+    let diff = 0;
+    for (let i = 0; i < 30; i++) for (let j = 0; j < 30; j++) {
+      const X = (i + 0.5) * PERIODE / 30, Y = (j + 0.5) * PERIODE / 30;
+      egal(couleurSol('pierre', X, Y, [0, 0, 0], { details: 'sobres' }), ancien(X, Y), 'sobres : la pierre actuelle');
+      const r = couleurSol('pierre', X, Y, [0, 0, 0], { details: 'riches' });
+      if (r.some((v, k) => Math.abs(v - ancien(X, Y)[k]) > 1)) diff++;
+    }
+    verifier(diff > 0, 'riches : la pierre dessinée est différente');
+    // Salle usée : chaque famille garde ses propres réglages, même quand l'autre a été calculée juste avant.
+    for (const sol of ['pierre', 'bois', 'marbre']) {
+      const sobre = couleurSol(sol, 101, 57, [0, 0, 0], { etat: 'usee', details: 'sobres' }).slice();
+      const riche = couleurSol(sol, 101, 57, [0, 0, 0], { etat: 'usee', details: 'riches' }).slice();
+      egal(couleurSol(sol, 101, 57, [0, 0, 0], { etat: 'usee', details: 'sobres' }), sobre, `${sol} usé sobre, après un riche`);
+      egal(couleurSol(sol, 101, 57, [0, 0, 0], { etat: 'usee', details: 'riches' }), riche, `${sol} usé riche, après un sobre`);
+      verifier(riche.every(Number.isFinite), `${sol} usé riche : des nombres`);
+    }
   }],
 
   // --- Dessin complet sur un contexte simulé ---------------------------------------------------------------

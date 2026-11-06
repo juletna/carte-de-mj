@@ -241,8 +241,8 @@ const TESTS_RENDU = [
     }
     verifier(vert > 100 && terre > 15 && mur > 300, `ruine : herbe ${vert}, terre ${terre}, dalles ${mur} sur 1600`);
     let neuf = 0;
-    for (let i = 0; i < 40; i++) for (let j = 0; j < 40; j++) { const c = couleurSol('pierre', (i + 0.5) * PERIODE / 40, (j + 0.5) * PERIODE / 40); if (c[1] > c[0] + 25) neuf++; }
-    egal(neuf, 0, 'une salle neuve n’a aucune herbe');
+    for (let i = 0; i < 40; i++) for (let j = 0; j < 40; j++) { const c = couleurSol('pierre', (i + 0.5) * PERIODE / 40, (j + 0.5) * PERIODE / 40, [0, 0, 0], { details: 'sobres' }); if (c[1] > c[0] + 25) neuf++; }
+    egal(neuf, 0, 'une salle neuve n’a aucune herbe (sols sobres : la pierre dessinée a sa mousse)');
     for (let i = 0; i < 20; i++) { const m = masqueVert(i / 20, 0.3); verifier(m >= 0 && m <= 1, 'le masque est entre 0 et 1'); }
     verifier(Math.abs(masqueVert(0.3, 0.7) - masqueVert(1.3, 1.7)) < 1e-9, 'le masque est périodique');
   }],

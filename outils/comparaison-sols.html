@@ -19,9 +19,12 @@
 </style>
 </head>
 <body>
-<h1>Sol de pierre : actuel ou en relief</h1>
-<p>Prototype : la même surface de 6 × 6 cases, rendue par les deux méthodes.</p>
+<h1>Détails des sols : sobres ou riches</h1>
+<p>La même surface de 6 × 6 cases, rendue par les sols actuels (sobres) et par les sols dessinés (riches). Un sol sans dessin riche reste identique.</p>
 <div class="reglages">
+  <label>Sol
+    <select id="sol"></select>
+  </label>
   <label>Taille d'une case
     <select id="case"><option>48</option><option selected>96</option><option>128</option></select> px
   </label>
@@ -29,15 +32,16 @@
   <span id="temps"></span>
 </div>
 <div class="cotes">
-  <figure><figcaption>Actuel <span>(sols.js)</span></figcaption><canvas id="actuel"></canvas></figure>
-  <figure><figcaption>En relief <span>(sols-relief.js)</span></figcaption><canvas id="relief"></canvas></figure>
+  <figure><figcaption>Sobres <span>(SOLS_PEINTS)</span></figcaption><canvas id="sobres"></canvas></figure>
+  <figure><figcaption>Riches <span>(peint/dessin/)</span></figcaption><canvas id="riches"></canvas></figure>
 </div>
 <script type="module">
-import { calculerTuile } from '../js/rendu/themes/peint/sols.js';
-import { calculerTuileRelief } from '../js/rendu/themes/peint/sols-relief.js';
+import { calculerTuile, CASES_PAR_TUILE } from '../js/rendu/themes/peint/sols.js';
 
 const CASES = 6;
-const choixCase = document.getElementById('case'), choixGrille = document.getElementById('grille'), temps = document.getElementById('temps');
+const SOLS = ['pierre', 'marbre', 'bois', 'terre', 'sable', 'herbe', 'glace', 'roche'];
+const choixSol = document.getElementById('sol'), choixCase = document.getElementById('case'), choixGrille = document.getElementById('grille'), temps = document.getElementById('temps');
+choixSol.innerHTML = SOLS.map((s) => `<option>${s}</option>`).join('');
 
 function toileDe({ cote, data }) {
   const c = document.createElement('canvas');
@@ -64,15 +68,16 @@ function peindre(id, tuile, t) {
 }
 
 function rendre() {
-  const t = Number(choixCase.value);
-  const d0 = performance.now(), actuel = calculerTuile('pierre', t);
-  const d1 = performance.now(), relief = calculerTuileRelief('pierre', t);
+  const t = Number(choixCase.value), sol = choixSol.value;
+  const d0 = performance.now(), sobres = calculerTuile(sol, t, { details: 'sobres' });
+  const d1 = performance.now(), riches = calculerTuile(sol, t, { details: 'riches' });
   const d2 = performance.now();
-  peindre('actuel', actuel, t);
-  peindre('relief', relief, t);
-  temps.textContent = `Calcul d'une tuile de 8 × 8 cases : ${Math.round(d1 - d0)} ms (actuel), ${Math.round(d2 - d1)} ms (relief)`;
+  peindre('sobres', sobres, t);
+  peindre('riches', riches, t);
+  temps.textContent = `Calcul d'une tuile de ${CASES_PAR_TUILE} × ${CASES_PAR_TUILE} cases : ${Math.round(d1 - d0)} ms (sobres), ${Math.round(d2 - d1)} ms (riches)`;
 }
 
+choixSol.addEventListener('change', rendre);
 choixCase.addEventListener('change', rendre);
 choixGrille.addEventListener('change', rendre);
 rendre();

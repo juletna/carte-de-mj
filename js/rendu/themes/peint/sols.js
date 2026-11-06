@@ -10,10 +10,14 @@
  * teinte les pixels, et l'usure ajoute des fissures, des joints sombres et de la mousse (usée), puis la terre et l'herbe qui reprennent le dallage
  * selon un masque de bruit, `masqueVert` (en ruine). Le masque est périodique comme le reste : il est aussi lu par les petits détails (details.js).
  *
+ * Le réglage « Détails des sols » (`details` de la variante) choisit entre deux familles : « riches » (défaut) prend les sols dessinés de peint/dessin/
+ * (SOLS_DESSINES) quand le sol y existe, « sobres » garde les sols de SOLS_PEINTS ci-dessous. L'usure et l'ambiance s'appliquent par-dessus dans les deux cas.
+ *
  * Pour ajouter un sol : une fonction ici, une entrée dans SOLS_PEINTS, et sa couleur de mur dans peint/murs.js.
  */
 import { h2, vbp, fbmp, voroP, lisse } from './bruit.js';
 import { usureDe, teinterSol } from './ambiance.js';
+import { SOLS_DESSINES } from './dessin/index.js';
 
 import { CASES_PAR_TUILE, VIRTUEL, PERIODE } from './tuile.js';
 
@@ -174,11 +178,11 @@ export const SOLS_PEINTS = {
   roche: { fn: dalles, o: { n: m(6), s: 13, contraste: 0.95, a: [34, 32, 36], b: [52, 48, 50], joint: [12, 11, 13] } },
 };
 
-const OPTIONS_USEES = new Map(); // « sol|usure » → les réglages du sol avec son usure (un objet par couple, pas un par pixel)
-const optionsUsees = (nom, def, usure) => {
-  const cle = `${nom}|${usure}`;
-  if (!OPTIONS_USEES.has(cle)) OPTIONS_USEES.set(cle, { ...def.o, usure });
-  return OPTIONS_USEES.get(cle);
+const OPTIONS_USEES = new Map(); // réglages du sol (sobre ou dessiné) → réglages avec chaque usure (un objet par couple, pas un par pixel)
+const optionsUsees = (def, usure) => {
+  if (!OPTIONS_USEES.has(def.o)) OPTIONS_USEES.set(def.o, []);
+  const parUsure = OPTIONS_USEES.get(def.o);
+  return (parUsure[usure] ??= { ...def.o, usure });
 };
 
 /** Mélange `out` vers la couleur `c` de la part `t`. */
@@ -209,34 +213,45 @@ function abimer(X, Y, sol, usure, out) {
   }
 }
 
-/** Salle en ruine : la terre, puis l'herbe, reprennent le sol là où le masque de végétation est fort. */
-function reprendre(X, Y, sol, out) {
+/**
+ * Salle en ruine : la terre, puis l'herbe, reprennent le sol là où le masque de végétation est fort. En mode riche, elles ont les couleurs des
+ * sols dessinés `terre` et `herbe` (s'ils existent), sinon celles des sols sobres.
+ */
+function reprendre(X, Y, sol, out, riches = false) {
   if (sol === 'herbe' || sol === 'glace') return;
   const fx = X / PERIODE, fy = Y / PERIODE, mv = masqueVert(fx, fy);
   if (mv < SEUIL_MOUSSE) return;
   if (mv < SEUIL_TERRE) { vers(out, MOUSSE, ((mv - SEUIL_MOUSSE) / (SEUIL_TERRE - SEUIL_MOUSSE)) * 0.6); return; }
+  const dTerre = riches && SOLS_DESSINES.terre, dHerbe = riches && SOLS_DESSINES.herbe;
   if (sol !== 'terre' && sol !== 'sable') {
-    const d = fbmp(fx, fy, m(6), 64) * 0.6 + vbp(fx, fy, nb(0.22), nb(0.22), 65) * 0.4, k = 0.72 + 0.5 * d;
-    out[0] = 104 * k; out[1] = 80 * k; out[2] = 56 * k;
+    if (dTerre) dTerre.fn(X, Y, dTerre.o, out);
+    else {
+      const d = fbmp(fx, fy, m(6), 64) * 0.6 + vbp(fx, fy, nb(0.22), nb(0.22), 65) * 0.4, k = 0.72 + 0.5 * d;
+      out[0] = 104 * k; out[1] = 80 * k; out[2] = 56 * k;
+    }
   }
   if (mv > SEUIL_HERBE) {
-    const brin = vbp(fx, fy, nb(0.42), nb(0.1), 66) * 0.55 + vbp(fx, fy, nb(0.13), nb(0.13), 67) * 0.45, t = lisse((mv - SEUIL_HERBE) / 0.012);
-    let gr = 74 + 70 * brin, gg = 112 + 78 * brin, gb = 46 + 34 * brin;
-    if (mv < SEUIL_HERBE + 0.008) { gr *= 0.62; gg *= 0.66; gb *= 0.6; } // la lisière de l'herbe est plus sombre
+    const t = lisse((mv - SEUIL_HERBE) / 0.012), sombre = mv < SEUIL_HERBE + 0.008; // la lisière de l'herbe est plus sombre
+    let gr, gg, gb;
+    if (dHerbe) { const c = [0, 0, 0]; dHerbe.fn(X, Y, dHerbe.o, c); [gr, gg, gb] = c; if (sombre) { gr *= 0.62; gg *= 0.66; gb *= 0.6; } }
+    else {
+      const brin = vbp(fx, fy, nb(0.42), nb(0.1), 66) * 0.55 + vbp(fx, fy, nb(0.13), nb(0.13), 67) * 0.45;
+      gr = 74 + 70 * brin; gg = 112 + 78 * brin; gb = 46 + 34 * brin;
+      if (sombre) { gr *= 0.62; gg *= 0.66; gb *= 0.6; }
+    }
     out[0] += (gr - out[0]) * t; out[1] += (gg - out[1]) * t; out[2] += (gb - out[2]) * t;
   }
-  const n = (grain(X, Y, 69) - 0.5) * 10;
-  out[0] += n; out[1] += n; out[2] += n;
+  if (!dTerre) { const n = (grain(X, Y, 69) - 0.5) * 10; out[0] += n; out[1] += n; out[2] += n; } // les sols dessinés ont leur propre grain
 }
 
 /**
  * Couleur (r, g, b) d'un sol au point virtuel (X, Y) ; périodique sur PERIODE. Sert aux tests et au calcul de la tuile.
- * @param {{ambiance?:string, etat?:string}} [variante]  neutre et neuve : le sol tel quel
+ * @param {{ambiance?:string, etat?:string, details?:string}} [variante]  neutre, neuve et riche : le sol tel quel ; `details` 'sobres' prend les sols de SOLS_PEINTS
  */
-export function couleurSol(nom, X, Y, sortie = [0, 0, 0], { ambiance = 'neutre', etat = 'neuve' } = {}) {
-  const def = SOLS_PEINTS[nom] || SOLS_PEINTS.pierre, usure = nom === 'roche' ? 0 : usureDe(etat);
-  def.fn(X, Y, usure ? optionsUsees(nom, def, usure) : def.o, sortie);
-  if (usure) { abimer(X, Y, nom, usure, sortie); if (usure === 2) reprendre(X, Y, nom, sortie); }
+export function couleurSol(nom, X, Y, sortie = [0, 0, 0], { ambiance = 'neutre', etat = 'neuve', details = 'riches' } = {}) {
+  const riches = details === 'riches', def = (riches && SOLS_DESSINES[nom]) || SOLS_PEINTS[nom] || SOLS_PEINTS.pierre, usure = nom === 'roche' ? 0 : usureDe(etat);
+  def.fn(X, Y, usure ? optionsUsees(def, usure) : def.o, sortie);
+  if (usure) { abimer(X, Y, nom, usure, sortie); if (usure === 2) reprendre(X, Y, nom, sortie, riches); }
   return teinterSol(sortie, ambiance);
 }
 
@@ -252,14 +267,14 @@ export function resolutionTuile(t, dpr = 1) {
 }
 
 /**
- * Clé de cache d'une tuile : le sol, la résolution et la `variante` (ambiance et état de la salle ; lot 4 : elles teintent et abîment le sol).
- * @param {{ambiance?:string, etat?:string}} [variante]
+ * Clé de cache d'une tuile : le sol, la résolution et la `variante` (ambiance et état de la salle, qui teintent et abîment le sol ; détails des sols).
+ * @param {{ambiance?:string, etat?:string, details?:string}} [variante]
  */
-export const cleTuile = (sol, resolution, { ambiance = 'neutre', etat = 'neuve' } = {}) => `${sol}|${resolution}|${ambiance}|${etat}`;
+export const cleTuile = (sol, resolution, { ambiance = 'neutre', etat = 'neuve', details = 'riches' } = {}) => `${sol}|${resolution}|${ambiance}|${etat}|${details}`;
 
 /**
  * Calcule les pixels d'une tuile.
- * @param {{ambiance?:string, etat?:string}} [variante]
+ * @param {{ambiance?:string, etat?:string, details?:string}} [variante]
  * @returns {{cote:number, data:Uint8ClampedArray}} `cote` px de côté, RGBA opaque
  */
 export function calculerTuile(sol, resolution, variante = {}) {

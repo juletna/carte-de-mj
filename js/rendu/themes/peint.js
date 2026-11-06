@@ -2,7 +2,7 @@
  * Thème « peint » : le thème par défaut à l'écran. Style « trait colorié » : contour brun irrégulier, aplats nuancés, ombres portées douces,
  * sols riches (tuiles procédurales raccordables), murs en perspective vus du centre de la salle. Rien n'est une image : tout est calculé.
  * Il respecte le contrat des thèmes (voir vectoriel.js) et y ajoute :
- *   preparer(ctx, plan, t, {relief})      appelé par le moteur avant de dessiner une salle : calcule la vue (centre, KP) et la graine (peint/etat.js)
+ *   preparer(ctx, plan, t, {relief, details})      appelé par le moteur avant de dessiner une salle : calcule la vue (centre, KP) et la graine (peint/etat.js)
  *   grille(ctx, plan, t, opacite)         grille en pointillés, d'opacité réglable (0–1)
  *   sources()                             les sources de lumière relevées pendant le dessin du décor (brutes : rendu/lumiere.js `listeSources` les nettoie)
  *   creerCouche(decor, {ambiance})        la couche sombre d'un décor dessiné ; eclairer(ctx, couche, {…}) pose la lumière (peint/lumiere.js)
@@ -44,9 +44,9 @@ const GRILLE_PART = 0.85; // opacité du trait à 100 % du réglage « Grille »
 /**
  * Prépare le dessin d'une salle : le centre de la vue, KP (0 sans relief), la graine tirée de l'identifiant de la salle, la matrice de base.
  * Appelée par le moteur avant `roche` puis au début de `peindre` (la matrice change entre les deux : la marge de roche), et avant chaque image de l'animation.
- * @param {{relief?:boolean, flammes?:boolean}} [options]  flammes = la couche de lumière dessine les flammes : les objets n'ont plus la leur
+ * @param {{relief?:boolean, details?:string, flammes?:boolean}} [options]  details = 'riches' (sols dessinés) ou 'sobres' ; flammes = la couche de lumière dessine les flammes : les objets n'ont plus la leur
  */
-export function preparer(ctx, plan, t, { relief = true, flammes = false } = {}) {
+export function preparer(ctx, plan, t, { relief = true, details = 'riches', flammes = false } = {}) {
   const m = ctx.getTransform?.();
   const valide = m && Number.isFinite(m.a);
   etat.base = valide ? { a: m.a, b: m.b, c: m.c, d: m.d, e: m.e, f: m.f } : IDENTITE;
@@ -56,6 +56,7 @@ export function preparer(ctx, plan, t, { relief = true, flammes = false } = {}) 
   etat.graine = graineDePlan(plan);
   etat.ambiance = plan.ambiance ?? 'neutre';
   etat.etatSalle = plan.etat ?? 'neuve';
+  etat.details = details;
   etat.plan = plan;
   etat.t = t;
   etat.lumieres = [];
@@ -73,7 +74,7 @@ const TUILES_MAX = 40;
 /** La tuile d'un sol pour des cases de `t` px, calculée une fois puis gardée. @returns {{canvas:object, cote:number}|null} */
 function tuile(nom, t) {
   const resolution = resolutionTuile(t, etat.dpr);
-  const variante = { ambiance: etat.ambiance, etat: nom === 'roche' ? 'neuve' : etat.etatSalle }; // la roche autour de la salle ne s'use pas
+  const variante = { ambiance: etat.ambiance, etat: nom === 'roche' ? 'neuve' : etat.etatSalle, details: etat.details }; // la roche autour de la salle ne s'use pas
   const cle = cleTuile(nom, resolution, variante);
   if (!tuiles.has(cle)) {
     if (tuiles.size >= TUILES_MAX) tuiles.delete(tuiles.keys().next().value);

@@ -38,9 +38,9 @@ export function creerEcranTable({ affichage = { ...AFFICHAGE_PAR_DEFAUT }, surCo
 
   function optionsEcran(taille) {
     const { reperes } = ecran.affichage;
-    const { grille, theme, relief, penombre, flammes } = optionsRendu(ecran.affichage);
+    const { grille, theme, details, relief, penombre, flammes } = optionsRendu(ecran.affichage);
     const animer = animationActive({ vue: 'table', flammes, mouvementReduit: mouvementReduit() });
-    return { taille, grille, theme: themeParNom(theme), relief, penombre, vue: 'table', animer, reperes, marques: ecran.caseVisee ? { caseVisee: ecran.caseVisee } : {} };
+    return { taille, grille, theme: themeParNom(theme), details, relief, penombre, vue: 'table', animer, reperes, marques: ecran.caseVisee ? { caseVisee: ecran.caseVisee } : {} };
   }
 
   /** Dessine la carte et confie la scène à la boucle d'animation (qui remplace la précédente). */
