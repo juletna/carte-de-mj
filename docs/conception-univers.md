@@ -203,4 +203,8 @@ stockage, navigation) puis branche le sélecteur après rebase.
 
 Sur une carte image, le MJ superpose la grille et l'ajuste (taille de case, décalage) sur une porte ou un pilier. Le résultat est
 enregistré sur le lieu de l'univers (`grille` du lieu, qui prime sur celle du catalogue). Il permettra ensuite de poser des pions
-sur une carte image. Détails à fixer au lancement de la session.
+sur une carte image.
+
+Réalisé (F4) : `lieu.grille = { case, dx, dy }` en pixels de l'image ; `null` = « pas de grille » même si le catalogue en propose une ; clé absente =
+grille du catalogue, sinon carte d'ambiance. Le message de la table porte la grille effective (trois nombres). À la table, en échelle réelle,
+une case de la carte mesure la case calibrée ; sinon la carte tient dans l'écran. Code : `js/univers-grille.js` (pur), `js/mj/univers-calage.js`.

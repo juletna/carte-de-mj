@@ -56,6 +56,10 @@
   .univers-barre input[type="text"] { max-width: none; }
   #univers-bouton .libelle { display: none; }
   .univers-pastille { width: 26px; height: 26px; }
+  /* Calage : la carte reste en haut de l'écran pendant qu'on règle les curseurs dessous, pour voir la grille bouger. */
+  .univers.en-calage .univers-scene { position: sticky; top: 0; z-index: 2; min-height: 0; background: var(--scene); border-bottom: 1px solid var(--bord); }
+  .univers.en-calage .univers-image { max-height: 38vh; }
+  .univers.en-calage .univers-fil { display: none; }
 }
 
 /* --- Régie de la Présentation : carte d'univers --- */

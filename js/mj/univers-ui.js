@@ -427,6 +427,7 @@ export function creerUniversUI(ctx) {
       zoneCarte.hidden = true;
       return;
     }
+    racine.classList.toggle('en-calage', calage.actif());
     if (calage.actif() && lieu()) panneau.replaceChildren(calage.panneau());
     else panneau.replaceChildren(listeLieux(), ...(lieu() ? [editionLieu(), listePoints(), editionPoint()].filter(Boolean) : []));
     rendreCarte();
