@@ -18,6 +18,7 @@
 import { h } from '../dom.js';
 import { icone } from '../icones.js';
 import { creerSection } from './section.js';
+import { creerChampMulti } from './champ-multi.js';
 import * as modele from '../donjon.js';
 import { pluriel } from '../format.js';
 import { NOMS_SOLS, NOMS_AMBIANCES, NOMS_ETATS_SALLE, NOMS_ECLAIRAGES } from '../schema.js';
@@ -30,7 +31,7 @@ const CHAMPS = [['monstres', 'Monstres'], ['coffres', 'Coffres'], ['pieges', 'Pi
 export function creerSectionAuHasard(ctx) {
   // Gardés le temps de la page.
   // monstres, coffres, pièges : null = automatique ; nouvelleForme : null = pas choisi (voir `formeVoulue`).
-  const reglages = { famille: '', monstres: null, coffres: null, pieges: null, nouvelleForme: null, apparence: {} };
+  const reglages = { familles: [], monstres: null, coffres: null, pieges: null, nouvelleForme: null, apparence: {} };
   /** Le dernier tirage appliqué : sert à « Relancer » et à « Tirage N », tant que la description est encore celle qu'il a écrite. */
   let dernier = null;
 
@@ -63,7 +64,7 @@ export function creerSectionAuHasard(ctx) {
     const reliee = salleReliee(d, id);
     const options = {
       plan: salle.plan, reliee, formes: true, nouvelleForme,
-      familles: reglages.famille ? [reglages.famille] : [], typesPresents: typesDesAutresSalles(d, id),
+      familles: [...reglages.familles], typesPresents: typesDesAutresSalles(d, id),
       monstres: reglages.monstres, coffres: reglages.coffres, pieges: reglages.pieges, apparence: reglages.apparence,
     };
     const r = genererSalle(options);
@@ -106,17 +107,18 @@ export function creerSectionAuHasard(ctx) {
 
     // Famille : « comme le donjon » quand les autres salles en ont, sinon le hasard.
     const presentes = famillesPresentes(typesDesAutresSalles(d, sel.id));
-    const famille = h('select', { 'aria-label': 'Type de monstres' },
-      h('option', { value: '', textContent: presentes.length ? `Auto · comme le donjon (${presentes.map((f) => FAMILLES[f].libelle).join(', ')})` : 'Auto' }),
-      ...Object.entries(FAMILLES).map(([cle, f]) => h('option', { value: cle, textContent: f.libelle })));
-    famille.value = reglages.famille;
-    famille.addEventListener('change', () => { reglages.famille = famille.value; });
+    const famille = creerChampMulti({
+      titre: 'Type de monstres', icone: 'creature',
+      auto: presentes.length ? `Auto · comme le donjon (${presentes.map((f) => FAMILLES[f].libelle).join(', ')})` : 'Auto',
+      options: Object.entries(FAMILLES).map(([cle, f]) => ({ valeur: cle, libelle: f.libelle })),
+      valeurs: reglages.familles, surChangement: (valeurs) => { reglages.familles = valeurs; },
+    });
 
     const champs = h('div', { className: 'hasard-salle-champs' }, ...CHAMPS.map(([cle, libelle]) => {
       const [, min, max] = BORNES_SALLE[cle];
       const entree = h('input', { type: 'number', inputMode: 'numeric', min: String(min), max: String(max), step: '1', placeholder: 'Auto', value: reglages[cle] === null ? '' : String(reglages[cle]), 'aria-label': `${libelle} (de ${min} à ${max}, vide : automatique)` });
-      // Vide = automatique ; un nombre est imposé (0 compris) ; vider le champ, le bouton « Auto » ou ↓ sur le minimum le remet en automatique.
-      const auto = h('button', { type: 'button', className: 'hasard-salle-auto', textContent: 'Auto', title: `${libelle} : revenir en automatique`, 'aria-label': `${libelle} : revenir en automatique` });
+      // Vide = automatique ; un nombre est imposé (0 compris) ; vider le champ, le picto ↺ ou ↓ sur le minimum le remet en automatique.
+      const auto = h('button', { type: 'button', className: 'hasard-salle-auto', title: `${libelle} : revenir en automatique`, 'aria-label': `${libelle} : revenir en automatique` }, icone('reinitialiser'));
       const majAuto = () => { auto.hidden = entree.value === ''; };
       const enAuto = () => { reglages[cle] = null; entree.value = ''; majAuto(); };
       entree.addEventListener('input', majAuto);
@@ -156,7 +158,7 @@ export function creerSectionAuHasard(ctx) {
 
     const generee = dernier && dernier.salle === sel.id && s?.texte === dernier.texte ? dernier : null;
     const corps = [
-      h('label', { className: 'hasard-salle-champ' }, h('span', { className: 'hasard-salle-etiquette', textContent: 'Type de monstres' }), famille),
+      h('div', { className: 'hasard-salle-champ' }, h('span', { className: 'hasard-salle-etiquette', textContent: 'Type de monstres' }), famille.element),
       champs, noteAuto, apparence, forme, aide,
     ];
     const bouton = h('button', { type: 'button', className: 'btn' }, icone('de'), 'Générer');
