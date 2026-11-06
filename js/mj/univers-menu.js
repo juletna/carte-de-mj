@@ -4,6 +4,7 @@
  */
 import { h, bouton, deuxTemps } from '../dom.js';
 import { dureeNotification } from '../univers-vue.js';
+import { telephone } from '../telephone.js';
 
 /**
  * Un bouton « ⋯ » qui ouvre une courte liste d'actions. Les éléments : `{ libelle, faire }`, `{ libelle, confirmation, faire, danger: true }`
@@ -71,7 +72,7 @@ export function creerNotifications(zone) {
     const x = bouton('✕', retirer, 'discret petit univers-notification-x');
     x.setAttribute('aria-label', 'Fermer le message');
     carte.append(x);
-    while (zone.children.length >= 3) zone.firstChild.remove();
+    while (zone.children.length >= (telephone() ? 2 : 3)) zone.firstChild.remove(); // au plus deux sur téléphone
     zone.append(carte);
     minuteur = setTimeout(retirer, dureeNotification(texte, { erreur, action: !!action }));
   }

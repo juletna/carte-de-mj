@@ -107,8 +107,8 @@ export function creerSelection(ctx) {
       h('div', { className: 'nouvelle-salle' },
         h('label', { htmlFor: 'description-nouvelle', textContent: 'Décrire la nouvelle salle (facultatif)' }), description,
         h('p', { className: 'note', textContent: escalier
-          ? `Même langage que dans le Donjon. Laisse vide pour une salle de 6 × 6 cases. Un escalier qui ${porte.sens === 'monte' ? 'descend' : 'monte'} est ajouté si la description n’en place pas.`
-          : 'Même langage que dans le Donjon. Laisse vide pour une salle de 6 × 6 cases. Une porte de retour est ajoutée sur le mur opposé si la description n’en place pas.' }),
+          ? `Même langage que dans Donjons. Laisse vide pour une salle de 6 × 6 cases. Un escalier qui ${porte.sens === 'monte' ? 'descend' : 'monte'} est ajouté si la description n’en place pas.`
+          : 'Même langage que dans Donjons. Laisse vide pour une salle de 6 × 6 cases. Une porte de retour est ajoutée sur le mur opposé si la description n’en place pas.' }),
         nom),
       caseGroupe(s),
       h('div', { className: 'actions' }, bouton('Créer la salle et y passer', () => creerEtPasser(porte))),
