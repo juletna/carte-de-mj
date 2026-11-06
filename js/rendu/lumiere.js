@@ -54,14 +54,17 @@ export const vacille = (t, s) => 0.5 + 0.22 * Math.sin(t * 7.1 + s) + 0.15 * Mat
 
 const COULEUR_PAR_DEFAUT = '255,190,110';
 const RGB = /^\d{1,3},\d{1,3},\d{1,3}$/;
+const HEX = /^#[0-9a-fA-F]{6}$/;
+/** Les couleurs de la flamme animée quand la source n'en précise pas : l'orange d'origine. */
+export const FLAMME_PAR_DEFAUT = { flamme: '#f2862a', coeur: '#ffe07a' };
 
 /**
  * La liste des sources à éclairer, à partir de ce que les objets ont déclaré (`etat.lumieres`) : ignore les sources invalides (position,
  * rayon ou intensité absents), borne l'intensité (0–1), remplace une couleur illisible, ajoute `graine` (la phase du vacillement) et trie
  * (y puis x) pour que le rendu ne dépende pas de l'ordre de dessin. Deux sources identiques au pixel près n'en font qu'une.
- * @param {object[]} brutes  { x, y, r, c?, k?, s?, petite? } en pixels, dans le repère de la salle
+ * @param {object[]} brutes  { x, y, r, c?, k?, s?, petite?, f?, m? } ; f = { flamme, coeur } (deux couleurs '#rrggbb' de la flamme animée ; orange par défaut), m = feu magique (pulse plus lentement) en pixels, dans le repère de la salle
  * @param {{largeur:number, hauteur:number, marge?:number}} [bornes]  la salle en pixels ; une source plus loin que `marge` de ses bords est écartée
- * @returns {{x:number, y:number, r:number, c:string, k:number, s:number, petite:boolean, graine:number}[]}
+ * @returns {{x:number, y:number, r:number, c:string, k:number, s:number, petite:boolean, f:{flamme:string, coeur:string}, m:boolean, graine:number}[]}
  */
 export function listeSources(brutes, bornes) {
   const vues = new Set(), liste = [];
@@ -77,6 +80,7 @@ export function listeSources(brutes, bornes) {
     liste.push({
       x: b.x, y: b.y, r: b.r, c: typeof b.c === 'string' && RGB.test(b.c) ? b.c : COULEUR_PAR_DEFAUT,
       k: Number.isFinite(b.k) ? Math.max(0, Math.min(1, b.k)) : 0.5, s: b.s > 0 ? b.s : 0, petite: b.petite === true,
+      f: HEX.test(b.f?.flamme) && HEX.test(b.f?.coeur) ? { flamme: b.f.flamme, coeur: b.f.coeur } : FLAMME_PAR_DEFAUT, m: b.m === true,
       graine: b.x * 0.13 + b.y * 0.07,
     });
   }

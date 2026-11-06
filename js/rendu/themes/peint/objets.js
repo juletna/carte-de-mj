@@ -23,6 +23,7 @@ import { chemin, cercle, encre, trait, dl, dr, ton, centre, rectPts, arrondi, EN
 import { sensDuCoin } from '../commun.js';
 import { DESSINS as DETAILS } from './details.js';
 import * as vectoriel from '../vectoriel.js';
+import { teinteFlamme, RAYON_MAGIQUE, fumee, cendres } from '../../feu.js';
 
 const PIERRE = [40, 6, 60], PIERRE_SOMBRE = [40, 5, 46], MARBRE = [40, 8, 74];
 const BOIS = [28, 45, 38], BOIS_SOMBRE = [26, 42, 26], BOIS_CLAIR = [30, 48, 50];
@@ -78,17 +79,34 @@ function traits(ctx, F, v0, v1, n, couleur = 'rgba(30,18,8,0.55)', ep = 0.9) {
 }
 
 /** Flamme fixe (tant que la couche de lumière n'anime pas les flammes) : halo chaud et goutte de feu, `s` px de haut. */
-export function flamme(ctx, V, x, y, h, s, r) {
+export function flamme(ctx, V, x, y, h, s, r, teinte = teinteFlamme()) {
   if (etat.flammesAnimees) return;
   const [fx, fy] = V.haut(x, y, h);
   const g = ctx.createRadialGradient(fx, fy, 0, fx, fy, s * 4);
-  g.addColorStop(0, 'rgba(255,190,90,0.38)'); g.addColorStop(1, 'rgba(255,150,40,0)');
+  g.addColorStop(0, `rgba(${teinte.halo[0]},0.38)`); g.addColorStop(1, `rgba(${teinte.halo[1]},0)`);
   ctx.beginPath(); ctx.arc(fx, fy, s * 4, 0, 7); ctx.fillStyle = g; ctx.fill();
   ctx.beginPath();
   ctx.moveTo(fx, fy - s * 1.5);
   ctx.quadraticCurveTo(fx + s * 0.9, fy - s * 0.3, fx, fy + s * 0.5);
   ctx.quadraticCurveTo(fx - s * 0.9, fy - s * 0.3, fx, fy - s * 1.5);
-  encre(ctx, dl(ctx, fx, fy - s * 1.5, fx, fy + s * 0.5, '#fff0b0', '#ff8a2a'), 0.6);
+  encre(ctx, dl(ctx, fx, fy - s * 1.5, fx, fy + s * 0.5, teinte.clair, teinte.vif), 0.6);
+}
+
+/**
+ * Déclare la source de lumière d'un feu, aux couleurs de sa variante : `base` est la source d'origine (orange) ; une variante colorée en change la couleur
+ * (`c`), les couleurs de la flamme animée (`f`) et, pour un feu magique, la rend plus large et pulsée (`m`). Pour la variante normale, rien ne change.
+ */
+function lumiereFeu(V, x, y, h, base, teinte) {
+  V.lumiere(x, y, h, { ...base, c: teinte.c ?? base.c, r: base.r * (teinte.magique ? RAYON_MAGIQUE : 1), f: { flamme: teinte.flamme, coeur: teinte.coeur }, m: teinte.magique });
+}
+
+/** Le bout d'un feu éteint, au point (x, y) à la hauteur h : un moignon charbonneux, quelques cendres et un mince filet de fumée (`s` px : la taille de la flamme qu'il remplace). */
+function feuEteint(ctx, V, x, y, h, s) {
+  const [fx, fy] = V.haut(x, y, h);
+  ctx.beginPath(); ctx.ellipse(fx, fy - s * 0.1, s * 0.55, s * 0.4, 0, 0, 7);
+  encre(ctx, dr(ctx, fx, fy - s * 0.1, s * 0.55, '#4a423c', '#1c1714'), 0.8);
+  cendres(ctx, fx + s * 0.15, fy - s * 0.2, s * 0.3, s * 0.2);
+  fumee(ctx, fx, fy - s * 0.4, s * 3.2, { largeur: Math.max(0.9, s * 0.18) });
 }
 
 /** Le rocher : un petit bloc irrégulier, bas, au sommet plus étroit (aussi utilisé par les débris). */
@@ -415,8 +433,10 @@ export const objets = {
     poly(ctx, [[bx - t * 0.1, by - t * 0.12], [bx + t * 0.1, by - t * 0.12], [bx + t * 0.06, by + t * 0.02], [bx - t * 0.06, by + t * 0.02]]);
     encre(ctx, dl(ctx, bx - t * 0.1, by, bx + t * 0.1, by, '#8a7f73', '#2e2823'), 1.3);
     const [px, py] = [0, yMur + t * 0.1]; // la flamme est un peu en avant du mur
-    V.lumiere(px, py, 0.7, { s: t * 0.13, r: t * 3, c: '255,170,80', k: 0.6 });
-    flamme(ctx, V, px, py, 0.7, t * 0.12);
+    const T = teinteFlamme(o);
+    if (T.eteint) { feuEteint(ctx, V, px, py, 0.7, t * 0.12); return; }
+    lumiereFeu(V, px, py, 0.7, { s: t * 0.13, r: t * 3, c: '255,170,80', k: 0.6 }, T);
+    flamme(ctx, V, px, py, 0.7, t * 0.12, undefined, T);
   },
 
   debris(ctx, w, h, t, o) {
@@ -496,7 +516,7 @@ export const objets = {
 
   brasero(ctx, w, h, t, o) {
     // Une vasque de fer sur trois pieds, pleine de braises : la source de lumière la plus forte du mobilier après le feu de camp.
-    const { V, r } = preparerObjet(ctx, o), R = Math.min(w, h) * 0.34, hb = 0.13, h1 = 0.28, k = t / 48;
+    const { V, r } = preparerObjet(ctx, o), R = Math.min(w, h) * 0.34, hb = 0.13, h1 = 0.28, k = t / 48, T = teinteFlamme(o);
     for (let i = 0; i < 3; i++) {
       const a = (i / 3) * 6.28 + 0.5;
       ctx.beginPath(); ctx.moveTo(Math.cos(a) * R * 1.2, Math.sin(a) * R * 1.2); ctx.lineTo(...V.haut(Math.cos(a) * R * 0.75, Math.sin(a) * R * 0.75, hb));
@@ -508,16 +528,17 @@ export const objets = {
       cercle(ctx, 0, 0, R * 0.8, r, 0.3); encre(ctx, '#160f0b', 1);
       for (let i = 0; i < 11; i++) {
         const a = i * 2.4, d = (i % 4) * R * 0.17, x = Math.cos(a) * d, y = Math.sin(a) * d, rr = R * (0.16 + r() * 0.08);
-        cercle(ctx, x, y, rr, r, 0.3); encre(ctx, dr(ctx, x, y, rr, ['#ffd27a', '#ff8a3a', '#c43a1a'][i % 3], '#4a140a'), 0.7);
+        cercle(ctx, x, y, rr, r, 0.3); encre(ctx, dr(ctx, x, y, rr, T.braises[i % 3], T.contourBraise), 0.7);
       }
     });
-    V.lumiere(0, 0, h1, { s: R * 0.8, r: t * 4.4, c: '255,150,60', k: 0.7 });
-    flamme(ctx, V, 0, 0, h1, R * 0.7);
+    if (T.eteint) { feuEteint(ctx, V, 0, 0, h1, R * 0.5); return; }
+    lumiereFeu(V, 0, 0, h1, { s: R * 0.8, r: t * 4.4, c: '255,150,60', k: 0.7 }, T);
+    flamme(ctx, V, 0, 0, h1, R * 0.7, undefined, T);
   },
 
   bougies(ctx, w, h, t, o) {
     // Trois bougies sur une soucoupe : des flammes minuscules, une lueur douce.
-    const { V, r } = preparerObjet(ctx, o);
+    const { V, r } = preparerObjet(ctx, o), T = teinteFlamme(o);
     cercle(ctx, 0, 0, t * 0.24, r, 0.3); encre(ctx, dr(ctx, 0, 0, t * 0.24, '#8b7f6f', '#3e362e'), 0.9);
     const cires = [0, 1, 2].map((i) => {
       const a = (i / 3) * 6.28 + 0.6, d = t * 0.1;
@@ -525,8 +546,14 @@ export const objets = {
     });
     ordonner(V, cires.map((b) => ({ x: b.x, y: b.y, dessiner: () => {
       V.cylindre(ctx, r, b.x, b.y, b.rr, 0, b.hb, [44, 45, 84], () => { cercle(ctx, b.x, b.y, b.rr, r, 0.15); encre(ctx, dr(ctx, b.x, b.y, b.rr, '#fffaf0', '#d6c69e'), 0.7); });
-      V.lumiere(b.x, b.y, b.hb, { s: t * 0.07, r: t * 1.5, c: '255,190,110', k: 0.26, petite: true });
-      flamme(ctx, V, b.x, b.y, b.hb, t * 0.06);
+      if (T.eteint) { // une mèche noircie et un filet de fumée minuscule
+        const [mx, my] = V.haut(b.x, b.y, b.hb);
+        ctx.beginPath(); ctx.arc(mx, my, Math.max(1, t * 0.018), 0, 7); ctx.fillStyle = '#1c1714'; ctx.fill();
+        fumee(ctx, mx, my - t * 0.02, t * 0.22, { largeur: Math.max(0.7, t * 0.014) });
+        return;
+      }
+      lumiereFeu(V, b.x, b.y, b.hb, { s: t * 0.07, r: t * 1.5, c: '255,190,110', k: 0.26, petite: true }, T);
+      flamme(ctx, V, b.x, b.y, b.hb, t * 0.06, undefined, T);
     } })));
   },
 
@@ -572,20 +599,31 @@ export const objets = {
 
   feudecamp(ctx, w, h, t, o) {
     // Un cercle de pierres, des bûches en étoile, des cendres et une grande flamme : la plus forte lumière du mobilier.
-    const { V, r } = preparerObjet(ctx, o), s = Math.min(w, h), k = t / 48;
+    const { V, r } = preparerObjet(ctx, o), s = Math.min(w, h), k = t / 48, T = teinteFlamme(o);
     cercle(ctx, 0, 0, s * 0.4, r, 1); ctx.fillStyle = 'rgba(30,22,16,0.75)'; ctx.fill();
     V.auNiveau(ctx, 0.04, () => {
       for (const a of [0.3, 1.9, 3.6]) {
         const lx = Math.cos(a) * s * 0.28, ly = Math.sin(a) * s * 0.28;
-        ctx.beginPath(); ctx.moveTo(-lx, -ly); ctx.lineTo(lx, ly); ctx.lineCap = 'round'; trait(ctx, ENCRE, 9 * k); trait(ctx, '#7a4a24', 6.5 * k); ctx.lineCap = 'butt';
+        ctx.beginPath(); ctx.moveTo(-lx, -ly); ctx.lineTo(lx, ly); ctx.lineCap = 'round'; trait(ctx, ENCRE, 9 * k); trait(ctx, T.eteint ? '#3a2c24' : '#7a4a24', 6.5 * k); ctx.lineCap = 'butt';
         ctx.beginPath(); ctx.arc(lx, ly, 3 * k, 0, 7); ctx.fillStyle = '#c99a5e'; ctx.fill();   // le bout scié
       }
     });
     const pierres = [];
     for (let i = 0; i < 10; i++) { const a = (i / 10) * 6.28; pierres.push({ x: Math.cos(a) * s * 0.42, y: Math.sin(a) * s * 0.42, R: s * (0.085 + r() * 0.03), c: [35 + ((r() * 8) | 0), 6, 46 + ((r() * 12) | 0)] }); }
     ordonner(V, pierres.map((p) => ({ x: p.x, y: p.y, dessiner: () => rocher(ctx, V, r, p.x, p.y, p.R, 0.07, p.c) })));
-    V.lumiere(0, 0, 0.08, { s: t * 0.3, r: t * 5.2, c: '255,150,60', k: 0.85 });
-    flamme(ctx, V, 0, 0, 0.08, t * 0.26);
+    if (T.eteint) { // des cendres sur le lit de braises éteint, un mince filet de fumée
+      const [cx, cy] = V.haut(0, 0, 0.05);
+      cendres(ctx, cx, cy, s * 0.3, s * 0.22);
+      fumee(ctx, cx, cy - s * 0.05, t * 0.9, { largeur: Math.max(1, t * 0.03) });
+      return;
+    }
+    if (T.c) { // les bûches rougeoient de la couleur du feu
+      const [cx, cy] = V.haut(0, 0, 0.05), g = ctx.createRadialGradient(cx, cy, 0, cx, cy, s * 0.36);
+      g.addColorStop(0, `rgba(${T.halo[0]},0.7)`); g.addColorStop(1, `rgba(${T.halo[1]},0)`);
+      ctx.beginPath(); ctx.arc(cx, cy, s * 0.36, 0, 7); ctx.fillStyle = g; ctx.fill();
+    }
+    lumiereFeu(V, 0, 0, 0.08, { s: t * 0.3, r: t * 5.2, c: '255,150,60', k: 0.85 }, T);
+    flamme(ctx, V, 0, 0, 0.08, t * 0.26, undefined, T);
   },
 
   flaque(ctx, w, h, t, o) {

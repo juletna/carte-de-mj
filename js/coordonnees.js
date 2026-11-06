@@ -6,6 +6,7 @@
  */
 import { estHorizontal } from './murs.js';
 import { nomAffiche } from './parseur/lexique.js';
+import { nomVariante } from './catalogue.js';
 
 /** Numéro de colonne (à partir de 0) → lettres : 0 → « A », 26 → « AA ». */
 export function lettreColonne(x) {
@@ -45,5 +46,5 @@ export const libelleDePorte = (p) => `${p.type} · mur ${p.mur}, repère ${reper
 export function libelleSelection({ genre, element: e }, nomCreature = (k) => `${nomAffiche(k.type)} ${k.numero}`) {
   if (genre === 'porte') return libelleDePorte(e);
   if (genre === 'creature') return `${nomCreature(e)} · ${nomCase(e.x, e.y)}`;
-  return `${nomAffiche(e.type)} · ${nomCase(e.x, e.y)}`;
+  return `${nomAffiche(e.type)}${e.variante ? ` ${nomVariante(e.type, e.variante)}` : ''} · ${nomCase(e.x, e.y)}`;
 }

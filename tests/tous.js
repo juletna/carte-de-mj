@@ -48,6 +48,7 @@ import { executer as executerPeint } from './peint.test.js';
 import { executer as executerAmbiance } from './ambiance.test.js';
 import { executer as executerLumiere } from './lumiere.test.js';
 import { executer as executerObjetsNouveaux } from './objets-nouveaux.test.js';
+import { executer as executerVariantes } from './variantes.test.js';
 import { executer as executerEscaliers } from './escaliers.test.js';
 import { executer as executerUnivers } from './univers.test.js';
 import { executer as executerOutilsCartes } from './outils-cartes.test.js';
@@ -67,7 +68,7 @@ export const SUITES = [
   executerThemes, executerReferences, executerOutils, executerMurs, executerCoordonnees, executerSchema,
   executerGeometrie, executerAffichage, executerVisibilite, executerParseurCommun, executerMesuresImpression,
   executerHistorique, executerMiseEnPage, executerRegie, executerStockage, executerContratFiche, executerCatalogue,
-  executerVuePublique, executerProtocoleTable, executerFicheDes, executerFicheJeu, executerFicheBase, executerRail, executerPeint, executerLumiere, executerAmbiance, executerObjetsNouveaux, executerEscaliers,
+  executerVuePublique, executerProtocoleTable, executerFicheDes, executerFicheJeu, executerFicheBase, executerRail, executerPeint, executerLumiere, executerAmbiance, executerObjetsNouveaux, executerVariantes, executerEscaliers,
   executerUnivers, executerOutilsCartes,
   executerUniversPartie,
   executerBibliotheque,

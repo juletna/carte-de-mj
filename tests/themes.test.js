@@ -9,7 +9,7 @@ import * as peint from '../js/rendu/themes/peint.js';
 import * as commun from '../js/rendu/themes/commun.js';
 import { tracerSol, dessinerMursDecoupes } from '../js/rendu/trace.js';
 import { nombreCases } from '../js/formes.js';
-import { OBJETS, CREATURES } from '../js/catalogue.js';
+import { OBJETS, CREATURES, variantesDe } from '../js/catalogue.js';
 import { verifier, egal, executerSuite } from './mini-test.js';
 
 const THEMES = { vectoriel, papier, peint };
@@ -70,9 +70,12 @@ const TESTS = [
   ['chaque dessin d’objet s’exécute, à plusieurs tailles, dans chaque thème', () => {
     for (const [nom, theme] of Object.entries(THEMES)) {
       for (const type of TYPES) {
-        for (const [w, h, t] of [[48, 48, 48], [96, 48, 48], [48, 144, 48], [10, 10, 10]]) {
-          try { theme.objets[type](ctxPermissif(), w, h, t, { type, l: w / t, h: h / t, rotation: 0 }); }
-          catch (e) { throw new Error(`${nom} · ${type} ${w}×${h} : ${e.message}`); }
+        // Chaque variante déclarée au catalogue est dessinée par chaque thème (ou, à défaut, l'objet par défaut) : rien ne plante.
+        for (const variante of [undefined, ...variantesDe(type).map((v) => v.id), 'inconnue']) {
+          for (const [w, h, t] of [[48, 48, 48], [96, 48, 48], [48, 144, 48], [10, 10, 10]]) {
+            try { theme.objets[type](ctxPermissif(), w, h, t, { type, l: w / t, h: h / t, rotation: 0, variante }); }
+            catch (e) { throw new Error(`${nom} · ${type} ${variante ?? ''} ${w}×${h} : ${e.message}`); }
+          }
         }
       }
     }

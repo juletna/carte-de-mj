@@ -30,7 +30,7 @@
  * pour nord/sud, du nord vers le sud pour est/ouest).
  */
 import { PORTES, COULEURS } from './parseur/lexique.js';
-import { OBJETS, CREATURES } from './catalogue.js';
+import { OBJETS, CREATURES, varianteConnue, varianteParDefaut } from './catalogue.js';
 import { normaliserForme, surLeSol } from './formes.js';
 import { MURS, longueurMur } from './murs.js';
 
@@ -126,8 +126,14 @@ export function validerPlan(brut) {
     if (!entier(o.x) || !entier(o.y) || o.x < 0 || o.y < 0 || o.x + l > W || o.y + h > L || !surLeSol(plan, o.x, o.y, l, h)) {
       return erreurs.push(`objet ${i + 1} (${o.type}) : hors de la salle`);
     }
+    /** `variante` : gardée si elle est connue du type et n'est pas la défaut ; sinon retirée (avec un avertissement quand elle est inconnue). */
+    const choixVariante = (obj, n) => {
+      if (obj.variante === undefined || obj.variante === null) return {};
+      if (!varianteConnue(obj.type, obj.variante)) { signaler(`objet ${n + 1} : variante`, obj.variante, 'retirée'); return {}; }
+      return obj.variante === varianteParDefaut(obj.type) ? {} : { variante: obj.variante };
+    };
     const rotation = ((Math.round((Number(o.rotation) || 0) / 90) * 90) % 360 + 360) % 360;
-    plan.objets.push({ id: String(o.id || `o${i + 1}`), type: o.type, x: o.x, y: o.y, l, h, rotation, ...(o.type === 'escalier' && o.sens === 'monte' ? { sens: 'monte' } : {}), ...marqueCache(o) });
+    plan.objets.push({ id: String(o.id || `o${i + 1}`), type: o.type, x: o.x, y: o.y, l, h, rotation, ...(o.type === 'escalier' && o.sens === 'monte' ? { sens: 'monte' } : {}), ...choixVariante(o, i), ...marqueCache(o) });
   });
 
   const numeros = {};

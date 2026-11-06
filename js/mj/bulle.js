@@ -12,6 +12,7 @@ import { telephone } from '../telephone.js';
 import { $, h, bouton, deuxTemps } from '../dom.js';
 import { OPPOSE } from '../murs.js';
 import { icone } from '../icones.js';
+import { variantesDe, varianteDe, varianteParDefaut, nomVariante } from '../catalogue.js';
 
 export function creerBulle(ctx) {
   const { etat } = ctx;
@@ -122,6 +123,22 @@ export function creerBulle(ctx) {
           contenu.push(h('div', { className: 'ligne-relier' }, choix, relier));
         }
       }
+    }
+
+    // Une variante (torche éteinte, flamme bleue…) : une liste de l'aspect de l'objet, annulable comme tout changement du plan.
+    const variantes = trouve.genre === 'objet' ? variantesDe(el.type) : [];
+    if (variantes.length > 1) {
+      const choix = h('select', { id: 'variante-choix', 'aria-label': 'Aspect', title: 'Aspect de l’objet' },
+        ...variantes.map((v) => h('option', { value: v.id, textContent: nomVariante(el.type, v.id), selected: v.id === varianteDe(el) })));
+      choix.addEventListener('change', () => {
+        const objets = s.plan.objets.map((o) => {
+          if (o.id !== el.id) return o;
+          const { variante: _, ...sans } = o;
+          return choix.value === varianteParDefaut(o.type) ? sans : { ...sans, variante: choix.value };
+        });
+        ctx.modifierPlan({ ...s.plan, objets }, { garderSelection: true });
+      });
+      contenu.push(h('div', { className: 'ligne-relier' }, h('label', { htmlFor: 'variante-choix', textContent: 'Aspect' }), choix));
     }
 
     // Cacher / supprimer : sur toute la sélection. Un seul clic pour supprimer (« Annuler » rattrape une erreur), sauf une

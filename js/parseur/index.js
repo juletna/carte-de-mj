@@ -22,8 +22,11 @@ import {
 import { analyserPosition } from './positions.js';
 import { construirePlan } from './placement.js';
 import { ECHELLE_PAR_DEFAUT } from '../affichage.js';
+import { variantesDe, variantePourMot, varianteParDefaut } from '../catalogue.js';
 
 // Quantité retenue pour un pluriel sans nombre (« des torches »), selon la zone par défaut.
+/** Mots qui introduisent la couleur d'un feu (« à flamme bleue », « de feu vert ») : lus avec elle, jamais signalés. */
+const LIAISONS_VARIANTE = new Set(['a', 'au', 'aux', 'de', 'd', 'en', 'flamme', 'flammes', 'feu', 'feux']);
 const QUANTITE_PLURIEL = { grille: 4, perimetre: 4, aleatoire: 5 };
 
 /**
@@ -92,9 +95,17 @@ export function analyserProposition(prop, intentions, ignores) {
     }
 
     // Adjectifs après le nom : taille, couleur, camp (« deux dragons rouges hostiles »).
-    let couleur = null, camp = creature ? trouve.def.camp : null, sens = null;
-    for (let j = i + 1; j <= i + 3 && j < mots.length; j++) {
+    let couleur = null, camp = creature ? trouve.def.camp : null, sens = null, variante = null;
+    const avecVariantes = !creature && variantesDe(trouve.def.type).length > 0;
+    for (let j = i + 1; j <= i + 4 && j < mots.length; j++) {
       const m = mots[j], sing = m.replace(/s$/, '');
+      if (avecVariantes) {
+        // « une torche à flamme bleue », « un brasero de feu vert » : les mots de liaison se lisent avec la variante qui les suit.
+        let q = j;
+        while (q < mots.length && LIAISONS_VARIANTE.has(mots[q])) q++;
+        const v = q < mots.length ? variantePourMot(trouve.def.type, mots[q]) : null;
+        if (v) { for (let k = j; k <= q; k++) utilises.add(k); variante = v; j = q; continue; }
+      }
       if (ADJ_GRAND.has(m)) { taille = 1; utilises.add(j); continue; }
       if (ADJ_CACHE.has(m)) { cache = true; utilises.add(j); continue; }
       if (!creature && ADJ_DECOR.has(m)) { utilises.add(j); continue; }
@@ -118,6 +129,7 @@ export function analyserProposition(prop, intentions, ignores) {
     if (creature) Object.assign(intention, { camp, couleur });
     if (cache) intention.cache = true;
     if (sens === 'monte') intention.sens = 'monte';
+    if (variante && variante !== varianteParDefaut(trouve.def.type)) intention.variante = variante;
     intentions.push(intention);
   }
 

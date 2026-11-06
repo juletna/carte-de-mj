@@ -24,6 +24,7 @@ import { creerMiniPlan } from './miniplan.js';
 import { carteFiche, carteJoueur } from './carte-personnage.js';
 import { nomCase, libelleDePorte } from './coordonnees.js';
 import { nomAffiche } from './parseur/lexique.js';
+import { nomVariante } from './catalogue.js';
 import { creerMicro } from './voix.js';
 import { affichageDeReglages, optionsRendu } from './affichage.js';
 import { telephone, activerOnglets, marquerDefilement, tailleQuiTient } from './telephone.js';
@@ -399,7 +400,7 @@ export function demarrerRegie() {
     const marque = (e) => (!e.cache ? '' : pres.estRevele(p, s.id, e.id) ? ' · caché, révélé' : ' · caché');
     const elements = [
       ...s.plan.creatures.map((k) => boutonListe('creature', k, `${selection.nomPion(k)} · ${nomCase(k.x, k.y)}${k.etat ? ` · ${pres.LIBELLES_ETAT[k.etat]}` : ''}${marque(k)}`, !pres.estDevoile(p, s.id, k))),
-      ...s.plan.objets.map((o) => boutonListe('objet', o, `${nomAffiche(o.type)} · ${nomCase(o.x, o.y)}${marque(o)}`, !pres.estDevoile(p, s.id, o))),
+      ...s.plan.objets.map((o) => boutonListe('objet', o, `${nomAffiche(o.type)}${o.variante ? ` ${nomVariante(o.type, o.variante)}` : ''} · ${nomCase(o.x, o.y)}${marque(o)}`, !pres.estDevoile(p, s.id, o))),
     ];
     $('nb-elements').textContent = `(${elements.length})`;
     $('liste-elements').replaceChildren(...(elements.length ? elements : [h('li', { className: 'note', textContent: 'Aucun pion ni objet dans cette salle.' })]));

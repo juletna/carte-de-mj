@@ -8,7 +8,7 @@
  *                                    colorés en `screen`, puis, si elles sont animées, les flammes. Les pions et les marques sont dessinés après, par le moteur.
  */
 import { creerToile } from '../../toile.js';
-import { couleurAmbiance, intensiteHalo, vacille } from '../../lumiere.js';
+import { couleurAmbiance, intensiteHalo, vacille, FLAMME_PAR_DEFAUT } from '../../lumiere.js';
 import { ENCRE } from './trait.js';
 
 /**
@@ -52,7 +52,7 @@ export function eclairer(ctx, couche, { sources, opacite, ms = 0, salle, anime =
       v.setTransform(...salle);
       v.globalCompositeOperation = 'destination-out';
       for (const s of sources) {
-        const rr = s.r * (0.93 + 0.08 * vacille(t, s.x)), g = v.createRadialGradient(s.x, s.y, 0, s.x, s.y, rr);
+        const rr = s.r * (0.93 + 0.08 * (s.m ? pulse(t, s.x) : vacille(t, s.x))), g = v.createRadialGradient(s.x, s.y, 0, s.x, s.y, rr);
         g.addColorStop(0, `rgba(0,0,0,${Math.min(1, s.k + 0.3)})`);
         g.addColorStop(0.45, `rgba(0,0,0,${s.k * 0.8})`);
         g.addColorStop(1, 'rgba(0,0,0,0)');
@@ -71,19 +71,23 @@ export function eclairer(ctx, couche, { sources, opacite, ms = 0, salle, anime =
   ctx.globalCompositeOperation = 'screen';
   const force = intensiteHalo(opacite);
   for (const s of sources) {
-    const rr = s.r * 0.7, a = s.k * (0.3 + 0.12 * vacille(t, s.y)) * force, g = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, rr);
+    const rr = s.r * 0.7, a = s.k * (0.3 + 0.12 * (s.m ? pulse(t, s.y) : vacille(t, s.y))) * force, g = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, rr);
     g.addColorStop(0, `rgba(${s.c},${a})`);
     g.addColorStop(1, `rgba(${s.c},0)`);
     ctx.fillStyle = g;
     ctx.fillRect(s.x - rr, s.y - rr, rr * 2, rr * 2);
   }
   ctx.globalCompositeOperation = 'source-over';
-  if (anime) for (const s of sources) if (s.s) flamme(ctx, s.x, s.y, s.s, t, s.graine, s.petite);
+  if (anime) for (const s of sources) if (s.s) flamme(ctx, s.x, s.y, s.s, t, s.graine, s.petite, s.f, s.m);
   ctx.restore();
 }
 
-/** Une flamme qui danse : goutte orange cernée d'encre, cœur jaune ; `s` px de haut, `t` en secondes, `graine` décale la phase. */
-function flamme(ctx, x, y, s, t, graine, petite) {
+/** Pulsation d'un feu magique : un nombre autour de 0,5, lent et régulier (le vacillement d'une flamme ordinaire est vif et irrégulier). */
+const pulse = (t, s) => 0.5 + 0.3 * Math.sin(t * 2.1 + s) + 0.12 * Math.sin(t * 3.4 + s * 1.7);
+
+/** Une flamme qui danse : goutte cernée d'encre (orange par défaut, `f.flamme`) au cœur clair (`f.coeur`) ; `s` px de haut, `t` en secondes, `graine` décale la phase. `magique` : plus lente, qui pulse. */
+function flamme(ctx, x, y, s, t, graine, petite, f = FLAMME_PAR_DEFAUT, magique = false) {
+  if (magique) { s *= 1 + 0.1 * Math.sin(t * 2.1 + graine); t *= 0.45; }
   const forme = (k, dec) => {
     ctx.beginPath();
     for (let i = 0; i < 18; i++) {
@@ -94,6 +98,6 @@ function flamme(ctx, x, y, s, t, graine, petite) {
     }
     ctx.closePath();
   };
-  forme(1, s * 0.15); ctx.fillStyle = '#f2862a'; ctx.fill(); ctx.lineWidth = petite ? 0.6 : 1.3; ctx.strokeStyle = ENCRE; ctx.stroke();
-  forme(0.55, s * 0.1); ctx.fillStyle = '#ffe07a'; ctx.fill();
+  forme(1, s * 0.15); ctx.fillStyle = f.flamme; ctx.fill(); ctx.lineWidth = petite ? 0.6 : 1.3; ctx.strokeStyle = ENCRE; ctx.stroke();
+  forme(0.55, s * 0.1); ctx.fillStyle = f.coeur; ctx.fill();
 }

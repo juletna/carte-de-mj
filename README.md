@@ -152,6 +152,7 @@ pour prouver qu'une refactorisation ne les change pas. Après un changement voul
 - **Escaliers** : un escalier descend, sauf « un escalier qui monte » (ou « montant », « deux escaliers qui montent ») ;
   « qui descend » se lit aussi. Le plan reçoit `sens: 'monte'` pour celui qui monte, rien pour l'autre, et la description
   réécrite redit « qui monte ». Le sens dit vers quel niveau mène l'escalier (voir « Niveaux et escaliers »).
+- **Variantes d'objet** : un objet peut déclarer des `variantes` dans `js/catalogue.js` (la première est la défaut, sans trace dans le plan ; les autres s'écrivent `variante: id`). Pour la torche, le brasero, les bougies et le feu de camp : normale, éteinte, bleue, verte, violette, argentée, infernale. Le texte les lit après le nom, accordées : « une torche à flamme bleue », « deux torches éteintes », « un brasero de feu vert », « des bougies magiques » (bleu), « un feu follet » (argenté), « infernal », « démoniaque », « rouge » (infernal), « mauve », « blanc »… La bulle de l'élément sélectionné propose une liste « Aspect » (annulable). Un feu éteint n'éclaire pas ; un feu magique pulse plus lentement et éclaire plus large. Les teintes sont dans `js/rendu/feu.js`.
 - **Conventions** : le nord est en haut. L'entrée est le mur de la première porte (sud par défaut).
   « Le fond » est le mur opposé à l'entrée.
 

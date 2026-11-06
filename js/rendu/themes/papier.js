@@ -12,6 +12,7 @@ import { tracerSol, dessinerMursDecoupes } from '../trace.js';
 import { rect, rectArrondi, rond, sensDuCoin, contourIrregulier, toileDans } from './commun.js';
 import { EPAISSEUR_MUR, ancragePorte } from '../geometrie.js';
 import { CREATURES } from '../../catalogue.js';
+import { teinteFlamme, fumee, cendres } from '../feu.js';
 import { dessinerPortrait } from '../portraits.js';
 
 const NOIR = '#111', GRIS = '#8c8c8c', CLAIR = '#e4e4e4', TRES_CLAIR = '#f3f3f3';
@@ -41,6 +42,17 @@ function rayons(ctx, x, y, r0, r1, n, t, couleur = NOIR) {
     ctx.moveTo(x + Math.cos(a) * r0, y + Math.sin(a) * r0); ctx.lineTo(x + Math.cos(a) * r1, y + Math.sin(a) * r1);
   }
   ctx.strokeStyle = couleur; ctx.lineWidth = trait(t, 0.015); ctx.stroke();
+}
+/** Les rayons d'un feu magique sont en tirets (le papier n'a pas de couleur) ; ceux d'un feu éteint ne sont pas tracés : un moignon noirci, des cendres et un filet de fumée. */
+function rayonsFeu(ctx, T, x, y, r0, r1, n, t) {
+  if (T.magique) ctx.setLineDash([t * 0.03, t * 0.03]);
+  rayons(ctx, x, y, r0, r1, n, t);
+  if (T.magique) ctx.setLineDash([]);
+}
+function feuEteint(ctx, x, y, u) {
+  cendres(ctx, x, y + u * 0.04, u * 0.12, u * 0.08);
+  rond(ctx, x, y, u * 0.05, NOIR);
+  fumee(ctx, x, y - u * 0.05, u * 0.5, { largeur: Math.max(1, u * 0.02), couleur: '60,60,60' });
 }
 function texte(ctx, s, x, y, taille, couleur = NOIR) {
   ctx.fillStyle = couleur;
@@ -277,17 +289,20 @@ export const objets = {
     ctx.strokeStyle = GRIS; ctx.lineWidth = trait(t, 0.012); ctx.stroke();
   },
 
-  torche(ctx, w, h, t) {
+  torche(ctx, w, h, t, o) {
     // Accrochée au mur, à l'arrière de la case : une flamme et ses rayons.
-    const y = -h / 2 + t * 0.14;
+    const y = -h / 2 + t * 0.14, T = teinteFlamme(o);
     rect(ctx, -t * 0.04, -h / 2, t * 0.08, t * 0.12, NOIR);
+    if (T.eteint) { feuEteint(ctx, 0, y, t); return; }
     rond(ctx, 0, y, t * 0.09, '#fff', NOIR, trait(t, 0.02));
     ctx.beginPath();
     for (let i = 0; i < 6; i++) {
       const a = (i / 6) * Math.PI * 2;
       ctx.moveTo(Math.cos(a) * t * 0.14, y + Math.sin(a) * t * 0.14); ctx.lineTo(Math.cos(a) * t * 0.22, y + Math.sin(a) * t * 0.22);
     }
+    if (T.magique) ctx.setLineDash([t * 0.03, t * 0.03]);
     ctx.strokeStyle = NOIR; ctx.lineWidth = trait(t, 0.015); ctx.stroke();
+    if (T.magique) ctx.setLineDash([]);
   },
 
   debris(ctx, w, h, t, o) {
@@ -328,20 +343,23 @@ export const objets = {
     rond(ctx, 0, -sh * 0.28, sw * 0.16, '#fff', GRIS, trait(t, 0.015)); // tête du gisant
   },
 
-  brasero(ctx, w, h, t) {
+  brasero(ctx, w, h, t, o) {
     // Une vasque vue de dessus, une flamme en son centre et des rayons tout autour (comme la torche).
-    const r = Math.min(w, h) * 0.32;
+    const r = Math.min(w, h) * 0.32, T = teinteFlamme(o);
     rond(ctx, 0, 0, r, CLAIR, NOIR, trait(t, 0.035));
     rond(ctx, 0, 0, r * 0.7, '#fff', NOIR, trait(t, 0.015));
+    if (T.eteint) { feuEteint(ctx, 0, 0, t * 1.4); return; }
     rond(ctx, 0, 0, r * 0.3, NOIR);
-    rayons(ctx, 0, 0, r * 1.15, r * 1.55, 8, t);
+    rayonsFeu(ctx, T, 0, 0, r * 1.15, r * 1.55, 8, t);
   },
 
-  bougies(ctx, w, h, t) {
+  bougies(ctx, w, h, t, o) {
+    const T = teinteFlamme(o);
     for (const [x, y] of [[-0.17, 0.09], [0.15, 0.13], [0.02, -0.16]]) {
       rond(ctx, x * t, y * t, t * 0.07, '#fff', NOIR, trait(t, 0.02));
       rond(ctx, x * t, y * t, t * 0.025, NOIR);
-      rayons(ctx, x * t, y * t, t * 0.1, t * 0.15, 5, t);
+      if (T.eteint) fumee(ctx, x * t, y * t - t * 0.03, t * 0.2, { largeur: 1, couleur: '60,60,60' });
+      else rayonsFeu(ctx, T, x * t, y * t, t * 0.1, t * 0.15, 5, t);
     }
   },
 
@@ -371,8 +389,8 @@ export const objets = {
     rect(ctx, -t * 0.31, y0 - t * 0.04, t * 0.62, t * 0.07, NOIR);     // la barre
   },
 
-  feudecamp(ctx, w, h, t) {
-    const R = Math.min(w, h) * 0.34;
+  feudecamp(ctx, w, h, t, o) {
+    const R = Math.min(w, h) * 0.34, T = teinteFlamme(o);
     for (let i = 0; i < 9; i++) {                                      // le cercle de pierres
       const a = (i / 9) * Math.PI * 2 + 0.3;
       rond(ctx, Math.cos(a) * R * 1.05, Math.sin(a) * R * 1.05, t * 0.075, i % 2 ? CLAIR : '#fff', NOIR, trait(t, 0.02));
@@ -384,8 +402,9 @@ export const objets = {
       ctx.strokeStyle = '#fff'; ctx.lineWidth = trait(t, 0.035); ctx.stroke();
     }
     ctx.lineCap = 'butt';
+    if (T.eteint) { feuEteint(ctx, 0, 0, t * 1.6); return; }
     rond(ctx, 0, 0, R * 0.3, '#fff', NOIR, trait(t, 0.02));
-    rayons(ctx, 0, 0, R * 0.45, R * 0.75, 8, t);
+    rayonsFeu(ctx, T, 0, 0, R * 0.45, R * 0.75, 8, t);
   },
 
   flaque(ctx, w, h, t, o) {

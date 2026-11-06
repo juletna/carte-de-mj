@@ -29,6 +29,7 @@ import { EPAISSEUR_MUR, ancragePorte } from '../geometrie.js';
 import { dessinerPortrait } from '../portraits.js';
 import { COULEURS } from '../../parseur/lexique.js';
 import { CREATURES } from '../../catalogue.js';
+import { teinteFlamme, fumee, cendres } from '../feu.js';
 
 const C = {
   roche: '#23211f', rocheClair: '#2e2b28',
@@ -71,6 +72,16 @@ function halo(ctx, x, y, rayon, rgb, alpha) {
   const g = ctx.createRadialGradient(x, y, 0, x, y, rayon);
   g.addColorStop(0, `rgba(${rgb},${alpha})`); g.addColorStop(1, `rgba(${rgb},0)`);
   rond(ctx, x, y, rayon, g);
+}
+
+/** Couleurs de flamme d'une variante : la flamme d'origine pour la normale, sa couleur propre pour une flamme magique. */
+const flammeDe = (T) => (T.c === null ? C.flamme : T.vif);
+const coeurDe = (T) => (T.c === null ? '#fff2c4' : T.clair);
+/** Un feu éteint, au point (x, y) : un moignon noirci, un peu de cendres et un mince filet de fumée (`u` : l'unité de taille de l'objet, en px). */
+function eteint(ctx, x, y, u) {
+  cendres(ctx, x, y + u * 0.04, u * 0.12, u * 0.08);
+  rond(ctx, x, y, u * 0.06, '#2a2420');
+  fumee(ctx, x, y - u * 0.05, u * 0.5, { largeur: Math.max(1, u * 0.025), couleur: '120,116,112' });
 }
 
 // --- Fond, sol, murs, portes -------------------------------------------------
@@ -385,15 +396,16 @@ export const objets = {
     }
   },
 
-  torche(ctx, w, h, t) {
+  torche(ctx, w, h, t, o) {
     // Accrochée au mur, à l'arrière de la case.
-    const y = -h / 2 + t * 0.12;
+    const y = -h / 2 + t * 0.12, T = teinteFlamme(o);
+    if (T.eteint) { rect(ctx, -t * 0.05, -h / 2, t * 0.1, t * 0.16, '#3b3b3b'); eteint(ctx, 0, y, t); return; }
     const g = ctx.createRadialGradient(0, y, 0, 0, y, t * 0.6);
-    g.addColorStop(0, 'rgba(255,190,80,0.55)'); g.addColorStop(1, 'rgba(255,150,40,0)');
+    g.addColorStop(0, `rgba(${T.c ?? '255,190,80'},0.55)`); g.addColorStop(1, T.c ? `rgba(${T.c},0)` : 'rgba(255,150,40,0)');
     rond(ctx, 0, y, t * 0.6, g);
     rect(ctx, -t * 0.05, -h / 2, t * 0.1, t * 0.16, '#3b3b3b');
-    rond(ctx, 0, y, t * 0.1, C.flamme);
-    rond(ctx, 0, y, t * 0.05, '#fff2c4');
+    rond(ctx, 0, y, t * 0.1, flammeDe(T));
+    rond(ctx, 0, y, t * 0.05, coeurDe(T));
   },
 
   debris(ctx, w, h, t, o) {
@@ -436,23 +448,32 @@ export const objets = {
     rond(ctx, 0, -sh * 0.28, sw * 0.16, null, C.pierreFonce, 1); // tête du gisant
   },
 
-  brasero(ctx, w, h, t) {
-    const r = Math.min(w, h) * 0.34;
-    halo(ctx, 0, 0, t * 0.8, '255,160,60', 0.5);
+  brasero(ctx, w, h, t, o) {
+    const r = Math.min(w, h) * 0.34, T = teinteFlamme(o);
+    if (T.eteint) {
+      ombre(ctx, t, () => rond(ctx, 0, 0, r, C.noir));
+      rond(ctx, 0, 0, r, '#4a4540', '#1c1a18', 2);
+      rond(ctx, 0, 0, r * 0.78, '#1b1411');
+      eteint(ctx, 0, 0, t * 1.4);
+      return;
+    }
+    halo(ctx, 0, 0, t * 0.8, T.c ?? '255,160,60', 0.5);
     ombre(ctx, t, () => rond(ctx, 0, 0, r, C.noir));
     rond(ctx, 0, 0, r, '#4a4540', '#1c1a18', 2);            // la vasque de fer
     rond(ctx, 0, 0, r * 0.78, '#1b1411');                   // les braises
-    rond(ctx, 0, 0, r * 0.64, '#c9461c');
-    rond(ctx, 0, 0, r * 0.44, C.flamme);
-    rond(ctx, 0, 0, r * 0.2, '#fff2c4');
+    rond(ctx, 0, 0, r * 0.64, T.c === null ? '#c9461c' : T.braises[2]);
+    rond(ctx, 0, 0, r * 0.44, flammeDe(T));
+    rond(ctx, 0, 0, r * 0.2, coeurDe(T));
   },
 
-  bougies(ctx, w, h, t) {
-    halo(ctx, 0, 0, t * 0.55, '255,190,90', 0.4);
+  bougies(ctx, w, h, t, o) {
+    const T = teinteFlamme(o);
+    if (!T.eteint) halo(ctx, 0, 0, t * 0.55, T.c ?? '255,190,90', 0.4);
     for (const [x, y] of [[-0.17, 0.09], [0.15, 0.13], [0.02, -0.16]]) {
       ombre(ctx, t, () => rond(ctx, x * t, y * t, t * 0.07, '#d8cdb0'));
       rond(ctx, x * t, y * t, t * 0.07, '#f1e7c9', '#a89c7e', 1);          // la cire
-      rond(ctx, x * t, y * t, t * 0.032, C.flamme);
+      if (T.eteint) { rond(ctx, x * t, y * t, t * 0.02, '#2a2420'); fumee(ctx, x * t, y * t - t * 0.02, t * 0.2, { largeur: 1, couleur: '120,116,112' }); }
+      else rond(ctx, x * t, y * t, t * 0.032, flammeDe(T));
     }
   },
 
@@ -483,9 +504,9 @@ export const objets = {
     rect(ctx, -bl / 2, y0 - t * 0.04, bl, t * 0.07, C.boisFonce);         // la barre
   },
 
-  feudecamp(ctx, w, h, t) {
-    const R = Math.min(w, h) * 0.34;
-    halo(ctx, 0, 0, t * 0.95, '255,150,50', 0.55);
+  feudecamp(ctx, w, h, t, o) {
+    const R = Math.min(w, h) * 0.34, T = teinteFlamme(o);
+    if (!T.eteint) halo(ctx, 0, 0, t * 0.95, T.c ?? '255,150,50', 0.55);
     rond(ctx, 0, 0, R * 1.05, 'rgba(25,18,14,0.7)');
     for (let i = 0; i < 9; i++) {                                         // le cercle de pierres
       const a = (i / 9) * Math.PI * 2 + 0.3;
@@ -498,7 +519,8 @@ export const objets = {
       ctx.strokeStyle = C.bois; ctx.lineWidth = t * 0.07; ctx.stroke();
     }
     ctx.lineCap = 'butt';
-    rond(ctx, 0, 0, R * 0.5, '#c9461c'); rond(ctx, 0, 0, R * 0.34, C.flamme); rond(ctx, 0, 0, R * 0.15, '#fff2c4');
+    if (T.eteint) { eteint(ctx, 0, 0, t * 1.6); return; }
+    rond(ctx, 0, 0, R * 0.5, T.c === null ? '#c9461c' : T.braises[2]); rond(ctx, 0, 0, R * 0.34, flammeDe(T)); rond(ctx, 0, 0, R * 0.15, coeurDe(T));
   },
 
   flaque(ctx, w, h, t, o) {

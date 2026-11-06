@@ -6,7 +6,7 @@
  * coordonnées de cases : « deux coffres en A1 C1 », « un lit de A2 à B2 ».
  */
 import { definition, nomAffiche } from './lexique.js';
-import { estFeminin, estSymetrique } from '../catalogue.js';
+import { estFeminin, estSymetrique, nomVariante } from '../catalogue.js';
 import { nomCase, reperePorte } from '../coordonnees.js';
 import { REGARD_VERS, portesEntreeDabord, murEntree } from '../murs.js';
 import { nomDesBras } from '../formes.js';
@@ -51,20 +51,21 @@ function decrireObjets(objets, regardDefaut, plan) {
     const rotation = estSymetrique(o.type) || o.rotation === (regardAdosse(plan, { ...o, rotation: regardDefaut }, o.x, o.y) ?? regardDefaut) ? null : o.rotation;
     const etendue = emplacement(o, o.l, o.h, def);
     const cache = o.cache === true;
+    const variante = o.variante ? (n) => ` ${nomVariante(o.type, o.variante, n)}` : () => '';
     const monte = o.sens === 'monte' ? (n) => ` qui monte${n > 1 ? 'nt' : ''}` : () => '';
     const suite = rotation === null ? '' : (n) => ` ${accord('tourné', o.type, n)} vers ${DIRECTIONS[rotation]}`;
     if (etendue) {
-      seuls.push(`${quantite(o.type, 1)} ${nomAffiche(o.type)}${cache ? motCache(o.type, 1) : ''}${monte(1)} ${etendue}${suite ? suite(1) : ''}`);
+      seuls.push(`${quantite(o.type, 1)} ${nomAffiche(o.type)}${cache ? motCache(o.type, 1) : ''}${variante(1)}${monte(1)} ${etendue}${suite ? suite(1) : ''}`);
     } else {
       // Un élément caché n'est jamais regroupé avec un visible, ni un escalier qui monte avec un qui descend.
-      const cle = `${o.type}|${rotation}|${cache}|${o.sens === 'monte'}`;
-      if (!groupes.has(cle)) groupes.set(cle, { type: o.type, suite, cache, monte, cases: [] });
+      const cle = `${o.type}|${rotation}|${cache}|${o.sens === 'monte'}|${o.variante || ''}`;
+      if (!groupes.has(cle)) groupes.set(cle, { type: o.type, suite, cache, monte, variante, cases: [] });
       groupes.get(cle).cases.push(nomCase(o.x, o.y));
     }
   }
-  const lignes = [...groupes.values()].map(({ type, suite, cache, monte, cases }) => {
+  const lignes = [...groupes.values()].map(({ type, suite, cache, monte, variante, cases }) => {
     const n = cases.length;
-    return `${quantite(type, n)} ${nomAffiche(type, n)}${cache ? motCache(type, n) : ''}${monte(n)} en ${cases.join(' ')}${suite ? suite(n) : ''}`;
+    return `${quantite(type, n)} ${nomAffiche(type, n)}${cache ? motCache(type, n) : ''}${variante(n)}${monte(n)} en ${cases.join(' ')}${suite ? suite(n) : ''}`;
   });
   return [...lignes, ...seuls];
 }

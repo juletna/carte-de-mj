@@ -19,6 +19,13 @@
  *   auLarge    écarté d'une case du mur quand la pièce est assez large
  *   couche     ordre de dessin, 5 par défaut : en dessous, c'est au sol (dessiné sous la grille et sous les autres objets, et
  *              attrapé en dernier à la souris) ; au-dessus, c'est accroché au mur (dessiné en dernier)
+ *   variantes  liste ordonnée { id, nom, mots, fem?, pluriel? } des aspects que peut prendre l'objet (torche éteinte, flamme bleue…).
+ *              La PREMIÈRE est la variante par défaut : c'est le dessin d'origine, et le plan n'écrit rien pour elle. `id` : minuscules, sans accent ;
+ *              `nom` : l'adjectif au masculin singulier, tel qu'on l'affiche (« éteint ») ; `fem` : son féminin si ce n'est pas « nom + e » ;
+ *              `pluriel` : son pluriel masculin si ce n'est pas « nom + s » (« infernaux ») ; `mots` : les formes reconnues dans le texte, sans accents,
+ *              au singulier et aux deux genres (le pluriel en -s est reconnu). Le plan garde `variante: id` sur un objet seulement si elle est connue
+ *              de son type et n'est pas la défaut (schema.js). Accès : variantesDe, varianteDe, variantePourMot, nomVariante. Un thème qui ne
+ *              connaît pas une variante dessine l'objet par défaut ; un test vérifie que le thème peint dessine chaque variante déclarée (themes.test.js).
  * Un créature a de même `type`, `nom`, `mots` et `feminin`, plus :
  *   camp       pj (personnages des joueurs), pnj (neutres), monstre
  *   taille     côté du pion en cases, selon la catégorie de taille : P/M = 1, G = 2, TG = 3, Gig = 4
@@ -30,6 +37,20 @@
  */
 
 export const COUCHE_PAR_DEFAUT = 5;
+
+/**
+ * Les variantes d'un feu (torche, brasero, bougies, feu de camp) : la flamme normale, éteinte, ou d'une couleur magique.
+ * Les teintes de chaque variante sont dans rendu/feu.js (TEINTES_FLAMME), indexées par ces mêmes `id`.
+ */
+const VARIANTES_FEU = [
+  { id: 'normale', nom: 'normal', mots: ['normal', 'normale', 'allume', 'allumee', 'ordinaire'] },
+  { id: 'eteinte', nom: 'éteint', fem: 'éteinte', mots: ['eteint', 'eteinte', 'consume', 'consumee', 'cendreux', 'cendreuse'] },
+  { id: 'bleue', nom: 'bleu', fem: 'bleue', mots: ['bleu', 'bleue', 'magique', 'enchante', 'enchantee', 'arcanique'] },
+  { id: 'verte', nom: 'vert', fem: 'verte', mots: ['vert', 'verte', 'feerique'] },
+  { id: 'violette', nom: 'violet', fem: 'violette', mots: ['violet', 'violette', 'mauve', 'pourpre'] },
+  { id: 'argentee', nom: 'argenté', fem: 'argentée', mots: ['argente', 'argentee', 'blanc', 'blanche', 'follet', 'spectral', 'spectrale', 'fantomatique'] },
+  { id: 'infernale', nom: 'infernal', fem: 'infernale', pluriel: 'infernaux', mots: ['infernal', 'infernale', 'infernaux', 'demoniaque', 'cramoisi', 'cramoisie', 'rouge'] },
+];
 
 export const OBJETS = [
   { type: 'pilier',       mots: ['pilier'],                                   l: 1, h: 1, zone: 'grille',    lettre: 'P', symetrique: true, auLarge: true },
@@ -46,16 +67,16 @@ export const OBJETS = [
   { type: 'fosse',        mots: ['fosse', 'trou', 'gouffre', 'piege', 'trappe'], l: 1, h: 1, zone: 'centre', lettre: 'F', feminin: true, symetrique: true, couche: 0 },
   { type: 'lit',          mots: ['lit', 'couchette', 'paillasse'],            l: 1, h: 2, zone: 'cotes',     lettre: 'L' },
   { type: 'bibliotheque', mots: ['bibliotheque', 'etagere', 'rayonnage'],     l: 2, h: 1, zone: 'fond',      lettre: 'B', nom: 'bibliothèque', feminin: true },
-  { type: 'torche',       mots: ['torche', 'flambeau'], l: 1, h: 1, zone: 'perimetre', lettre: '*', feminin: true, bloquant: false, couche: 9 },
+  { type: 'torche',       mots: ['torche', 'flambeau'], l: 1, h: 1, zone: 'perimetre', lettre: '*', feminin: true, bloquant: false, couche: 9, variantes: VARIANTES_FEU },
   { type: 'debris',       mots: ['debris', 'gravat', 'eboulis', 'decombre', 'ruine'], l: 1, h: 1, zone: 'aleatoire', lettre: '%', nom: 'débris', symetrique: true, couche: 1 },
   { type: 'puits',        mots: ['puits'],                                    l: 1, h: 1, zone: 'centre',    lettre: 'U', symetrique: true },
   { type: 'fontaine',     mots: ['fontaine', 'bassin'],                       l: 1, h: 1, zone: 'centre',    lettre: 'W', feminin: true, symetrique: true },
   { type: 'sarcophage',   mots: ['sarcophage', 'tombeau', 'cercueil'],        l: 1, h: 2, zone: 'centre',    lettre: 'Z' },
-  { type: 'brasero',      mots: ['brasero', 'brasier', 'vasque de feu'],      l: 1, h: 1, zone: 'coins',     lettre: 'V', symetrique: true },
-  { type: 'bougies',      mots: ['bougie', 'chandelle', 'chandelier', 'cierge'], l: 1, h: 1, zone: 'aleatoire', lettre: '!', nom: 'bougie', feminin: true, symetrique: true, bloquant: false, couche: 6 },
+  { type: 'brasero',      mots: ['brasero', 'brasier', 'vasque de feu'],      l: 1, h: 1, zone: 'coins',     lettre: 'V', symetrique: true, variantes: VARIANTES_FEU },
+  { type: 'bougies',      mots: ['bougie', 'chandelle', 'chandelier', 'cierge'], l: 1, h: 1, zone: 'aleatoire', lettre: '!', nom: 'bougie', feminin: true, symetrique: true, bloquant: false, couche: 6, variantes: VARIANTES_FEU },
   { type: 'tapis',        mots: ['tapis', 'carpette'],                        l: 3, h: 2, zone: 'centre',    lettre: '=', symetrique: true, bloquant: false, couche: -1 },
   { type: 'banniere',     mots: ['banniere', 'etendard', 'tenture', 'tapisserie', 'oriflamme'], l: 1, h: 1, zone: 'perimetre', lettre: 'N', nom: 'bannière', feminin: true, bloquant: false, couche: 8 },
-  { type: 'feudecamp',    mots: ['feu de camp', 'feu de bois', 'feu de joie', 'foyer', 'feu'], l: 1, h: 1, zone: 'centre', lettre: 'Y', nom: 'feu de camp', pluriel: 'feux de camp', symetrique: true },
+  { type: 'feudecamp',    mots: ['feu de camp', 'feu de bois', 'feu de joie', 'foyer', 'feu'], l: 1, h: 1, zone: 'centre', lettre: 'Y', nom: 'feu de camp', pluriel: 'feux de camp', symetrique: true, variantes: VARIANTES_FEU },
   { type: 'flaque',       mots: ['flaque', 'mare'],                           l: 2, h: 1, zone: 'aleatoire', lettre: '~', feminin: true, symetrique: true, bloquant: false, couche: 0 },
   { type: 'rocher',       mots: ['rocher', 'roc', 'bloc de pierre', 'bloc de roche'], l: 1, h: 1, zone: 'aleatoire', lettre: '^', symetrique: true },
   { type: 'champignons',  mots: ['champignon'],                               l: 1, h: 1, zone: 'coins',     lettre: 'M', nom: 'champignon', symetrique: true, bloquant: false },
@@ -131,3 +152,30 @@ export const estAuLarge = (type) => PAR_TYPE.get(type)?.auLarge === true;
 export const coucheDe = (type) => PAR_TYPE.get(type)?.couche ?? COUCHE_PAR_DEFAUT;
 /** Lettre d'un type d'objet sur la carte en texte du rapport (undefined si le type n'en a pas). */
 export const lettreDe = (type) => PAR_TYPE.get(type)?.lettre;
+
+// --- Variantes d'objet ---------------------------------------------------------------------------------------
+
+/** Les variantes d'un type d'objet (voir l'en-tête), la défaut en premier ; liste vide pour un type qui n'en a pas. */
+export const variantesDe = (type) => PAR_TYPE.get(type)?.variantes ?? [];
+/** L'id de la variante par défaut d'un type (la première), ou null s'il n'a pas de variantes. */
+export const varianteParDefaut = (type) => variantesDe(type)[0]?.id ?? null;
+/** La variante `id` est-elle connue de ce type ? */
+export const varianteConnue = (type, id) => variantesDe(type).some((v) => v.id === id);
+/** La variante effective d'un objet du plan : la sienne si elle est connue de son type, sinon la défaut (null si le type n'en a pas). */
+export const varianteDe = (objet) => (objet && varianteConnue(objet.type, objet.variante) ? objet.variante : varianteParDefaut(objet?.type));
+/** L'objet porte-t-il une variante qui n'est pas la défaut ? */
+export const aUneVariante = (objet) => { const v = varianteDe(objet); return v !== null && v !== varianteParDefaut(objet.type); };
+/** L'id de la variante d'un type que désigne ce mot du texte (sans accents, singulier ou pluriel en -s), ou null. */
+export function variantePourMot(type, mot) {
+  const singulier = mot.replace(/s$/, '');
+  return variantesDe(type).find((v) => v.mots.includes(mot) || v.mots.includes(singulier))?.id ?? null;
+}
+/** Le nom d'une variante, accordé au type (« éteinte » pour une torche, « éteint » pour un brasero) et au nombre n. */
+export function nomVariante(type, id, n = 1) {
+  const v = variantesDe(type).find((x) => x.id === id);
+  if (!v) return '';
+  const feminin = estFeminin(type);
+  const base = feminin ? (v.fem ?? `${v.nom}e`) : v.nom;
+  if (n <= 1 || /[sx]$/.test(base)) return base;
+  return !feminin && v.pluriel ? v.pluriel : `${base}s`;
+}
