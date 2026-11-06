@@ -4,7 +4,7 @@
    Composition et typographie des panneaux : docs/design-panneaux.md et css/panneaux.css (chargée après celle-ci).
    Au-dessus de 760 px : ordinateur. En dessous : l'arbre est un tiroir, l'inspecteur un panneau bas repliable. */
 
-:root { --largeur-arbre: 260px; --largeur-inspecteur: 0px; }
+:root { --largeur-arbre: 260px; --largeur-inspecteur: 0px; --hauteur-barre: 44px; } /* --hauteur-barre : l'en-tête de l'arbre et la barre d'outils, alignés */
 body.arbre-replie { --largeur-arbre: 0px; }
 body.atelier-avec-inspecteur { --largeur-inspecteur: 330px; }
 
@@ -13,7 +13,7 @@ body.atelier-avec-inspecteur { --largeur-inspecteur: 330px; }
 
 /* --- Arbre --- */
 .atelier-arbre { display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden; background: var(--panneau); border-right: 1px solid var(--bord); }
-.atelier-arbre-tete { flex: none; display: flex; align-items: center; gap: var(--esp-1); padding: var(--esp-2) var(--esp-2) var(--esp-2) var(--esp-3); border-bottom: 1px solid var(--bord); }
+.atelier-arbre-tete { flex: none; box-sizing: border-box; min-height: var(--hauteur-barre); display: flex; align-items: center; gap: var(--esp-1); padding: var(--esp-1) var(--esp-2) var(--esp-1) var(--esp-3); border-bottom: 1px solid var(--bord); }
 .atelier-arbre-titre { flex: 1 1 auto; margin: 0; min-width: 0; }
 .atelier-fermer-tiroir { display: none; }
 .atelier-arbre-vue { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: var(--esp-2); display: flex; flex-direction: column; gap: var(--esp-2); }
@@ -62,7 +62,7 @@ body.atelier-avec-inspecteur { --largeur-inspecteur: 330px; }
 .atelier-voile { display: none; }
 
 /* --- Barre d'outils de la scène (vide et cachée tant que personne n'y met rien) --- */
-.atelier-barre { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: var(--esp-2); padding: var(--esp-1) var(--esp-3); background: var(--panneau); border-bottom: 1px solid var(--bord); }
+.atelier-barre { flex: none; box-sizing: border-box; min-height: var(--hauteur-barre); display: flex; flex-wrap: wrap; align-items: center; gap: var(--esp-2); padding: var(--esp-1) var(--esp-3); background: var(--panneau); border-bottom: 1px solid var(--bord); }
 .atelier-barre:empty { display: none; }
 /* Le bouton « Affichage » (js/atelier/affichage-popover.js) : toujours au bout de la barre, son popover s'ouvre dessous. */
 /* UNE seule ligne : le bouton de l'arbre (replié ou écran étroit), les outils, puis au bout « Affichage » et le seul bouton doré (« Jouer ») : js/atelier/coquille.js. */
