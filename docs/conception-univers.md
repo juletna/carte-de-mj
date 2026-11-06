@@ -29,7 +29,7 @@ donjon existant. À la table, la Présentation permet d'entrer dans un lieu et d
 | Feature | Session | Possède (seule à écrire dedans) |
 |---|---|---|
 | F2 – skill de génération de cartes | A | `.claude/skills/generer-carte/`, `outils/cartes/` |
-| F1 – bibliothèque de cartes (catalogue, choix, import) | B | `js/bibliotheque/`, `css/bibliotheque.css`, `tests/bibliotheque*.test.js`, `bibliotheque-exemple/` |
+| F1 – bibliothèque de cartes (catalogue, choix, import) | B | `js/bibliotheque/`, `css/bibliotheque.css`, `tests/bibliotheque*.test.js`, `outils/demo-bibliotheque.mjs` |
 | F3 – univers et navigation imbriquée | C | `js/univers*.js`, `js/mj/univers-ui.js`, `js/regie-univers.js`, `css/univers.css`, `tests/univers*.test.js` |
 | F4 – calage de grille sur une carte image | après C | à fixer au lancement |
 
@@ -55,7 +55,11 @@ bibliotheque/
   Absent ou illisible : la bibliothèque est simplement vide, avec un message qui dit comment la remplir (le skill).
 - Le skill (session A) est **le seul à écrire** dans ce dossier. L'appli ne fait que lire.
 - Sur le site publié (GitHub Pages), le dossier n'existe pas : la bibliothèque est vide, l'import d'images reste possible.
-- `bibliotheque-exemple/` (versionné, quelques images libres et légères) sert aux tests et à la démo : même format.
+- **Aucune image n'est versionnée**, ni carte ni image de référence : chacun a les siennes, de bonne qualité, sur son disque.
+  Les tests fabriquent leurs images (petits SVG ou canvas écrits dans le test). Pour essayer l'appli sans clé d'API,
+  `node outils/demo-bibliotheque.mjs` (session B) remplit `bibliotheque/` de quelques cartes de démonstration dessinées en SVG,
+  sans écraser ce qui y est déjà.
+- `fichier` accepte `.webp`, `.png`, `.jpg`, `.jpeg` et `.svg`.
 
 ### Images importées par le MJ (dans le navigateur)
 
@@ -119,8 +123,9 @@ Rangé **dans le dépôt** (`.claude/skills/generer-carte/`) pour servir à tous
 - `SKILL.md` : le déroulé (demande du MJ → prompt → génération → validation par le MJ → tags → ajout au catalogue).
 - `style/peint-v1.md` : le bloc de style fixe et les règles d'échelle (taille d'image, nombre de cases, repères : une porte = 1 case,
   une table = 1 × 2 cases, un arbre adulte = 2 à 3 cases). Une nouvelle version de style = un nouveau fichier, jamais une réécriture.
-- `references/` : les images de référence **validées par le MJ**, avec leur prompt, données au générateur comme point de départ du style.
-  Seules des images générées par nous y entrent, jamais celles d'un autre créateur.
+- Les images de référence **validées par le MJ** (avec leur prompt) vont dans `bibliotheque/references/<style>/`, donc **hors de git** :
+  chacun constitue les siennes, en bonne qualité. Le skill les donne au générateur comme point de départ du style et sait démarrer
+  sans aucune référence (premier usage). Seules des images générées par nous y entrent, jamais celles d'un autre créateur.
 - `outils/cartes/` : le script qui appelle l'API d'images et le script qui ajoute une entrée valide au catalogue (même validation que l'appli,
   en important le module pur de la session B, ou en recopiant ses règles s'il n'existe pas encore).
 - Générateur par défaut : `gpt-image-1` d'OpenAI (accepte des images de référence). La clé est lue dans la variable
