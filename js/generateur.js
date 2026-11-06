@@ -19,7 +19,8 @@ import { nomAffiche } from './parseur/lexique.js';
 import { CREATURES } from './catalogue.js';
 import { reperePorte } from './coordonnees.js';
 import { OPPOSE, VECTEUR, longueurMur, portesEntreeDabord } from './murs.js';
-import { POSITIONS_FORMES, brasMax, retraitPorte, nombreCases } from './formes.js';
+import { POSITIONS_FORMES, brasMax, retraitPorte, nombreCases, estSol } from './formes.js';
+import { redimensionner, changerForme } from './pose.js';
 import { generateur, lireGraine, nouvelleGraine, melanger, GRAINE_MAX } from './alea.js';
 
 export { GRAINE_MAX };
@@ -65,6 +66,7 @@ const CHANCE_FORME = 0.3;       // part des salles assez grandes qui ne sont pas
 const COTE_FORME_MIN = 7;       // en dessous, une forme laisse trop peu de sol
 const PLACE_PAR_MONSTRE = 2.2;  // cases de sol prévues par case de pion : la salle reste jouable
 const PLACE_DECOR = 10;         // cases de sol prévues pour le mobilier, les coffres et les pièges
+const ESSAIS_FORME = 6;         // tirages de forme et de dimensions essayés avant de se contenter de remplir
 const ESSAIS_SALLE = 10;        // agrandissements au plus, si tout ne tient pas
 const PAR_PHRASE = 40;          // le parseur lit au plus 40 éléments par groupe de mots
 
@@ -399,14 +401,16 @@ const nombreMonstres = (spec) => Object.values(spec.monstres).reduce((a, b) => a
  * Deux modes, pour qu'une porte reliée à une autre salle ne disparaisse jamais :
  *  - « remplir » (par défaut) : forme, dimensions, sol, ambiance, TOUTES les portes et TOUS les escaliers restent où ils sont ; seul le
  *    contenu change. La salle n'est pas agrandie : si tout ne tient pas, le contenu est réduit (`resume.reduit`) ;
- *  - « nouvelle » (`nouvelleForme`) : nouvelle forme et nouvelles dimensions. Réservé à une salle sans liaison (`reliee: false`), sans
- *    escalier et dont les portes sont des portes ou des arches ; sinon, ou au moindre doute, le mode « remplir » est employé et
- *    `refus` en dit la raison.
+ *  - « nouvelle » (`nouvelleForme`) : nouvelle forme et nouvelles dimensions, appliquées au plan comme le fait la saisie à la main
+ *    (`redimensionner`, `changerForme`) : les portes et escaliers, reliés ou non, restent sur leur mur à leur position, donc leurs
+ *    liaisons aussi. Quelques tirages voisins sont essayés ; si aucun ne garde TOUTES les portes et tous les escaliers, ou au moindre
+ *    doute, le mode « remplir » est employé et `refus` en dit la raison. `reliee` n'a plus d'effet sur ce mode (gardé pour la forme).
+ *    Le résultat porte `plan` : le plan à la nouvelle forme, sans contenu, à donner à `modifierPlan(plan, { suivrePortes: true, texte })`.
  * Si même le mode « remplir » ne peut pas garantir les portes et escaliers, rien n'est proposé (`ok: false`, `texte: null`).
  *
  * @param {object} brut  plan (le plan actuel de la salle), monstres, coffres, pieges, familles, typesPresents (types de monstres des
  *   autres salles du donjon : leurs familles sont reprises par défaut), formes, nouvelleForme, reliee, graine (voir normaliserOptionsSalle)
- * @returns {{ok:boolean, texte:string|null, nom:string|null, graine:number, mode:'remplir'|'nouvelle', refus:string|null,
+ * @returns {{ok:boolean, texte:string|null, plan?:object, nom:string|null, graine:number, mode:'remplir'|'nouvelle', refus:string|null,
  *   resume:{monstres:number,coffres:number,pieges:number,familles:string[],reduit:boolean}}}
  */
 export function genererSalle(brut = {}) {
@@ -430,40 +434,84 @@ export function genererSalle(brut = {}) {
     resume: { monstres: nombreMonstres(s), coffres: s.coffres, pieges: s.pieges, familles, reduit: nombreMonstres(s) < demande.monstres || s.coffres < demande.coffres || s.pieges < demande.pieges },
   });
 
-  // Nouvelle forme : seulement si rien de ce qui compte pour les autres salles ne peut se perdre.
+  // Remplir sur un plan donné : le plan sans son contenu (les escaliers restent), décrit tel quel ; le nouveau contenu s'ajoute à la fin.
+  // Renvoie null si la relecture ne garde pas exactement les ancres (forme, dimensions, portes, escaliers) de `base`.
+  const remplir = (base, mode, refus) => {
+    preparer(nombreCases(base));
+    const debut = decrire({ ...base, objets: escaliersDe(base), creatures: [] }).replace(/\.$/, '');
+    const essais = [[1, true], [1, false], ...[0.8, 0.6, 0.4, 0.2, 0].map((f) => [f, false])];
+    for (const [f, avecDecor] of essais) {
+      const s = reduire(spec, f);
+      const texte = `${[debut, ...(avecDecor ? role.contenu : []), ...phrasesContenu(s)].join(', ')}.`;
+      const relu = analyser(texte).plan;
+      if (toutEstPose(relu, s) && ancresDe(relu) === ancresDe(base)) return { ...bilan(texte, mode, refus, s), plan: base };
+    }
+    return null;
+  };
+
+  // Nouvelle forme : le changement manuel, appliqué au plan existant (`formeNeuve`) ; les portes et les escaliers, reliés ou non,
+  // gardent leur place. Quelques tirages voisins sont essayés ; sinon, ou au moindre doute, on remplit seulement.
   let refus = null;
   if (o.nouvelleForme && plan) {
-    if (o.reliee) refus = 'Cette salle a des portes ou des escaliers reliés à d’autres salles : sa forme et ses dimensions restent.';
-    else if (escaliersDe(plan).length) refus = 'Cette salle a un escalier : sa forme et ses dimensions restent.';
-    else if ((plan.portes || []).some((p) => p.type !== 'porte' && p.type !== 'arche')) refus = 'Cette salle a des portes spéciales (herse, portail…) : sa forme et ses dimensions restent.';
-    if (!refus) {
-      const portes = portesEntreeDabord(plan).map((p) => ({ mur: p.mur, type: p.type, secrete: !!p.cache }));
-      // Ce qui n'est pas du contenu garde son aspect : sol (sauf s'il est resté « pierre », que le rôle peut changer), ambiance, état, éclairage.
-      const ambiance = ['ambiance', 'etat', 'eclairage'].map((c) => MOTS_AMBIANCE[c][plan[c]]).filter(Boolean);
-      const tirerCote = () => 5 + Math.floor(alea() * 5); // 5 à 9 cases, tirées à chaque fois : jamais une valeur par défaut
-      const [largeur, longueur] = [tirerCote(), tirerCote()];
-      preparer(largeur * longueur);
-      const neuve = { ...spec, largeur, longueur, sol: plan.sol && plan.sol !== 'pierre' ? plan.sol : undefined, ambiance };
-      const { texte } = construireSalle(neuve, portes, alea);
-      const relu = analyser(texte).plan;
-      // Chaque porte doit avoir survécu (deux portes tombées sur la même case n'en feraient qu'une) : sinon on remplit seulement.
-      if (relu.portes.length === portes.length && toutEstPose(relu, spec)) return bilan(texte, 'nouvelle', null, spec);
-      refus = 'Une nouvelle forme n’a pas pu garder toutes les portes de la salle : sa forme et ses dimensions restent.';
+    for (let essai = 0; essai < ESSAIS_FORME; essai++) {
+      const aleaForme = essai === 0 ? alea : generateur(graine + essai * 7919);
+      const neuf = formeNeuve(plan, role, o.formes, aleaForme);
+      const r = neuf && remplir(neuf, 'nouvelle', null);
+      if (r) return r;
     }
+    refus = 'Aucune nouvelle forme n’a pu garder toutes les portes et tous les escaliers de la salle : sa forme et ses dimensions restent.';
   }
 
-  // Remplir : le plan sans son contenu (les escaliers restent), décrit tel quel ; le nouveau contenu s'ajoute à la fin.
   if (!plan) { preparer(0); return bilan(null, 'remplir', 'Il n’y a pas de plan à remplir.', reduire(spec, 0), false); }
-  preparer(nombreCases(plan)); // même après une nouvelle forme manquée : le tirage suit la place de la salle qui reste
-  const debut = decrire({ ...plan, objets: escaliersDe(plan), creatures: [] }).replace(/\.$/, '');
-  const essais = [[1, true], [1, false], ...[0.8, 0.6, 0.4, 0.2, 0].map((f) => [f, false])];
-  for (const [f, avecDecor] of essais) {
-    const s = reduire(spec, f);
-    const texte = `${[debut, ...(avecDecor ? role.contenu : []), ...phrasesContenu(s)].join(', ')}.`;
-    const relu = analyser(texte).plan;
-    if (toutEstPose(relu, s) && ancresDe(relu) === ancresDe(plan)) return bilan(texte, 'remplir', refus, s);
+  const r = remplir(plan, 'remplir', refus); // même après une nouvelle forme manquée : le tirage suit la place de la salle qui reste
+  return r ?? bilan(null, 'remplir', refus ?? 'Les portes et escaliers de cette salle ne peuvent pas être gardés avec certitude : rien n’a été changé.', reduire(spec, 0), false);
+}
+
+/**
+ * Un plan à la forme et aux dimensions tirées, à partir de celui de la salle : MÊME mécanisme que le changement à la main (`redimensionner`
+ * par les bords est et sud, puis `changerForme`, js/pose.js). Le contenu est retiré (les escaliers restent) ; les portes gardent leur mur
+ * et leur position le long du mur, donc leurs liaisons aussi. Les dimensions ne descendent pas sous ce qu'il faut pour tenir les portes
+ * et les escaliers (la plage de 5 à 9 cases est relevée au besoin). Renvoie null si une porte tomberait hors du sol ou si un escalier devait bouger.
+ */
+function formeNeuve(plan, role, formes, alea) {
+  const escaliers = escaliersDe(plan);
+  const horizontal = (mur) => mur === 'nord' || mur === 'sud';
+  const minLargeur = Math.max(5, ...plan.portes.filter((q) => horizontal(q.mur)).map((q) => q.position + 1), ...escaliers.map((e) => e.x + e.l));
+  const minLongueur = Math.max(5, ...plan.portes.filter((q) => !horizontal(q.mur)).map((q) => q.position + 1), ...escaliers.map((e) => e.y + e.h));
+  const tirerCote = (min) => Math.max(min, 5 + Math.floor(alea() * 5)); // 5 à 9 cases, tirées à chaque fois : jamais une valeur par défaut
+  const largeur = tirerCote(minLargeur), longueur = tirerCote(minLongueur);
+  const tirageForme = { chance: alea(), forme: alea(), position: alea() };
+
+  let courant = { ...plan, objets: escaliers, creatures: [] };
+  for (const [cote, delta] of [['est', largeur - plan.largeur], ['sud', longueur - plan.longueur]]) {
+    if (!delta) continue;
+    const res = redimensionner(courant, cote, delta);
+    if (res.erreur) return null;
+    courant = res.plan;
   }
-  return bilan(null, 'remplir', refus ?? 'Les portes et escaliers de cette salle ne peuvent pas être gardés avec certitude : rien n’a été changé.', reduire(spec, 0), false);
+  const champs = { forme: 'rectangle' };
+  if (formes && Math.min(largeur, longueur) >= COTE_FORME_MIN && (role.forme || tirageForme.chance < CHANCE_FORME)) {
+    champs.forme = role.forme || FORMES_TIRABLES[Math.floor(tirageForme.forme * FORMES_TIRABLES.length)];
+    const positions = POSITIONS_FORMES[champs.forme];
+    if (positions) champs.position = positions[Math.floor(tirageForme.position * positions.length)];
+    if (!brasMax({ ...courant, ...champs })) { champs.forme = 'rectangle'; delete champs.position; }
+  }
+  const res = changerForme(courant, champs);
+  if (res.erreur) return null;
+  const neuf = res.plan;
+  // Une porte doit déboucher sur du sol (elle s'enfonce dans une forme découpée) ; un escalier ne doit pas avoir bougé.
+  const surLeSolDuMur = (q) => {
+    const h = horizontal(q.mur), profondeur = h ? neuf.longueur : neuf.largeur;
+    for (let d = 0; d < profondeur; d++) {
+      const x = h ? q.position : (q.mur === 'ouest' ? d : neuf.largeur - 1 - d);
+      const y = h ? (q.mur === 'nord' ? d : neuf.longueur - 1 - d) : q.position;
+      if (estSol(neuf, x, y)) return true;
+    }
+    return false;
+  };
+  if (!neuf.portes.every(surLeSolDuMur)) return null;
+  if (!escaliers.every((e) => neuf.objets.some((n) => n.id === e.id && n.x === e.x && n.y === e.y))) return null;
+  return (plan.sol && plan.sol !== 'pierre') || !role.sol ? neuf : { ...neuf, sol: role.sol }; // le rôle ne change que le sol resté « pierre »
 }
 
 /** Une porte ou un escalier de cette salle est-il relié à une autre salle ? (alors sa forme et ses dimensions ne doivent pas changer) */

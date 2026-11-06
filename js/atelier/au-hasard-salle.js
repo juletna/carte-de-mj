@@ -8,9 +8,11 @@
  *
  * Tout est automatique par défaut : un champ vide (nombre de monstres, de coffres, de pièges), la famille « Auto », la forme et les
  * dimensions tirées ; on ne renseigne un réglage que pour l'imposer. Deux modes (voir `genererSalle`) : « Remplir » garde la forme, les
- * dimensions et TOUTES les portes et escaliers ; « Nouvelle forme et dimensions » n'est offert qu'à une salle sans liaison, et n'est le
- * défaut que pour une salle vide (une salle déjà soignée garde sa forme tant qu'on n'a pas activé la case). Le texte tiré passe par `ctx.modifierPlan` (le chemin de toute
- * modification du plan : description, carte, sauvegarde, historique). Une salle qui avait déjà un contenu est annulable (« Annuler »).
+ * dimensions et TOUTES les portes et escaliers ; « Nouvelle forme et dimensions » les change comme à la main (les portes et escaliers,
+ * reliés ou non, gardent leur mur et leur place : leurs liaisons suivent), et n'est le défaut que pour une salle vide (une salle déjà
+ * soignée garde sa forme tant qu'on n'a pas activé la case). Le texte tiré passe par `ctx.modifierPlan` (le chemin de toute
+ * modification du plan : description, carte, sauvegarde, historique, liaisons). Une salle qui avait déjà un contenu, ou dont la forme
+ * change, est annulable en un seul pas (« Annuler » rétablit aussi les liaisons).
  * Les réglages et le dernier tirage vivent le temps de la page : rien n'est enregistré.
  */
 import { h } from '../dom.js';
@@ -31,15 +33,9 @@ export function creerSectionAuHasard(ctx) {
 
   const donjon = () => ctx.donjon();
 
-  /** Une nouvelle forme est-elle permise à cette salle ? (sans liaison, sans escalier, portes ordinaires : `genererSalle` revérifie) */
-  const formePermise = (d, id) => {
-    const plan = d.salles[id]?.plan;
-    if (!plan || salleReliee(d, id) || (plan.objets || []).some((o) => o.type === 'escalier')) return false;
-    return (plan.portes || []).every((p) => p.type === 'porte' || p.type === 'arche');
-  };
   /** Le mode effectif : le choix du MJ s'il y en a un ; sinon « nouvelle forme » pour une salle vide ou déjà tirée ici, « remplir » pour une salle soignée. */
   const formeVoulue = (d, id) => {
-    if (!formePermise(d, id)) return false;
+    if (!d.salles[id]?.plan) return false;
     if (reglages.nouvelleForme !== null) return reglages.nouvelleForme;
     const s = d.salles[id];
     return (dernier && dernier.salle === id && s.texte === dernier.texte) || !salleAUnContenu(s);
@@ -73,11 +69,16 @@ export function creerSectionAuHasard(ctx) {
     const nomAvant = salle.nom;
     const orphelinesAvant = modele.liaisonsOrphelines(d).length;
     const texteAvant = salle.texte;
+    const ancresAvant = modele.ancresDeSalle(d, id);
+    // Une nouvelle forme change la salle même vide : « Annuler » est offert (une seule entrée, qui rétablit aussi les liaisons).
+    annulable = annulable || r.mode === 'nouvelle';
     if (estNomParDefaut(salle.nom) && r.nom) { modele.renommerSalle(d, id, r.nom); ctx.salles.majListe(); }
-    ctx.modifierPlan(salle.plan, { texte: r.texte, memoire: annulable });
+    // Comme la saisie à la main : le plan à la nouvelle forme, dont les portes déplacées entraînent leurs liaisons (suivrePortes).
+    ctx.modifierPlan(r.mode === 'nouvelle' ? r.plan : salle.plan, { texte: r.texte, memoire: annulable, suivrePortes: r.mode === 'nouvelle' });
     // Filet de sécurité : une liaison devenue orpheline ne doit jamais survivre à un tirage.
     if (modele.liaisonsOrphelines(d).length > orphelinesAvant) {
       modele.renommerSalle(d, id, nomAvant);
+      modele.restaurerAncres(d, ancresAvant);
       ctx.modifierPlan(d.salles[id].plan, { texte: texteAvant, memoire: false });
       if (annulable) ctx.historique.pile(d.id, id).pop();
       ctx.salles.majListe();
@@ -88,7 +89,8 @@ export function creerSectionAuHasard(ctx) {
     }
     dernier = { salle: id, texte: r.texte, graine: r.graine, mode: r.mode, refus: r.refus, resume: r.resume, annulable, nomAvant: nomAvant !== d.salles[id].nom ? nomAvant : null };
     const { monstres, coffres, pieges, reduit } = r.resume;
-    ctx.annoncerCarte(`Tirage ${r.graine} : ${pluriel(monstres, 'monstre', 'monstres')}, ${pluriel(coffres, 'coffre', 'coffres')}, ${pluriel(pieges, 'piège', 'pièges')}${reduit ? ' (la salle est trop petite pour tout)' : ''}.${annulable ? ' « Annuler » rétablit la salle.' : ''}`);
+    const repli = nouvelleForme && r.mode === 'remplir' && r.refus ? ` ${r.refus}` : ''; // la nouvelle forme n'a pas pu garder les portes : on le dit
+    ctx.annoncerCarte(`Tirage ${r.graine} : ${pluriel(monstres, 'monstre', 'monstres')}, ${pluriel(coffres, 'coffre', 'coffres')}, ${pluriel(pieges, 'piège', 'pièges')}${reduit ? ' (la salle est trop petite pour tout)' : ''}.${repli}${annulable ? ' « Annuler » rétablit la salle.' : ''}`);
     ctx.coquille?.rafraichir({ inspecteur: true });
   }
 
@@ -97,7 +99,6 @@ export function creerSectionAuHasard(ctx) {
     const s = d.salles[sel.id];
     const reliee = salleReliee(d, sel.id);
     const escalier = (s?.plan?.objets || []).some((o) => o.type === 'escalier');
-    const figee = reliee || escalier;
     let activee = formeVoulue(d, sel.id);
 
     // Famille : « comme le donjon » quand les autres salles en ont, sinon le hasard.
@@ -124,16 +125,15 @@ export function creerSectionAuHasard(ctx) {
     }));
 
     const forme = h('button', {
-      type: 'button', className: 'rang-champ rang-interrupteur', role: 'switch', 'aria-checked': String(activee), disabled: figee,
-      title: figee ? 'Impossible : la salle a des portes ou des escaliers reliés' : 'Tire aussi une nouvelle forme et de nouvelles dimensions',
+      type: 'button', className: 'rang-champ rang-interrupteur', role: 'switch', 'aria-checked': String(activee),
+      title: 'Tire aussi une nouvelle forme et de nouvelles dimensions',
     },
     h('span', { className: 'rang-aperce rang-icone' }, icone('salle')),
     h('span', { className: 'rang-texte' }, h('span', { className: 'rang-valeur', textContent: 'Nouvelle forme et dimensions' })),
     h('span', { className: 'interrupteur', 'aria-hidden': 'true' }));
-    const texteAide = () => (reliee ? 'Cette salle a des portes reliées à d’autres salles : sa forme, ses dimensions et ses portes restent, seul son contenu change.'
-      : escalier ? 'Cette salle a un escalier : sa forme, ses dimensions et ses portes restent, seul son contenu change.'
-        : activee ? 'La forme et les dimensions sont tirées aussi ; les portes gardent leur mur. Décoche pour les garder.'
-          : 'La forme, les dimensions et les portes restent : seul le contenu change.');
+    const texteAide = () => (activee
+      ? `La forme et les dimensions sont tirées aussi ; les portes gardent leur mur.${reliee ? ' Les portes reliées suivent la nouvelle forme.' : ''}${escalier ? ' Les escaliers gardent leur place.' : ''} Décoche pour les garder.`
+      : 'La forme, les dimensions et les portes restent : seul le contenu change.');
     const aide = h('p', { className: 'note', textContent: texteAide() });
     forme.addEventListener('click', () => {
       activee = !activee;

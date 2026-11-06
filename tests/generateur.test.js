@@ -19,6 +19,13 @@ const vide = (plan) => ({ ...plan, objets: [], creatures: [] });
 const ancres = (plan) => JSON.stringify([plan.forme, plan.largeur, plan.longueur, plan.sol,
   plan.portes.map((q) => [q.mur, q.position, q.type, !!q.cache]).sort(), plan.objets.filter((o) => o.type === 'escalier').map((o) => [o.x, o.y, o.rotation, o.sens]).sort()]);
 
+/** Une porte débouche-t-elle sur du sol ? (elle s'enfonce de `retraitPorte` cases dans une forme découpée) */
+const surLeSolDuMur = (plan, q) => {
+  const h = q.mur === 'nord' || q.mur === 'sud', prof = h ? plan.longueur : plan.largeur;
+  for (let d = 0; d < prof; d++) if (surLeSol(plan, h ? q.position : (q.mur === 'ouest' ? d : plan.largeur - 1 - d), h ? (q.mur === 'nord' ? d : plan.longueur - 1 - d) : q.position)) return true;
+  return false;
+};
+
 const salles = (d) => Object.values(d.salles);
 const monstres = (d) => salles(d).flatMap((s) => s.plan.creatures.filter((k) => k.camp === 'monstre'));
 const objets = (d, type) => salles(d).flatMap((s) => s.plan.objets.filter((o) => o.type === type));
@@ -170,11 +177,10 @@ const TESTS = [
     for (const texte of depart) {
       const plan = analyser(texte).plan;
       for (let graine = 1; graine <= 15; graine++) {
-        const r = genererSalle({ plan, reliee: true, nouvelleForme: true, monstres: 3 + (graine % 4), coffres: graine % 3, pieges: graine % 2, graine });
+        const r = genererSalle({ plan, reliee: true, monstres: 3 + (graine % 4), coffres: graine % 3, pieges: graine % 2, graine });
         const quoi = `${texte} / graine ${graine}`;
         verifier(r.ok, `pas de texte pour ${quoi} : ${r.refus}`);
-        egal(r.mode, 'remplir', `salle reliée : jamais de nouvelle forme (${quoi})`);
-        verifier(r.refus, 'la raison du refus est dite');
+        egal(r.mode, 'remplir', `sans « nouvelle forme » : on remplit seulement (${quoi})`);
         const relu = analyser(r.texte);
         egal(relu.ignores, [], `mots non compris dans « ${r.texte} »`);
         egal(ancres(relu.plan), ancres(plan), `portes, escaliers, forme et dimensions de ${quoi}`);
@@ -257,28 +263,89 @@ const TESTS = [
     egal(sans.graine, 12, 'la graine est rendue');
     verifier(genererSalle({ plan, reliee: true }).graine >= 1, 'sans graine : un numéro est tiré');
   }],
-  ['une salle au hasard : nouvelle forme seulement sans liaison ni escalier', () => {
+  ['une salle au hasard : nouvelle forme et dimensions d’une salle libre', () => {
     const libre = analyser('Salle de 8 par 8 cases, sol en marbre, une porte au mur sud en C, une arche au mur nord en B, une porte secrète au mur est en 3.').plan;
     let formes = 0, dimensions = 0;
     for (let graine = 1; graine <= 60; graine++) {
-      const r = genererSalle({ plan: libre, reliee: false, nouvelleForme: true, monstres: 4, coffres: 1, pieges: 1, graine });
+      const r = genererSalle({ plan: libre, reliee: false, nouvelleForme: true, monstres: 2, coffres: 1, pieges: 1, graine });
       egal(r.mode, 'nouvelle', `salle libre : nouvelle forme (graine ${graine})`);
       const relu = analyser(r.texte).plan;
-      egal(relu.portes.map((q) => [q.mur, q.type, !!q.cache]).sort(), libre.portes.map((q) => [q.mur, q.type, !!q.cache]).sort(), `les portes gardent mur, type et secret (graine ${graine})`);
+      egal(relu.portes.map((q) => [q.mur, q.position, q.type, !!q.cache]).sort(), libre.portes.map((q) => [q.mur, q.position, q.type, !!q.cache]).sort(), `les portes gardent mur, position, type et secret (graine ${graine})`);
       egal(relu.sol, 'marbre', 'le sol est gardé');
-      egal([relu.creatures.length, relu.objets.filter((o) => o.type === 'coffre').length], [4, 1], `nombres de la graine ${graine}`);
+      egal([relu.creatures.length, relu.objets.filter((o) => o.type === 'coffre').length], [r.resume.monstres, r.resume.coffres], `contenu relu de la graine ${graine}`);
       for (const e of [...relu.objets, ...relu.creatures]) verifier(surLeSol(relu, e.x, e.y, e.taille ?? e.l, e.taille ?? e.h), 'sur le sol');
       if (relu.forme !== 'rectangle') formes++;
       if (relu.largeur !== libre.largeur || relu.longueur !== libre.longueur) dimensions++;
+      egal(r.plan.largeur * r.plan.longueur, relu.largeur * relu.longueur, 'le plan rendu est celui du texte');
     }
     verifier(dimensions > 0, 'les dimensions changent');
     verifier(formes > 0, 'des formes apparaissent');
-    // Le moindre doute : reliée (ou flag absent), escalier, porte spéciale, → on remplit seulement.
-    for (const [plan, reliee, mot] of [[libre, true, 'reliés'], [libre, undefined, 'reliés'], [analyser('Salle de 8 par 8 cases, un escalier en A1, une porte au mur sud en C.').plan, false, 'escalier'], [analyser('Salle de 8 par 8 cases, une herse au mur sud en C.').plan, false, 'spéciales']]) {
-      const r = genererSalle({ plan, reliee, nouvelleForme: true, graine: 4 });
-      egal(r.mode, 'remplir', mot);
-      verifier(r.refus && r.refus.includes(mot), `raison : ${r.refus}`);
-      egal(ancres(analyser(r.texte).plan), ancres(plan), `${mot} : rien ne bouge`);
+  }],
+  ['une salle au hasard : nouvelle forme d’une salle reliée ou à escalier relié, sans jamais détacher une liaison', () => {
+    const depart = [
+      'Salle de 9 par 9 cases, une porte au mur sud en C.',
+      'Salle de 12 par 10 cases, une porte au mur sud en C, une porte secrète au mur nord en B.',
+      'Salle de 14 par 12 cases, une porte au mur sud en K, une arche au mur nord en B, une porte au mur est en 9, 3 caisses, 2 rats.',
+      'Salle de 8 par 8 cases, une herse au mur sud en C, une porte au mur ouest en 2.',
+      'Salle de 10 par 10 cases, une porte au mur sud en C, un escalier qui monte en B2.',
+    ];
+    let nouvelles = 0, remplies = 0;
+    for (const texte of depart) {
+      const d = m.creerDonjon({ texte });
+      const idA = d.salleActive;
+      // La salle d'essai est reliée par chacune de ses portes (et son escalier) à une salle voisine.
+      for (const q of d.salles[idA].plan.portes) {
+        const autre = m.ajouterSalle(d, { texte: `Salle de 20 par 20 cases, une porte au mur sud en C, une porte au mur nord en C, une porte au mur est en C, une porte au mur ouest en C.` });
+        const oppose = { nord: 'sud', sud: 'nord', est: 'ouest', ouest: 'est' }[q.mur];
+        m.relier(d, { salle: idA, mur: q.mur, position: q.position }, { salle: autre.id, mur: oppose, position: 2 });
+      }
+      const escalier = d.salles[idA].plan.objets.find((o) => o.type === 'escalier');
+      if (escalier) {
+        const haut = m.ajouterSalle(d, { texte: 'Salle de 6 par 6 cases, un escalier en A1.' });
+        const retour = haut.plan.objets.find((o) => o.type === 'escalier');
+        m.relier(d, { salle: idA, escalier: true, x: escalier.x, y: escalier.y }, { salle: haut.id, escalier: true, x: retour.x, y: retour.y });
+      }
+      verifier(salleReliee(d, idA), 'la salle d’essai est reliée');
+      const liaisonsAvant = JSON.stringify(d.liaisons);
+      for (let graine = 1; graine <= 40; graine++) {
+        const quoi = `${texte} / graine ${graine}`;
+        const salle = d.salles[idA];
+        const r = genererSalle({ plan: salle.plan, reliee: true, nouvelleForme: true, typesPresents: typesDesAutresSalles(d, idA), graine });
+        verifier(r.ok, `un tirage pour ${quoi} : ${r.refus}`);
+        // Appliqué comme le fait l'outil : les liaisons suivent les portes (modifierPlan), puis le texte est relu.
+        const copie = structuredClone(d);
+        if (r.mode === 'nouvelle') m.suivrePortesDeplacees(copie, idA, salle.plan, r.plan);
+        copie.salles[idA].texte = r.texte;
+        const relu = analyser(r.texte);
+        egal(relu.ignores, [], `mots non compris dans « ${r.texte} »`);
+        copie.salles[idA].plan = { ...relu.plan, id: idA };
+        egal(m.liaisonsOrphelines(copie), [], `aucune liaison orpheline (${quoi})`);
+        egal(JSON.stringify(copie.liaisons), liaisonsAvant, `toutes les liaisons sont là, aux mêmes extrémités (${quoi})`);
+        const plan = copie.salles[idA].plan;
+        for (const q of plan.portes) verifier(surLeSolDuMur(plan, q), `porte sur du sol (${quoi})`);
+        egal(plan.portes.length, salle.plan.portes.length, `aucune porte perdue (${quoi})`);
+        for (const e of [...plan.objets, ...plan.creatures]) verifier(surLeSol(plan, e.x, e.y, e.taille ?? e.l, e.taille ?? e.h), `${e.type} hors du sol (${quoi})`);
+        egal(plan.objets.filter((o) => o.type === 'escalier').map((o) => [o.x, o.y]), salle.plan.objets.filter((o) => o.type === 'escalier').map((o) => [o.x, o.y]), `escalier à sa place (${quoi})`);
+        // « Annuler » : l'historique mémorise le texte ET les extrémités de liaison ; les rétablir ramène la salle et ses liaisons.
+        const ancresAvant = m.ancresDeSalle(d, idA);
+        m.restaurerAncres(copie, ancresAvant);
+        copie.salles[idA].texte = salle.texte;
+        egal(JSON.stringify(copie.liaisons), liaisonsAvant, `annuler : liaisons rétablies (${quoi})`);
+        if (r.mode === 'nouvelle') nouvelles++; else { remplies++; verifier(r.refus, 'repli en « remplir » : la raison est dite'); }
+      }
+    }
+    verifier(nouvelles > remplies, `la nouvelle forme réussit le plus souvent (${nouvelles} contre ${remplies})`);
+  }],
+  ['une salle au hasard : un escalier au coin garde sa place (nouvelle forme ou repli en « remplir » avec la raison)', () => {
+    // Un escalier en A1 : une forme découpée le ferait bouger, le tirage doit alors être refait ou se replier. Aucun mot non compris.
+    const plan = analyser('Salle de 5 par 5 cases, une porte au mur sud en C, un escalier en A1.').plan;
+    for (let graine = 1; graine <= 20; graine++) {
+      const r = genererSalle({ plan, nouvelleForme: true, graine });
+      verifier(r.ok, 'un texte');
+      egal(analyser(r.texte).ignores, [], 'texte compris');
+      const e = analyser(r.texte).plan.objets.find((o) => o.type === 'escalier');
+      egal([e.x, e.y], [0, 0], 'escalier en A1');
+      if (r.mode === 'remplir') verifier(r.refus && r.refus.includes('portes'), `raison : ${r.refus}`);
     }
   }],
   ['une salle au hasard : les familles par défaut sont celles des autres salles', () => {
