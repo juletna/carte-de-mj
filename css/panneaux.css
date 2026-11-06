@@ -112,3 +112,38 @@
 .p-rang.alerte .p-rang-icone { color: var(--erreur); }
 .p-rang.compacte { min-height: max(30px, var(--cible)); padding-block: 4px; }
 .p-rang.compacte .p-rang-nom { font-weight: 400; color: var(--p-texte-2); }
+
+/* === Panneaux : Jouer (onglets de la régie, étape 4, CSS seul : presentation.html et js/regie.js ne changent pas) ===
+   Onglets soulignés d'or ; chaque bloc d'onglet devient une section (filet, titre 13 px clair) ; les listes d'éléments, des rangées en creux. */
+.atelier-onglets { gap: 0; padding: 0 var(--esp-2); border-bottom: 1px solid var(--p-filet-fort); }
+.atelier-onglet.btn { min-height: max(40px, var(--cible)); padding: 0 var(--esp-1); border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: none; color: var(--p-texte-3); font-size: 13.5px; font-weight: 600; }
+.atelier-onglet.btn:hover { background: none; color: var(--p-texte-1); }
+.atelier-onglet.btn[aria-selected="true"] { background: none; border-color: transparent; border-bottom-color: var(--accent); color: var(--p-texte-1); }
+#regie .atelier-inspecteur .onglet-contenu { gap: 0; padding: 0 0 var(--esp-3); font-size: 14px; color: var(--p-texte-2); }
+#regie .onglet-contenu > section, #regie .onglet-contenu > details.bloc, #regie .onglet-contenu > #projection, #regie .onglet-contenu > div:not([hidden]) {
+  margin: 0; padding: var(--esp-3) var(--esp-4) var(--esp-4); border: 0; border-bottom: 1px solid var(--p-filet); border-radius: 0;
+}
+#regie .onglet-contenu > :last-child { border-bottom: 0; }
+#regie .onglet-contenu > p.note { padding: var(--esp-3) var(--esp-4) 0; }
+#regie .onglet-contenu > section, #regie .onglet-contenu > details.bloc { display: flex; flex-direction: column; gap: var(--esp-3); }
+#regie .onglet-contenu h2 { margin: 0; font-size: 13px; font-weight: 650; line-height: 1.35; letter-spacing: 0; text-transform: none; color: var(--p-texte-1); }
+#regie .onglet-contenu details.bloc > summary h2 { display: inline; }
+#regie .onglet-contenu .note, #regie .onglet-contenu legend, #regie .onglet-contenu .doux { font-size: 12.5px; color: var(--p-texte-3); }
+#regie .onglet-contenu .note.erreur { color: var(--erreur); }
+#regie .onglet-contenu > section > *, #regie .onglet-contenu fieldset { margin: 0; }
+#regie .onglet-contenu details > summary { font-size: 13px; font-weight: 600; color: var(--p-texte-2); cursor: pointer; }
+#regie .onglet-contenu details[open] > summary { color: var(--p-texte-1); margin-bottom: var(--esp-2); }
+#regie .onglet-contenu .ligne { font-size: 14px; color: var(--p-texte-1); }
+#regie .onglet-contenu textarea, #regie .onglet-contenu input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), #regie .onglet-contenu select { font-size: 14px; color: var(--p-texte-1); }
+#regie .onglet-contenu ::placeholder { color: var(--p-texte-4); }
+/* Notes de préparation : une citation, pas un champ. */
+#regie .notes-lecture { padding: var(--esp-2) var(--esp-3); background: none; border: 0; border-left: 2px solid var(--p-filet-fort); border-radius: 0; color: var(--p-texte-2); font-size: 13.5px; }
+#regie .notes-lecture.vide { color: var(--p-texte-3); }
+/* Portes et éléments de la salle : rangées en creux. */
+#regie .liste-portes { margin: 0; padding: var(--esp-1); gap: 1px; background: var(--p-surface-1); border-radius: 8px; }
+#regie .liste-portes:empty { display: none; }
+#regie .liste-portes button { min-height: max(30px, var(--cible)); padding: 4px var(--esp-2); border: 0; background: none; color: var(--p-texte-2); font-size: 13.5px; }
+#regie .liste-portes button:hover { background: var(--p-surface-survol); color: var(--p-texte-1); }
+#regie .liste-portes button[aria-pressed="true"] { background: var(--p-choisi); color: var(--accent); font-weight: 600; }
+/* Un bouton discret du corps reste sur le bord gauche. */
+#regie .onglet-contenu .actions .btn-discret:not(.btn-icone) { padding-inline: 0; }

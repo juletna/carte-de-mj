@@ -142,7 +142,7 @@ Même grammaire dans le panneau bas. Replié, il ne montre que l'en-tête. Cible
 - [x] **1. Jetons et typographie** : ajouter les `--p-*` dans `css/base.css`, réécrire la typographie de `.atelier-inspecteur` et `.atelier-arbre` dans `css/atelier.css` (règles 1, 2, 4). CSS seul.
 - [x] **2. Composant section** : `creerSection({ cle, titre, compte, aide, action, repliee, enfants })` dans `js/atelier/section.js` (fait, testé : `tests/section.test.js`), état replié en session. Adoptée par les inspecteurs Monde, Lieu, Point, Donjon, Salle.
 - [ ] **3. Listes** : `creerListe([...])` dans `js/atelier/liste.js` (fait, testé : `tests/liste.test.js`) ; adopté par les points d'un lieu. Restent les éléments de Jouer et les personnages.
-- [ ] **4. Jouer** : les onglets de la régie au même modèle (en-tête, sections), onglets soulignés.
+- [ ] **4. Jouer** : les onglets de la régie au même modèle (en-tête, sections), onglets soulignés. Fait en CSS seul (`css/panneaux.css`) ; reste la structure JS (en-tête par onglet, sections repliables, éléments regroupés « pilier × 4 ») une fois la refonte UI de la régie terminée.
 - [ ] **5. Téléphone** : vérifier le panneau bas avec la nouvelle grammaire.
 
 | Panneau | Code | Suit ce document |
@@ -152,4 +152,4 @@ Même grammaire dans le panneau bas. Replié, il ne montre que l'en-tête. Cible
 | Inspecteur Calage | univers (calage) | non |
 | Inspecteur Donjon, Salle | `js/atelier/inspecteurs-donjon.js`, `js/mj/salle-forme.js` | typographie, sections (propriétés, « Compris » en pastilles : non) |
 | Porte, Objet, Créature | `js/mj/bulle.js` | typographie seulement (sections : après la recette de la refonte UI) |
-| Jouer · Salle, Joueurs, Table | régie (`js/main-presentation.js` et voisins) | non |
+| Jouer · Salle, Joueurs, Table | `presentation.html`, `js/regie.js`, `js/atelier/jouer.js` | CSS (onglets, sections, rangées) ; en-tête et sections en JS : après la refonte UI |
