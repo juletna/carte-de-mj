@@ -23,7 +23,7 @@ export function creerPersonnages(ctx) {
     const d = donjon();
     const persos = d.personnages || [];
     $('personnages-vide').hidden = persos.length > 0;
-    $('personnages-liste').replaceChildren(...persos.map((p) => {
+    $('personnages-compte').textContent = persos.length ? `· ${persos.length}` : '';    $('personnages-liste').replaceChildren(...persos.map((p) => {
       const retirer = h('button', { type: 'button', className: 'btn btn-danger' });
       deuxTemps(retirer, 'Retirer', 'Confirmer', () => { retirerPersonnage(d, p.id); messagePersonnages(`${p.fiche.nom} retiré de ce donjon.`); rendre(); });
       return carteFiche(p.fiche, [retirer]);
@@ -38,6 +38,11 @@ export function creerPersonnages(ctx) {
     $('personnages-locales').disabled = $('personnages-ajouter').disabled = locales.length === 0;
     $('personnages-actualiser').disabled = !persos.some((p) => p.source && locales.some((l) => l.source === p.source));
   }
+  $('personnages-plus').addEventListener('click', () => {
+    const ouvre = $('personnages-ajout').hidden;
+    $('personnages-ajout').hidden = !ouvre;
+    $('personnages-plus').setAttribute('aria-expanded', String(ouvre));
+  });
   $('personnages-ajouter').addEventListener('click', () => {
     const locale = stockage.chargerFichesLocales().find((l) => l.source === $('personnages-locales').value);
     if (!locale) return;

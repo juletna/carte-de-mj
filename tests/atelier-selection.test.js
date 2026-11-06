@@ -104,7 +104,7 @@ const TESTS = [
     verifier(!selectionValide(selection('point', 'fantome', ctx), etat), 'point disparu');
     verifier(!selectionValide(selection('lieu', 'fantome', ctx), etat), 'lieu disparu');
   }],
-  ['inspecteur : enregistrer, afficher, actions, « ⋯ » destructif, défaut, doublon refusé', () => {
+  ['inspecteur : en-tête (type, nom, résumé), actions visibles, menu « ⋯ » (secondaires, séparateur, destructives), défaut, doublon refusé', () => {
     const racine = faux('aside');
     let rendus = 0;
     const appels = [];
@@ -114,26 +114,39 @@ const TESTS = [
     verifier(textes(insp.corps).join(' ').includes('Choisis'), 'message d’aide');
     insp.enregistrer('donjon', {
       titre: (sel, ctx) => `Donjon ${sel.id} ${ctx.donnee}`,
+      resume: () => '3 salles · 2 personnages',
+      renommer: (sel, valeur) => appels.push(`nom ${valeur}`),
       rendre: (conteneur) => { rendus++; conteneur.append(fabrique('p', { textContent: 'contenu' })); },
       actions: () => [{ libelle: 'Jouer', icone: 'jouer', executer: () => appels.push('jouer') }],
+      menu: () => [{ libelle: 'Exporter', executer: () => appels.push('exporter') }],
       destructives: () => [{ libelle: 'Supprimer', executer: () => appels.push('supprimer') }],
     });
     egal(insp.afficher(null), 'donjon', 'sans sélection : le nœud actif');
-    egal(insp.titre.textContent, 'Donjon d1 42', 'titre');
+    const [tete] = racine.enfants;
+    const [identite, declencheur, menu] = tete.enfants;
+    const [etiquette, champNom, titreFixe, resume] = identite.enfants;
+    egal(etiquette.textContent, 'Donjon', 'étiquette de type, une seule fois');
+    egal(insp.titre.textContent, 'Donjon d1 42', 'nom');
+    egal([champNom.hidden, titreFixe.hidden], [false, true], 'renommable : le champ remplace le titre');
+    egal(resume.textContent, '3 salles · 2 personnages', 'résumé');
+    champNom.value = 'Crypte';
+    champNom.ecouteurs.change();
     egal(rendus, 1, 'rendu');
     insp.rafraichir();
-    egal([rendus, insp.corps.enfants.length], [2, 1], 'rafraîchi sans accumulation');
-    const [actions, , ] = racine.enfants[0].enfants.slice(1);
+    egal([rendus, insp.corps.enfants.length], [2, 2], 'rafraîchi sans accumulation (actions, contenu)');
+    const [actions] = insp.corps.enfants;
     egal(actions.enfants.length, 1, 'une action visible');
     actions.enfants[0].click();
-    const plus = racine.enfants[0].enfants[2];
-    egal(plus.hidden, false, '« ⋯ » visible');
-    const detruire = plus.enfants[1].enfants[0];
-    verifier(detruire.className.includes('btn-danger'), 'destructif en .btn-danger');
+    egal(declencheur.hidden, false, '« ⋯ » visible');
+    egal(menu.enfants.map((e) => e.role ?? e.className.split(' ')[0]), ['atelier-menu-ligne', 'separator', 'atelier-menu-ligne'], 'secondaires, séparateur, destructives');
+    const detruire = menu.enfants[2];
+    verifier(detruire.className.includes('destructif'), 'destructif en rouge, en dernier');
+    menu.enfants[0].click();
     detruire.click();
-    egal(appels, ['jouer', 'supprimer'], 'actions appelées');
+    egal(appels, ['nom Crypte', 'jouer', 'exporter', 'supprimer'], 'actions appelées');
     egal(insp.afficher(selection('salle', 's')), null, 'type non enregistré : message');
     egal(insp.titre.textContent, 'Rien à régler', 'titre du message');
+    egal(declencheur.hidden, true, 'pas de « ⋯ » sans type');
     let leve = false;
     try { insp.enregistrer('donjon', { titre: () => '', rendre: () => {} }); } catch (e) { leve = /déjà enregistré/.test(e.message); }
     verifier(leve, 'un second enregistrement du même type est refusé');
@@ -143,13 +156,29 @@ const TESTS = [
     egal(insp.enregistres(), ['donjon'], 'enregistrés');
     egal(TYPES_INSPECTEUR.length, 9, 'neuf types');
   }],
-  ['inspecteur : enregistrer le type affiché le redessine ; sans destructive pas de « ⋯ »', () => {
+  ['inspecteur : une suppression se confirme en deux temps dans le menu', () => {
+    const racine = faux('aside');
+    const appels = [];
+    const insp = creerInspecteur({ racine, fabrique, icone: () => faux('svg') });
+    insp.enregistrer('salle', { titre: () => 'S', rendre: () => {}, destructives: () => [{ libelle: 'Supprimer la salle', confirmation: 'Sûr ?', executer: () => appels.push('x') }] });
+    insp.afficher(selection('salle', 's'));
+    const ligne = racine.enfants[0].enfants[2].enfants[0];
+    ligne.click();
+    egal(appels, [], 'le premier clic arme seulement');
+    egal(ligne.enfants.at(-1).textContent, 'Sûr ?', 'le libellé de confirmation');
+    ligne.click();
+    egal(appels, ['x'], 'le second clic exécute');
+  }],
+  ['inspecteur : enregistrer le type affiché le redessine ; sans actions pas de « ⋯ » ; sans renommer, un titre', () => {
     const racine = faux('aside');
     const insp = creerInspecteur({ racine, fabrique, icone: () => faux('svg') });
     insp.afficher(selection('lieu', 'l1'));
-    insp.enregistrer('lieu', { titre: () => 'Lieu', rendre: (c) => c.append(fabrique('p', { textContent: 'ok' })) });
-    egal(insp.titre.textContent, 'Lieu', 'redessiné à l’enregistrement');
-    egal(racine.enfants[0].enfants[2].hidden, true, 'pas de « ⋯ »');
+    insp.enregistrer('lieu', { titre: () => 'Forêt', etiquette: () => 'Région', rendre: (c) => c.append(fabrique('p', { textContent: 'ok' })) });
+    egal(insp.titre.textContent, 'Forêt', 'redessiné à l’enregistrement');
+    const [identite, declencheur] = racine.enfants[0].enfants;
+    egal(identite.enfants[0].textContent, 'Région', 'étiquette de la définition');
+    egal([identite.enfants[1].hidden, identite.enfants[2].hidden], [true, false], 'pas renommable : titre simple');
+    egal(declencheur.hidden, true, 'pas de « ⋯ »');
   }],
 ];
 

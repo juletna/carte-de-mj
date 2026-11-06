@@ -158,27 +158,25 @@
         <button id="plan-complet" type="button" class="btn btn-discret" title="Voir tout le donjon d'un coup, les salles à leur vraie taille">Voir la vue d’ensemble</button>
       </section>
       <section id="bloc-personnages" class="bloc-inspecteur" aria-labelledby="titre-personnages">
-        <h3 id="titre-personnages">Personnages</h3>
+        <h3 id="titre-personnages">Personnages <span id="personnages-compte" class="doux"></span></h3>
         <div class="personnages">
-          <div class="ligne-aide">
-            <p class="note">Les fiches de ce donjon.</p>
-            <details class="aide"><summary class="btn btn-icone btn-discret" aria-label="Aide : les fiches du donjon">?</summary><div class="aide-texte">Ce sont des copies, qui partent avec le donjon quand tu l'exportes. Les joueurs ne les voient jamais à la table.</div></details>
-          </div>
           <ul id="personnages-liste" class="fiches"></ul>
           <p id="personnages-vide" class="note" hidden>Aucune fiche pour l'instant.</p>
-          <div class="ligne-ajout">
+          <div class="actions">
+            <button id="personnages-plus" type="button" class="btn" aria-expanded="false" aria-controls="personnages-ajout"><span data-icone="plus"></span>Ajouter une fiche</button>
+            <button id="personnages-hasard" type="button" class="btn btn-discret" aria-pressed="false" aria-controls="fiche-hasard"><span data-icone="de"></span>Au hasard</button>
+          </div>
+          <div id="personnages-ajout" class="ligne-ajout" hidden>
             <label for="personnages-locales">Fiches de ce navigateur</label>
             <select id="personnages-locales"></select>
             <div class="actions">
               <button id="personnages-ajouter" type="button" class="btn">Ajouter</button>
-              <button id="personnages-actualiser" type="button" class="btn btn-discret" title="Recopie les fiches encore présentes dans ce navigateur">Actualiser</button>
               <label class="btn"><span data-icone="importer"></span>Depuis un fichier <input id="personnages-fichier" type="file" accept=".json,application/json" hidden></label>
+              <button id="personnages-actualiser" type="button" class="btn btn-discret" title="Recopie les fiches encore présentes dans ce navigateur">Actualiser</button>
             </div>
+            <details class="aide"><summary class="btn btn-icone btn-discret" aria-label="Aide : les fiches du donjon">?</summary><div class="aide-texte">Ce sont des copies, qui partent avec le donjon quand tu l'exportes ; les joueurs ne les voient jamais à la table. Elles se créent dans <a href="fiche.html">l'outil Fiche</a> ; celle d'un joueur sur son téléphone : il l'exporte, tu ajoutes le fichier.</div></details>
           </div>
           <p id="personnages-message" class="note" role="status" hidden></p>
-          <div class="actions">
-            <button id="personnages-hasard" type="button" class="btn btn-discret" aria-pressed="false" aria-controls="fiche-hasard"><span data-icone="de"></span>Au hasard</button>
-          </div>
           <div id="fiche-hasard" class="hasard" hidden>
             <p class="note">Tirage aux règles de D&amp;D 2014.</p>
             <div class="hasard-nombres">
@@ -194,14 +192,10 @@
             </div>
             <p id="fiche-hasard-message" class="note" role="status" hidden></p>
           </div>
-          <div class="ligne-aide">
-            <p class="note">Les fiches se créent dans <a href="fiche.html">l'outil Fiche</a>, ou ici au hasard.</p>
-            <details class="aide"><summary class="btn btn-icone btn-discret" aria-label="Aide : la fiche d'un joueur">?</summary><div class="aide-texte">Celle d'un joueur sur son téléphone : il l'exporte, tu ajoutes le fichier.</div></details>
-          </div>
         </div>
       </section>
-      <section id="bloc-reglages" class="bloc-inspecteur" aria-labelledby="titre-reglages">
-        <h3 id="titre-reglages">Affichage</h3>
+      <details id="bloc-reglages" class="bloc-inspecteur">
+        <summary>Affichage</summary>
         <div class="reglages">
           <label class="ligne">Échelle
             <span><input id="echelle" type="number" min="0.5" max="5" step="0.5" value="1.5"> m par case</span>
@@ -221,7 +215,7 @@
             <button id="plein-ecran" type="button" class="btn"><span data-icone="plein-ecran"></span>Plein écran (table)</button>
           </div>
         </div>
-      </section>
+      </details>
     </div>
 
     <!-- La feuille « Donjons » (ouverte par le « ⋯ » de l'arbre) : nouveau donjon, importer, coller, copies mises de côté (js/mj/menu-donjon.js). -->

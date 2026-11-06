@@ -65,19 +65,42 @@ body.atelier-avec-inspecteur { --largeur-inspecteur: 330px; }
 .atelier-grille-ligne input { grid-column: 1; width: 100%; min-height: var(--cible); }
 .atelier-grille-valeur { grid-column: 2; min-width: 4ch; text-align: right; font-variant-numeric: tabular-nums; }
 
-/* --- Inspecteur --- */
-.atelier-inspecteur { display: flex; flex-direction: column; gap: var(--esp-3); min-width: 0; min-height: 0; overflow-y: auto; padding: var(--esp-3); background: var(--panneau); border-left: 1px solid var(--bord); }
+/* --- Inspecteur : un en-tête collé en haut (type, nom, résumé, « ⋯ »), puis le corps en sections sobres (js/atelier/inspecteur.js) --- */
+.atelier-inspecteur { display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow-y: auto; padding: 0; background: var(--panneau); border-left: 1px solid var(--bord); }
 .atelier-inspecteur-plier { display: none; }
-.atelier-inspecteur-tete { display: flex; flex-wrap: wrap; align-items: center; gap: var(--esp-2); }
-.atelier-inspecteur-titre { flex: 1 1 100%; margin: 0; min-width: 0; overflow-wrap: anywhere; }
-.atelier-inspecteur-actions { display: flex; flex: 0 1 auto; flex-wrap: wrap; gap: var(--esp-2); }
-.atelier-inspecteur-plus { position: relative; }
-.atelier-inspecteur-plus > summary { list-style: none; cursor: pointer; }
-.atelier-inspecteur-plus > summary::-webkit-details-marker { display: none; }
-.atelier-inspecteur-plus[open] { flex: 1 1 100%; }
-/* Ouvert, le « ⋯ » se déplie dans le flux sous l'en-tête (un menu flottant serait rogné par le défilement de l'inspecteur). */
-.atelier-inspecteur-plus-corps { margin-top: var(--esp-2); display: flex; flex-direction: column; gap: var(--esp-2); padding: var(--esp-2); background: var(--champ); border: 1px solid var(--bord); border-radius: var(--rayon); }
-.atelier-inspecteur-corps { display: flex; flex-direction: column; gap: var(--esp-3); }
+.atelier-inspecteur-tete { position: sticky; top: 0; z-index: 5; flex: none; display: flex; align-items: flex-start; gap: var(--esp-2); padding: var(--esp-3) var(--esp-3) var(--esp-2); background: var(--panneau); border-bottom: 1px solid var(--bord); }
+.atelier-inspecteur-id { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.atelier-inspecteur-type { margin: 0; font-size: 11px; line-height: 1.3; text-transform: uppercase; letter-spacing: 0.08em; color: var(--texte-doux); }
+/* Le nom : un champ qui ressemble à un titre (pas de cadre tant qu'on ne le survole pas). */
+.atelier-inspecteur .atelier-inspecteur-nom, .atelier-inspecteur-titre { margin: 0; font-size: 20px; font-weight: 600; line-height: 1.25; }
+.atelier-inspecteur-titre { padding: 2px 0; overflow-wrap: anywhere; }
+.atelier-inspecteur .atelier-inspecteur-nom { width: calc(100% + 12px); min-height: 0; box-sizing: border-box; margin: 0 -6px; padding: 2px 6px; background: transparent; color: var(--texte); border: 1px solid transparent; border-radius: var(--rayon); font-family: inherit; text-overflow: ellipsis; }
+.atelier-inspecteur .atelier-inspecteur-nom:hover { border-color: var(--bord); }
+.atelier-inspecteur .atelier-inspecteur-nom:focus { background: var(--champ); border-color: var(--accent); outline: none; }
+.atelier-inspecteur-nom::placeholder { color: var(--texte-doux); font-weight: 400; }
+.atelier-inspecteur-resume { margin: 2px 0 0; font-size: 13px; line-height: 1.35; color: var(--texte-doux); overflow-wrap: anywhere; }
+.atelier-inspecteur-menu-bouton { flex: none; margin-top: 12px; }
+.atelier-inspecteur-menu-bouton[hidden] { display: none; }
+/* Le menu « ⋯ » : un popover de la couche supérieure, que le défilement de l'inspecteur ne rogne pas (position : js/atelier/inspecteur.js). */
+.atelier-inspecteur-menu { position: fixed; z-index: 60; box-sizing: border-box; min-width: 220px; max-width: calc(100vw - 16px); max-height: calc(100vh - 16px); overflow: auto; margin: 0; padding: 4px; background: var(--panneau); color: var(--texte); border: 1px solid var(--bord); border-radius: var(--rayon); box-shadow: 0 8px 24px rgba(0, 0, 0, .55); }
+.atelier-inspecteur-menu:popover-open, .atelier-inspecteur-menu:not([popover]):not([hidden]) { display: flex; flex-direction: column; gap: 2px; }
+.atelier-menu-ligne { display: flex; align-items: center; gap: var(--esp-2); box-sizing: border-box; width: 100%; min-height: var(--cible-petit); padding: 4px var(--esp-3); background: none; color: inherit; border: 0; border-radius: var(--rayon); font: inherit; font-size: 14px; text-align: left; cursor: pointer; }
+@media (max-width: 760px) { .atelier-menu-ligne { min-height: var(--cible); } }
+.atelier-menu-ligne:hover, .atelier-menu-ligne:focus-visible { background: var(--champ); }
+.atelier-menu-ligne:focus-visible { outline: var(--focus); outline-offset: -2px; }
+.atelier-menu-ligne .icone { flex: none; width: 18px; height: 18px; color: var(--texte-doux); }
+.atelier-menu-ligne.destructif { color: var(--erreur); }
+.atelier-menu-ligne.destructif .icone { color: currentColor; }
+.atelier-menu-ligne.arme { background: var(--erreur); color: #1a0b08; font-weight: 600; white-space: normal; }
+.atelier-inspecteur-separateur { width: 100%; margin: 2px 0; border: 0; border-top: 1px solid var(--bord); }
+/* Le corps : des sections sobres, alignées à gauche, d'un espacement régulier. */
+.atelier-inspecteur-corps { display: flex; flex-direction: column; gap: var(--esp-4); padding: var(--esp-3) var(--esp-3) var(--esp-4); }
+.atelier-inspecteur-actions { display: flex; flex-wrap: wrap; gap: var(--esp-2); }
+.atelier-inspecteur .insp-section > h3, .atelier-inspecteur .bloc-inspecteur > h3, .atelier-inspecteur .retour > h2 { margin: 0 0 var(--esp-2); font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--texte-doux); }
+.atelier-inspecteur .insp-section { display: flex; flex-direction: column; gap: var(--esp-2); }
+.atelier-inspecteur .aide-bloc { display: block; }
+.atelier-inspecteur .aide-bloc > summary { cursor: pointer; font-size: 13px; color: var(--texte-doux); }
+.atelier-inspecteur .aide-bloc > .note { margin-top: var(--esp-2); }
 .atelier-onglets { display: flex; gap: var(--esp-1); }
 .atelier-onglet { flex: 1 1 0; min-width: 0; }
 .atelier-onglet[aria-selected="true"] { border-color: var(--accent); color: var(--accent); background: rgba(217, 169, 41, 0.16); font-weight: 600; }
@@ -112,12 +135,15 @@ body.atelier-avec-inspecteur { --largeur-inspecteur: 330px; }
   .atelier-voile { position: fixed; inset: 0; z-index: 89; background: rgba(0, 0, 0, .5); }
   .atelier-voile:not([hidden]) { display: block; }
   @media (prefers-reduced-motion: reduce) { .atelier-arbre, .atelier-arbre.ouvert { transition: none; } }
-  .atelier-inspecteur { position: fixed; left: 0; right: 0; bottom: 0; z-index: 35; max-height: 45vh; max-height: 45dvh; padding: var(--esp-3) var(--esp-4) max(var(--esp-3), env(safe-area-inset-bottom)); border-left: 0; border-top: 1px solid var(--accent); border-radius: 12px 12px 0 0; box-shadow: 0 -8px 28px rgba(0, 0, 0, .6); }
-  .atelier-inspecteur-plier { display: inline-flex; position: absolute; top: var(--esp-1); right: var(--esp-1); z-index: 1; }
-  .atelier-inspecteur-titre { padding-right: 52px; }
-  .atelier-inspecteur.replie { overflow: hidden; max-height: 64px; }
+  .atelier-inspecteur { position: fixed; left: 0; right: 0; bottom: 0; z-index: 35; max-height: 45vh; max-height: 45dvh; padding: 0 0 env(safe-area-inset-bottom); border-left: 0; border-top: 1px solid var(--accent); border-radius: 12px 12px 0 0; box-shadow: 0 -8px 28px rgba(0, 0, 0, .6); }
+  .atelier-inspecteur-plier { display: inline-flex; position: absolute; top: var(--esp-1); right: var(--esp-1); z-index: 6; }
+  /* « ⋯ » reste en haut du panneau, à gauche du bouton qui le replie. */
+  .atelier-inspecteur-tete { border-radius: 12px 12px 0 0; padding-left: var(--esp-4); padding-right: 52px; }
+  .atelier-inspecteur-menu-bouton { margin-top: 4px; }
+  .atelier-inspecteur-corps { padding-left: var(--esp-4); padding-right: var(--esp-4); }
+  .atelier-inspecteur.replie { overflow: hidden; max-height: 76px; }
   .atelier-inspecteur.replie > :not(.atelier-inspecteur-plier):not(.atelier-inspecteur-tete) { display: none; }
-  .atelier-inspecteur.replie .atelier-inspecteur-actions, .atelier-inspecteur.replie .atelier-inspecteur-plus { display: none; }
+  .atelier-inspecteur.replie .atelier-inspecteur-resume, .atelier-inspecteur.replie .atelier-inspecteur-menu-bouton { display: none; }
   .atelier-inspecteur.replie .atelier-inspecteur-plier .icone { transform: rotate(180deg); }
   /* Le panneau bas ne cache pas le bas de la page : de la place en dessous. */
   body.atelier-avec-inspecteur { padding-bottom: 45vh; padding-bottom: 45dvh; }
@@ -131,3 +157,25 @@ body.atelier-avec-inspecteur { --largeur-inspecteur: 330px; }
   /* Onglets du mode jouer : barre du bas. */
   .atelier-onglets { position: sticky; bottom: 0; }
 }
+
+/* --- Personnages du donjon : une liste compacte, des états vides qui proposent l'action --- */
+.atelier-inspecteur .personnages { gap: var(--esp-2); }
+.atelier-inspecteur .personnages .fiches { margin: 0; gap: var(--esp-2); }
+.atelier-inspecteur .personnages .fiches:empty { display: none; }
+.atelier-inspecteur .personnages > .note { margin: 0; }
+.atelier-inspecteur .personnages .actions { display: flex; flex-wrap: wrap; gap: var(--esp-2); }
+.atelier-inspecteur .fiche-carte { padding: var(--esp-2) var(--esp-3); }
+.atelier-inspecteur .fiche-carte .actions { margin-top: var(--esp-1); }
+
+/* --- Salle : description et « Compris », forme, notes ; les titres de section suivent le même style discret --- */
+.atelier-inspecteur #bloc-description { display: flex; flex-direction: column; gap: var(--esp-3); }
+.atelier-inspecteur #bloc-description .saisie { display: flex; flex-direction: column; gap: var(--esp-2); }
+.atelier-inspecteur #bloc-description .saisie .note { margin: 0; }
+.atelier-inspecteur .retour > h2 { margin-bottom: var(--esp-2); }
+.atelier-inspecteur details.bloc-inspecteur > summary, .atelier-inspecteur details.exemples > summary { min-height: 0; margin: 0 0 var(--esp-2); font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--texte-doux); cursor: pointer; }
+.atelier-inspecteur details.bloc-inspecteur:not([open]) > summary { margin-bottom: 0; }
+.atelier-inspecteur .champ-inspecteur > label, .atelier-inspecteur .outil-etiquette { display: block; margin: 0 0 var(--esp-2); font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--texte-doux); }
+.atelier-inspecteur .forme-salle > h3 { margin: 0 0 var(--esp-2); font-size: 13px; font-weight: 600; color: var(--texte); text-transform: none; letter-spacing: 0; }
+.atelier-inspecteur .forme-salle .ligne { margin: 0; min-height: var(--cible-petit); }
+.atelier-inspecteur .forme-salle select { max-width: 60%; }
+.atelier-inspecteur #bloc-forme .forme-salle { display: flex; flex-direction: column; gap: var(--esp-2); }

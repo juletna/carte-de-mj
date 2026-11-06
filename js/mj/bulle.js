@@ -8,7 +8,8 @@
  *  - `maj()`    à rappeler après chaque rendu et chaque changement de `etat.selection` : l'inspecteur suit (le descripteur de donjon.js
  *               devient la sélection commune de la coquille, et inversement quand l'élément disparaît) ;
  *  - `placer()` ne fait plus rien (gardé pour vue-carte.js) ;
- *  - `titre()`, `actions()`, `destructives()`, `rendreDans(conteneur)` : ce que l'inspecteur affiche ; `typeDe(trouve)` : le type d'inspecteur.
+ *  - `etiquette()`, `titre()`, `resume()`, `actions()` (visibles), `menu()` et `destructives()` (dans « ⋯ »), `rendreDans(conteneur)` : ce que
+ *    l'inspecteur affiche ; `typeDe(trouve)` : le type d'inspecteur.
  */
 import * as modele from '../donjon.js';
 import { libelleSelection } from '../coordonnees.js';
@@ -86,7 +87,7 @@ export function creerBulle(ctx) {
     const lien = reliable ? modele.liaisonDePorte(d, s.id, el) : null;
     const depuis = reliable ? modele.extremite(s.id, el) : null;
     const autre = lien ? d.salles[lien.autre.salle] : null;
-    const actions = [], destructives = [];
+    const actions = [], menu = [], destructives = [];
 
     if (reliable) {
       if (lien) {
@@ -99,7 +100,7 @@ export function creerBulle(ctx) {
         actions.push({ libelle: escalier ? `Créer la salle ${el.sens === 'monte' ? 'du dessus' : 'du dessous'}` : 'Créer la salle derrière', icone: 'plus', executer: () => creerDerriere(el, escalier, depuis) });
         // Le sens se change tant que l'escalier n'est pas relié : ensuite, il fixe le niveau de la salle d'arrivée.
         if (escalier) {
-          actions.push({
+          menu.push({
             libelle: el.sens === 'monte' ? 'Il descend plutôt' : 'Il monte plutôt',
             executer: () => modifierObjet(el, (o) => { const { sens: _, ...sans } = o; return el.sens === 'monte' ? sans : { ...sans, sens: 'monte' }; }),
           });
@@ -114,15 +115,31 @@ export function creerBulle(ctx) {
     destructives.push(lien
       ? { libelle: 'Supprimer', confirmation: 'Retirer la liaison et supprimer ?', titre: `Supprime ${escalier ? 'cet escalier' : 'cette porte'} et retire sa liaison (annulable)`, executer: supprimerSelection }
       : { libelle: 'Supprimer', titre: 'Supprime cet élément (annulable)', executer: supprimerSelection });
-    return { trouve, el, escalier, reliable, lien, depuis, autre, actions, destructives, titre: libelleSelection(trouve), type: typeDe(trouve) };
+    menu.push({ libelle: 'Fermer', icone: 'fermer', titre: 'Désélectionne cet élément', executer: () => { ctx.deselectionner(); rendre(); } });
+    // « porte · mur sud, repère D » : le type devient l'étiquette de l'en-tête, la suite le nom ; « Gobelin 2 · C4 » : le nom, puis la case en résumé.
+    const [debut, ...suite] = libelleSelection(trouve).split(' · ');
+    const reste = suite.join(' · ');
+    const majuscule = (t) => t.charAt(0).toUpperCase() + t.slice(1);
+    const parType = { porte: 'Porte', objet: 'Objet', creature: 'Créature', pion: 'Pion' };
+    const porte = trouve.genre === 'porte';
+    const etiquette = escalier ? 'Escalier' : porte ? majuscule(debut) : parType[typeDe(trouve)];
+    const nom = porte ? majuscule(reste) : debut;
+    const morceaux = [];
+    if (!porte && reste) morceaux.push(`Case ${reste}`);
+    if (reliable) {
+      if (lien) morceaux.push(escalier ? `${el.sens === 'monte' ? 'monte' : 'descend'} à ${autre.nom}` : `reliée à ${autre.nom}`);
+      else morceaux.push('ne mène nulle part');
+    }
+    if (el.cache === true) morceaux.push('caché');
+    const resume = morceaux.length ? majuscule(morceaux.join(' · ')) : '';
+    return { trouve, el, escalier, reliable, lien, depuis, autre, actions, menu, destructives, titre: nom, etiquette, resume, type: typeDe(trouve) };
   }
 
   const titre = () => decrire()?.titre ?? 'Élément';
-  const actions = () => {
-    const dec = decrire();
-    if (!dec) return [];
-    return [...dec.actions, { libelle: 'Fermer', icone: 'fermer', executer: () => { ctx.deselectionner(); rendre(); } }];
-  };
+  const etiquette = () => decrire()?.etiquette ?? 'Élément';
+  const resume = () => decrire()?.resume ?? '';
+  const actions = () => decrire()?.actions ?? [];
+  const menu = () => decrire()?.menu ?? [];
   const destructives = () => decrire()?.destructives ?? [];
 
   /** Le corps de l'inspecteur : ce qu'est l'élément, la liaison de la porte, l'aspect de l'objet, les messages. */
@@ -135,14 +152,11 @@ export function creerBulle(ctx) {
 
     if (reliable) {
       if (lien) {
-        contenu.push(escalier
-          ? h('p', {}, `${el.sens === 'monte' ? 'Monte' : 'Descend'} à `, h('strong', { textContent: autre.nom }), ` (${modele.nomNiveau(modele.niveaux(d)[autre.id])}).`)
-          : h('p', {}, 'Reliée à ', h('strong', { textContent: autre.nom }), '.'));
+        if (escalier) contenu.push(h('p', { className: 'note', textContent: `Mène au ${modele.nomNiveau(modele.niveaux(d)[autre.id]).toLowerCase()}.` }));
         if (modele.liaisonsOrphelines(d).some((o) => o.liaison === lien.liaison && o.cote !== lien.cote)) {
           contenu.push(h('p', { className: 'note erreur', textContent: `${escalier ? 'L’escalier' : 'La porte'} de retour a disparu dans cette salle : la liaison est orpheline là-bas.` }));
         }
       } else {
-        contenu.push(h('p', { className: 'note', textContent: escalier ? 'Cet escalier ne mène nulle part encore.' : 'Cette porte ne mène nulle part encore.' }));
         const autres = modele.listerSalles(d).filter((x) => x.id !== s.id);
         if (autres.length) {
           const choix = h('select', { id: 'relier-choix', 'aria-label': 'Salle à relier' },
@@ -169,9 +183,7 @@ export function creerBulle(ctx) {
       contenu.push(h('div', { className: 'ligne-relier' }, h('label', { htmlFor: 'variante-choix', textContent: 'Aspect' }), choix));
     }
 
-    if (el.cache === true) contenu.push(h('p', { className: 'note', textContent: 'Caché aux joueurs. Tu le vois ici, en translucide avec un contour en pointillés.' }));
     if (etat.message) contenu.push(h('p', { className: 'note', role: 'status', textContent: etat.message }));
-    if (!contenu.length) contenu.push(h('p', { className: 'note', textContent: 'Glisse-le pour le déplacer ; « ⋯ » pour le supprimer.' }));
     conteneur.append(...contenu);
   }
 
@@ -201,5 +213,5 @@ export function creerBulle(ctx) {
     rendre();
   });
 
-  return { maj: majSelection, placer: () => {}, titre, actions, destructives, rendreDans, typeDe };
+  return { maj: majSelection, placer: () => {}, titre, etiquette, resume, actions, menu, destructives, rendreDans, typeDe };
 }
