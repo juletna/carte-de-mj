@@ -1,10 +1,11 @@
 /**
  * Les pions du thème « peint » : à plat (jamais en perspective), au-dessus de tout, donc lisibles de loin. Un disque en dégradé de la couleur du camp
- * (bleu : joueurs, or : neutres, rouge : monstres), un anneau clair, un contour d'encre, l'abréviation du type (« P1 » pour un joueur) et la pastille
+ * (bleu : joueurs, or : neutres, rouge : monstres), un anneau clair, un contour d'encre, le portrait du monstre (ou, très petit ou sans portrait, l'abréviation du type : « P1 » pour un joueur) et la pastille
  * du numéro. Blessé : anneau en tirets et pastille à croix rouge ; mort : disque grisé et barré d'une grande croix. Même contrat que `pion` du thème vectoriel.
  */
 import { COULEURS } from '../../../parseur/lexique.js';
 import { CREATURES } from '../../../catalogue.js';
+import { dessinerPortrait } from '../../portraits.js';
 import { alea, graineDeTexte } from './bruit.js';
 import { etat } from './etat.js';
 import { cercle, encre, trait, dr, ENCRE } from './trait.js';
@@ -14,6 +15,7 @@ const ABREVIATIONS = Object.fromEntries(CREATURES.map((c) => [c.type, c.abr]));
 const CAMP = { pj: ['#6aa5ff', '#1b4aa8'], pnj: ['#ecca55', '#8a6710'], monstre: ['#e8695f', '#7a1814'] };
 const MORT = ['#9a9792', '#4e4c48'];
 const ANNEAU = '#f4efe4';
+const R_PORTRAIT_MIN = 11; // px : sous ce rayon, un pion garde son abréviation (comme les thèmes vectoriel et papier)
 
 export function pion(ctx, k, t) {
   const cote = k.taille * t, cx = k.x * t + cote / 2, cy = k.y * t + cote / 2, R = cote * 0.42;
@@ -31,11 +33,15 @@ export function pion(ctx, k, t) {
   // Anneau de la couleur propre à la créature (dragon rouge, etc.).
   if (!mort && k.couleur && COULEURS[k.couleur]) { cercle(ctx, cx, cy, R * 0.78, r, 0.2); trait(ctx, COULEURS[k.couleur], Math.max(3, R * 0.18)); }
 
-  const texte = k.camp === 'pj' ? `P${k.numero}` : ABREVIATIONS[k.type] || '?';
-  ctx.font = `700 ${Math.max(9, R * (texte.length > 2 ? 0.66 : 0.82))}px system-ui, sans-serif`;
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
-  ctx.lineWidth = Math.max(2.5, R * 0.2); ctx.strokeStyle = 'rgba(20,12,8,0.85)'; ctx.strokeText(texte, cx, cy + R * 0.04);
-  ctx.fillStyle = '#fff'; ctx.fillText(texte, cx, cy + R * 0.04);
+  // Le portrait du monstre dans l'anneau du camp ; très petit, il deviendrait illisible : on garde alors l'abréviation (un joueur n'en a pas).
+  const portrait = !mort && R >= R_PORTRAIT_MIN && dessinerPortrait(ctx, k.type, cx, cy, R * 0.82);
+  if (!portrait) {
+    const texte = k.camp === 'pj' ? `P${k.numero}` : ABREVIATIONS[k.type] || '?';
+    ctx.font = `700 ${Math.max(9, R * (texte.length > 2 ? 0.66 : 0.82))}px system-ui, sans-serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
+    ctx.lineWidth = Math.max(2.5, R * 0.2); ctx.strokeStyle = 'rgba(20,12,8,0.85)'; ctx.strokeText(texte, cx, cy + R * 0.04);
+    ctx.fillStyle = '#fff'; ctx.fillText(texte, cx, cy + R * 0.04);
+  }
   ctx.restore();
 
   // Pastille du numéro (inutile pour les PJ, déjà numérotés ; `sansNumero` : vignettes de la palette).

@@ -731,13 +731,15 @@ const TESTS = [
     const sobresPorte = portes(rect(9, 7, { id: 'po', portes: [{ id: 'q', mur: 'nord', position: 2, type: 'porte' }] }), 'sobres', true);
     verifier(sobresPorte.some((l) => l.includes('#9a6836') || l.includes('#8a5a2c')), 'sobres : le battant d’avant');
   }],
-  ['peint : les pions se dessinent pour chaque état, avec leur abréviation ; mort et blessé se distinguent d’un pion normal', () => {
-    const tracer = (k) => { const { ctx, lignes } = ctxJournal(); THEMES.peint.preparer(ctx, rect(9, 7, { id: 'p' }), 48, { relief: true }); pionPeint(ctx, { type: 'gobelin', camp: 'monstre', numero: 2, x: 3, y: 2, taille: 1, ...k }, 48); return lignes; };
+  ['peint : les pions se dessinent pour chaque état, avec leur portrait (ou leur abréviation s’ils sont petits) ; mort et blessé se distinguent d’un pion normal', () => {
+    const tracer = (k, t = 48) => { const { ctx, lignes } = ctxJournal(); THEMES.peint.preparer(ctx, rect(9, 7, { id: 'p' }), t, { relief: true }); pionPeint(ctx, { type: 'gobelin', camp: 'monstre', numero: 2, x: 3, y: 2, taille: 1, ...k }, t); return lignes; };
     const normal = tracer({}), blesse = tracer({ etat: 'blesse' }), mort = tracer({ etat: 'mort' });
-    verifier(normal.some((l) => l.startsWith('fillText(Gob,')), 'l’abréviation du type est écrite');
+    verifier(!normal.some((l) => l.startsWith('fillText(Gob,')), 'assez grand : le portrait remplace l’abréviation');
+    verifier(tracer({}, 20).some((l) => l.startsWith('fillText(Gob,')), 'très petit : l’abréviation du type est écrite');
+    verifier(tracer({ etat: 'mort' }).some((l) => l.startsWith('fillText(Gob,')), 'un mort garde l’abréviation (disque grisé, sans portrait)');
     verifier(normal.some((l) => l.startsWith('fillText(2,')), 'la pastille de numéro');
     verifier(blesse.some((l) => l.startsWith('setLineDash(')) && !normal.some((l) => l.startsWith('setLineDash(')), 'anneau en tirets pour un blessé seulement');
-    verifier(mort.length > normal.length && mort.some((l) => l.startsWith('globalAlpha=')), 'un mort est grisé et barré d’une croix');
+    verifier(mort.some((l) => l.startsWith('globalAlpha=')) && !normal.some((l) => l.startsWith('globalAlpha=')), 'un mort est grisé (transparence)');
     verifier(tracer({ camp: 'pj', type: 'pj', numero: 3 }).some((l) => l.startsWith('fillText(P3,')), 'un joueur : P + son numéro');
     verifier(!tracer({ camp: 'pj', type: 'pj', numero: 3 }).some((l) => l.startsWith('fillText(3,')), 'pas de pastille pour un joueur');
     verifier(tracer({ sansNumero: true }).every((l) => !l.startsWith('fillText(2,')), 'sansNumero : pas de pastille');
