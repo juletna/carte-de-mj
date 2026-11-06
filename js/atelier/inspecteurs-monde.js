@@ -195,10 +195,10 @@ export function enregistrerInspecteursMonde(coquille, U) {
     return section('lieu-points', 'Points', [
       rangees.length
         ? creerListe(rangees)
-        : h('p', { className: 'note', textContent: 'Aucun point : choisis l’outil Point, puis clique sur la carte.' })], {
+        : h('p', { className: 'note', textContent: 'Aucun point : clique sur la carte pour en poser un.' })], {
       compte: l.points.length || null,
-      aide: 'Choisis l’outil Point, puis clique sur une zone vide de la carte : son panneau s’ouvre, nomme-le et choisis où il mène. Clique sur un point (outil Sélection) pour rouvrir son panneau, double-clique pour entrer. Glisse un point, ou utilise les flèches du clavier, pour le déplacer. Un clic dans le vide lâche le point.',
-      action: { libelle: 'Poser un point au centre de la carte', icone: 'plus', executer: () => U.poserPoint(0.5, 0.5) },
+      aide: 'Clique sur une zone vide de la carte : un point s’y pose et son nom se tape juste à côté (Entrée, puis clique le suivant). Choisis ensuite où il mène dans ce panneau. Clique sur un point pour rouvrir son panneau, double-clique pour entrer. Glisse un point, ou utilise les flèches du clavier, pour le déplacer. Échap lâche le point, Suppr l’efface (« Annuler » le remet).',
+      action: { libelle: 'Poser un point au centre de la carte', icone: 'plus', executer: () => U.poserPoint(0.5, 0.5, { surCarte: false }) },
     });
   }
 

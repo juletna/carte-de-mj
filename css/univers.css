@@ -32,7 +32,6 @@ h3 .aide, h2 .aide { margin-left: var(--esp-1); font-weight: 400; }
 .univers-scene[hidden] { display: none; }
 .univers-vide { margin: 8vh auto 0; max-width: 460px; padding: var(--esp-4); text-align: center; display: flex; flex-direction: column; align-items: center; gap: var(--esp-3); }
 .univers-vide[hidden] { display: none; }
-.univers-cadre.mode-selection.poser { cursor: default; }
 
 /* --- Les inspecteurs du Monde (js/atelier/inspecteurs-monde.js) --- */
 .univers-insp { text-align: left; display: flex; flex-direction: column; gap: var(--esp-2); }
@@ -77,6 +76,11 @@ h3 .aide, h2 .aide { margin-left: var(--esp-1); font-weight: 400; }
 .univers-point.libre .univers-pastille { background: var(--texte-doux); }
 .univers-point.transparent { opacity: .35; pointer-events: none; } /* pendant le calage de la grille */
 .univers-cadre.calage .univers-point.transparent .univers-etiquette { display: none; }
+/* Le nom d'un point neuf, tapé sur la carte : à la place de son étiquette, même allure, avec le liseré doré de la saisie. */
+.univers-nom-carte { position: absolute; transform: translate(17px, -50%); width: 12em; max-width: 42%; min-width: 8em; /* % : de la largeur de la carte, pour rester dedans */ box-sizing: border-box; padding: 3px 8px; border: 1px solid var(--accent); border-radius: 4px; background: rgba(12, 11, 14, .92); color: #fff; font-family: inherit; font-size: 13px; font-weight: 600; line-height: 1.3; pointer-events: auto; box-shadow: 0 2px 10px rgba(0, 0, 0, .55); }
+.univers-nom-carte.a-gauche { transform: translate(calc(-100% - 17px), -50%); } /* près du bord droit : le champ passe à gauche du point */
+.univers-nom-carte::placeholder { color: rgba(255, 255, 255, .55); font-weight: 400; }
+.univers-nom-carte:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
 
 .univers-segment { display: flex; border: 1px solid var(--bord); border-radius: var(--rayon); overflow: hidden; }
 .univers-segment-bouton { flex: 1 1 0; margin: 0; border: 0; border-radius: 0; background: var(--champ); }

@@ -3,14 +3,15 @@
  * et docs/conception-atelier.md). Ce module ne construit plus d'écran : il pose la scène « lieu » (fil d'Ariane, carte, points, notifications)
  * dans `#cadre-scene`, et expose ses opérations à l'atelier. Le DOM des réglages est ailleurs :
  *   - js/atelier/inspecteurs-monde.js : les inspecteurs monde, lieu et point (nom, destination, grille, suppression…) ;
- *   - js/atelier/barre-lieu.js        : la barre d'outils Sélection · Point · Calage ;
+ *   - js/atelier/barre-lieu.js        : la barre d'outils (Calage, consigne des points) ;
  *   - js/atelier/inscrire-monde.js    : le branchement sur la coquille (arbre, « ⋯ », barre du haut, adresse).
  * Fabrique `creerUniversUI(ctx)` ; `ctx` est celui de main-mj.js (`etat`, `annoncerCarte`, `coquille` plus tard). Les identifiants de code, le
  * stockage et le format de fichier gardent le mot « univers » (compatibilité) ; seul ce qui s'affiche dit « monde ».
  * Rien ici ne retire une destination en silence : un lieu ou un donjon supprimé laisse des points orphelins, signalés.
  *
- * Outils de la scène (`mode()`) : 'selection' (un clic sur un point le choisit, un clic dans le vide ne pose rien), 'point' (le prochain clic dans
- * le vide pose un point, puis on revient à 'selection'), 'grille' (le calage de la grille ; actif tant que `calage.actif()`).
+ * La carte n'a pas d'outil à choisir pour ses points (`mode()` : 'carte') : un clic dans le vide pose un point et ouvre, à côté de lui, un champ
+ * pour son nom (Entrée : fini, on peut cliquer le suivant) ; un clic sur un point le choisit, le glisser le déplace, Échap le lâche, Suppr le
+ * supprime (« Annuler » le remet). Seul le calage de la grille est un mode ('grille', actif tant que `calage.actif()`).
  * Le point choisi est une sélection commune de la coquille (type 'point') : `surPoint(f)` prévient l'atelier, `synchroniser(sel)` le contraire.
  */
 import * as stockage from '../stockage.js';
@@ -27,6 +28,7 @@ import { idUnique } from '../donjon.js';
 import { calagePossible, nomDuNouveauLieu } from '../univers-vue.js';
 import { $, h, fichierChoisi } from '../dom.js';
 import { pluriel, sansAccents } from '../format.js';
+import { telephone } from '../telephone.js';
 
 const TAILLE_MAX_FICHIER = 5 * 1024 * 1024;
 const DELAI_DOUBLE_CLIC = 450;
@@ -38,7 +40,8 @@ export function creerUniversUI(ctx) {
   let lieuId = null;        // lieu affiché
   let fil = [];             // lieux traversés pour y arriver (fil d'Ariane), lieu affiché compris
   let pointId = null;       // point choisi (son inspecteur est ouvert)
-  let modeLocal = 'selection'; // 'selection' | 'point' (le calage, lui, se lit dans `calage.actif()`)
+  let nomSurCarte = null;   // le point neuf qu'on nomme dans le champ posé sur la carte (null : aucun)
+  let focusApres = null;    // le point à qui rendre le focus clavier au prochain dessin de la carte
   let sequence = 0;         // pour ignorer une URL d'image qui arrive après un changement de lieu
   let retraits = [];        // lieux retirés, pour « Annuler »
   let dernierClic = { id: null, t: 0 };
@@ -71,15 +74,10 @@ export function creerUniversUI(ctx) {
       const maintenant = Date.now();
       const double = dernierClic.id === id && maintenant - dernierClic.t < DELAI_DOUBLE_CLIC;
       dernierClic = { id, t: double ? 0 : maintenant };
-      modeLocal = 'selection';
       selectionner(id);
       if (double) entrerDansPoint(); else rendre();
     },
-    onVide: (x, y) => {
-      if (calage.actif()) return;
-      if (modeLocal === 'point') { poserPoint(x, y); return; }
-      if (pointId) { selectionner(null); rendre(); } // l'outil Sélection ne pose rien : un clic dans le vide lâche le point
-    },
+    onVide: (x, y) => { if (!calage.actif()) poserPoint(x, y); }, // poser un point est le geste principal : un clic dans le vide, toujours (Échap lâche le point choisi)
     onDeplace: (id, x, y) => { modele.deplacerPoint(univ(), lieuId, id, x, y); selectionner(id); sauver(); rendre(); },
   });
   zoneCarte.addEventListener('click', (e) => { if (e.target === zoneCarte && pointId) { selectionner(null); rendre(); } });
@@ -110,7 +108,7 @@ export function creerUniversUI(ctx) {
   const orphelinDe = (p) => modele.raisonOrpheline(univ(), p.vers, donjons());
   /** Choisit (ou lâche) un point ; l'atelier est prévenu pour que l'inspecteur suive. */
   function selectionner(id) {
-    if (id !== pointId) { saisie.choixGenre = null; saisie.cle = null; }
+    if (id !== pointId) { saisie.choixGenre = null; saisie.cle = null; nomSurCarte = null; }
     const change = id !== pointId;
     pointId = id;
     if (change) surPoint?.(id);
@@ -189,12 +187,11 @@ export function creerUniversUI(ctx) {
   function allerA(id, { nouveauFil = true } = {}) {
     lieuId = id && univ()?.lieux[id] ? id : null;
     if (nouveauFil) fil = lieuId ? [lieuId] : [];
-    modeLocal = 'selection';
     selectionner(null); calage.fermer();
   }
   function entrerDansLieu(id) {
     fil = [...fil.slice(0, fil.indexOf(lieuId) + 1), id];
-    lieuId = id; modeLocal = 'selection'; selectionner(null); calage.fermer();
+    lieuId = id; selectionner(null); calage.fermer();
   }
 
   async function demanderImage() {
@@ -216,7 +213,9 @@ export function creerUniversUI(ctx) {
     if (!l) return null;
     entrerDansLieu(l.id); fil = [l.id];
     sauver(); rendre();
-    dire(`${premier ? 'Carte du monde choisie' : `Lieu « ${l.nom} » ajouté`}. Choisis l’outil Point, puis clique sur la carte pour relier un point à un autre lieu ou à un donjon.`);
+    // Le panneau montre le lieu neuf ; la première carte, elle, est celle du monde : son panneau est celui du monde.
+    if (!premier) ctx.coquille?.naviguer({ page: 'monde', monde: univ().id, lieu: l.id });
+    dire(`${premier ? 'Carte du monde choisie' : `Lieu « ${l.nom} » ajouté`}. Clique sur la carte pour poser un point, tape son nom, Entrée.`);
     return l;
   }
   function renommerLieu(nomLieu) { modele.renommerLieu(univ(), lieuId, nomLieu); sauver(); rendre({ inspecteur: false }); }
@@ -247,13 +246,24 @@ export function creerUniversUI(ctx) {
   }
 
   // --- Points -----------------------------------------------------------------------------------------
-  function poserPoint(x, y) {
+  /**
+   * Pose un point et le choisit. `surCarte` (le clic sur la carte, hors téléphone) : son nom se tape dans un champ posé à côté du point ;
+   * sinon (le « + » du panneau, le téléphone, dont le panneau bas couvre la carte) : dans le champ du nom de l'inspecteur.
+   */
+  function poserPoint(x, y, { surCarte = !telephone() } = {}) {
     try {
       const p = modele.ajouterPoint(univ(), lieuId, { x, y, nom: '' });
-      modeLocal = 'selection';
-      selectionner(p.id); saisie.cle = 'nom';
+      selectionner(p.id);
+      if (surCarte) nomSurCarte = p.id; else saisie.cle = 'nom';
       sauver(); rendre();
     } catch (err) { dire(err.message, { erreur: true }); }
+  }
+  /** La fin du champ de nom posé sur la carte : Entrée ou Échap rendent le focus au point (le clavier continue) ; quitter le champ, non. */
+  function finNomSurCarte(id, comment) {
+    if (nomSurCarte !== id) return; // un autre point est déjà en cours (le clic qui a fait quitter le champ en a posé un neuf)
+    nomSurCarte = null;
+    if (comment !== 'sortie') focusApres = id;
+    rendre();
   }
   function modifierPoint(champs) { modele.modifierPoint(univ(), lieuId, pointId, champs); sauver(); }
   function changerDestination(vers) {
@@ -275,9 +285,19 @@ export function creerUniversUI(ctx) {
     }
     rendre();
   }
+  /** Supprime le point choisi (menu du panneau, ou Suppr sur la carte) ; « Annuler » dans la notification le remet à sa place. */
   function supprimerPoint() {
-    modele.supprimerPoint(univ(), lieuId, pointId);
+    const u = univ(), lid = lieuId;
+    const index = lieu().points.findIndex((p) => p.id === pointId);
+    const retire = modele.supprimerPoint(u, lid, pointId);
     selectionner(null); sauver(); rendre();
+    dire(`Point « ${retire.nom || 'sans nom'} » supprimé.`, {
+      action: { libelle: 'Annuler', faire: () => {
+        if (!u.lieux[lid]) return;
+        try { const p = modele.retablirPoint(u, lid, retire, index); if (lieuId === lid) selectionner(p.id); } catch (err) { dire(err.message, { erreur: true }); return; }
+        sauver(); rendre(); dire('Point rétabli.');
+      } },
+    });
   }
   function entrerDansPoint() {
     const p = point();
@@ -332,13 +352,21 @@ export function creerUniversUI(ctx) {
     const infos = await infosDe(l.image);
     if (moi !== sequence) return;
     const aff = enCalage ? calage.grilleAffichee() : { grille: grilleEffective(l, infos).grille, opacite: casesDeReglages(stockage.chargerReglages() ?? {}) / 100 };
-    const options = { points: pointsCarte, modifiable: !enCalage, poser: !enCalage, alt: `Carte : ${l.nom}`, ...aff };
+    const enCours = !enCalage && nomSurCarte && l.points.find((p) => p.id === nomSurCarte);
+    const nomEnCours = enCours ? {
+      id: enCours.id, valeur: enCours.nom,
+      // Le panneau suit la frappe (son titre, la liste des points) ; la carte, elle, n'est pas redessinée : le champ garde la main.
+      surTape: (texte) => { if (point()?.id !== enCours.id) return; modifierPoint({ nom: texte }); surChangement.forEach((f) => f()); },
+      surFin: (comment) => finNomSurCarte(enCours.id, comment),
+    } : null;
+    const options = { points: pointsCarte, modifiable: !enCalage, poser: !enCalage, alt: `Carte : ${l.nom}`, nomEnCours, ...aff };
     const cle = cleImage(l.image);
     if (imageAffichee !== cle) carte.afficher({ ...options, url: null, absente: 'Chargement de l’image…' });
     const url = await images.urlImage(l.image);
     if (moi !== sequence) return;
     imageAffichee = url ? cle : null;
     carte.afficher({ ...options, url, absente: 'Image introuvable : la carte n’est plus dans la bibliothèque ou dans ce navigateur (ou la bibliothèque n’est pas disponible). Les points restent posés ; choisis une autre image.' });
+    if (focusApres) { carte.focaliser(focusApres); focusApres = null; }
   }
 
   /** L'état vide du Monde : aucun monde, ou un monde sans lieu. */
@@ -362,7 +390,6 @@ export function creerUniversUI(ctx) {
     const infos = await infosDe(l.image);
     if (!calagePossible(infos?.niveau)) { dire('Une carte de continent ou de région n’a pas de grille de case : le calage se fait sur une zone, une localité, un bâtiment ou un souterrain.'); rendre(); return false; }
     if (!calage.ouvrir({ lieu: l, infos, dims })) return false;
-    modeLocal = 'selection';
     rendre();
     calage.focaliser();
     return true;
@@ -373,16 +400,14 @@ export function creerUniversUI(ctx) {
     if (!l) return false;
     return calagePossible((await infosDe(l.image))?.niveau);
   }
-  /** Change d'outil : 'selection', 'point' ou 'grille' (le calage s'ouvre, ou se ferme sans rien enregistrer). */
+  /** Change d'outil : 'grille' ouvre le calage ; tout autre mode le ferme sans rien enregistrer (la carte pose et choisit les points d'elle-même). */
   async function definirMode(m) {
     if (m === 'grille') { if (!calage.actif()) await ouvrirCalage(); return mode(); }
     if (calage.actif()) calage.fermer();
-    modeLocal = m === 'point' && lieu() ? 'point' : 'selection';
-    if (modeLocal === 'point') selectionner(null);
     rendre();
     return mode();
   }
-  const mode = () => (calage.actif() ? 'grille' : modeLocal);
+  const mode = () => (calage.actif() ? 'grille' : 'carte');
 
   // --- Rendu général ------------------------------------------------------------------------------------------------------------
   /** Redessine la scène puis prévient l'atelier. `inspecteur: false` : le champ qu'on vient de quitter ne doit pas faire perdre un clic en redessinant le panneau. */
@@ -393,7 +418,6 @@ export function creerUniversUI(ctx) {
     rendreFil();
     rendreVide();
     scene.classList.toggle('en-calage', calage.actif());
-    carte.cadre.classList.toggle('mode-selection', modeLocal === 'selection' && !calage.actif());
     if (u) rendreCarte(); else zoneCarte.hidden = true;
     surChangement.forEach((f) => f(options));
   }
@@ -410,17 +434,25 @@ export function creerUniversUI(ctx) {
   }
   function fermerEcran() {
     ouvertEcran = false;
-    modeLocal = 'selection'; selectionner(null); calage.fermer();
+    selectionner(null); calage.fermer();
     scene.hidden = true;
     notifier('');
     document.body.classList.remove('univers-ouvert');
     surChangement.forEach((f) => f());
   }
-  // Échap : quitte l'outil armé (calage, pose d'un point), puis lâche le point (le tiroir et le panneau bas, eux, sont à la coquille).
+  // Échap : quitte le calage, sinon lâche le point (le tiroir et le panneau bas, eux, sont à la coquille ; le champ du nom sur la carte se ferme lui-même).
+  // Suppr (ou retour arrière) : supprime le point choisi, hors d'un champ de saisie ; « Annuler » le remet.
+  // (Suppr ne vaut que sur la carte ou sans focus : dans le panneau, un retour arrière sur un bouton ne doit rien effacer.)
+  const surLaCarte = (el) => el === document.body || (scene.contains(el) && !el.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"])'));
   document.addEventListener('keydown', (e) => {
-    if (!ouvertEcran || e.key !== 'Escape' || e.defaultPrevented) return;
-    if (calage.actif()) { e.preventDefault(); calage.fermer(); rendre(); dire('Calage abandonné : rien n’a été modifié.'); }
-    else if (modeLocal === 'point') { e.preventDefault(); modeLocal = 'selection'; rendre(); } else if (pointId) { e.preventDefault(); selectionner(null); rendre(); }
+    if (!ouvertEcran || e.defaultPrevented) return;
+    if (e.key === 'Escape') {
+      if (calage.actif()) { e.preventDefault(); calage.fermer(); rendre(); dire('Calage abandonné : rien n’a été modifié.'); }
+      else if (pointId) { e.preventDefault(); selectionner(null); rendre(); }
+    } else if ((e.key === 'Delete' || e.key === 'Backspace') && pointId && point() && !calage.actif() && surLaCarte(e.target)) {
+      e.preventDefault();
+      supprimerPoint();
+    }
   });
 
   if (charge.miseDeCote) {
@@ -452,7 +484,7 @@ export function creerUniversUI(ctx) {
     creerMondeNeuf, renommerMonde, supprimerLeMonde, exporterMonde, importerMonde, importerMondeLu,
     ajouterLieuLibre, renommerLieu, notesDuLieu, definirDepart, supprimerLeLieu, changerImage,
     poserPoint, modifierPoint, changerDestination, destinationNouvelleCarte, supprimerPoint, entrerDansPoint,
-    selectionnerPoint: (id) => { modeLocal = 'selection'; selectionner(id); rendre(); },
+    selectionnerPoint: (id) => { selectionner(id); rendre(); },
     rendreCarte, rendre,
   };
 }

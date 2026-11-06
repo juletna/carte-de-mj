@@ -61,6 +61,20 @@ const TESTS = [
     u.supprimerPoint(univ, monde.id, p.id);
     verifier(!univ.lieux[monde.id].points.some((q) => q.id === p.id), 'supprimé');
   }],
+  ['« Annuler » une suppression : le point revient à son rang, avec son identifiant s’il est libre', () => {
+    const { univ, monde, foret } = exemple();
+    const b = u.ajouterPoint(univ, monde.id, { nom: 'B', x: 0.2, y: 0.2 });
+    u.ajouterPoint(univ, monde.id, { nom: 'C', x: 0.3, y: 0.3 });
+    const ids = () => univ.lieux[monde.id].points.map((q) => q.nom);
+    const retire = u.supprimerPoint(univ, monde.id, b.id);
+    egal(u.retablirPoint(univ, monde.id, retire, 1).id, b.id, 'même identifiant');
+    egal(ids(), ['Forêt', 'B', 'C'], 'à son rang');
+    const copie = u.retablirPoint(univ, monde.id, { ...retire }, 99);
+    verifier(copie.id !== b.id, 'identifiant déjà pris : un neuf');
+    egal(ids().at(-1), 'B', 'rang trop grand : à la fin');
+    u.retablirPoint(univ, foret.id, retire);
+    egal(univ.lieux[foret.id].points.at(-1).nom, 'B', 'sans rang : à la fin');
+  }],
   ['supprimer un lieu laisse ses entrées orphelines (signalées, pas retirées) ; la racine passe à un autre', () => {
     const { univ, monde, foret, zone } = exemple();
     egal(u.orphelins(univ), [], 'rien d’orphelin au départ');

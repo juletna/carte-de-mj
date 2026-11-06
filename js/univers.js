@@ -152,6 +152,15 @@ export function supprimerPoint(u, idLieu, idPoint) {
   if (i < 0) throw new Error('point inconnu');
   return l.points.splice(i, 1)[0];
 }
+/** Remet un point retiré par `supprimerPoint` (« Annuler »), à son rang `index` s'il est donné ; son identifiant est gardé s'il est libre. */
+export function retablirPoint(u, idLieu, p, index = Infinity) {
+  const l = lieuOu(u, idLieu);
+  if (l.points.length >= MAX_POINTS) throw new Error(`un lieu compte ${MAX_POINTS} points au plus`);
+  const ids = l.points.map((q) => q.id);
+  const remis = { ...p, id: ids.includes(p.id) ? idUnique('pt', ids) : p.id };
+  l.points.splice(Math.min(Math.max(0, index), l.points.length), 0, remis);
+  return remis;
+}
 
 /**
  * La destination d'un point existe-t-elle ? `donjons` : { idDonjon: donjon } (ceux du navigateur).
