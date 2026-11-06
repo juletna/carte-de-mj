@@ -79,7 +79,7 @@ const donjon = () => etat.donjons[etat.actif];
 const salle = () => donjon().salles[donjon().salleActive];
 
 // --- Historique : propre à chaque salle (voir historique.js) --------------------
-// La pile d'une salle est vidée quand le MJ reprend la main sur son texte (frappe, exemple, effacer).
+// La pile d'une salle est vidée quand le MJ reprend la main sur son texte en tapant (effacer et exemples, eux, s'annulent).
 const historique = creerHistorique();
 const pile = (idSalle = donjon().salleActive) => historique.pile(donjon().id, idSalle);
 // `liaisons` : liaisons retirées par la modification (suppression d'une porte reliée), rétablies si on annule.
@@ -220,11 +220,17 @@ function activerSalle(id) {
 
 // --- Saisie -------------------------------------------------------------------
 $('description').addEventListener('input', (e) => { pile().length = 0; salle().texte = e.target.value; genererBientot(); });
-$('effacer').addEventListener('click', () => { pile().length = 0; changerTexte(''); $('description').focus(); });
+// Effacer et les exemples remplacent tout le texte : on le mémorise d'abord, « Annuler » le rend.
+function remplacerTexte(texte) {
+  if (salle().texte === texte) return;
+  memoriser();
+  changerTexte(texte);
+}
+$('effacer').addEventListener('click', () => { remplacerTexte(''); $('description').focus(); });
 
 $('exemples').replaceChildren(...EXEMPLES.map((ex) => {
   const a = h('a', { textContent: ex, tabIndex: 0 });
-  const choisir = () => { pile().length = 0; changerTexte(ex); };
+  const choisir = () => remplacerTexte(ex);
   a.addEventListener('click', choisir);
   a.addEventListener('keydown', (e) => { if (e.key === 'Enter') choisir(); });
   return h('li', {}, a);
