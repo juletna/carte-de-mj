@@ -20,6 +20,8 @@ import { volumesLocaux } from './volumes.js';
 import { etat } from './etat.js';
 import { alea, graineDeTexte } from './bruit.js';
 import { chemin, cercle, encre, trait, dl, dr, ton, centre, rectPts, arrondi, ENCRE } from './trait.js';
+import { sensDuCoin } from '../commun.js';
+import { DESSINS as DETAILS } from './details.js';
 import * as vectoriel from '../vectoriel.js';
 
 const PIERRE = [40, 6, 60], PIERRE_SOMBRE = [40, 5, 46], MARBRE = [40, 8, 74];
@@ -76,7 +78,7 @@ function traits(ctx, F, v0, v1, n, couleur = 'rgba(30,18,8,0.55)', ep = 0.9) {
 }
 
 /** Flamme fixe (tant que la couche de lumière n'anime pas les flammes) : halo chaud et goutte de feu, `s` px de haut. */
-function flamme(ctx, V, x, y, h, s, r) {
+export function flamme(ctx, V, x, y, h, s, r) {
   if (etat.flammesAnimees) return;
   const [fx, fy] = V.haut(x, y, h);
   const g = ctx.createRadialGradient(fx, fy, 0, fx, fy, s * 4);
@@ -470,6 +472,164 @@ export const objets = {
         ctx.beginPath(); ctx.moveTo(P(a0, b0)[0] - 0.8, P(a0, b0)[1] - 0.8); ctx.lineTo(P(a1, b1)[0] - 0.8, P(a1, b1)[1] - 0.8); trait(ctx, '#e6e1d5', 1.6);
       }
     });
+  },
+
+  // --- Lot 5 : brasero, bougies, tapis, bannière, feu de camp, flaque, rocher, champignons, toile d'araignée, ossements ---
+
+  brasero(ctx, w, h, t, o) {
+    // Une vasque de fer sur trois pieds, pleine de braises : la source de lumière la plus forte du mobilier après le feu de camp.
+    const { V, r } = preparerObjet(ctx, o), R = Math.min(w, h) * 0.34, hb = 0.13, h1 = 0.28, k = t / 48;
+    for (let i = 0; i < 3; i++) {
+      const a = (i / 3) * 6.28 + 0.5;
+      ctx.beginPath(); ctx.moveTo(Math.cos(a) * R * 1.2, Math.sin(a) * R * 1.2); ctx.lineTo(...V.haut(Math.cos(a) * R * 0.75, Math.sin(a) * R * 0.75, hb));
+      trait(ctx, ENCRE, 4.5 * k); trait(ctx, '#4a423b', 2.5 * k);
+    }
+    V.ombrePied(ctx, () => { ctx.beginPath(); ctx.arc(0, 0, R * 0.9, 0, 7); });
+    V.cylindre(ctx, r, 0, 0, R, hb, h1, FER, () => {
+      cercle(ctx, 0, 0, R, r, 0.3); encre(ctx, dr(ctx, 0, 0, R, '#7a736c', '#2a2420'), 1.7);
+      cercle(ctx, 0, 0, R * 0.8, r, 0.3); encre(ctx, '#160f0b', 1);
+      for (let i = 0; i < 11; i++) {
+        const a = i * 2.4, d = (i % 4) * R * 0.17, x = Math.cos(a) * d, y = Math.sin(a) * d, rr = R * (0.16 + r() * 0.08);
+        cercle(ctx, x, y, rr, r, 0.3); encre(ctx, dr(ctx, x, y, rr, ['#ffd27a', '#ff8a3a', '#c43a1a'][i % 3], '#4a140a'), 0.7);
+      }
+    });
+    V.lumiere(0, 0, h1, { s: R * 0.8, r: t * 4.4, c: '255,150,60', k: 0.7 });
+    flamme(ctx, V, 0, 0, h1, R * 0.7);
+  },
+
+  bougies(ctx, w, h, t, o) {
+    // Trois bougies sur une soucoupe : des flammes minuscules, une lueur douce.
+    const { V, r } = preparerObjet(ctx, o);
+    cercle(ctx, 0, 0, t * 0.24, r, 0.3); encre(ctx, dr(ctx, 0, 0, t * 0.24, '#8b7f6f', '#3e362e'), 0.9);
+    const cires = [0, 1, 2].map((i) => {
+      const a = (i / 3) * 6.28 + 0.6, d = t * 0.1;
+      return { x: Math.cos(a) * d, y: Math.sin(a) * d, rr: t * (0.055 + r() * 0.015), hb: 0.06 + r() * 0.05 };
+    });
+    ordonner(V, cires.map((b) => ({ x: b.x, y: b.y, dessiner: () => {
+      V.cylindre(ctx, r, b.x, b.y, b.rr, 0, b.hb, [44, 45, 84], () => { cercle(ctx, b.x, b.y, b.rr, r, 0.15); encre(ctx, dr(ctx, b.x, b.y, b.rr, '#fffaf0', '#d6c69e'), 0.7); });
+      V.lumiere(b.x, b.y, b.hb, { s: t * 0.07, r: t * 1.5, c: '255,190,110', k: 0.26, petite: true });
+      flamme(ctx, V, b.x, b.y, b.hb, t * 0.06);
+    } })));
+  },
+
+  tapis(ctx, w, h, t, o) {
+    // À plat sur le sol (couche basse, sous la grille et sous les autres objets) : bordure dorée, losanges emboîtés, franges aux deux bouts les plus courts.
+    const { r } = preparerObjet(ctx, o), tw = w - t * 0.2, th = h - t * 0.2, x = -tw / 2, y = -th / 2, long = tw >= th, k = t / 48;
+    ctx.beginPath();
+    for (let u = t * 0.05; u < (long ? th : tw) - t * 0.03; u += t * 0.065) {
+      if (long) { ctx.moveTo(x - 4 * k, y + u); ctx.lineTo(x, y + u); ctx.moveTo(x + tw, y + u); ctx.lineTo(x + tw + 4 * k, y + u); }
+      else { ctx.moveTo(x + u, y - 4 * k); ctx.lineTo(x + u, y); ctx.moveTo(x + u, y + th); ctx.lineTo(x + u, y + th + 4 * k); }
+    }
+    trait(ctx, '#e6d7b0', 1);
+    chemin(ctx, rectPts(x, y, tw, th), true, r, 0.4); encre(ctx, dl(ctx, x, y, x + tw, y + th, '#9b302a', '#5f1918'), 1.6, true);
+    chemin(ctx, rectPts(x + 5 * k, y + 5 * k, tw - 10 * k, th - 10 * k), true, r, 0.3); trait(ctx, '#d8b257', 3 * k);
+    chemin(ctx, rectPts(x + 10 * k, y + 10 * k, tw - 20 * k, th - 20 * k), true, r, 0.3); trait(ctx, '#3a0f0e', 1.2);
+    ctx.beginPath();                                                   // des perles le long des deux grands côtés
+    if (long) for (let u = x + 14 * k; u < x + tw - 12 * k; u += 9 * k) { ctx.moveTo(u + 1.3, y + 5 * k); ctx.arc(u, y + 5 * k, 1.3, 0, 7); ctx.moveTo(u + 1.3, y + th - 5 * k); ctx.arc(u, y + th - 5 * k, 1.3, 0, 7); }
+    else for (let u = y + 14 * k; u < y + th - 12 * k; u += 9 * k) { ctx.moveTo(x + 5 * k + 1.3, u); ctx.arc(x + 5 * k, u, 1.3, 0, 7); ctx.moveTo(x + tw - 5 * k + 1.3, u); ctx.arc(x + tw - 5 * k, u, 1.3, 0, 7); }
+    ctx.fillStyle = '#5a1614'; ctx.fill();
+    const a = Math.min(tw / 2 - 16 * k, th * 0.4 * (long ? 1.7 : 1)), b = Math.min(th / 2 - 16 * k, tw * 0.4 * (long ? 1 : 1.7));
+    for (const [s, fond] of [[1, '#d8b257'], [0.72, '#26335f'], [0.42, '#d8b257'], [0.2, '#7a1e1c']]) {
+      chemin(ctx, [[-a * s, 0], [0, -b * s], [a * s, 0], [0, b * s]], true, r, 0.3); encre(ctx, fond, 1);
+    }
+    for (const [ox, oy, sx, sy] of [[x + 10 * k, y + 10 * k, 1, 1], [x + tw - 10 * k, y + 10 * k, -1, 1], [x + 10 * k, y + th - 10 * k, 1, -1], [x + tw - 10 * k, y + th - 10 * k, -1, -1]]) {
+      chemin(ctx, [[ox, oy], [ox + sx * 14 * k, oy], [ox, oy + sy * 14 * k]], true, r, 0.2); encre(ctx, '#d8b257', 0.9);   // les écoinçons
+    }
+  },
+
+  banniere(ctx, w, h, t, o) {
+    // Accrochée à la face du mur, derrière la case (−y), comme la torche. Sans relief le mur n'a pas de face : on la voit du dessus, pendue vers l'avant.
+    const { V, r } = preparerObjet(ctx, o);
+    if (!V.KP) return vectoriel.objets.banniere(ctx, w, h, t, o);
+    const yMur = -h / 2, F = face(V, -w / 2, yMur, w, h, 'nord'), u0 = 0.2, u1 = 0.8, um = 0.5;
+    const [fond, ombre] = [['#a5302a', '#5b1513'], ['#2f4f9a', '#17274f'], ['#3f7a3a', '#1f3d1c']][(r() * 3) | 0];
+    const pts = [F.P(u0, 0.92), F.P(u1, 0.92), F.P(u1, 0.14), F.P(um, 0.3), F.P(u0, 0.14)];
+    chemin(ctx, pts, true, r, 0.3); encre(ctx, dl(ctx, pts[0][0], pts[0][1], pts[0][0], pts[2][1], fond, ombre), 1.3, true);
+    const c = centre(pts);
+    chemin(ctx, pts.map(([x, y]) => [x + (c[0] - x) * 0.2, y + (c[1] - y) * 0.2]), true, r, 0.2); trait(ctx, '#d8b257', 1.1);
+    const [ex, ey] = F.P(um, 0.6); cercle(ctx, ex, ey, t * 0.065, r, 0.2); encre(ctx, '#d8b257', 0.8);
+    const [ax, ay] = F.P(u0 - 0.04, 0.95), [bx, by] = F.P(u1 + 0.04, 0.95);
+    ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); trait(ctx, ENCRE, 3); trait(ctx, '#8a5a2a', 1.6);
+  },
+
+  feudecamp(ctx, w, h, t, o) {
+    // Un cercle de pierres, des bûches en étoile, des cendres et une grande flamme : la plus forte lumière du mobilier.
+    const { V, r } = preparerObjet(ctx, o), s = Math.min(w, h), k = t / 48;
+    cercle(ctx, 0, 0, s * 0.4, r, 1); ctx.fillStyle = 'rgba(30,22,16,0.75)'; ctx.fill();
+    V.auNiveau(ctx, 0.04, () => {
+      for (const a of [0.3, 1.9, 3.6]) {
+        const lx = Math.cos(a) * s * 0.28, ly = Math.sin(a) * s * 0.28;
+        ctx.beginPath(); ctx.moveTo(-lx, -ly); ctx.lineTo(lx, ly); ctx.lineCap = 'round'; trait(ctx, ENCRE, 9 * k); trait(ctx, '#7a4a24', 6.5 * k); ctx.lineCap = 'butt';
+        ctx.beginPath(); ctx.arc(lx, ly, 3 * k, 0, 7); ctx.fillStyle = '#c99a5e'; ctx.fill();   // le bout scié
+      }
+    });
+    const pierres = [];
+    for (let i = 0; i < 10; i++) { const a = (i / 10) * 6.28; pierres.push({ x: Math.cos(a) * s * 0.42, y: Math.sin(a) * s * 0.42, R: s * (0.085 + r() * 0.03), c: [35 + ((r() * 8) | 0), 6, 46 + ((r() * 12) | 0)] }); }
+    ordonner(V, pierres.map((p) => ({ x: p.x, y: p.y, dessiner: () => rocher(ctx, V, r, p.x, p.y, p.R, 0.07, p.c) })));
+    V.lumiere(0, 0, 0.08, { s: t * 0.3, r: t * 5.2, c: '255,150,60', k: 0.85 });
+    flamme(ctx, V, 0, 0, 0.08, t * 0.26);
+  },
+
+  flaque(ctx, w, h, t, o) {
+    // De l'eau à plat : bord irrégulier, dégradé du clair au profond, reflets, sol mouillé autour.
+    const { r } = preparerObjet(ctx, o), rx = w * 0.44, ry = h * 0.38, p1 = r() * 6, p2 = r() * 6, pts = [], bord = [];
+    for (let i = 0; i < 22; i++) {
+      const a = (i / 22) * 6.28, f = 0.9 + 0.1 * Math.sin(a * 2 + p1) + 0.06 * Math.sin(a * 3 + p2);
+      pts.push([Math.cos(a) * rx * f, Math.sin(a) * ry * f]); bord.push([Math.cos(a) * rx * f * 1.12, Math.sin(a) * ry * f * 1.14]);
+    }
+    chemin(ctx, bord, true, r, 0.6, 5); ctx.fillStyle = 'rgba(20,24,28,0.22)'; ctx.fill();
+    chemin(ctx, pts, true, r, 0.5, 5);
+    const g = ctx.createRadialGradient(-rx * 0.3, -ry * 0.3, 2, 0, 0, rx);
+    g.addColorStop(0, 'rgba(90,150,180,0.95)'); g.addColorStop(1, 'rgba(25,55,75,0.95)');
+    ctx.fillStyle = g; ctx.fill(); trait(ctx, 'rgba(20,32,38,0.8)', 1.4);
+    for (const [a, b, l] of [[-0.4, -0.3, 0.5], [0.1, 0.2, 0.35], [-0.1, 0.4, 0.25]]) {
+      ctx.beginPath(); ctx.moveTo(a * rx, b * ry); ctx.quadraticCurveTo((a + l / 2) * rx, (b - 0.1) * ry, (a + l) * rx, b * ry); trait(ctx, 'rgba(230,245,255,0.55)', 1.2);
+    }
+  },
+
+  rocher(ctx, w, h, t, o) {
+    // Un bloc de pierre irrégulier, entouré de deux éclats : en volume, il bloque le passage.
+    const { V, r } = preparerObjet(ctx, o), s = Math.min(w, h);
+    const blocs = [
+      { x: (r() - 0.5) * s * 0.1, y: (r() - 0.5) * s * 0.1, R: s * 0.36, h: 0.3 },
+      { x: -s * 0.3 + r() * s * 0.08, y: s * 0.28, R: s * 0.15, h: 0.12 },
+      { x: s * 0.3, y: -s * 0.25 + r() * s * 0.1, R: s * 0.1, h: 0.08 },
+    ];
+    ordonner(V, blocs.map((b) => ({ x: b.x, y: b.y, dessiner: () => rocher(ctx, V, r, b.x, b.y, b.R, b.h, [35 + ((r() * 8) | 0), 6, 48 + ((r() * 10) | 0)]) })));
+  },
+
+  champignons(ctx, w, h, t, o) {
+    // Des champignons qui luisent : chapeaux clairs au bout de pieds minces, halo cyan, aucune flamme.
+    const { V, r } = preparerObjet(ctx, o), n = 6, liste = [];
+    for (let i = 0; i < n; i++) liste.push({ x: (r() - 0.5) * t * 0.7, y: (r() - 0.5) * t * 0.6, rr: t * (0.06 + r() * 0.07), hc: 0.05 + r() * 0.06 });
+    ordonner(V, liste.map((c) => ({ x: c.x, y: c.y, dessiner: () => V.cylindre(ctx, r, c.x, c.y, c.rr * 0.3, 0, c.hc, [45, 30, 80], () => {
+      cercle(ctx, c.x, c.y, c.rr, r, 0.2); encre(ctx, dr(ctx, c.x, c.y, c.rr, '#c8fff5', '#1f8c86'), 0.8);
+      ctx.beginPath(); ctx.arc(c.x - c.rr * 0.3, c.y - c.rr * 0.3, c.rr * 0.2, 0, 7); ctx.fillStyle = 'rgba(255,255,255,0.7)'; ctx.fill();
+    }) })));
+    V.lumiere(0, 0, 0, { s: 0, r: t * 2.2, c: '90,230,215', k: 0.55 });
+  },
+
+  toile(ctx, w, h, t, o, plan) {
+    // Posée à plat dans l'angle de la case le plus proche d'un coin de la salle ; c'est le dessin des toiles semées dans les salles en ruine.
+    const { r } = preparerObjet(ctx, o), [sx, sy] = sensDuCoin(o, plan || etat.plan);
+    ctx.save();
+    ctx.lineCap = 'round';
+    DETAILS.toile(ctx, r, sx * w / 2, sy * h / 2, Math.min(w, h), { sx: -sx, sy: -sy });
+    ctx.restore();
+  },
+
+  ossements(ctx, w, h, t, o) {
+    // Le crâne et les os croisés des salles en ruine, avec deux petits éclats autour.
+    const { r } = preparerObjet(ctx, o);
+    for (let i = 0; i < 2; i++) {
+      const a = r() * 6.28, d = t * (0.28 + r() * 0.08), x = Math.cos(a) * d, y = Math.sin(a) * d, b = a + 1 + r();
+      ctx.beginPath(); ctx.moveTo(x - Math.cos(b) * t * 0.07, y - Math.sin(b) * t * 0.07); ctx.lineTo(x + Math.cos(b) * t * 0.07, y + Math.sin(b) * t * 0.07);
+      ctx.lineCap = 'round'; trait(ctx, ENCRE, Math.max(2, t * 0.06)); trait(ctx, '#e7dfca', Math.max(1.2, t * 0.035)); ctx.lineCap = 'butt';
+    }
+    ctx.save();
+    ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    DETAILS.os(ctx, r, 0, 0, t);
+    ctx.restore();
   },
 
   inconnu: vectoriel.objets.inconnu,

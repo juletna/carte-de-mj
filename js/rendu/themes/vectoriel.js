@@ -7,8 +7,9 @@
  *   sol(ctx, plan, t)                     sol de la pièce
  *   murs(ctx, plan, t)                    murs (les portes sont dessinées par-dessus)
  *   porte(ctx, porte, plan, t)
- *   objets[type](ctx, w, h, t, objet)     dessin centré sur (0, 0) ; w × h en pixels ;
- *                                         l'AVANT de l'objet est vers le bas (+y)
+ *   objets[type](ctx, w, h, t, objet, plan)  dessin centré sur (0, 0) ; w × h en pixels ;
+ *                                         l'AVANT de l'objet est vers le bas (+y) ; `plan` (facultatif : absent des vignettes)
+ *                                         sert aux objets qui ont besoin de la salle (la toile d'araignée cherche son coin : commun.js `sensDuCoin`)
  *   pion(ctx, creature, t)                pion d'une créature, en coordonnées de la pièce
  *                                         (creature.etat « blesse » ou « mort » : anneau en tirets et grosse pastille à croix, ou grisé et barré)
  *
@@ -23,7 +24,7 @@
  */
 import { casesRetirees } from '../../formes.js';
 import { dessinerMursDecoupes } from '../trace.js';
-import { rect, rectArrondi, rond } from './commun.js';
+import { rect, rectArrondi, rond, sensDuCoin, contourIrregulier, toileDans } from './commun.js';
 import { EPAISSEUR_MUR, ancragePorte } from '../geometrie.js';
 import { dessinerPortrait } from '../portraits.js';
 import { COULEURS } from '../../parseur/lexique.js';
@@ -63,6 +64,13 @@ function ombre(ctx, t, f) {
   ctx.shadowOffsetX = t * 0.04; ctx.shadowOffsetY = t * 0.06;
   f();
   ctx.restore();
+}
+
+/** Lueur d'une source de lumière : un disque qui s'estompe (`rgb` : « r,g,b »). */
+function halo(ctx, x, y, rayon, rgb, alpha) {
+  const g = ctx.createRadialGradient(x, y, 0, x, y, rayon);
+  g.addColorStop(0, `rgba(${rgb},${alpha})`); g.addColorStop(1, `rgba(${rgb},0)`);
+  rond(ctx, x, y, rayon, g);
 }
 
 // --- Fond, sol, murs, portes -------------------------------------------------
@@ -426,6 +434,119 @@ export const objets = {
     rectArrondi(ctx, -sw / 2, -sh / 2, sw, sh, t * 0.15, C.pierre, C.pierreFonce, 2);
     rectArrondi(ctx, -sw * 0.32, -sh * 0.4, sw * 0.64, sh * 0.8, t * 0.1, null, C.pierreFonce, 1);
     rond(ctx, 0, -sh * 0.28, sw * 0.16, null, C.pierreFonce, 1); // tête du gisant
+  },
+
+  brasero(ctx, w, h, t) {
+    const r = Math.min(w, h) * 0.34;
+    halo(ctx, 0, 0, t * 0.8, '255,160,60', 0.5);
+    ombre(ctx, t, () => rond(ctx, 0, 0, r, C.noir));
+    rond(ctx, 0, 0, r, '#4a4540', '#1c1a18', 2);            // la vasque de fer
+    rond(ctx, 0, 0, r * 0.78, '#1b1411');                   // les braises
+    rond(ctx, 0, 0, r * 0.64, '#c9461c');
+    rond(ctx, 0, 0, r * 0.44, C.flamme);
+    rond(ctx, 0, 0, r * 0.2, '#fff2c4');
+  },
+
+  bougies(ctx, w, h, t) {
+    halo(ctx, 0, 0, t * 0.55, '255,190,90', 0.4);
+    for (const [x, y] of [[-0.17, 0.09], [0.15, 0.13], [0.02, -0.16]]) {
+      ombre(ctx, t, () => rond(ctx, x * t, y * t, t * 0.07, '#d8cdb0'));
+      rond(ctx, x * t, y * t, t * 0.07, '#f1e7c9', '#a89c7e', 1);          // la cire
+      rond(ctx, x * t, y * t, t * 0.032, C.flamme);
+    }
+  },
+
+  tapis(ctx, w, h, t) {
+    const tw = w - t * 0.22, th = h - t * 0.22, x = -tw / 2, y = -th / 2, long = tw >= th;
+    ctx.strokeStyle = '#e6d7b0'; ctx.lineWidth = 1; ctx.beginPath();     // les franges, aux deux bouts les plus courts
+    for (let k = t * 0.05; k < (long ? th : tw) - t * 0.03; k += t * 0.06) {
+      if (long) { ctx.moveTo(x - t * 0.1, y + k); ctx.lineTo(x, y + k); ctx.moveTo(x + tw, y + k); ctx.lineTo(x + tw + t * 0.1, y + k); }
+      else { ctx.moveTo(x + k, y - t * 0.1); ctx.lineTo(x + k, y); ctx.moveTo(x + k, y + th); ctx.lineTo(x + k, y + th + t * 0.1); }
+    }
+    ctx.stroke();
+    rect(ctx, x, y, tw, th, C.rouge, '#4a1010', 1.5);
+    rect(ctx, x + t * 0.1, y + t * 0.1, tw - t * 0.2, th - t * 0.2, null, C.or, Math.max(1.5, t * 0.04));   // la bordure dorée
+    const cx = 0, cy = 0, a = Math.min(tw / 2 - t * 0.2, th * 0.4 * (long ? 1.7 : 1)), b = Math.min(th / 2 - t * 0.2, tw * 0.4 * (long ? 1 : 1.7));
+    for (const [k, fond] of [[1, C.or], [0.7, C.tissu], [0.38, C.or], [0.16, C.rouge]]) {
+      ctx.beginPath(); ctx.moveTo(cx - a * k, cy); ctx.lineTo(cx, cy - b * k); ctx.lineTo(cx + a * k, cy); ctx.lineTo(cx, cy + b * k); ctx.closePath();
+      ctx.fillStyle = fond; ctx.fill();
+    }
+  },
+
+  banniere(ctx, w, h, t) {
+    // Accrochée au mur, à l'arrière de la case : une barre, et l'étoffe qui pend vers l'avant, à queue d'hirondelle.
+    const y0 = -h / 2 + t * 0.03, bl = t * 0.62, lg = t * 0.58, bw = t * 0.46;
+    ombre(ctx, t, () => rect(ctx, -bw / 2, y0, bw, lg, '#6b1717'));
+    ctx.beginPath(); ctx.moveTo(-bw / 2, y0); ctx.lineTo(bw / 2, y0); ctx.lineTo(bw / 2, y0 + lg); ctx.lineTo(0, y0 + lg * 0.78); ctx.lineTo(-bw / 2, y0 + lg); ctx.closePath();
+    ctx.fillStyle = C.rouge; ctx.fill(); ctx.strokeStyle = C.or; ctx.lineWidth = Math.max(1.5, t * 0.03); ctx.stroke();
+    rond(ctx, 0, y0 + lg * 0.42, t * 0.07, C.or);                         // l'emblème
+    rect(ctx, -bl / 2, y0 - t * 0.04, bl, t * 0.07, C.boisFonce);         // la barre
+  },
+
+  feudecamp(ctx, w, h, t) {
+    const R = Math.min(w, h) * 0.34;
+    halo(ctx, 0, 0, t * 0.95, '255,150,50', 0.55);
+    rond(ctx, 0, 0, R * 1.05, 'rgba(25,18,14,0.7)');
+    for (let i = 0; i < 9; i++) {                                         // le cercle de pierres
+      const a = (i / 9) * Math.PI * 2 + 0.3;
+      rond(ctx, Math.cos(a) * R * 1.05, Math.sin(a) * R * 1.05, t * 0.075, i % 2 ? C.pierre : C.pierreFonce, C.murFonce, 1);
+    }
+    ctx.lineCap = 'round';
+    for (const a of [0.4, 2.0, 3.6]) {                                    // les bûches
+      ctx.beginPath(); ctx.moveTo(-Math.cos(a) * R * 0.75, -Math.sin(a) * R * 0.75); ctx.lineTo(Math.cos(a) * R * 0.75, Math.sin(a) * R * 0.75);
+      ctx.strokeStyle = C.boisFonce; ctx.lineWidth = t * 0.11; ctx.stroke();
+      ctx.strokeStyle = C.bois; ctx.lineWidth = t * 0.07; ctx.stroke();
+    }
+    ctx.lineCap = 'butt';
+    rond(ctx, 0, 0, R * 0.5, '#c9461c'); rond(ctx, 0, 0, R * 0.34, C.flamme); rond(ctx, 0, 0, R * 0.15, '#fff2c4');
+  },
+
+  flaque(ctx, w, h, t, o) {
+    contourIrregulier(ctx, w * 0.42, h * 0.36, o, 22, 0.16);
+    ctx.fillStyle = 'rgba(61,127,176,0.82)'; ctx.fill(); ctx.strokeStyle = '#1f4d70'; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.strokeStyle = 'rgba(230,245,255,0.7)'; ctx.lineWidth = Math.max(1, t * 0.025); ctx.lineCap = 'round';   // les reflets
+    for (const [a, b, l] of [[-0.3, -0.12, 0.34], [0.02, 0.1, 0.24], [-0.16, 0.2, 0.16]]) {
+      ctx.beginPath(); ctx.moveTo(a * w, b * h); ctx.quadraticCurveTo((a + l / 2) * w, (b - 0.08) * h, (a + l) * w, b * h); ctx.stroke();
+    }
+    ctx.lineCap = 'butt';
+  },
+
+  rocher(ctx, w, h, t, o) {
+    const s = Math.min(w, h);
+    ombre(ctx, t, () => { contourIrregulier(ctx, s * 0.4, s * 0.36, o, 9, 0.16); ctx.fillStyle = C.pierreFonce; ctx.fill(); });
+    contourIrregulier(ctx, s * 0.4, s * 0.36, o, 9, 0.16);
+    const g = ctx.createRadialGradient(-s * 0.15, -s * 0.15, s * 0.05, 0, 0, s * 0.45);
+    g.addColorStop(0, C.pierreClair); g.addColorStop(1, C.pierreFonce);
+    ctx.fillStyle = g; ctx.fill(); ctx.strokeStyle = C.murFonce; ctx.lineWidth = 1.5; ctx.stroke();
+    contourIrregulier(ctx, s * 0.22, s * 0.2, o, 7, 0.2, 40);            // la facette du dessus
+    ctx.strokeStyle = 'rgba(255,255,255,0.28)'; ctx.lineWidth = 1; ctx.stroke();
+  },
+
+  champignons(ctx, w, h, t) {
+    halo(ctx, 0, 0, t * 0.7, '90,230,215', 0.5);
+    for (const [x, y, r] of [[-0.2, 0.1, 0.1], [0.12, 0.18, 0.08], [0.1, -0.14, 0.11], [-0.12, -0.18, 0.07], [0.3, 0.02, 0.06]]) {
+      rond(ctx, x * t, y * t, r * t, '#9ff7ea', '#1f8c86', 1.2);
+      rond(ctx, (x - r * 0.3) * t, (y - r * 0.3) * t, r * t * 0.28, 'rgba(255,255,255,0.75)');
+    }
+  },
+
+  toile(ctx, w, h, t, o, plan) {
+    // Un éventail de fils dans l'angle de la case le plus proche d'un coin de la salle.
+    const [sx, sy] = sensDuCoin(o, plan), cx = sx * w / 2, cy = sy * h / 2, L = Math.min(w, h) * 0.98;
+    toileDans(ctx, cx, cy, -sx, -sy, L, 'rgba(240,240,245,0.85)', Math.max(1, t * 0.02));
+  },
+
+  ossements(ctx, w, h, t) {
+    ctx.lineCap = 'round';
+    for (const [ax, ay, bx, by] of [[-0.3, 0.12, 0.08, 0.28], [0.08, -0.24, 0.34, 0.06]]) {
+      ctx.beginPath(); ctx.moveTo(ax * t, ay * t); ctx.lineTo(bx * t, by * t);
+      ctx.strokeStyle = '#231b16'; ctx.lineWidth = t * 0.11; ctx.stroke();
+      ctx.strokeStyle = '#e7dfca'; ctx.lineWidth = t * 0.07; ctx.stroke();
+    }
+    ctx.lineCap = 'butt';
+    ombre(ctx, t, () => rond(ctx, 0, 0, t * 0.15, '#cfc5aa'));
+    rond(ctx, 0, 0, t * 0.15, '#f1e9d2', '#7d7458', 1);                    // le crâne
+    rond(ctx, -t * 0.05, -t * 0.01, t * 0.035, '#2a2017'); rond(ctx, t * 0.05, -t * 0.01, t * 0.035, '#2a2017');
   },
 
   inconnu(ctx, w, h, t) {

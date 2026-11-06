@@ -92,7 +92,8 @@ export function dessinerDetails(ctx, plan, t) {
   ctx.restore();
 }
 
-const DESSINS = {
+/** Les dessins des détails, par sorte : `(ctx, r, x, y, t, détail)`. Les objets « ossements » et « toile d'araignée » (objets.js) réutilisent ceux de l'os et de la toile. */
+export const DESSINS = {
   /** Une à trois pierres, gris chaud, cernées d'encre. */
   caillou(ctx, r, x, y, t) {
     for (let i = 0, n = 1 + ((r() * 3) | 0); i < n; i++) {

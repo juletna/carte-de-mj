@@ -17,7 +17,7 @@ import { extraireDimensions, extraireSol, extraireForme } from './dimensions.js'
 import { extraireAmbiance } from './ambiance.js';
 import {
   trouverObjet, definition, nomAffiche, souderExpressions, PIECES,
-  ADJ_GRAND, ADJ_CACHE, MOTS_VIDES, COULEURS, CAMPS, TAILLES_CREATURE,
+  ADJ_GRAND, ADJ_CACHE, ADJ_DECOR, MOTS_VIDES, emploiDeFeu, COULEURS, CAMPS, TAILLES_CREATURE,
 } from './lexique.js';
 import { analyserPosition } from './positions.js';
 import { construirePlan } from './placement.js';
@@ -78,6 +78,7 @@ export function analyserProposition(prop, intentions, ignores) {
     if (!trouve) continue;
     utilises.add(i);
     if (position.cible && position.cible.index === i) continue; // c'est le repère, pas un nouvel objet
+    if (emploiDeFeu(mots, i)) { utilises.delete(i); continue; } // « une porte en feu » : pas un feu de camp
     const creature = trouve.def.genre === 'creature';
 
     // Quantité et taille : on regarde jusqu'à 3 mots en arrière (« deux grands coffres »).
@@ -96,6 +97,7 @@ export function analyserProposition(prop, intentions, ignores) {
       const m = mots[j], sing = m.replace(/s$/, '');
       if (ADJ_GRAND.has(m)) { taille = 1; utilises.add(j); continue; }
       if (ADJ_CACHE.has(m)) { cache = true; utilises.add(j); continue; }
+      if (!creature && ADJ_DECOR.has(m)) { utilises.add(j); continue; }
       if (!creature) break;
       if (m in TAILLES_CREATURE) { taille += TAILLES_CREATURE[m]; utilises.add(j); continue; }
       if (COULEURS[m] || COULEURS[sing]) { couleur = m in COULEURS ? m : sing; utilises.add(j); continue; }

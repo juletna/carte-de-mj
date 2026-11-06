@@ -40,13 +40,14 @@ const TESTS = [
   }],
   ['les accords : féminins, symétriques, objets écartés du mur et couches sont ceux d’avant', () => {
     const FEMININS = ['colonne', 'statue', 'table', 'chaise', 'caisse', 'fosse', 'bibliotheque', 'torche', 'fontaine',
-      'porte', 'herse', 'arche', 'goule', 'liche', 'araignee', 'harpie', 'manticore', 'wyverne', 'hydre'];
+      'bougies', 'banniere', 'flaque', 'toile', 'porte', 'herse', 'arche', 'goule', 'liche', 'araignee', 'harpie', 'manticore', 'wyverne', 'hydre'];
     egal(types(FEMININS, true).filter(estFeminin), types(FEMININS, true), 'féminins');
     egal(types(FEMININS, false).filter(estFeminin), [], 'aucun autre féminin');
-    const SYMETRIQUES = ['pilier', 'colonne', 'tonneau', 'caisse', 'fosse', 'debris', 'puits', 'fontaine'];
+    const SYMETRIQUES = ['pilier', 'colonne', 'tonneau', 'caisse', 'fosse', 'debris', 'puits', 'fontaine',
+      'brasero', 'bougies', 'tapis', 'feudecamp', 'flaque', 'rocher', 'champignons', 'toile', 'ossements'];
     egal(TOUS.map((d) => d.type).filter(estSymetrique), TOUS.map((d) => d.type).filter((t) => SYMETRIQUES.includes(t)), 'symétriques');
     egal(TOUS.map((d) => d.type).filter(estAuLarge), ['pilier', 'colonne', 'statue'], 'au large');
-    egal(TOUS.map((d) => [d.type, coucheDe(d.type)]).filter(([, c]) => c !== COUCHE_PAR_DEFAUT).sort((a, b) => a[1] - b[1]), [['fosse', 0], ['debris', 1], ['torche', 9]], 'couches');
+    egal(TOUS.map((d) => [d.type, coucheDe(d.type)]).filter(([, c]) => c !== COUCHE_PAR_DEFAUT).sort((a, b) => a[1] - b[1]), [['tapis', -1], ['fosse', 0], ['flaque', 0], ['debris', 1], ['ossements', 2], ['bougies', 6], ['toile', 7], ['banniere', 8], ['torche', 9]], 'couches');
     egal(coucheDe('inconnu'), COUCHE_PAR_DEFAUT, 'un type inconnu est à la couche par défaut');
   }],
   ['les noms affichés : accents du catalogue, pluriels, et un type inconnu reste tel quel', () => {

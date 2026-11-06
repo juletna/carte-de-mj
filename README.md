@@ -34,7 +34,7 @@ Au-dessus de 760 px, ni la mise en page ni la carte ne changent. En dessous, le 
   - **Thème** : « Peint » (par défaut) ou « Vectoriel » (l'ancien dessin, en aplats). L'impression garde son thème « papier », qui ne change pas.
     Le thème peint dessine un style « trait colorié » : contour brun irrégulier, sols à texture calculée (pierre, marbre, bois, terre, sable, herbe, glace), roche autour de la salle,
     ombre au pied des murs. Rien n'est une image : tout est généré par le code.
-    Les 19 objets y sont dessinés en fausse 3D (un empilement de prismes et de cylindres vus du centre de la salle : pilier et colonne hauts jusqu'au plafond, coffre à couvercle, table sur pieds, escalier et fosse en creux dont on voit la paroi, bibliothèque dont on lit les rayonnages, torche sur la face du mur…) : leur pied reste sur leurs cases, seul leur haut penche vers l'extérieur. Ils sont dessinés du plus loin au plus proche du centre, par couche. Les pions restent à plat, au-dessus de tout : disque en dégradé de la couleur du camp, anneau clair, abréviation, numéro ; blessé : anneau en tirets et croix rouge ; mort : grisé et barré.
+    Les 29 objets y sont dessinés en fausse 3D quand ils ont du volume, à plat quand ils sont posés au sol (tapis, flaque, toile d'araignée, ossements) : un empilement de prismes et de cylindres vus du centre de la salle (pilier et colonne hauts jusqu'au plafond, coffre à couvercle, table sur pieds, escalier et fosse en creux dont on voit la paroi, bibliothèque dont on lit les rayonnages, torche et bannière sur la face du mur, brasero et rocher en volume, feu de camp et son cercle de pierres…) : leur pied reste sur leurs cases, seul leur haut penche vers l'extérieur. Ils sont dessinés du plus loin au plus proche du centre, par couche. Les pions restent à plat, au-dessus de tout : disque en dégradé de la couleur du camp, anneau clair, abréviation, numéro ; blessé : anneau en tirets et croix rouge ; mort : grisé et barré.
   - **Cases** : l'opacité des lignes de case, de 0 (invisibles) à 100 %. Elle remplace l'ancienne case à cocher « Afficher la grille » : `reglages.cases` (entier de 0 à 100) l'emporte, et
     `reglages.grille` reste écrit (vrai dès que `cases` > 0) pour les versions qui ne connaissent que lui. Un réglage enregistré avant ce curseur se relit sans rien perdre : « grille » coché
     vaut 40 %, décoché 0 %.
@@ -43,7 +43,7 @@ Au-dessus de 760 px, ni la mise en page ni la carte ne changent. En dessous, le 
     pour que le décalage et l'épaisseur du mur tiennent dans la marge de roche ; sans relief, KP vaut 0 et la salle est vue à plat. Une salle non rectangulaire (croix, L, U…) suit le
     même principe, mur par mur.
   - **Pénombre** : l'obscurité de la salle à la table, de 0 à 100 % (45 % par défaut). Un voile (le décor multiplié par la couleur d'ambiance de la salle : `ambiance` du plan) est posé sur le décor,
-    percé d'un trou radial autour de chaque source de lumière (torche, autel…), avec un halo coloré ; les pions, la case montrée, les éléments secrets et les marques de sélection restent au-dessus
+    percé d'un trou radial autour de chaque source de lumière (torche, autel, brasero, bougies, feu de camp, champignons lumineux…), avec un halo coloré ; les pions, la case montrée, les éléments secrets et les marques de sélection restent au-dessus
     et lisibles. **La vue du MJ (Donjon et régie) n'en garde que 35 %** pour tout voir ; **la table a la pénombre pleine**. Le champ `eclairage` du plan multiplie la pénombre :
     `eclairee` ×0,4, `penombre` ×1, `obscurite` ×1,6 (jamais plus de 95 % d'opacité). Un objet qui brûle déclare sa source avec `V.lumiere(x, y, h, { s, r, c, k, petite? })` (voir `themes/peint/volumes.js`).
   - **Ambiance, état et éclairage de la salle** (onglet Salle du Donjon, sous le sol : trois sélecteurs, avec « Annuler » ; ou dans la description, voir « Ce que comprend le parseur ») : la valeur par défaut (neutre, neuve, pénombre) n'écrit rien dans le plan.
@@ -92,9 +92,20 @@ pour prouver qu'une refactorisation ne les change pas. Après un changement voul
   Le champ `etat` de la salle n'est pas celui d'une créature (`blesse`, `mort`).
 - **Quantités** : en chiffres ou en lettres (« dix-sept », « une paire de », « des torches »).
 - **Objets** : pilier, colonne, coffre, statue, table, chaise, autel, trône, tonneau, caisse, escalier, fosse, lit,
-  bibliothèque, torche, débris, puits, fontaine, sarcophage, ainsi que les portes, herses et arches.
-  Pour en ajouter un, ajoutez son entrée dans `js/catalogue.js` (mots, taille, nom, genre…), puis son dessin dans chacun des deux
-  thèmes (`js/rendu/themes/vectoriel.js` et `papier.js`) : un test vérifie qu'aucun n'en manque. Le thème peint (`peint.js`) a les siens, en fausse 3D (`themes/peint/objets.js`) : un objet y est un empilement de volumes (`volumes.js`), et peut déclarer une source de lumière (`V.lumiere`).
+  bibliothèque, torche, débris, puits, fontaine, sarcophage, brasero, bougies, tapis, bannière, feu de camp, flaque, rocher,
+  champignons, toile d'araignée, ossements, ainsi que les portes, herses et arches. Les dix derniers objets se disent ainsi (avec ou sans accents, au singulier comme au pluriel) :
+  - **brasero** (1×1, bloque, éclaire fort) : brasero, brasier, vasque de feu. Par défaut dans les coins. « Brasero » ne désigne plus une torche ;
+  - **bougies** (1×1, ne bloque pas, petites flammes, faible lumière ; se disent au singulier : « une bougie ») : bougie, chandelle, chandelier, cierge. « Chandelier » ne désigne plus une torche ;
+  - **tapis** (3×2 par défaut, « un grand tapis » : 4×3 ; au sol, sous la grille et sous les autres objets, ne bloque pas ; au centre par défaut) : tapis, carpette ;
+  - **bannière** (murale comme la torche, ne bloque pas ; sur la face du mur dans le thème peint) : bannière, étendard, tenture, tapisserie, oriflamme ;
+  - **feu de camp** (1×1, bloque, éclaire très fort) : feu de camp, feu de bois, feu de joie, foyer, feu. « Feu » seul est un feu de camp, sauf dans « une porte en feu », « une boule de feu », « un feu follet », « un feu d'artifice » (le mot est alors signalé comme non compris) ;
+  - **flaque** (2×1, au sol, ne bloque pas) : flaque, mare (« flaque d'eau » : « eau » est un mot vide) ;
+  - **rocher** (1×1, bloque, en volume) : rocher, roc, bloc de pierre, bloc de roche. « Éboulis », « gravats » et « ruines » restent des débris ;
+  - **champignons** (1×1, ne bloquent pas, lumineux : halo cyan sans flamme) : champignon, « champignons lumineux » (« lumineux », « phosphorescent » sont lus sans changer l'éclairage de la salle) ;
+  - **toile d'araignée** (1×1, dans un coin par défaut, ne bloque pas ; posée à plat dans l'angle de la case le plus proche d'un coin de la salle) : toile d'araignée, toile (« araignée » seule reste une créature) ;
+  - **ossements** (1×1, ne bloquent pas ; se disent au singulier dans la description : « un ossement ») : ossement, os, crâne, tas d'os, tas d'ossements (« squelette » reste une créature).
+  Pour ajouter un objet, ajoutez son entrée dans `js/catalogue.js` (mots, taille, nom, genre, `pluriel` si ce n'est pas « nom + s »…), puis son dessin dans chacun des deux
+  thèmes (`js/rendu/themes/vectoriel.js` et `papier.js`) : un test vérifie qu'aucun n'en manque. Un dessin reçoit aussi la salle (sixième argument : `objets[type](ctx, w, h, t, objet, plan)`) quand il a besoin de savoir où il est (la toile cherche son coin ; aide dans `themes/commun.js`). Le thème peint (`peint.js`) a les siens, en fausse 3D (`themes/peint/objets.js`) : un objet y est un empilement de volumes (`volumes.js`), et peut déclarer une source de lumière (`V.lumiere`).
 - **Créatures** (pions numérotés) : les personnages / joueurs / aventuriers (bleu), les peuples et PNJ
   (or : humain, elfe, nain, halfelin, gnome, garde, mage, roi…) et les monstres (rouge : gobelin, orque, kobold,
   squelette, zombie, goule, ogre, troll, minotaure, géant, dragon…). La taille du pion suit la catégorie

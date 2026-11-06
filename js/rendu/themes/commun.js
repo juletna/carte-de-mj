@@ -18,3 +18,51 @@ export function rond(ctx, x, y, r, fond, trait, epaisseur = 1) {
   if (fond) { ctx.fillStyle = fond; ctx.fill(); }
   if (trait) { ctx.strokeStyle = trait; ctx.lineWidth = epaisseur; ctx.stroke(); }
 }
+
+/**
+ * Le sens du coin de la salle le plus proche d'un objet, dans le repère local de son dessin : [sx, sy], chacun −1 ou +1, de l'objet vers le coin
+ * (−1, −1 : le coin en haut à gauche du dessin). Sert aux objets qui se logent dans un angle (la toile d'araignée). `plan` est le sixième argument
+ * du dessin d'un objet ; sans lui (vignette de la palette), le coin en haut à gauche.
+ */
+export function sensDuCoin(o, plan) {
+  if (!plan || !Number.isFinite(plan.largeur) || !Number.isFinite(plan.longueur)) return [-1, -1];
+  const dx = o.x + o.l / 2 >= plan.largeur / 2 ? 1 : -1, dy = o.y + o.h / 2 >= plan.longueur / 2 ? 1 : -1;
+  const a = ((180 - (o.rotation ?? 180)) * Math.PI) / 180, c = Math.cos(a), s = Math.sin(a); // le contexte est tourné de (rotation − 180)° : on remonte du plan au local
+  return [Math.round(dx * c - dy * s) || -1, Math.round(dx * s + dy * c) || -1];
+}
+
+/**
+ * Une toile d'araignée : cinq fils en éventail à partir du coin (cx, cy), vers le sens (dx, dy) (chacun −1 ou +1), de longueur `L`, et quatre arcs
+ * qui les relient. Même figure que les toiles semées par le thème peint (peint/details.js).
+ */
+export function toileDans(ctx, cx, cy, dx, dy, L, couleur, epaisseur) {
+  const rayons = [0, 0.25, 0.5, 0.75, 1].map((u) => (u * Math.PI) / 2);
+  ctx.strokeStyle = couleur; ctx.lineWidth = epaisseur;
+  ctx.beginPath();
+  for (const a of rayons) { ctx.moveTo(cx, cy); ctx.lineTo(cx + dx * Math.cos(a) * L, cy + dy * Math.sin(a) * L); }
+  for (const k of [0.3, 0.5, 0.7, 0.9]) {
+    rayons.forEach((a, i) => {
+      const px = cx + dx * Math.cos(a) * L * k, py = cy + dy * Math.sin(a) * L * k;
+      if (i) ctx.quadraticCurveTo(cx + dx * Math.cos(a - 0.4) * L * k * 0.82, cy + dy * Math.sin(a - 0.4) * L * k * 0.82, px, py); else ctx.moveTo(px, py);
+    });
+  }
+  ctx.stroke();
+}
+
+/** Un nombre stable entre 0 et 1, tiré de la place d'un objet et d'un rang : une forme irrégulière (flaque, rocher) ne change pas d'un dessin à l'autre. */
+export function hasard(o, k) {
+  let h = (((o?.x ?? 0) + 1) * 374761393 + ((o?.y ?? 0) + 1) * 668265263 + k * 1442695041) >>> 0;
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+}
+
+/** Trace (sans remplir) un contour irrégulier centré sur (0, 0) : `n` points sur une ellipse de rayons rx, ry, chacun écarté de ±`ecart` (0,2 = 20 %). */
+export function contourIrregulier(ctx, rx, ry, o, n = 12, ecart = 0.2, rang = 0) {
+  ctx.beginPath();
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * Math.PI * 2, f = 1 - ecart + 2 * ecart * hasard(o, rang + i);
+    const x = Math.cos(a) * rx * f, y = Math.sin(a) * ry * f;
+    if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y);
+  }
+  ctx.closePath();
+}

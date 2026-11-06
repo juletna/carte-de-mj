@@ -162,12 +162,12 @@ function peindreDecor(ctx, plan, t, { grille, reperes, theme, relief = true, fla
   const auSol = objets.filter((o) => coucheDe(o.type) < COUCHE_PAR_DEFAUT);
   const autres = objets.filter((o) => coucheDe(o.type) >= COUCHE_PAR_DEFAUT);
 
-  auSol.forEach((o) => dessinerObjet(ctx, o, t, theme));
+  auSol.forEach((o) => dessinerObjet(ctx, o, t, theme, plan));
   if (grille) (theme.grille || dessinerGrille)(ctx, plan, t, grille === true ? undefined : grille);
   theme.murs(ctx, plan, t);
   if (reperes && !reperesApresLumiere(theme)) dessinerReperes(ctx, plan, t);
   plan.portes.forEach((p) => secret(ctx, p.cache, rectPorte(plan, p), t, theme, () => theme.porte(ctx, p, plan, t), 'porte'));
-  autres.forEach((o) => dessinerObjet(ctx, o, t, theme));
+  autres.forEach((o) => dessinerObjet(ctx, o, t, theme, plan));
 }
 
 /** Ce qui passe par-dessus le décor (et la lumière) : repères de la marge (thème avec lumière), case visée, pions, puis les repères d'interface. */
@@ -250,11 +250,11 @@ function dessinerGrille(ctx, plan, t, opacite) {
  * pointe vers le bas du repère local, puis appelle le dessin du thème.
  * Ainsi chaque fonction de dessin n'a qu'une seule orientation à gérer.
  */
-function dessinerObjet(ctx, o, t, theme) {
-  secret(ctx, o.cache, { x: o.x, y: o.y, l: o.l, h: o.h }, t, theme, () => dessinerObjetOpaque(ctx, o, t, theme), 'objet');
+function dessinerObjet(ctx, o, t, theme, plan) {
+  secret(ctx, o.cache, { x: o.x, y: o.y, l: o.l, h: o.h }, t, theme, () => dessinerObjetOpaque(ctx, o, t, theme, plan), 'objet');
 }
 
-function dessinerObjetOpaque(ctx, o, t, theme) {
+function dessinerObjetOpaque(ctx, o, t, theme, plan) {
   const dessin = theme.objets[o.type] || theme.objets.inconnu;
   const quart = o.rotation === 90 || o.rotation === 270;
   const w = (quart ? o.h : o.l) * t; // dimensions dans le repère local
@@ -262,6 +262,6 @@ function dessinerObjetOpaque(ctx, o, t, theme) {
   ctx.save();
   ctx.translate((o.x + o.l / 2) * t, (o.y + o.h / 2) * t);
   ctx.rotate(((o.rotation - 180) * Math.PI) / 180);
-  dessin(ctx, w, h, t, o);
+  dessin(ctx, w, h, t, o, plan); // le plan sert aux objets qui ont besoin de la salle (la toile d'araignée cherche son coin)
   ctx.restore();
 }

@@ -9,7 +9,7 @@
  */
 import { casesRetirees } from '../../formes.js';
 import { tracerSol, dessinerMursDecoupes } from '../trace.js';
-import { rect, rectArrondi, rond } from './commun.js';
+import { rect, rectArrondi, rond, sensDuCoin, contourIrregulier, toileDans } from './commun.js';
 import { EPAISSEUR_MUR, ancragePorte } from '../geometrie.js';
 import { CREATURES } from '../../catalogue.js';
 import { dessinerPortrait } from '../portraits.js';
@@ -32,6 +32,15 @@ function hachures(ctx, forme, x, y, w, h, pas, ep) {
   for (let d = -h; d < w; d += pas) { ctx.moveTo(x + d, y + h); ctx.lineTo(x + d + h, y); }
   ctx.stroke();
   ctx.restore();
+}
+/** `n` petits traits qui rayonnent autour de (x, y), de la distance `r0` à `r1` : une flamme ou un objet qui luit. */
+function rayons(ctx, x, y, r0, r1, n, t, couleur = NOIR) {
+  ctx.beginPath();
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * Math.PI * 2 + 0.2;
+    ctx.moveTo(x + Math.cos(a) * r0, y + Math.sin(a) * r0); ctx.lineTo(x + Math.cos(a) * r1, y + Math.sin(a) * r1);
+  }
+  ctx.strokeStyle = couleur; ctx.lineWidth = trait(t, 0.015); ctx.stroke();
 }
 function texte(ctx, s, x, y, taille, couleur = NOIR) {
   ctx.fillStyle = couleur;
@@ -315,6 +324,110 @@ export const objets = {
     rectArrondi(ctx, -sw / 2, -sh / 2, sw, sh, t * 0.15, CLAIR, NOIR, trait(t, 0.03));
     rectArrondi(ctx, -sw * 0.32, -sh * 0.4, sw * 0.64, sh * 0.8, t * 0.1, null, GRIS, trait(t, 0.015));
     rond(ctx, 0, -sh * 0.28, sw * 0.16, '#fff', GRIS, trait(t, 0.015)); // tête du gisant
+  },
+
+  brasero(ctx, w, h, t) {
+    // Une vasque vue de dessus, une flamme en son centre et des rayons tout autour (comme la torche).
+    const r = Math.min(w, h) * 0.32;
+    rond(ctx, 0, 0, r, CLAIR, NOIR, trait(t, 0.035));
+    rond(ctx, 0, 0, r * 0.7, '#fff', NOIR, trait(t, 0.015));
+    rond(ctx, 0, 0, r * 0.3, NOIR);
+    rayons(ctx, 0, 0, r * 1.15, r * 1.55, 8, t);
+  },
+
+  bougies(ctx, w, h, t) {
+    for (const [x, y] of [[-0.17, 0.09], [0.15, 0.13], [0.02, -0.16]]) {
+      rond(ctx, x * t, y * t, t * 0.07, '#fff', NOIR, trait(t, 0.02));
+      rond(ctx, x * t, y * t, t * 0.025, NOIR);
+      rayons(ctx, x * t, y * t, t * 0.1, t * 0.15, 5, t);
+    }
+  },
+
+  tapis(ctx, w, h, t) {
+    const tw = w - t * 0.22, th = h - t * 0.22, x = -tw / 2, y = -th / 2, long = tw >= th;
+    ctx.beginPath();                                                 // les franges, aux deux bouts les plus courts
+    for (let k = t * 0.05; k < (long ? th : tw) - t * 0.03; k += t * 0.07) {
+      if (long) { ctx.moveTo(x - t * 0.1, y + k); ctx.lineTo(x, y + k); ctx.moveTo(x + tw, y + k); ctx.lineTo(x + tw + t * 0.1, y + k); }
+      else { ctx.moveTo(x + k, y - t * 0.1); ctx.lineTo(x + k, y); ctx.moveTo(x + k, y + th); ctx.lineTo(x + k, y + th + t * 0.1); }
+    }
+    ctx.strokeStyle = NOIR; ctx.lineWidth = trait(t, 0.012); ctx.stroke();
+    rect(ctx, x, y, tw, th, TRES_CLAIR, NOIR, trait(t, 0.03));
+    rect(ctx, x + t * 0.1, y + t * 0.1, tw - t * 0.2, th - t * 0.2, null, GRIS, trait(t, 0.02));
+    const a = Math.min(tw / 2 - t * 0.2, th * 0.4 * (long ? 1.7 : 1)), b = Math.min(th / 2 - t * 0.2, tw * 0.4 * (long ? 1 : 1.7));
+    for (const [k, fond] of [[1, '#fff'], [0.55, CLAIR], [0.2, NOIR]]) {   // le motif central : losanges emboîtés
+      ctx.beginPath(); ctx.moveTo(-a * k, 0); ctx.lineTo(0, -b * k); ctx.lineTo(a * k, 0); ctx.lineTo(0, b * k); ctx.closePath();
+      ctx.fillStyle = fond; ctx.fill(); ctx.strokeStyle = NOIR; ctx.lineWidth = trait(t, 0.015); ctx.stroke();
+    }
+  },
+
+  banniere(ctx, w, h, t) {
+    // Accrochée au mur, à l'arrière de la case : la barre, puis l'étoffe qui pend vers l'avant, à queue d'hirondelle.
+    const y0 = -h / 2 + t * 0.03, lg = t * 0.58, bw = t * 0.46;
+    ctx.beginPath(); ctx.moveTo(-bw / 2, y0); ctx.lineTo(bw / 2, y0); ctx.lineTo(bw / 2, y0 + lg); ctx.lineTo(0, y0 + lg * 0.78); ctx.lineTo(-bw / 2, y0 + lg); ctx.closePath();
+    ctx.fillStyle = CLAIR; ctx.fill(); ctx.strokeStyle = NOIR; ctx.lineWidth = trait(t, 0.025); ctx.stroke();
+    rond(ctx, 0, y0 + lg * 0.42, t * 0.07, NOIR);                      // l'emblème
+    rect(ctx, -t * 0.31, y0 - t * 0.04, t * 0.62, t * 0.07, NOIR);     // la barre
+  },
+
+  feudecamp(ctx, w, h, t) {
+    const R = Math.min(w, h) * 0.34;
+    for (let i = 0; i < 9; i++) {                                      // le cercle de pierres
+      const a = (i / 9) * Math.PI * 2 + 0.3;
+      rond(ctx, Math.cos(a) * R * 1.05, Math.sin(a) * R * 1.05, t * 0.075, i % 2 ? CLAIR : '#fff', NOIR, trait(t, 0.02));
+    }
+    ctx.lineCap = 'round';
+    for (const a of [0.4, 2.0, 3.6]) {                                 // les bûches
+      ctx.beginPath(); ctx.moveTo(-Math.cos(a) * R * 0.7, -Math.sin(a) * R * 0.7); ctx.lineTo(Math.cos(a) * R * 0.7, Math.sin(a) * R * 0.7);
+      ctx.strokeStyle = NOIR; ctx.lineWidth = trait(t, 0.08); ctx.stroke();
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = trait(t, 0.035); ctx.stroke();
+    }
+    ctx.lineCap = 'butt';
+    rond(ctx, 0, 0, R * 0.3, '#fff', NOIR, trait(t, 0.02));
+    rayons(ctx, 0, 0, R * 0.45, R * 0.75, 8, t);
+  },
+
+  flaque(ctx, w, h, t, o) {
+    // De l'eau se dessine en traits horizontaux : contour fin et trois vaguelettes.
+    contourIrregulier(ctx, w * 0.42, h * 0.36, o, 22, 0.16);
+    ctx.fillStyle = TRES_CLAIR; ctx.fill(); ctx.strokeStyle = NOIR; ctx.lineWidth = trait(t, 0.025); ctx.stroke();
+    ctx.beginPath();
+    for (const [a, b, l] of [[-0.3, -0.12, 0.34], [0.02, 0.1, 0.24], [-0.16, 0.2, 0.16]]) {
+      ctx.moveTo(a * w, b * h); ctx.quadraticCurveTo((a + l / 2) * w, (b - 0.08) * h, (a + l) * w, b * h);
+    }
+    ctx.strokeStyle = GRIS; ctx.lineWidth = trait(t, 0.015); ctx.stroke();
+  },
+
+  rocher(ctx, w, h, t, o) {
+    const s = Math.min(w, h);
+    contourIrregulier(ctx, s * 0.4, s * 0.36, o, 9, 0.16);
+    ctx.fillStyle = CLAIR; ctx.fill(); ctx.strokeStyle = NOIR; ctx.lineWidth = trait(t, 0.035); ctx.stroke();
+    contourIrregulier(ctx, s * 0.22, s * 0.2, o, 7, 0.2, 40);          // la facette du dessus
+    ctx.fillStyle = TRES_CLAIR; ctx.fill(); ctx.strokeStyle = GRIS; ctx.lineWidth = trait(t, 0.015); ctx.stroke();
+  },
+
+  champignons(ctx, w, h, t) {
+    for (const [x, y, r] of [[-0.2, 0.1, 0.1], [0.12, 0.18, 0.08], [0.1, -0.14, 0.11], [-0.12, -0.18, 0.07]]) {
+      rond(ctx, x * t, y * t, r * t, '#fff', NOIR, trait(t, 0.02));
+      rond(ctx, x * t, y * t, r * t * 0.3, GRIS);
+    }
+    rayons(ctx, 0, 0, t * 0.34, t * 0.44, 8, t, GRIS);                   // ils luisent
+  },
+
+  toile(ctx, w, h, t, o, plan) {
+    const [sx, sy] = sensDuCoin(o, plan), cx = sx * w / 2, cy = sy * h / 2;
+    toileDans(ctx, cx, cy, -sx, -sy, Math.min(w, h) * 0.98, NOIR, trait(t, 0.012));
+  },
+
+  ossements(ctx, w, h, t) {
+    ctx.lineCap = 'round';
+    for (const [ax, ay, bx, by] of [[-0.3, 0.12, 0.08, 0.28], [0.08, -0.24, 0.34, 0.06]]) {
+      ctx.beginPath(); ctx.moveTo(ax * t, ay * t); ctx.lineTo(bx * t, by * t);
+      ctx.strokeStyle = NOIR; ctx.lineWidth = trait(t, 0.11); ctx.stroke();
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = trait(t, 0.06); ctx.stroke();
+    }
+    ctx.lineCap = 'butt';
+    rond(ctx, 0, 0, t * 0.15, '#fff', NOIR, trait(t, 0.025));            // le crâne
+    rond(ctx, -t * 0.05, -t * 0.01, t * 0.032, NOIR); rond(ctx, t * 0.05, -t * 0.01, t * 0.032, NOIR);
   },
 
   inconnu(ctx, w, h, t) {

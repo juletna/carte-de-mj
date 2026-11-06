@@ -3,7 +3,7 @@
  * par un de ses mots. Les types eux-mêmes (leurs mots, leur taille, leur nom, leur genre…) sont décrits dans catalogue.js :
  * c'est là qu'on ajoute un nouvel objet.
  */
-import { OBJETS, CREATURES, OUVERTURES, nomDe } from '../catalogue.js';
+import { OBJETS, CREATURES, OUVERTURES, nomDe, plurielDe } from '../catalogue.js';
 
 /** Couleurs reconnues après une créature (« un dragon rouge »). */
 export const COULEURS = {
@@ -30,6 +30,19 @@ export const PORTES = Object.fromEntries(OUVERTURES.flatMap((d) => d.mots.map((m
  */
 export const ADJ_CACHE = new Set(['cache', 'cachee', 'caches', 'cachees', 'secret', 'secrete', 'secrets', 'secretes']);
 
+/** Adjectifs qui décrivent un objet sans rien changer au plan (« des champignons lumineux », « une flaque d'eau ») : lus, pas signalés. */
+export const ADJ_DECOR = new Set(['lumineux', 'lumineuse', 'lumineuses', 'phosphorescent', 'phosphorescents', 'phosphorescente', 'phosphorescentes', 'luminescent', 'luminescents', 'luminescente', 'luminescentes']);
+
+/**
+ * Le mot « feu » seul désigne un feu de camp, sauf quand il qualifie autre chose : « une porte en feu », « une boule de feu », « un feu follet »,
+ * « un feu d'artifice ». `mots[i]` (avec ses voisins) est-il l'un de ces emplois, à ne pas lire comme un objet ?
+ */
+const AVANT_FEU = new Set(['en', 'de', 'd', 'du', 'par', 'sans']);
+const APRES_FEU = new Set(['follet', 'follets', 'artifice', 'artifices', 'gregeois', 'sacre', 'sacres']);
+export function emploiDeFeu(mots, i) {
+  return /^feux?$/.test(mots[i]) && (AVANT_FEU.has(mots[i - 1]) || APRES_FEU.has(mots[i + 1]));
+}
+
 /** Adjectifs qui agrandissent un objet d'une case (« une grande table »). */
 export const ADJ_GRAND = new Set(['grand', 'grande', 'grands', 'grandes', 'large', 'larges', 'immense', 'immenses', 'enorme', 'enormes']);
 
@@ -55,7 +68,7 @@ export const MOTS_VIDES = new Set([...PIECES, ...(
   'pose posee poses posees place placee places placees situe situee situes situees range rangee ranges ' +
   'mur murs sol cote cotes pres proche juste bien tout toute tous toutes chaque meme aussi ' +
   'grand grande grands grandes petit petite petits petites moyen moyenne vaste immense enorme long longue ' +
-  'large m metre metres case cases carreau carreaux environ'
+  'large m metre metres case cases carreau carreaux environ eau'
 ).split(' ')]);
 
 // Zone par défaut d'une créature selon son camp.
@@ -118,5 +131,6 @@ const MOTS_ACCENTES = new Map([['fut', 'fût']]);
 export function nomAffiche(type, n = 1) {
   const nom = MOTS_ACCENTES.get(type) ?? nomDe(type);
   if (n <= 1 || /[sx]$/.test(nom)) return nom;
+  if (plurielDe(type)) return plurielDe(type);
   return nom.endsWith('eau') ? nom + 'x' : nom + 's';
 }

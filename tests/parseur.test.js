@@ -5,7 +5,8 @@ import { PHRASES } from './phrases.js';
 import { decrire } from '../js/parseur/decrire.js';
 import { OBJETS, CREATURES } from '../js/catalogue.js';
 
-const SYMETRIQUES = new Set(['pilier', 'colonne', 'tonneau', 'caisse', 'fosse', 'debris', 'puits', 'fontaine']);
+const SYMETRIQUES = new Set(['pilier', 'colonne', 'tonneau', 'caisse', 'fosse', 'debris', 'puits', 'fontaine',
+  'brasero', 'bougies', 'tapis', 'feudecamp', 'flaque', 'rocher', 'champignons', 'toile', 'ossements']);
 
 export function executer() {
   return PHRASES.map(({ phrase, attendu }) => {

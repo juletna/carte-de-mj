@@ -18,7 +18,7 @@
  *                                    murs teintés, ébréchés, mousse et lierre (peint/murs.js), petits détails semés (peint/details.js) ; peint/ambiance.js (pur) porte les tables. L'éclairage ne règle que la pénombre (rendu/lumiere.js).
  *
  * Modules : peint/bruit.js (bruits), peint/sols.js (tuiles), peint/segments.js (murs en segments), peint/murs.js (murs, ombre, portes),
- * peint/trait.js (trait à la main), peint/volumes.js (volumes en fausse 3D), peint/objets.js (les 19 objets), peint/pions.js (pions à plat), peint/details.js (petits détails semés), peint/ambiance.js (teintes et usure : pur), peint/etat.js (état du dessin en cours), ../perspective.js (calculs de vue).
+ * peint/trait.js (trait à la main), peint/volumes.js (volumes en fausse 3D), peint/objets.js (les 29 objets), peint/pions.js (pions à plat), peint/details.js (petits détails semés), peint/ambiance.js (teintes et usure : pur), peint/etat.js (état du dessin en cours), ../perspective.js (calculs de vue).
  */
 import { tracerSol } from '../trace.js';
 import { vueDeSalle, IDENTITE, haut as hautVue } from '../perspective.js';

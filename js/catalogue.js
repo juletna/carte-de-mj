@@ -5,6 +5,7 @@
  * Entrée d'un objet :
  *   type       identifiant utilisé dans le JSON et par le thème graphique
  *   nom        nom affiché quand il diffère du type (accents : « bibliotheque » → « bibliothèque »)
+ *   pluriel    pluriel du nom affiché quand ce n'est pas « nom + s » (« feux de camp ») ; « -eau » prend un « x », un nom en -s ou -x ne change pas
  *   mots       formes reconnues, sans accents, au singulier
  *              (le pluriel en -s / -x est reconnu automatiquement)
  *   l, h       taille en cases (l = ouest→est, h = nord→sud) quand l'objet
@@ -45,11 +46,21 @@ export const OBJETS = [
   { type: 'fosse',        mots: ['fosse', 'trou', 'gouffre', 'piege', 'trappe'], l: 1, h: 1, zone: 'centre', lettre: 'F', feminin: true, symetrique: true, couche: 0 },
   { type: 'lit',          mots: ['lit', 'couchette', 'paillasse'],            l: 1, h: 2, zone: 'cotes',     lettre: 'L' },
   { type: 'bibliotheque', mots: ['bibliotheque', 'etagere', 'rayonnage'],     l: 2, h: 1, zone: 'fond',      lettre: 'B', nom: 'bibliothèque', feminin: true },
-  { type: 'torche',       mots: ['torche', 'flambeau', 'brasero', 'chandelier'], l: 1, h: 1, zone: 'perimetre', lettre: '*', feminin: true, bloquant: false, couche: 9 },
+  { type: 'torche',       mots: ['torche', 'flambeau'], l: 1, h: 1, zone: 'perimetre', lettre: '*', feminin: true, bloquant: false, couche: 9 },
   { type: 'debris',       mots: ['debris', 'gravat', 'eboulis', 'decombre', 'ruine'], l: 1, h: 1, zone: 'aleatoire', lettre: '%', nom: 'débris', symetrique: true, couche: 1 },
   { type: 'puits',        mots: ['puits'],                                    l: 1, h: 1, zone: 'centre',    lettre: 'U', symetrique: true },
   { type: 'fontaine',     mots: ['fontaine', 'bassin'],                       l: 1, h: 1, zone: 'centre',    lettre: 'W', feminin: true, symetrique: true },
   { type: 'sarcophage',   mots: ['sarcophage', 'tombeau', 'cercueil'],        l: 1, h: 2, zone: 'centre',    lettre: 'Z' },
+  { type: 'brasero',      mots: ['brasero', 'brasier', 'vasque de feu'],      l: 1, h: 1, zone: 'coins',     lettre: 'V', symetrique: true },
+  { type: 'bougies',      mots: ['bougie', 'chandelle', 'chandelier', 'cierge'], l: 1, h: 1, zone: 'aleatoire', lettre: '!', nom: 'bougie', feminin: true, symetrique: true, bloquant: false, couche: 6 },
+  { type: 'tapis',        mots: ['tapis', 'carpette'],                        l: 3, h: 2, zone: 'centre',    lettre: '=', symetrique: true, bloquant: false, couche: -1 },
+  { type: 'banniere',     mots: ['banniere', 'etendard', 'tenture', 'tapisserie', 'oriflamme'], l: 1, h: 1, zone: 'perimetre', lettre: 'N', nom: 'bannière', feminin: true, bloquant: false, couche: 8 },
+  { type: 'feudecamp',    mots: ['feu de camp', 'feu de bois', 'feu de joie', 'foyer', 'feu'], l: 1, h: 1, zone: 'centre', lettre: 'Y', nom: 'feu de camp', pluriel: 'feux de camp', symetrique: true },
+  { type: 'flaque',       mots: ['flaque', 'mare'],                           l: 2, h: 1, zone: 'aleatoire', lettre: '~', feminin: true, symetrique: true, bloquant: false, couche: 0 },
+  { type: 'rocher',       mots: ['rocher', 'roc', 'bloc de pierre', 'bloc de roche'], l: 1, h: 1, zone: 'aleatoire', lettre: '^', symetrique: true },
+  { type: 'champignons',  mots: ['champignon'],                               l: 1, h: 1, zone: 'coins',     lettre: 'M', nom: 'champignon', symetrique: true, bloquant: false },
+  { type: 'toile',        mots: ['toile d araignee', 'toile'],                l: 1, h: 1, zone: 'coins',     lettre: '#', nom: 'toile d’araignée', pluriel: 'toiles d’araignée', feminin: true, symetrique: true, bloquant: false, couche: 7 },
+  { type: 'ossements',    mots: ['ossement', 'tas d os', 'tas d ossements', 'os', 'crane'], l: 1, h: 1, zone: 'aleatoire', lettre: 'I', nom: 'ossement', symetrique: true, bloquant: false, couche: 2 },
 ];
 
 export const CREATURES = [
@@ -108,6 +119,8 @@ const PAR_TYPE = new Map([...OBJETS, ...CREATURES, ...OUVERTURES].map((d) => [d.
 
 /** Nom lisible d'un type, au singulier (« bibliotheque » → « bibliothèque ») ; le type lui-même s'il n'a pas de nom propre. */
 export const nomDe = (type) => PAR_TYPE.get(type)?.nom ?? type;
+/** Pluriel propre d'un type (« feux de camp »), ou undefined quand le nom suit la règle ordinaire (voir nomAffiche dans parseur/lexique.js). */
+export const plurielDe = (type) => PAR_TYPE.get(type)?.pluriel;
 /** Le nom est-il féminin (« une table », « une porte ») ? */
 export const estFeminin = (type) => PAR_TYPE.get(type)?.feminin === true;
 /** L'objet est-il identique quelle que soit son orientation ? */

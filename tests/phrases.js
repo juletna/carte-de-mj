@@ -284,3 +284,72 @@ PHRASES.push(
     attendu: { verifier: (plan) => plan.creatures.some((k) => k.type === 'garde') || 'le garde cité doit exister' },
   },
 );
+
+// --- Lot 5 : brasero, bougies, tapis, bannière, feu de camp, flaque, rocher, champignons, toile d'araignée, ossements ---
+// Singulier / pluriel / synonymes / accents, puis les mots qui existaient déjà ou qui s'écrivent de la même façon (feu, os, toile, bloc, tapisserie…).
+const salle = (contenu) => `salle de 12 par 12 cases, ${contenu}`;
+const un = (phrase, compter, plus = {}) => ({ phrase: salle(phrase), attendu: { compter, ...plus } });
+PHRASES.push(
+  // brasero : « brasero » n'est plus une torche
+  un('un brasero', { brasero: 1 }, { ignores: [] }),
+  un('deux braseros', { brasero: 2 }),
+  un('un brasier et une vasque de feu', { brasero: 2 }, { ignores: [] }),
+  un('des vasques de feu', { brasero: 2 }),
+  un('une torche, un flambeau', { torche: 2 }),
+  // bougies : « chandelier » n'est plus une torche
+  un('une bougie', { bougies: 1 }, { ignores: [] }),
+  un('trois bougies', { bougies: 3 }),
+  un('une chandelle, un chandelier, un cierge', { bougies: 3 }, { ignores: [] }),
+  un('des chandelles', { bougies: 5 }),
+  // tapis : le singulier et le pluriel s'écrivent pareil ; la taille par défaut est 3 par 2, un grand tapis 4 par 3
+  { phrase: salle('un tapis'), attendu: { compter: { tapis: 1 }, ignores: [], objets: [{ type: 'tapis', l: 3, h: 2 }] } },
+  { phrase: salle('un grand tapis'), attendu: { compter: { tapis: 1 }, ignores: [], objets: [{ type: 'tapis', l: 4, h: 3 }] } },
+  un('deux tapis', { tapis: 2 }),
+  un('une carpette', { tapis: 1 }),
+  un('des tapis', { tapis: 2 }),
+  // bannière
+  un('une bannière', { banniere: 1 }, { ignores: [] }),
+  un('une banniere et deux étendards', { banniere: 3 }),
+  un('une tenture, une tapisserie', { banniere: 2 }, { ignores: [] }),
+  un('des bannières', { banniere: 4 }),
+  { phrase: salle('une bannière'), attendu: { verifier: (plan) => plan.objets.every((o) => o.x === 0 || o.y === 0 || o.x === plan.largeur - 1 || o.y === plan.longueur - 1) || 'la bannière est contre un mur' } },
+  // feu de camp : « feu » seul est un feu de camp, sauf « en feu », « de feu », « feu follet »…
+  un('un feu de camp', { feudecamp: 1 }, { ignores: [] }),
+  un('un feu', { feudecamp: 1 }, { ignores: [] }),
+  un('un foyer et un feu de bois', { feudecamp: 2 }, { ignores: [] }),
+  un('deux feux de camp', { feudecamp: 2 }),
+  un('des feux', { feudecamp: 2 }),
+  un('trois gobelins autour du feu', { feudecamp: 1 }, { ignores: [] }),
+  un('une porte en feu', {}, { ignores: ['feu'] }),
+  un('une boule de feu', {}, { ignores: ['boule', 'feu'] }),
+  un('un feu follet', {}, { ignores: ['feu', 'follet'] }),
+  un('une vasque de feu', { brasero: 1 }, { ignores: [] }),
+  // flaque
+  un('une flaque', { flaque: 1 }, { ignores: [], objets: [{ type: 'flaque', l: 2, h: 1 }] }),
+  un('une flaque d\'eau', { flaque: 1 }, { ignores: [] }),
+  un('deux mares', { flaque: 2 }),
+  // rocher : « éboulis » reste un tas de débris
+  un('un rocher', { rocher: 1 }, { ignores: [] }),
+  un('deux rochers et un roc', { rocher: 3 }),
+  un('un bloc de pierre', { rocher: 1 }, { ignores: [] }),
+  un('des éboulis', { debris: 5 }),
+  un('des débris', { debris: 5 }),
+  // champignons : lumineux est lu, pas signalé ; un adjectif d'éclairage collé à l'objet ne change pas la salle
+  un('un champignon', { champignons: 1 }, { ignores: [] }),
+  un('des champignons lumineux', { champignons: 2 }, { ignores: [] }),
+  { phrase: salle('des champignons lumineux'), attendu: { verifier: (plan) => plan.eclairage === undefined || 'les champignons lumineux n’éclairent pas la salle' } },
+  // toile d'araignée : « araignée » seule reste un pion
+  un('une toile d\'araignée', { toile: 1 }, { ignores: [], verifier: (plan) => plan.creatures.length === 0 || 'la toile ne crée pas d’araignée' }),
+  un('deux toiles d\'araignée', { toile: 2 }),
+  un('une toile', { toile: 1 }, { ignores: [] }),
+  { phrase: salle('une araignée'), attendu: { compter: {}, verifier: (plan) => (plan.creatures.length === 1 && plan.creatures[0].type === 'araignee') || 'une araignée est un pion' } },
+  { phrase: salle('quatre toiles dans les coins'), attendu: { compter: { toile: 4 }, verifier: (plan) => plan.objets.every((o) => (o.x === 0 || o.x === plan.largeur - 1) && (o.y === 0 || o.y === plan.longueur - 1)) || 'toiles dans les coins' } },
+  // ossements : « squelette » reste un pion
+  un('des ossements', { ossements: 5 }, { ignores: [] }),
+  un('un os, un crâne', { ossements: 2 }, { ignores: [] }),
+  un('un tas d\'os et un tas d\'ossements', { ossements: 2 }, { ignores: [] }),
+  { phrase: salle('un squelette'), attendu: { compter: {}, verifier: (plan) => (plan.creatures.length === 1 && plan.creatures[0].type === 'squelette') || 'un squelette est un pion' } },
+  // tout ensemble
+  un('un brasero, des bougies, un tapis, une bannière, un feu de camp, une flaque, un rocher, des champignons lumineux, une toile d\'araignée, des ossements',
+    { brasero: 1, bougies: 5, tapis: 1, banniere: 1, feudecamp: 1, flaque: 1, rocher: 1, champignons: 2, toile: 1, ossements: 5 }, { ignores: [] }),
+);
