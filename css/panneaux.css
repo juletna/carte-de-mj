@@ -286,6 +286,9 @@
 .rang-case::after { content: ""; position: absolute; left: 4.5px; top: 1px; width: 4px; height: 8px; border: solid var(--accent-texte); border-width: 0 2px 2px 0; transform: rotate(45deg); opacity: 0; }
 .rang-choix[aria-selected="true"] .rang-case { background: var(--accent); border-color: var(--accent); }
 .rang-choix[aria-selected="true"] .rang-case::after { opacity: 1; }
+.rang-mini { color: var(--p-texte-2); } /* miniature d'un choix de forme (champ à choix unique) */
+.mini-forme { display: inline-flex; width: 18px; height: 18px; }
+.mini-forme svg { width: 100%; height: 100%; display: block; }
 .hasard-salle-champ select { width: 100%; max-width: none; min-height: max(32px, var(--cible)); }
 .p-section-corps > .rang-interrupteur:disabled { opacity: 0.5; cursor: default; }
 .p-section-corps > .rang-interrupteur:disabled:hover { background: var(--p-surface-1); }

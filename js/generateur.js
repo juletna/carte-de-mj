@@ -19,7 +19,7 @@ import { nomAffiche } from './parseur/lexique.js';
 import { CREATURES } from './catalogue.js';
 import { reperePorte } from './coordonnees.js';
 import { OPPOSE, VECTEUR, longueurMur, portesEntreeDabord } from './murs.js';
-import { POSITIONS_FORMES, brasMax, retraitPorte, nombreCases, estSol } from './formes.js';
+import { FORMES, LIBELLES_FORMES, POSITIONS_FORMES, brasMax, retraitPorte, nombreCases, estSol } from './formes.js';
 import { redimensionner, changerForme } from './pose.js';
 import { SOLS, CHAMPS_AMBIANCE } from './schema.js';
 import { generateur, lireGraine, nouvelleGraine, melanger, GRAINE_MAX } from './alea.js';
@@ -372,7 +372,8 @@ export function normaliserOptionsSalle(brut = {}) {
     familles: (Array.isArray(brut.familles) ? brut.familles : []).filter((f) => f in FAMILLES),
     typesPresents: (Array.isArray(brut.typesPresents) ? brut.typesPresents : []).filter((t) => typeof t === 'string'),
     formes: brut.formes !== false,
-    nouvelleForme: brut.nouvelleForme === true,
+    // null : automatique (forme et dimensions tirées) ; 'actuelle' : on garde forme, dimensions et portes ; sinon l'identifiant d'une forme imposée.
+    forme: brut.forme === 'actuelle' ? 'actuelle' : FORMES.includes(brut.forme) ? brut.forme : null,
     reliee: brut.reliee !== false, // au moindre doute, la salle est prise pour reliée : ses portes restent
     graine: lireGraine(brut.graine),
   };
@@ -402,9 +403,10 @@ const nombreMonstres = (spec) => Object.values(spec.monstres).reduce((a, b) => a
  * Même ingrédients que `genererDonjon` (rôles, familles, placement, relecture par le parseur), sans règle d'entrée ni de boss.
  *
  * Deux modes, pour qu'une porte reliée à une autre salle ne disparaisse jamais :
- *  - « remplir » (par défaut) : forme, dimensions, sol, ambiance, TOUTES les portes et TOUS les escaliers restent où ils sont ; seul le
+ *  - « remplir » (`forme: 'actuelle'`) : forme, dimensions, sol, ambiance, TOUTES les portes et TOUS les escaliers restent où ils sont ; seul le
  *    contenu change. La salle n'est pas agrandie : si tout ne tient pas, le contenu est réduit (`resume.reduit`) ;
- *  - « nouvelle » (`nouvelleForme`) : nouvelle forme et nouvelles dimensions, appliquées au plan comme le fait la saisie à la main
+ *  - « nouvelle » (`forme` absente ou null : automatique ; ou l'identifiant d'une forme imposée, rectangle compris, aux dimensions
+ *    tirées assez grandes pour elle) : nouvelle forme et nouvelles dimensions, appliquées au plan comme le fait la saisie à la main
  *    (`redimensionner`, `changerForme`) : les portes et escaliers, reliés ou non, restent sur leur mur à leur position, donc leurs
  *    liaisons aussi. Quelques tirages voisins sont essayés ; si aucun ne garde TOUTES les portes et tous les escaliers, ou au moindre
  *    doute, le mode « remplir » est employé et `refus` en dit la raison. `reliee` n'a plus d'effet sur ce mode (gardé pour la forme).
@@ -412,7 +414,7 @@ const nombreMonstres = (spec) => Object.values(spec.monstres).reduce((a, b) => a
  * Si même le mode « remplir » ne peut pas garantir les portes et escaliers, rien n'est proposé (`ok: false`, `texte: null`).
  *
  * @param {object} brut  plan (le plan actuel de la salle), monstres, coffres, pieges, familles, typesPresents (types de monstres des
- *   autres salles du donjon : leurs familles sont reprises par défaut), formes, nouvelleForme, reliee, graine (voir normaliserOptionsSalle)
+ *   autres salles du donjon : leurs familles sont reprises par défaut), formes, forme (null | 'actuelle' | id d'une forme), reliee, graine (voir normaliserOptionsSalle)
  * @returns {{ok:boolean, texte:string|null, plan?:object, nom:string|null, graine:number, mode:'remplir'|'nouvelle', refus:string|null,
  *   resume:{monstres:number,coffres:number,pieges:number,familles:string[],reduit:boolean}}}
  */
@@ -456,14 +458,16 @@ export function genererSalle(brut = {}) {
   // Nouvelle forme : le changement manuel, appliqué au plan existant (`formeNeuve`) ; les portes et les escaliers, reliés ou non,
   // gardent leur place. Quelques tirages voisins sont essayés ; sinon, ou au moindre doute, on remplit seulement.
   let refus = null;
-  if (o.nouvelleForme && plan) {
+  if (o.forme !== 'actuelle' && plan) {
     for (let essai = 0; essai < ESSAIS_FORME; essai++) {
       const aleaForme = essai === 0 ? alea : generateur(graine + essai * 7919);
-      const neuf = formeNeuve(plan, role, o.formes, aleaForme);
+      const neuf = formeNeuve(plan, role, o.formes, aleaForme, o.forme);
       const r = neuf && remplir(neuf, 'nouvelle', null);
       if (r) return r;
     }
-    refus = 'Aucune nouvelle forme n’a pu garder toutes les portes et tous les escaliers de la salle : sa forme et ses dimensions restent.';
+    refus = o.forme
+      ? `La forme « ${LIBELLES_FORMES[o.forme]} » n’a pu garder ni toutes les portes ni tous les escaliers de la salle : sa forme et ses dimensions restent.`
+      : 'Aucune nouvelle forme n’a pu garder toutes les portes et tous les escaliers de la salle : sa forme et ses dimensions restent.';
   }
 
   if (!plan) { preparer(0); return bilan(null, 'remplir', 'Il n’y a pas de plan à remplir.', reduire(spec, 0), false); }
@@ -475,14 +479,17 @@ export function genererSalle(brut = {}) {
  * Un plan à la forme et aux dimensions tirées, à partir de celui de la salle : MÊME mécanisme que le changement à la main (`redimensionner`
  * par les bords est et sud, puis `changerForme`, js/pose.js). Le contenu est retiré (les escaliers restent) ; les portes gardent leur mur
  * et leur position le long du mur, donc leurs liaisons aussi. Les dimensions ne descendent pas sous ce qu'il faut pour tenir les portes
- * et les escaliers (la plage de 5 à 9 cases est relevée au besoin). Renvoie null si une porte tomberait hors du sol ou si un escalier devait bouger.
+ * et les escaliers (la plage de 5 à 9 cases est relevée au besoin ; pour une forme imposée autre que le rectangle, le petit côté vaut au moins
+ * COTE_FORME_MIN : de 7 à 11 cases). `imposee` : l'identifiant de la forme voulue, ou null (tirée). Renvoie null si une porte tomberait hors du sol ou si un escalier devait bouger.
  */
-function formeNeuve(plan, role, formes, alea) {
+function formeNeuve(plan, role, formes, alea, imposee = null) {
   const escaliers = escaliersDe(plan);
   const horizontal = (mur) => mur === 'nord' || mur === 'sud';
   const minLargeur = Math.max(5, ...plan.portes.filter((q) => horizontal(q.mur)).map((q) => q.position + 1), ...escaliers.map((e) => e.x + e.l));
   const minLongueur = Math.max(5, ...plan.portes.filter((q) => !horizontal(q.mur)).map((q) => q.position + 1), ...escaliers.map((e) => e.y + e.h));
-  const tirerCote = (min) => Math.max(min, 5 + Math.floor(alea() * 5)); // 5 à 9 cases, tirées à chaque fois : jamais une valeur par défaut
+  const decoupee = imposee && imposee !== 'rectangle'; // une forme découpée veut de la place pour ses bras
+  const base = decoupee ? COTE_FORME_MIN : 5;
+  const tirerCote = (min) => Math.max(min, base + Math.floor(alea() * 5)); // 5 à 9 cases (7 à 11 pour une forme imposée), tirées à chaque fois : jamais une valeur par défaut
   const largeur = tirerCote(minLargeur), longueur = tirerCote(minLongueur);
   const tirageForme = { chance: alea(), forme: alea(), position: alea() };
 
@@ -494,7 +501,14 @@ function formeNeuve(plan, role, formes, alea) {
     courant = res.plan;
   }
   const champs = { forme: 'rectangle' };
-  if (formes && Math.min(largeur, longueur) >= COTE_FORME_MIN && (role.forme || tirageForme.chance < CHANCE_FORME)) {
+  if (imposee) {
+    if (decoupee) {
+      champs.forme = imposee;
+      const positions = POSITIONS_FORMES[imposee];
+      if (positions) champs.position = positions[Math.floor(tirageForme.position * positions.length)];
+      if (!brasMax({ ...courant, ...champs })) return null; // trop petite pour cette forme : un autre tirage, ou on remplit
+    }
+  } else if (formes && Math.min(largeur, longueur) >= COTE_FORME_MIN && (role.forme || tirageForme.chance < CHANCE_FORME)) {
     champs.forme = role.forme || FORMES_TIRABLES[Math.floor(tirageForme.forme * FORMES_TIRABLES.length)];
     const positions = POSITIONS_FORMES[champs.forme];
     if (positions) champs.position = positions[Math.floor(tirageForme.position * positions.length)];

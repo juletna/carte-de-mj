@@ -7,10 +7,10 @@
  *   conteneur.append(sectionAuHasard(sel));
  *
  * Tout est automatique par défaut : un champ vide (nombre de monstres, de coffres, de pièges), la famille « Auto », la forme et les
- * dimensions tirées ; on ne renseigne un réglage que pour l'imposer. Deux modes (voir `genererSalle`) : « Remplir » garde la forme, les
- * dimensions et TOUTES les portes et escaliers ; « Nouvelle forme et dimensions » les change comme à la main (les portes et escaliers,
- * reliés ou non, gardent leur mur et leur place : leurs liaisons suivent), et n'est le défaut que pour une salle vide (une salle déjà
- * soignée garde sa forme tant qu'on n'a pas activé la case). Le texte tiré passe par `ctx.modifierPlan` (le chemin de toute
+ * dimensions tirées ; on ne renseigne un réglage que pour l'imposer. Le champ « Forme » (Auto · Forme actuelle · une forme) donne deux
+ * modes (voir `genererSalle`) : « Forme actuelle » remplit seulement (forme, dimensions et TOUTES les portes et escaliers restent) ;
+ * « Auto » ou une forme précise changent forme et dimensions comme à la main (les portes et escaliers, reliés ou non, gardent leur mur
+ * et leur place : leurs liaisons suivent) ; Auto est le défaut de toute salle. Le texte tiré passe par `ctx.modifierPlan` (le chemin de toute
  * modification du plan : description, carte, sauvegarde, historique, liaisons). Une salle qui avait déjà un contenu, ou dont la forme
  * change, est annulable en un seul pas (« Annuler » rétablit aussi les liaisons).
  * Les réglages et le dernier tirage vivent le temps de la page : rien n'est enregistré.
@@ -19,6 +19,7 @@ import { h } from '../dom.js';
 import { icone } from '../icones.js';
 import { creerSection } from './section.js';
 import { creerChampMulti } from './champ-multi.js';
+import { FORMES, LIBELLES_FORMES, svgForme } from '../formes.js';
 import * as modele from '../donjon.js';
 import { pluriel } from '../format.js';
 import { NOMS_SOLS, NOMS_AMBIANCES, NOMS_ETATS_SALLE, NOMS_ECLAIRAGES } from '../schema.js';
@@ -30,20 +31,12 @@ const CHAMPS = [['monstres', 'Monstres'], ['coffres', 'Coffres'], ['pieges', 'Pi
 
 export function creerSectionAuHasard(ctx) {
   // Gardés le temps de la page.
-  // monstres, coffres, pièges : null = automatique ; nouvelleForme : null = pas choisi (voir `formeVoulue`).
-  const reglages = { familles: [], monstres: null, coffres: null, pieges: null, nouvelleForme: null, apparence: {} };
+  // monstres, coffres, pièges : null = automatique ; forme : null = Auto (forme et dimensions tirées), 'actuelle', ou l'identifiant d'une forme imposée.
+  const reglages = { familles: [], monstres: null, coffres: null, pieges: null, forme: null, apparence: {} };
   /** Le dernier tirage appliqué : sert à « Relancer » et à « Tirage N », tant que la description est encore celle qu'il a écrite. */
   let dernier = null;
 
   const donjon = () => ctx.donjon();
-
-  /** Le mode effectif : le choix du MJ s'il y en a un ; sinon « nouvelle forme » pour une salle vide ou déjà tirée ici, « remplir » pour une salle soignée. */
-  const formeVoulue = (d, id) => {
-    if (!d.salles[id]?.plan) return false;
-    if (reglages.nouvelleForme !== null) return reglages.nouvelleForme;
-    const s = d.salles[id];
-    return (dernier && dernier.salle === id && s.texte === dernier.texte) || !salleAUnContenu(s);
-  };
 
   /** Applique un tirage à la salle `id` (affichée d'abord). `relancer` : remplace le tirage précédent au lieu de s'empiler dessus. */
   function generer(id, relancer = false) {
@@ -51,7 +44,7 @@ export function creerSectionAuHasard(ctx) {
     const d = donjon();
     const s = d.salles[id];
     if (!s) return;
-    const nouvelleForme = formeVoulue(d, id); // avant l'éventuel retour en arrière d'une relance
+    const forme = reglages.forme; // le choix du MJ, tel quel
     const reprise = relancer && dernier && dernier.salle === id && s.texte === dernier.texte;
     let annulable = salleAUnContenu(s);
     if (reprise) {
@@ -63,7 +56,7 @@ export function creerSectionAuHasard(ctx) {
     const salle = d.salles[id];
     const reliee = salleReliee(d, id);
     const options = {
-      plan: salle.plan, reliee, formes: true, nouvelleForme,
+      plan: salle.plan, reliee, formes: true, forme,
       familles: [...reglages.familles], typesPresents: typesDesAutresSalles(d, id),
       monstres: reglages.monstres, coffres: reglages.coffres, pieges: reglages.pieges, apparence: reglages.apparence,
     };
@@ -91,10 +84,11 @@ export function creerSectionAuHasard(ctx) {
       ctx.coquille?.rafraichir({ inspecteur: true });
       return;
     }
-    dernier = { salle: id, texte: r.texte, graine: r.graine, mode: r.mode, refus: r.refus, resume: r.resume, annulable, nomAvant: nomAvant !== d.salles[id].nom ? nomAvant : null };
+    dernier = { salle: id, texte: r.texte, graine: r.graine, mode: r.mode, forme: r.mode === 'nouvelle' ? LIBELLES_FORMES[r.plan.forme ?? 'rectangle'] : null, refus: r.refus, resume: r.resume, annulable, nomAvant: nomAvant !== d.salles[id].nom ? nomAvant : null };
     const { monstres, coffres, pieges, reduit } = r.resume;
-    const repli = nouvelleForme && r.mode === 'remplir' && r.refus ? ` ${r.refus}` : ''; // la nouvelle forme n'a pas pu garder les portes : on le dit
-    ctx.annoncerCarte(`Tirage ${r.graine} : ${pluriel(monstres, 'monstre', 'monstres')}, ${pluriel(coffres, 'coffre', 'coffres')}, ${pluriel(pieges, 'piège', 'pièges')}${reduit ? ' (la salle est trop petite pour tout)' : ''}.${repli}${annulable ? ' « Annuler » rétablit la salle.' : ''}`);
+    const repli = forme !== 'actuelle' && r.mode === 'remplir' && r.refus ? ` ${r.refus}` : ''; // la nouvelle forme n'a pas pu garder les portes : on le dit
+    const laForme = r.mode === 'nouvelle' ? ` Forme : ${LIBELLES_FORMES[r.plan.forme ?? 'rectangle']}, ${r.plan.largeur} par ${r.plan.longueur} cases.` : '';
+    ctx.annoncerCarte(`Tirage ${r.graine} : ${pluriel(monstres, 'monstre', 'monstres')}, ${pluriel(coffres, 'coffre', 'coffres')}, ${pluriel(pieges, 'piège', 'pièges')}${reduit ? ' (la salle est trop petite pour tout)' : ''}.${laForme}${repli}${annulable ? ' « Annuler » rétablit la salle.' : ''}`);
     ctx.coquille?.rafraichir({ inspecteur: true });
   }
 
@@ -103,7 +97,6 @@ export function creerSectionAuHasard(ctx) {
     const s = d.salles[sel.id];
     const reliee = salleReliee(d, sel.id);
     const escalier = (s?.plan?.objets || []).some((o) => o.type === 'escalier');
-    let activee = formeVoulue(d, sel.id);
 
     // Famille : « comme le donjon » quand les autres salles en ont, sinon le hasard.
     const presentes = famillesPresentes(typesDesAutresSalles(d, sel.id));
@@ -137,29 +130,34 @@ export function creerSectionAuHasard(ctx) {
       return h('label', { className: 'ligne' }, libelle, menu);
     }));
 
-    const forme = h('button', {
-      type: 'button', className: 'rang-champ rang-interrupteur', role: 'switch', 'aria-checked': String(activee),
-      title: 'Tire aussi une nouvelle forme et de nouvelles dimensions',
-    },
-    h('span', { className: 'rang-aperce rang-icone' }, icone('salle')),
-    h('span', { className: 'rang-texte' }, h('span', { className: 'rang-valeur', textContent: 'Nouvelle forme et dimensions' })),
-    h('span', { className: 'interrupteur', 'aria-hidden': 'true' }));
-    const texteAide = () => (activee
-      ? `La forme et les dimensions sont tirées aussi ; les portes gardent leur mur.${reliee ? ' Les portes reliées suivent la nouvelle forme.' : ''}${escalier ? ' Les escaliers gardent leur place.' : ''} Décoche pour les garder.`
-      : 'La forme, les dimensions et les portes restent : seul le contenu change.');
-    const aide = h('p', { className: 'note', textContent: texteAide() });
-    forme.addEventListener('click', () => {
-      activee = !activee;
-      reglages.nouvelleForme = activee;
-      forme.setAttribute('aria-checked', String(activee));
-      aide.textContent = texteAide();
+    // Forme : Auto (forme et dimensions tirées), la forme actuelle (on remplit seulement), ou une forme imposée. Un choix à la fois, avec sa miniature.
+    // Les miniatures sont des caractères ou nos propres SVG (svgForme) : aucune icône récente à charger, la liste s'ouvre avec un icones.js plus ancien en cache.
+    const miniSvg = (svg) => { const e = h('span', { className: 'mini-forme' }); e.innerHTML = svg; return e; }; // svgForme : uniquement nos propres rectangles
+    const miniIcone = (nom, repli) => () => h('span', { className: 'mini-forme' }, (() => { try { return icone(nom); } catch { return repli; } })());
+    const textesForme = () => {
+      const f = reglages.forme;
+      if (f === 'actuelle') return 'La forme, les dimensions et les portes restent : seul le contenu change.';
+      if (f) return `Nouvelle forme imposée : ${LIBELLES_FORMES[f]} ; les dimensions sont tirées.${reliee ? ' Les portes reliées suivent la nouvelle forme.' : ''}${escalier ? ' Les escaliers gardent leur place.' : ''}`;
+      return `La forme et les dimensions sont tirées aussi ; les portes gardent leur mur.${reliee ? ' Les portes reliées suivent la nouvelle forme.' : ''}${escalier ? ' Les escaliers gardent leur place.' : ''}`;
+    };
+    const aide = h('p', { className: 'note', textContent: textesForme() });
+    const champForme = creerChampMulti({
+      titre: 'Forme', icone: 'salle', unique: true, auto: 'Auto',
+      miniatureAuto: miniIcone('de', '?'),
+      options: [
+        { valeur: 'actuelle', libelle: 'Forme actuelle', miniature: miniIcone('salle', '▭') },
+        ...FORMES.map((f) => ({ valeur: f, libelle: LIBELLES_FORMES[f], miniature: () => miniSvg(svgForme(f)) })),
+      ],
+      valeurs: reglages.forme ? [reglages.forme] : [],
+      surChangement: ([valeur]) => { reglages.forme = valeur ?? null; aide.textContent = textesForme(); },
     });
     const noteAuto = h('p', { className: 'note', textContent: 'Vide = automatique : le tirage choisit.' });
 
     const generee = dernier && dernier.salle === sel.id && s?.texte === dernier.texte ? dernier : null;
     const corps = [
       h('div', { className: 'hasard-salle-champ' }, h('span', { className: 'hasard-salle-etiquette', textContent: 'Type de monstres' }), famille.element),
-      champs, noteAuto, apparence, forme, aide,
+      champs, noteAuto, apparence,
+      h('div', { className: 'hasard-salle-champ' }, h('span', { className: 'hasard-salle-etiquette', textContent: 'Forme' }), champForme.element), aide,
     ];
     const bouton = h('button', { type: 'button', className: 'btn' }, icone('de'), 'Générer');
     bouton.addEventListener('click', () => generer(sel.id));
@@ -167,7 +165,7 @@ export function creerSectionAuHasard(ctx) {
     if (generee) {
       const relancer = h('button', { type: 'button', className: 'btn btn-discret', title: 'Remplace ce tirage par un autre' }, 'Relancer');
       relancer.addEventListener('click', () => generer(sel.id, true));
-      corps.push(h('p', { className: 'note', role: 'status', textContent: `Tirage ${generee.graine}${generee.mode === 'nouvelle' ? ' · nouvelle forme' : ''}${generee.resume.reduit ? ' · la salle est trop petite pour tout' : ''}${generee.refus ? ` · ${generee.refus}` : ''}` }));
+      corps.push(h('p', { className: 'note', role: 'status', textContent: `Tirage ${generee.graine}${generee.mode === 'nouvelle' ? ` · nouvelle forme : ${generee.forme}` : ''}${generee.resume.reduit ? ' · la salle est trop petite pour tout' : ''}${generee.refus ? ` · ${generee.refus}` : ''}` }));
       corps.push(h('div', { className: 'actions' }, relancer));
     }
 
