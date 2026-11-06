@@ -19,7 +19,7 @@ body.atelier-avec-inspecteur { --largeur-inspecteur: 330px; }
 .atelier-arbre-vue { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: var(--esp-2); display: flex; flex-direction: column; gap: var(--esp-2); }
 .atelier-arbre-filtre { width: 100%; box-sizing: border-box; }
 .atelier-arbre-liste, .atelier-arbre-liste ul { list-style: none; margin: 0; padding: 0; }
-.atelier-arbre-liste ul { margin-left: 14px; border-left: 1px solid var(--bord); }
+.atelier-arbre-liste ul { margin-left: 14px; padding-left: 6px; border-left: 1px solid var(--bord); } /* les lignes (la sélection surtout) ne collent pas au trait */
 .atelier-noeud { margin: 0; outline: none; }
 .atelier-ligne { display: flex; align-items: center; gap: 6px; min-height: var(--cible); padding: 2px 6px 2px 2px; border: 1px solid transparent; border-radius: var(--rayon); cursor: pointer; color: var(--texte); }
 .atelier-ligne:hover { background: var(--champ); }
@@ -28,7 +28,7 @@ body.atelier-avec-inspecteur { --largeur-inspecteur: 330px; }
 .atelier-noeud.type-groupe > .atelier-ligne { color: var(--texte-doux); font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; }
 .atelier-noeud.type-monde > .atelier-ligne { font-weight: 600; }
 /* « + Ajouter un lieu » : la dernière ligne de la branche d'un monde. Une action, pas un lieu : contour en pointillés et de l'air autour. */
-.atelier-noeud.type-ajout { margin: var(--esp-2) var(--esp-1) var(--esp-2) var(--esp-2); }
+.atelier-noeud.type-ajout { margin: var(--esp-2) var(--esp-1) var(--esp-2) 0; }
 .atelier-noeud.type-ajout > .atelier-ligne { color: var(--texte-doux); border: 1px dashed var(--bord); background: transparent; }
 .atelier-noeud.type-ajout > .atelier-ligne:hover, .atelier-noeud.type-ajout:focus-visible > .atelier-ligne { color: var(--texte); background: var(--champ); border-color: var(--texte-doux); }
 .atelier-bascule { flex: none; width: 16px; align-self: stretch; display: flex; align-items: center; justify-content: center; color: var(--texte-doux); }
