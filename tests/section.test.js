@@ -29,6 +29,23 @@ const tete = (s) => s.element.enfants[0];
 const bascule = (s) => tete(s).enfants[0];
 
 const TESTS = [
+  ['section : en ouvrir une referme ses voisines (accordéon), mais pas à la création', () => {
+    const parent = faux('div');
+    const [a, b, c] = ['a', 'b', 'c'].map((cle) => creerSection({ cle: `acc:${cle}`, titre: cle, repliee: cle !== 'a' }, outils()));
+    for (const s of [a, b, c]) { s.element.parentElement = parent; parent.append(s.element); }
+    parent.children = [a.element, b.element, c.element];
+    verifier(!a.element.classList.contains('repliee'), 'a ouverte d’emblée');
+    bascule(b).click();
+    verifier(!b.element.classList.contains('repliee'), 'b s’ouvre');
+    verifier(a.element.classList.contains('repliee') && a.corps.hidden, 'a se referme');
+    verifier(c.element.classList.contains('repliee'), 'c reste fermée');
+    bascule(b).click();
+    verifier(b.element.classList.contains('repliee'), 'fermer b ne rouvre rien');
+    verifier(a.element.classList.contains('repliee'), 'a reste fermée');
+    b.deplier();
+    bascule(c).click();
+    verifier(b.element.classList.contains('repliee'), 'b se referme quand c s’ouvre');
+  }],
   ['section : bandeau (titre, compteur, aide, action) puis corps ; le bandeau ouvre et ferme', () => {
     const appels = [];
     const enfant = faux('p');

@@ -8,6 +8,8 @@
  *
  * `compte` : un texte (« 2 ») ou un nœud vivant qu'un autre module met à jour (il est déplacé dans le bandeau, son id suit).
  * `apercu` : un court texte à côté du titre, montré seulement quand la section est repliée (« Taille · 12 × 12 m »).
+ * Accordéon : ouvrir une section (clic sur le bandeau ou sur son « ? ») referme ses voisines, avec un court glissement du corps.
+ * Les états de départ (plusieurs sections peuvent être ouvertes d'emblée) et `deplier()` appelé par le code ne referment rien.
  * `repliee` : l'état par défaut, quand la session n'en a pas gardé (le rare d'abord replié : JSON, exemples, réglages).
  * Le DOM est fabriqué par `fabrique` (`h` de js/dom.js par défaut) et le stockage est injectable : le module se teste sous Node.
  */
@@ -40,6 +42,11 @@ export function memoireReplis(stockage = stockageSession()) {
 
 const replisParDefaut = memoireReplis();
 
+/** Les fonctions « replier » des sections, par élément : en déplier une referme ses voisines (accordéon). */
+const repliers = new WeakMap();
+const DUREE_ANIMATION = 180;
+const sansAnimation = () => { try { return !!globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches; } catch { return false; } };
+
 export function creerSection({ cle, titre, apercu = '', compte = null, aide = null, action = null, repliee = false, enfants = [] } = {},
   { fabrique = hDom, icone = iconeDom, replis = replisParDefaut } = {}) {
   const h = fabrique;
@@ -62,7 +69,7 @@ export function creerSection({ cle, titre, apercu = '', compte = null, aide = nu
     b.addEventListener('click', () => {
       texteAide.hidden = !texteAide.hidden;
       b.setAttribute('aria-expanded', String(!texteAide.hidden));
-      if (!texteAide.hidden) appliquer(false);
+      if (!texteAide.hidden) { appliquer(false); refermerVoisines(); }
     });
     tete.append(b);
   }
@@ -74,16 +81,42 @@ export function creerSection({ cle, titre, apercu = '', compte = null, aide = nu
   const element = h('section', { className: 'p-section' }, tete, ...(texteAide ? [texteAide] : []), corps);
   element.dataset.cle = cle;
 
-  function appliquer(replie, garder = true) {
+  let animation = null;
+  /** Le corps glisse (hauteur et opacité) à l'ouverture comme à la fermeture ; sans `animate` (Node) ou en mouvement réduit, il change d'un coup. */
+  function animer(replie, anime) {
+    animation?.cancel();
+    animation = null;
+    if (!anime || typeof corps.animate !== 'function' || sansAnimation()) { corps.hidden = replie; return; }
+    corps.hidden = false;
+    const plein = `${corps.scrollHeight}px`;
+    const ferme = { height: '0px', paddingBottom: '0px', opacity: 0 };
+    const ouvert = { height: plein, paddingBottom: getComputedStyle(corps).paddingBottom, opacity: 1 };
+    const style = corps.style.overflow;
+    corps.style.overflow = 'hidden';
+    const a = animation = corps.animate(replie ? [ouvert, ferme] : [ferme, ouvert], { duration: DUREE_ANIMATION, easing: 'ease-out' });
+    a.onfinish = () => { corps.style.overflow = style; corps.hidden = replie; animation = null; };
+    a.oncancel = () => { corps.style.overflow = style; };
+  }
+
+  function appliquer(replie, garder = true, anime = false) {
     element.classList.toggle('repliee', replie);
-    corps.hidden = replie;
+    animer(replie, anime);
     bascule.setAttribute('aria-expanded', String(!replie));
     if (replie && texteAide) texteAide.hidden = true;
     if (garder) replis.garder(cle, replie);
   }
-  bascule.addEventListener('click', () => appliquer(!element.classList.contains('repliee')));
+  /** Accordéon : la section vient de s'ouvrir, ses voisines (mêmes parents) se referment. */
+  function refermerVoisines() {
+    for (const autre of [...(element.parentElement?.children ?? [])]) if (autre !== element) repliers.get(autre)?.();
+  }
+  bascule.addEventListener('click', () => {
+    const replie = !element.classList.contains('repliee');
+    appliquer(replie, true, true);
+    if (!replie) refermerVoisines();
+  });
   const garde = replis.etat(cle);
   appliquer(garde === undefined ? !!repliee : garde, false);
 
+  repliers.set(element, () => { if (!element.classList.contains('repliee')) appliquer(true, true, true); });
   return { element, corps, replier: () => appliquer(true), deplier: () => appliquer(false) };
 }

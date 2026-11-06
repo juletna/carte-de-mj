@@ -83,6 +83,7 @@ Remplace `.insp-section`, `.bloc-inspecteur`, `.retour`, `.cette-salle`, `.bloc-
 
 - Le bandeau entier ouvre et ferme (un `<details>`/`<summary>` ou un bouton `aria-expanded`). Repliée, seule la ligne reste, titre en T2.
 - L'état replié est gardé en session, par type de panneau et par section (comme les plis de l'arbre).
+- **Accordéon** : ouvrir une section (bandeau ou « ? ») referme ses voisines du même panneau, avec un glissement de 180 ms (hauteur et opacité ; instantané en mouvement réduit). Les états de départ ne referment rien : Description et Éléments peuvent être ouvertes d'emblée ensemble.
 - Compteur : pastille `--p-surface-1`, T3. Aide : bouton icône `aide` qui déplie un `.aide-texte` sous le bandeau. Action : au plus une, en bouton icône (`plus`), avec `aria-label`.
 - Une section sans titre n'existe pas : si un contenu n'a pas de nom, il va dans la section voisine.
 
