@@ -62,7 +62,7 @@ Socle commun dans `css/base.css` (documenté en tête du fichier) et `js/icones.
 - **Table** : l'écran des joueurs (`?vue=table`), qui ne montre que ce qui est révélé.
 - **Caché / Révéler** : ce que le MJ garde secret, et le geste qui le montre à la table.
 - **Sauvegarde complète** : le fichier .zip de tout ce que garde le navigateur (bouton « Sauvegarde » de la barre).
-- **Bibliothèque** : les cartes illustrées du dossier `bibliotheque/` et les images importées, page `bibliotheque.html`.
+- **Bibliothèque** : la liste de toutes les cartes image (importées ou générées), page `bibliotheque.html`.
 
 ## Sur téléphone (sous 760 px)
 
@@ -437,20 +437,20 @@ L'impression ne s'ouvre que depuis un donjon : le bouton **Imprimer ce donjon**,
 
 ## Bibliothèque de cartes
 
-Choisir une carte image (monde, région, zone, localité, bâtiment, souterrain) parmi celles du dossier local `bibliotheque/` (ignoré par git, rempli par le skill `generer-carte`) ou parmi les images importées dans le navigateur (IndexedDB, elles restent après rechargement). Fenêtre de choix : vignettes, filtre par niveau et par milieux, recherche sans accents ni casse (titre, tags, description, milieux), crédit affiché quand il existe, utilisable au clavier et sur téléphone.
+Choisir une carte image (monde, région, zone, localité, bâtiment, souterrain) dans **une seule liste** : les images gardées par le navigateur (IndexedDB, elles restent après rechargement), que la sauvegarde recopie dans le dossier de travail (`images/` + `images/index.json`). Fenêtre de choix : une grille de vignettes, recherche sans accents ni casse (titre, tags, description, milieux), filtre par niveau et par milieux, « Importer une image… », crédit affiché quand il existe, utilisable au clavier et sur téléphone.
 
-- Essai : `node outils/demo-bibliotheque.mjs` (7 cartes SVG de démonstration, sans rien écraser), puis `python3 outils/serveur.py` et `bibliotheque.html`. La page affiche le catalogue et « Mes images » (`js/page-bibliotheque.js`).
-- Sans `bibliotheque/catalogue.json` (ou sur le site publié), la bibliothèque est vide avec un message ; l'import reste possible.
-- **Générer une carte** (onglet de `bibliotheque.html`, sans clé ni serveur) : le MJ choisit le niveau, le style (dessin animé coloré par défaut, vieille carte sur parchemin, aquarelle : `assets/styles-cartes/`) et le format (paysage 16:9 par défaut, pour l'écran et la table ; portrait 2:3 ; carré), puis décrit la scène ; la page compose le prompt avec le même code que le skill (`js/bibliotheque/prompt.js`), format et nombre de cases en clair, rappel « pas de texte, vue de dessus » en dernier. « Copier le prompt », coller dans ChatGPT ou un autre générateur d'images, puis « Importer l'image obtenue… » : l'image est recadrée au centre au format choisi (le 16:9 est demandé en 3:2), rejoint « Mes images » avec niveau, description, origine (`generee`, style) et grille déjà remplis (case = largeur réelle ÷ cases demandées, à caler ensuite dans l'atelier).
-- Interface pour les autres modules : `js/bibliotheque/index.js` (`choisirCarte`, `urlImage`, `infosImage`). Une carte se désigne par `{ source: 'bibliotheque' | 'navigateur', id }`, jamais par une URL. Format du catalogue : `docs/conception-univers.md`.
+- Essai : `CARTE_DE_MJ_DOSSIER=/chemin/du/dossier node outils/demo-bibliotheque.mjs` (7 cartes SVG de démonstration ajoutées à la liste du dossier de travail, sans rien écraser), puis ouvrir `bibliotheque.html`.
+- **Importer une image…** : le formulaire demande titre, niveau, milieux, tags, description, crédit et licence ; la description et le crédit sont affichés dans le détail de la carte.
+- **Générer une carte** (panneau de `bibliotheque.html`, ouvert par un bouton à côté de « Importer une image… », sans clé ni serveur) : le MJ choisit le niveau, le style (dessin animé coloré par défaut, vieille carte sur parchemin, aquarelle : `assets/styles-cartes/`) et le format (paysage 16:9 par défaut, pour l'écran et la table ; portrait 2:3 ; carré), puis décrit la scène ; la page compose le prompt avec le même code que le skill (`js/bibliotheque/prompt.js`), format et nombre de cases en clair, rappel « pas de texte, vue de dessus » en dernier. « Copier le prompt », coller dans ChatGPT ou un autre générateur d'images, puis « Importer l'image obtenue… » : l'image est recadrée au centre au format choisi (le 16:9 est demandé en 3:2), rejoint la liste avec niveau, description, origine (`generee`, style) et grille déjà remplis (case = largeur réelle ÷ cases demandées, à caler ensuite dans l'atelier).
+- Interface pour les autres modules : `js/bibliotheque/index.js` (`choisirCarte`, `urlImage`, `infosImage`). Une carte se désigne par `{ source: 'navigateur', id }`, jamais par une URL. `{ source: 'bibliotheque', id }` est l'ancien format : il reste valable dans les mondes existants. Format de la liste : `docs/conception-univers.md`.
 
 ## Sauvegarder et restaurer tout
 
-Bouton « Sauvegarde » de la barre (toutes les pages) : **Tout sauvegarder** télécharge un seul `sauvegarde-carte-de-mj-AAAA-MM-JJ.zip` (toutes les clés `carte-de-mj:*`, `dd-fiche-*` et `jdr-carte:*` du navigateur, telles quelles, plus les images importées) ; **Tout restaurer…** relit un tel zip, en montre le contenu, puis « Tout remplacer » → « Confirmer » remplace tout (une sauvegarde `avant-restauration-…zip` de l'état actuel est téléchargée d'abord ; si l'espace manque, rien n'est modifié). Les images de la bibliothèque (dossier `bibliotheque/`) ne sont pas dans le zip : leurs identifiants sont cités et la restauration signale celles qui manquent. Code : `js/zip.js`, `js/sauvegarde.js` (purs, testés), `js/mj/sauvegarde-ui.js` (`ouvrirSauvegarde`, chargé à la demande par `js/navigation.js`).
+Bouton « Sauvegarde » de la barre (toutes les pages) : **Tout sauvegarder** télécharge un seul `sauvegarde-carte-de-mj-AAAA-MM-JJ.zip` (toutes les clés `carte-de-mj:*`, `dd-fiche-*` et `jdr-carte:*` du navigateur, telles quelles, plus les images importées) ; **Tout restaurer…** relit un tel zip, en montre le contenu, puis « Tout remplacer » → « Confirmer » remplace tout (une sauvegarde `avant-restauration-…zip` de l'état actuel est téléchargée d'abord ; si l'espace manque, rien n'est modifié). Les cartes de la liste sont des images du navigateur : elles sont dans le zip. Code : `js/zip.js`, `js/sauvegarde.js` (purs, testés), `js/mj/sauvegarde-ui.js` (`ouvrirSauvegarde`, chargé à la demande par `js/navigation.js`).
 
 ## Dossier de travail
 
-Au lieu d'exporter un zip pour être tranquille, le MJ choisit **une fois** un dossier de son ordinateur (bouton « Sauvegarde » → « Dossier de travail » → « Choisir un dossier… »). L'appli y recopie alors **en direct** tout ce qu'elle garde dans le navigateur (donjons, personnages, mondes, parties, réglages, images importées) et y lit la bibliothèque de cartes. Si ce dossier est dans Google Drive ou iCloud Drive, deux ordinateurs se synchronisent sans rien faire de plus.
+Au lieu d'exporter un zip pour être tranquille, le MJ choisit **une fois** un dossier de son ordinateur (bouton « Sauvegarde » → « Dossier de travail » → « Choisir un dossier… »). L'appli y recopie alors **en direct** tout ce qu'elle garde dans le navigateur (donjons, personnages, mondes, parties, réglages, images importées) et y relit la liste de cartes (les cartes ajoutées par le skill y sont importées). Si ce dossier est dans Google Drive ou iCloud Drive, deux ordinateurs se synchronisent sans rien faire de plus.
 
 - **Navigateurs** : Chrome et Edge sur ordinateur (File System Access API, `showDirectoryPicker`). Ailleurs, la section l'indique (« Non disponible dans ce navigateur ») et tout marche comme avant : localStorage, IndexedDB, export et import du zip (qui reste utile pour changer de navigateur).
 - **Reconnexion** : le navigateur oublie parfois l'autorisation d'écrire. Le bouton « Sauvegarde » porte alors une pastille ; « Reconnecter » la redonne en un clic.
@@ -463,16 +463,20 @@ Disposition du dossier :
 <dossier>/
   dossier-carte-de-mj.json   { format: "carte-de-mj-dossier", version: 1, modifie: <date ISO>, appareil: <id> }
   donnees/<clé>.json         texte brut de chaque clé retenue ; « : » devient « __ » (carte-de-mj__donjons-v1.json)
-  images/index.json          les images importées (mêmes entrées que le manifeste du zip) …
+  images/index.json          la liste de cartes (mêmes entrées que le manifeste du zip) …
   images/<id>.<ext>          … et leur contenu
-  bibliotheque/              catalogue.json, cartes/, references/ : lue par l'appli, écrite par le skill generer-carte
+  generees/                  brouillons du skill generer-carte (hors de la liste)
+  references/<style>/        images de référence de style du skill (hors de la liste)
+  bibliotheque/              ancien emplacement : catalogue.json, cartes/ (lu une fois pour la migration)
 ```
 
 **Au démarrage (et au choix d'un dossier)**, l'appli compare le navigateur et le dossier : dossier vide → le navigateur y est recopié ; navigateur sans donnée → il est rempli depuis le dossier (puis la page se recharge) ; contenus identiques → rien. Sinon, un marqueur local (`cdm-dossier-local-v1`, hors sauvegarde) dit si le dossier a bougé depuis la dernière synchronisation et si le navigateur a changé sans être recopié : le plus récent l'emporte ; si **les deux** ont changé (ou si ce navigateur n'a jamais été synchronisé avec ce dossier), l'appli demande : « Prendre le dossier » ou « Garder ce navigateur ». Avant de remplacer des données du navigateur, son état est téléchargé en zip (`avant-restauration-…zip`) ; avant « Garder ce navigateur », le contenu de l'appli dans le dossier (marqueur, `donnees/`, `images/`) est copié dans `copies/AAAA-MM-JJ-HHhMM/`, que l'appli ne relit jamais et ne supprime pas.
 
-**Bibliothèque** : si le dossier contient `bibliotheque/catalogue.json`, l'appli lit les cartes là (sinon, elle lit `bibliotheque/` du site comme avant). Pour que le skill `generer-carte` y écrive : `export CARTE_DE_MJ_BIBLIOTHEQUE=/chemin/du/dossier/bibliotheque` avant de lancer Claude Code. Après un changement de source, la page se recharge.
+**Liste de cartes** : l'appli relit `images/index.json` au démarrage, au retour sur l'onglet et avant chaque réécriture de l'index. Toute entrée absente du navigateur (et que le MJ n'a pas supprimée dans l'appli) est importée dans IndexedDB. Une entrée ajoutée hors de l'appli n'est jamais retirée de l'index ; seule une suppression faite par le MJ dans l'appli en retire une. Pour que le skill `generer-carte` y écrive : `export CARTE_DE_MJ_DOSSIER=/chemin/du/dossier` (la racine du dossier de travail) avant de lancer Claude Code. Le skill ne touche jamais à `dossier-carte-de-mj.json` ni à `donnees/`.
 
-Code : `js/dossier-travail-logique.js` (pur, testé : noms de fichiers, comparaison, décision), `js/dossier-travail.js` (poignée du dossier dans sa propre base IndexedDB « carte-de-mj-dossier », miroir des écritures installé tôt par `js/navigation.js`, états), `js/bibliotheque/source.js` (d'où lire la bibliothèque), section du dialogue dans `js/mj/sauvegarde-ui.js`, pastille dans `css/dossier.css`. Les accès au dossier ne se testent pas sous Node : à essayer à la main (choisir un dossier vide, modifier un donjon, importer une image, regarder `donnees/` et `images/`, vider le navigateur puis reconnecter).
+**Migration** : si le dossier contient encore un ancien `bibliotheque/catalogue.json`, l'appli importe ses cartes (même id) dans la liste au démarrage et note les ids migrés dans `bibliotheque/catalogue-migre.json`. Les références `{ source: 'bibliotheque', id }` des mondes existants restent valables (lues d'abord dans les images avec le même id, puis dans l'ancien catalogue en secours).
+
+Code : `js/dossier-travail-logique.js` (pur, testé : noms de fichiers, comparaison, décision), `js/dossier-travail.js` (poignée du dossier dans sa propre base IndexedDB « carte-de-mj-dossier », miroir des écritures installé tôt par `js/navigation.js`, états), `js/bibliotheque/source.js`, section du dialogue dans `js/mj/sauvegarde-ui.js`, pastille dans `css/dossier.css`. Les accès au dossier ne se testent pas sous Node : à essayer à la main (choisir un dossier vide, modifier un donjon, importer une image, regarder `donnees/` et `images/`, vider le navigateur puis reconnecter).
 
 ## Univers : des cartes qui s'emboîtent
 
@@ -601,14 +605,15 @@ outils/serveur.py   serveur local sans cache
 
 ## Générer des cartes
 
-Pour remplir la bibliothèque de cartes (monde, région, village, souterrain…) avec des images peintes, demandez à Claude Code
+Pour remplir la liste de cartes (monde, région, village, souterrain…) avec des images peintes, demandez à Claude Code
 dans ce dépôt : « génère une carte de forêt avec des ruines » (skill `.claude/skills/generer-carte/`). Il compose le prompt, appelle `gpt-image-1`
-d'OpenAI, vous montre l'image, puis l'ajoute à `bibliotheque/catalogue.json` si vous la validez.
+d'OpenAI, écrit un brouillon dans `generees/` de votre dossier de travail, vous montre l'image, puis, si vous la validez, la copie dans `images/` et l'ajoute à `images/index.json`.
+L'appli la voit au retour sur son onglet ou au rechargement.
 
 - Il faut votre propre clé : `export OPENAI_API_KEY=…` avant de lancer Claude Code. Elle n'est jamais écrite ni affichée.
-- `bibliotheque/` est ignoré par git : les images et vos références de style restent sur votre disque. Pour écrire dans le sous-dossier `bibliotheque/` de votre dossier de travail, définissez `CARTE_DE_MJ_BIBLIOTHEQUE` (chemin absolu) : voir « Dossier de travail ».
+- Il faut aussi le dossier de travail de l'appli : `export CARTE_DE_MJ_DOSSIER=/chemin/du/dossier` (voir « Dossier de travail »). Les images et vos références de style (`references/<style>/`) restent sur votre disque, hors de git. `CARTE_DE_MJ_BIBLIOTHEQUE` (ancienne variable, chemin du sous-dossier `bibliotheque/`) est encore comprise, avec un avertissement.
 - À la main : `node outils/cartes/generer.mjs --niveau zone --id foret-01 --scene "…" [--essai]` puis `node outils/cartes/ajouter.mjs entree.json`.
-  `--essai` montre la requête sans rien envoyer.
+  `--essai` montre la requête sans rien envoyer (et marche sans dossier de travail).
 
 ## Bon à savoir
 

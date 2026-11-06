@@ -1,6 +1,6 @@
 // Génère une image de carte : node outils/cartes/generer.mjs --niveau zone --id foret-ruines-01 --scene "…" [--style …] [--format paysage|portrait|carre] [--ref image]… [--essai]
-// Même prompt que l'onglet « Générer une carte » de la Bibliothèque (js/bibliotheque/prompt.js : STYLES, FORMATS).
-// Écrit bibliotheque/cartes/<id>.<type> (+ <id>.prompt.txt) sans jamais écraser. La clé OPENAI_API_KEY n'est jamais affichée.
+// Même prompt que le panneau « Générer une carte » de la Bibliothèque (js/bibliotheque/prompt.js : STYLES, FORMATS).
+// Écrit le brouillon <dossier de travail>/generees/<id>.<type> (+ <id>.prompt.txt) sans jamais écraser : il n'entre dans la liste de l'appli qu'avec ajouter.mjs. La clé OPENAI_API_KEY n'est jamais affichée.
 // Quand le format recadre (paysage : 3:2 demandé, 16:9 gardé), l'image est demandée en PNG, recadrée au centre et écrite en PNG.
 import { readFile, writeFile, mkdir, readdir, access } from 'node:fs/promises';
 import { parseArgs } from 'node:util';
@@ -10,16 +10,21 @@ import { composerPrompt, formatCarte, cadrageCentre, STYLES, FORMATS, STYLE_PAR_
 import { recadrerPng, taillePng } from './png.js';
 import { construireRequete, appeler } from './fournisseur-openai.js';
 import { NIVEAUX } from './vocabulaire.js';
-import { dossierBibliotheque } from './dossier.js';
+import { dossierTravail } from './dossier.js';
 
 const racine = fileURLToPath(new URL('../../', import.meta.url));
-let bibliotheque; // <dépôt>/bibliotheque, ou CARTE_DE_MJ_BIBLIOTHEQUE (dossier de travail de l'appli)
-try { bibliotheque = dossierBibliotheque(racine, process.env); } catch (e) { console.error(e.message); process.exit(1); }
+let dossier; // dossier de travail de l'appli (CARTE_DE_MJ_DOSSIER) ; null sans variable, ce qui n'est admis qu'avec --essai
+let erreurDossier;
+try {
+  const r = dossierTravail(process.env);
+  if (r.avertissement) console.error(`Attention : ${r.avertissement}`);
+  dossier = r.dossier;
+} catch (e) { erreurDossier = e.message; dossier = null; }
 const FICHIER_STYLE = (style) => path.join(racine, 'assets/styles-cartes', `${style}.md`);
 const TYPES = { '.png': 'image/png', '.webp': 'image/webp', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg' };
 const MAX_REFERENCES = 3;
 
-const AIDE = `Génère une image de carte dans bibliotheque/cartes/ (gpt-image-1, clé dans OPENAI_API_KEY).
+const AIDE = `Génère le brouillon d'une carte dans <dossier de travail>/generees/ (gpt-image-1, clé dans OPENAI_API_KEY, dossier dans CARTE_DE_MJ_DOSSIER).
 
 Usage : node outils/cartes/generer.mjs --niveau <${NIVEAUX.join('|')}> --id <id> --scene "<description>" [options]
 
@@ -30,7 +35,7 @@ Options :
   --style <id>          ${STYLES.map((s) => `${s.id} (${s.libelle})`).join(', ')} ; défaut : ${STYLE_PAR_DEFAUT}
   --format <id>         ${FORMATS.map((f) => `${f.id} (${f.libelle})`).join(', ')} ; défaut : ${FORMAT_PAR_DEFAUT}
   --ref <image>         image de référence de style, répétable (png, webp, jpg)
-  --sans-reference      ne pas utiliser bibliotheque/references/<style>/
+  --sans-reference      ne pas utiliser references/<style>/ du dossier de travail
   --type webp|png       type de fichier (défaut : png si le format recadre, sinon webp)
   --qualite <q>         qualité demandée à l'API (défaut : high)
   --essai               montre la requête et le prompt sans appeler l'API
@@ -57,12 +62,13 @@ if (!STYLES.some((s) => s.id === o.style)) sortir(`style : ${STYLES.map((s) => s
 if (!FORMATS.some((f) => f.id === o.format)) sortir(`format : ${FORMATS.map((f) => f.id).join(', ')} (le type de fichier se choisit avec --type).`);
 if (o.type && !['webp', 'png'].includes(o.type)) sortir('type : webp ou png.');
 
-/** Références explicites, sinon les premières images de bibliotheque/references/<style>/ (point de départ du style). */
+/** Références explicites, sinon les premières images de <dossier>/references/<style>/ (point de départ du style). */
 async function lireReferences() {
   let chemins = (o.ref ?? []).map((r) => path.resolve(r));
   if (!chemins.length && !o['sans-reference']) {
-    const dossier = path.join(bibliotheque, 'references', o.style);
-    chemins = (await readdir(dossier).catch(() => [])).filter((f) => TYPES[path.extname(f).toLowerCase()]).sort().slice(0, MAX_REFERENCES).map((f) => path.join(dossier, f));
+    if (!dossier) return [];
+    const dossierRef = path.join(dossier, 'references', o.style);
+    chemins = (await readdir(dossierRef).catch(() => [])).filter((f) => TYPES[path.extname(f).toLowerCase()]).sort().slice(0, MAX_REFERENCES).map((f) => path.join(dossierRef, f));
   }
   return Promise.all(chemins.map(async (c) => {
     const type = TYPES[path.extname(c).toLowerCase()];
@@ -80,16 +86,17 @@ if (format.recadre && o.type === 'webp') sortir(`Le format ${o.format} recadre l
 o.type ??= format.recadre ? 'png' : 'webp';
 const references = await lireReferences();
 const requete = construireRequete({ prompt, taille: format.taille, format: o.type, qualite: o.qualite, references });
-const dossierSortie = path.join(bibliotheque, 'cartes');
+const dossierSortie = dossier ? path.join(dossier, 'generees') : path.join('<CARTE_DE_MJ_DOSSIER>', 'generees');
 const sortie = path.join(dossierSortie, `${o.id}.${o.type}`);
 
 if (o.essai) {
-  console.log(JSON.stringify({ essai: true, requete: { ...requete, champs: { ...requete.champs, prompt: undefined } }, prompt, references: references.map((r) => r.nom), sortie: path.relative(racine, sortie), cle: process.env.OPENAI_API_KEY ? 'présente' : 'absente' }, null, 2));
+  console.log(JSON.stringify({ essai: true, requete: { ...requete, champs: { ...requete.champs, prompt: undefined } }, prompt, references: references.map((r) => r.nom), sortie: sortie, dossier: dossier ?? 'non défini (export CARTE_DE_MJ_DOSSIER)', cle: process.env.OPENAI_API_KEY ? 'présente' : 'absente' }, null, 2));
   process.exit(0);
 }
 
+if (!dossier) sortir(erreurDossier);
 if (!process.env.OPENAI_API_KEY) sortir('OPENAI_API_KEY absente de l\'environnement : exportez-la (export OPENAI_API_KEY=…) puis relancez. Rien n\'a été envoyé.');
-if (await access(sortie).then(() => true, () => false)) sortir(`${path.relative(racine, sortie)} existe déjà : choisissez un autre id (par exemple ${o.id}-b).`);
+if (await access(sortie).then(() => true, () => false)) sortir(`${sortie} existe déjà : choisissez un autre id (par exemple ${o.id}-b).`);
 
 let octets;
 try { octets = await appeler(requete, { cle: process.env.OPENAI_API_KEY, references }); } catch (e) { sortir(`Échec de la génération : ${e.message}`); }
@@ -103,4 +110,4 @@ if (format.recadre) {
 await mkdir(dossierSortie, { recursive: true });
 await writeFile(sortie, octets, { flag: 'wx' });
 await writeFile(path.join(dossierSortie, `${o.id}.prompt.txt`), prompt + '\n', { flag: 'wx' });
-console.log(JSON.stringify({ fichier: `cartes/${o.id}.${o.type}`, style: o.style, format: o.format, largeur: format.largeur, hauteur: format.hauteur, grille: format.grille ? { case: format.grille.case, dx: 0, dy: 0 } : null, references: references.map((r) => r.nom), octets: octets.length }, null, 2));
+console.log(JSON.stringify({ brouillon: sortie, fichier: path.relative(dossier, sortie), style: o.style, format: o.format, largeur: format.largeur, hauteur: format.hauteur, grille: format.grille ? { case: format.grille.case, dx: 0, dy: 0 } : null, references: references.map((r) => r.nom), octets: octets.length }, null, 2));

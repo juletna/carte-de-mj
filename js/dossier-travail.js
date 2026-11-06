@@ -12,17 +12,22 @@
  * clear pour le seul localStorage et les seules clés retenues. Une écriture déjà identique est ignorée. Sans dossier actif, la clé est
  * marquée « sale » (marqueur local) ; avec un dossier, l'écriture est groupée (~600 ms) puis faite par createWritable().
  * Un échec est affiché (état, console.warn), réessayé, puis laissé « sale » : jamais avalé.
- * Les images : images.js prévient (apresEcritureImages) ; on réécrit images/ et son index.
+ * Les images : images.js prévient (apresEcritureImages) ; on relit images/index.json (le skill generer-carte y ajoute des cartes),
+ * on importe ce qui manque au navigateur, puis on réécrit images/ et son index sans jamais en retirer une entrée ajoutée hors de
+ * l'appli : seules les images supprimées ici (marqueur local, `supprimees`) en sortent. Même relecture au démarrage et au retour
+ * sur l'onglet. Un ancien bibliotheque/catalogue.json du dossier est importé une fois dans la liste (migrerBibliotheque).
  *
  * États : indisponible | aucun | synchronisation | connecte | a-reconnecter | conflit | erreur.
  * Non testé sous Node (showDirectoryPicker, IndexedDB, FileSystemHandle) : voir le plan de vérification dans le README.
  */
 import { cleRetenue, restaurer, nomsImages, contenuSauvegarde, nomAvantRestauration, resumeSauvegarde, TYPES_IMAGES } from './sauvegarde.js';
 import { creerZip } from './zip.js';
-import { listerImages, remplacerToutesImages, apresEcritureImages } from './bibliotheque/images.js';
+import { listerImages, remplacerToutesImages, ajouterImages, apresEcritureImages, dimensions } from './bibliotheque/images.js';
+import { validerCatalogue } from './bibliotheque/catalogue.js';
 import {
-  CLE_LOCALE, NOM_MARQUEUR, nomFichierCle, cleDuFichier, donneesDuStock, comparer, signatureImage, planImages,
-  lireMarqueur, texteMarqueur, lireLocal, decider, texteEtat, nomCopie,
+  CLE_LOCALE, NOM_MARQUEUR, nomFichierCle, cleDuFichier, donneesDuStock, comparer, signatureImage, planDossierImages,
+  lireMarqueur, texteMarqueur, lireLocal, decider, texteEtat, nomCopie, noterSuppressions, ajoutsDuDossier, cartesAMigrer,
+  entreeDeCarte, lireMigrees,
 } from './dossier-travail-logique.js';
 
 const DELAI = 600;
@@ -34,9 +39,8 @@ const ETATS_A_SIGNALER = ['a-reconnecter', 'conflit', 'erreur'];
 /* ------------------------------------------------------------------ état partagé */
 
 let etat = 'aucun', poignee = null, racine = null, nom = '', quand = null, derniere = '', conflit = null, erreurEtat = '';
-let local = { appareil: '', dernierSync: null, sale: false };
+let local = { appareil: '', dernierSync: null, sale: false, supprimees: [] };
 let ecrits = new Map();           // clé → texte tel qu'il est dans le dossier
-let imagesEcrites = new Map();    // id → { sig, fichier } tel qu'il est dans le dossier
 const enAttente = new Set();      // clés à recopier
 let minuteur = null, minuteurImages = null, imagesEnAttente = false;
 let echecs = 0, saleHors = false, saleParErreur = false, muet = 0, file = Promise.resolve(), installe = false;
@@ -123,7 +127,29 @@ async function lireTexte(dossier, fichier) {
   try { return await (await (await dossier.getFileHandle(fichier)).getFile()).text(); } catch (e) { ignorerAbsent(e); return null; }
 }
 
-/** Ce que contient le dossier : { marqueur, modifie, donnees: Map, images: [{ meta, fichier, file }], sigImages: Map, vide, ignores }. */
+/**
+ * Ce que contient images/ : { index: entrées brutes de index.json, present (index.json existe), images: [{ meta, fichier, file }]
+ * (entrées lisibles), sigImages: Map, ignores }.
+ */
+async function lireImagesDossier(p) {
+  const res = { index: [], present: false, images: [], sigImages: new Map(), ignores: [] };
+  const di = await sousDossier(p, 'images');
+  const texte = di ? await lireTexte(di, 'index.json') : null;
+  if (texte === null) return res;
+  res.present = true;
+  try { res.index = JSON.parse(texte); } catch { res.ignores.push('images/index.json'); }
+  if (!Array.isArray(res.index)) res.index = [];
+  for (const meta of res.index) {
+    if (!meta || typeof meta.id !== 'string' || !meta.id || typeof meta.fichier !== 'string' || !/^images\/[A-Za-z0-9_.-]+$/.test(meta.fichier) || !Object.hasOwn(TYPES_IMAGES, meta.type)) continue;
+    let f;
+    try { f = await (await di.getFileHandle(base(meta.fichier))).getFile(); } catch (e) { ignorerAbsent(e); continue; }
+    res.images.push({ meta, fichier: meta.fichier, file: f });
+    res.sigImages.set(meta.id, signatureImage(meta, f.size));
+  }
+  return res;
+}
+
+/** Ce que contient le dossier : { marqueur, modifie, donnees: Map, imagesDossier, images, sigImages, vide, ignores }. */
 async function lireDossier(p) {
   const res = { marqueur: null, modifie: '', donnees: new Map(), images: [], sigImages: new Map(), ignores: [], vide: true };
   const texteMarq = await lireTexte(p, NOM_MARQUEUR);
@@ -137,21 +163,76 @@ async function lireDossier(p) {
       res.donnees.set(cle, await (await h.getFile()).text());
     }
   }
-  const di = await sousDossier(p, 'images');
-  const index = di ? await lireTexte(di, 'index.json') : null;
-  if (index !== null) {
-    let liste = [];
-    try { liste = JSON.parse(index); } catch { res.ignores.push('images/index.json'); }
-    for (const meta of Array.isArray(liste) ? liste : []) {
-      if (!meta || typeof meta.id !== 'string' || !meta.id || typeof meta.fichier !== 'string' || !/^images\/[A-Za-z0-9_.-]+$/.test(meta.fichier) || !Object.hasOwn(TYPES_IMAGES, meta.type)) continue;
-      let f;
-      try { f = await (await di.getFileHandle(base(meta.fichier))).getFile(); } catch (e) { ignorerAbsent(e); continue; }
-      res.images.push({ meta, fichier: meta.fichier, file: f });
-      res.sigImages.set(meta.id, signatureImage(meta, f.size));
-    }
-  }
-  res.vide = !res.marqueur && texteMarq === null && !res.donnees.size && index === null;
+  res.imagesDossier = await lireImagesDossier(p);
+  res.images = res.imagesDossier.images; res.sigImages = res.imagesDossier.sigImages;
+  res.ignores.push(...res.imagesDossier.ignores);
+  res.vide = !res.marqueur && texteMarq === null && !res.donnees.size && !res.imagesDossier.present;
   return res;
+}
+
+/**
+ * Importe dans le navigateur, sans rien recopier, les images que le dossier a et que le navigateur n'a pas (skill generer-carte,
+ * autre ordinateur…), sauf celles que le MJ a supprimées ici. Rend le nombre d'images importées. Sans IndexedDB : rien (et
+ * planDossierImages garde alors ces entrées telles quelles).
+ */
+async function importerAjouts(imagesDossier) {
+  let navigateur;
+  try { navigateur = new Set((await listerImages()).map((e) => e.id)); } catch (e) { console.warn('dossier de travail : images illisibles', e); return 0; }
+  const fichiers = new Map(imagesDossier.images.map((i) => [i.meta.id, i.file]));
+  const entrees = [];
+  for (const { entree, fichier } of ajoutsDuDossier({ index: imagesDossier.index, navigateur, supprimees: new Set(local.supprimees) })) {
+    const f = fichiers.get(entree.id);
+    if (!f) continue; // fichier pas encore là (synchronisation Drive en cours ?) : l'entrée reste dans l'index, on réessaiera
+    try {
+      const blob = new Blob([await f.arrayBuffer()], { type: entree.type });
+      if (!entree.largeur || !entree.hauteur) Object.assign(entree, await dimensions(blob));
+      entrees.push({ ...entree, blob });
+    } catch (e) { console.warn(`dossier de travail : ${fichier} non importée`, e); }
+  }
+  if (entrees.length) await ajouterImages(entrees);
+  return entrees.length;
+}
+
+/** Prévient les pages ouvertes (fenêtre de choix, page Bibliothèque) que des cartes sont arrivées du dossier. */
+function annoncerAjouts(n) { if (n && typeof dispatchEvent === 'function') dispatchEvent(new CustomEvent('cdm-images-ajoutees', { detail: { nombre: n } })); }
+
+async function sousChemin(dossier, chemin) {
+  const segments = String(chemin).split('/');
+  if (!segments.every((x) => /^[A-Za-z0-9._ -]+$/.test(x) && x !== '.' && x !== '..')) throw new Error(`chemin refusé : ${chemin}`);
+  let d = dossier;
+  for (const x of segments.slice(0, -1)) d = await d.getDirectoryHandle(x);
+  return (await d.getFileHandle(segments.at(-1))).getFile();
+}
+
+/**
+ * Ancien format : les cartes de bibliotheque/catalogue.json du dossier rejoignent la liste (même id, pour que les références
+ * { source: 'bibliotheque', id } des mondes la retrouvent), une seule fois : les ids sont notés dans bibliotheque/catalogue-migre.json.
+ * Le dossier bibliotheque/ n'est pas modifié autrement.
+ */
+async function migrerBibliotheque(p) {
+  const bib = await sousDossier(p, 'bibliotheque');
+  const texte = bib ? await lireTexte(bib, 'catalogue.json') : null;
+  if (texte === null) return;
+  let brut;
+  try { brut = JSON.parse(texte); } catch { return; }
+  const { cartes } = validerCatalogue(brut);
+  const dejaMigrees = new Set(lireMigrees(await lireTexte(bib, 'catalogue-migre.json')));
+  if (cartes.every((c) => dejaMigrees.has(c.id))) return;
+  const navigateur = new Set((await listerImages()).map((e) => e.id));
+  const ajoute = new Date().toISOString();
+  const entrees = [];
+  for (const c of cartesAMigrer(cartes, { dejaMigrees, navigateur })) {
+    try {
+      const e = entreeDeCarte(c, ajoute);
+      const blob = new Blob([await (await sousChemin(bib, c.fichier)).arrayBuffer()], { type: e.type });
+      if (!e.largeur || !e.hauteur) Object.assign(e, await dimensions(blob));
+      entrees.push({ ...e, blob });
+    } catch (err) { console.warn(`dossier de travail : carte « ${c.id} » de l’ancien catalogue non importée`, err); }
+  }
+  if (entrees.length) await ajouterImages(entrees, { prevenir: true }); // recopiées ensuite dans images/
+  const migrees = [...new Set([...dejaMigrees, ...cartes.map((c) => c.id)])];
+  await ecrireFichier(bib, 'catalogue-migre.json', JSON.stringify({ ids: migrees, note: 'cartes importées dans images/ par Carte de MJ' }, null, 1));
+  annoncerAjouts(entrees.length);
 }
 
 /** Ce que contient le navigateur : { donnees: Map, images (avec blob), sigImages: Map }. */
@@ -169,23 +250,26 @@ async function ecrireMarqueur() {
   ecrireLocal();
 }
 
-/** Recopie les images dans images/ : écrit les nouvelles ou changées, supprime les disparues, réécrit l'index. `images` : triées par id. */
-async function appliquerImages(p, images) {
+/**
+ * Recopie les images dans images/ d'après ce que le dossier contient vraiment (`imagesDossier`, relu juste avant, ajouts importés) :
+ * écrit les nouvelles ou changées, retire celles que le MJ a supprimées ici, garde les entrées venues d'ailleurs, réécrit l'index.
+ * `images` : celles du navigateur, triées par id.
+ */
+async function appliquerImages(p, images, imagesDossier) {
   const noms = nomsImages(images);
-  const apres = new Map(images.map((e, i) => [e.id, { sig: signatureImage(e, e.blob?.size ?? 0), fichier: noms[i] }]));
-  const plan = planImages(imagesEcrites, apres);
-  if (!plan.ecrire.length && !plan.supprimer.length) return;
-  const dir = await sousDossier(p, 'images', true);
-  for (const f of plan.supprimer) await dir.removeEntry(base(f)).catch(ignorerAbsent);
-  const parId = new Map(images.map((e) => [e.id, e]));
-  for (const id of plan.ecrire) await ecrireFichier(dir, base(apres.get(id).fichier), parId.get(id).blob);
-  const index = images.map((e, i) => { const { blob, ...meta } = e; return { ...meta, fichier: noms[i] }; });
-  await ecrireFichier(dir, 'index.json', JSON.stringify(index, null, 1));
-  imagesEcrites = apres;
-}
-
-function etatImagesDuDossier(dossier) {
-  return new Map(dossier.images.map((i) => [i.meta.id, { sig: dossier.sigImages.get(i.meta.id), fichier: i.fichier }]));
+  const plan = planDossierImages({
+    dossier: { index: imagesDossier.index, etat: new Map(imagesDossier.images.map((i) => [i.meta.id, { sig: imagesDossier.sigImages.get(i.meta.id), fichier: i.fichier }])) },
+    images: images.map((e, i) => { const { blob, ...meta } = e; return { meta, sig: signatureImage(e, blob?.size ?? 0), fichier: noms[i] }; }),
+    supprimees: new Set(local.supprimees),
+  });
+  if (plan.aEcrire) {
+    const dir = await sousDossier(p, 'images', true);
+    for (const f of plan.supprimer) await dir.removeEntry(base(f)).catch(ignorerAbsent);
+    const parId = new Map(images.map((e, i) => [e.id, { e, fichier: noms[i] }]));
+    for (const id of plan.ecrire) await ecrireFichier(dir, base(parId.get(id).fichier), parId.get(id).e.blob);
+    await ecrireFichier(dir, 'index.json', JSON.stringify(plan.index, null, 1));
+  }
+  if (local.supprimees.length) { local.supprimees = []; ecrireLocal(); }
 }
 
 /** Écrit tout le navigateur dans le dossier (ce qui y est déjà à l'identique n'est pas réécrit). */
@@ -194,8 +278,7 @@ async function pousserTout(p, nav, dossier) {
   for (const [cle, texte] of nav.donnees) if (dossier.donnees.get(cle) !== texte) await ecrireFichier(dd, nomFichierCle(cle), texte);
   for (const cle of dossier.donnees.keys()) if (!nav.donnees.has(cle)) await dd.removeEntry(nomFichierCle(cle)).catch(ignorerAbsent);
   ecrits = new Map(nav.donnees);
-  imagesEcrites = etatImagesDuDossier(dossier);
-  await appliquerImages(p, nav.images);
+  await appliquerImages(p, nav.images, dossier.imagesDossier);
   racine = p;
   await ecrireMarqueur();
   local.sale = false; saleHors = false; ecrireLocal();
@@ -250,8 +333,7 @@ async function tirerTout(p, dossier, sauvegarderAvant) {
     }
   } catch (e) { muet--; throw e; }
   ecrits = new Map(dossier.donnees);
-  imagesEcrites = etatImagesDuDossier(dossier);
-  local.dernierSync = dossier.modifie || null; local.sale = false; saleHors = false; ecrireLocal();
+  local.dernierSync = dossier.modifie || null; local.sale = false; local.supprimees = []; saleHors = false; ecrireLocal();
   definir('synchronisation');
   setTimeout(() => location.reload(), 300);
 }
@@ -267,9 +349,12 @@ async function connecter(p) {
   definir('synchronisation');
   try {
     const dossier = await lireDossier(p);
-    const nav = await lireNavigateur();
+    let nav = await lireNavigateur();
+    const navigateurVide = !nav.donnees.size && !nav.images.length;
+    // Les cartes ajoutées au dossier hors de l'appli rejoignent d'abord le navigateur : elles ne comptent ni comme un écart ni comme une perte.
+    if (await importerAjouts(dossier.imagesDossier)) nav = await lireNavigateur();
     const identique = comparer(nav.donnees, dossier.donnees).identique && comparer(nav.sigImages, dossier.sigImages).identique;
-    const d = decider({ dossier: { vide: dossier.vide, modifie: dossier.modifie }, navigateur: { vide: !nav.donnees.size && !nav.images.length }, identique, local });
+    const d = decider({ dossier: { vide: dossier.vide, modifie: dossier.modifie }, navigateur: { vide: navigateurVide }, identique, local });
     if (d.action === 'pousser') await pousserTout(p, nav, dossier);
     else if (d.action === 'tirer') { await tirerTout(p, dossier, d.sauvegarderAvant); return; }
     else if (d.action === 'conflit') {
@@ -277,13 +362,14 @@ async function connecter(p) {
       definir('conflit');
       return;
     } else {
-      racine = p; ecrits = new Map(dossier.donnees); imagesEcrites = etatImagesDuDossier(dossier);
+      racine = p; ecrits = new Map(dossier.donnees);
       if (!dossier.marqueur) await ecrireMarqueur(); else { local.dernierSync = dossier.modifie; ecrireLocal(); }
-      local.sale = false; saleHors = false; ecrireLocal();
+      local.sale = false; local.supprimees = []; saleHors = false; ecrireLocal();
     }
     enAttente.clear(); echecs = 0; derniere = ''; quand = new Date();
     definir('connecte');
     rattraper();
+    try { await migrerBibliotheque(p); } catch (e) { console.warn('dossier de travail : ancien catalogue non importé', e); }
   } catch (e) {
     racine = null;
     console.warn('dossier de travail :', e);
@@ -357,6 +443,7 @@ export async function resoudreConflit(choix) {
       conflit = null; enAttente.clear(); echecs = 0; derniere = ''; quand = new Date();
       definir('connecte');
       rattraper();
+      try { await migrerBibliotheque(poignee); } catch (e) { console.warn('dossier de travail : ancien catalogue non importé', e); }
     } catch (e) { console.warn('dossier de travail :', e); definir('erreur', messageDe(e)); }
   });
 }
@@ -406,11 +493,19 @@ async function synchroImages() {
   if (etat !== 'connecte' || !racine) return;
   imagesEnAttente = false;
   try {
+    const imagesDossier = await lireImagesDossier(racine);
+    annoncerAjouts(await importerAjouts(imagesDossier));
     const images = (await listerImages()).sort((a, b) => (a.id < b.id ? -1 : 1));
-    await appliquerImages(racine, images);
+    await appliquerImages(racine, images, imagesDossier);
     await ecrireMarqueur();
     succes();
   } catch (e) { imagesEnAttente = true; echec(e); }
+}
+
+/** Retour sur l'onglet : les cartes ajoutées au dossier entre-temps (skill generer-carte) rejoignent la liste. */
+async function relireAjouts() {
+  if (etat !== 'connecte' || !racine) return;
+  try { annoncerAjouts(await importerAjouts(await lireImagesDossier(racine))); } catch (e) { console.warn('dossier de travail : relecture des images impossible', e); }
 }
 
 /** Page masquée ou fermée : on vide tout de suite ; si la page part avant la fin, le marqueur « sale » le dira au prochain démarrage. */
@@ -450,11 +545,15 @@ export function installerMiroir() {
     clear0.call(this);
     for (const c of cles) noter(c);
   };
-  apresEcritureImages.add(() => {
+  apresEcritureImages.add((detail) => {
     if (muet) return;
+    if (detail?.supprimees?.length) { local.supprimees = noterSuppressions(local.supprimees, detail.supprimees); ecrireLocal(); }
     if (etat === 'connecte') planifierImages(); else { saleHors = true; marquerSale(); }
   });
-  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') viderMaintenant(); });
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') viderMaintenant();
+    else if (etat === 'connecte') enFile(relireAjouts);
+  });
   addEventListener('pagehide', viderMaintenant);
   addEventListener('load', appliquerIndice);
   if (document.head) {

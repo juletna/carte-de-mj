@@ -7,21 +7,28 @@
  *   dossier-carte-de-mj.json   { format, version, modifie (ISO), appareil }   le marqueur : date de la dernière écriture
  *   donnees/<clé>.json         texte brut de chaque clé retenue (voir cleRetenue) ; « : » devient « __ », tout autre caractère
  *                              hors a-z 0-9 . - devient _hh_ (hexadécimal) : le nom se relit en la même clé
- *   images/index.json          [{ id, nom, type, largeur, hauteur, ajoute, titre, niveau, milieux, tags, description, fichier }]
- *   images/<id>.<ext>          le contenu des images importées
- *   bibliotheque/…             lu seulement par l'appli (catalogue.json, cartes/, references/)
+ *   images/index.json          [{ id, nom, type, largeur, hauteur, ajoute, titre, niveau, milieux, tags, description, credit, licence,
+ *                              grille?, origine?, fichier }] : la liste des cartes de l'appli
+ *   images/<id>.<ext>          le contenu de chaque carte
+ *   bibliotheque/…             ancien catalogue (catalogue.json, cartes/) : ses cartes sont importées une fois dans la liste
+ *                              (ids notés dans bibliotheque/catalogue-migre.json)
  *
- * Marqueur local du navigateur (clé hors sauvegarde `cdm-dossier-local-v1`) : { appareil, dernierSync, sale }.
+ * images/ s'écrit aussi hors de l'appli (skill generer-carte, autre ordinateur) : avant de réécrire l'index, l'appli le relit, importe
+ * les entrées qu'elle n'a pas, et ne retire du dossier que les images que le MJ a supprimées ici (voir planDossierImages).
+ *
+ * Marqueur local du navigateur (clé hors sauvegarde `cdm-dossier-local-v1`) : { appareil, dernierSync, sale, supprimees }.
  *   dernierSync  la date `modifie` du dossier à la dernière synchronisation réussie ;
- *   sale         une donnée a changé ici sans être recopiée (pas de dossier, ou écriture en échec).
+ *   sale         une donnée a changé ici sans être recopiée (pas de dossier, ou écriture en échec) ;
+ *   supprimees   ids des images supprimées ici pas encore retirées du dossier : seules celles-là peuvent quitter images/.
  */
-import { cleRetenue, listerCles } from './sauvegarde.js';
+import { cleRetenue, listerCles, TYPES_IMAGES } from './sauvegarde.js';
+import { validerCarte } from './bibliotheque/catalogue.js';
 
 export const FORMAT_DOSSIER = 'carte-de-mj-dossier';
 export const VERSION_DOSSIER = 1;
 export const NOM_MARQUEUR = 'dossier-carte-de-mj.json';
 export const CLE_LOCALE = 'cdm-dossier-local-v1';
-export const CHAMPS_IMAGE = ['id', 'nom', 'type', 'largeur', 'hauteur', 'ajoute', 'titre', 'niveau', 'milieux', 'tags', 'description'];
+export const CHAMPS_IMAGE = ['id', 'nom', 'type', 'largeur', 'hauteur', 'ajoute', 'titre', 'niveau', 'milieux', 'tags', 'description', 'credit', 'licence'];
 
 /** Nom du fichier (dans donnees/) d'une clé : « carte-de-mj:donjons-v1 » → « carte-de-mj__donjons-v1.json ». */
 export function nomFichierCle(cle) {
@@ -99,7 +106,94 @@ export function lireLocal(texte, fabriquerId) {
     appareil: ok && typeof m.appareil === 'string' && m.appareil ? m.appareil : fabriquerId(),
     dernierSync: ok && typeof m.dernierSync === 'string' && m.dernierSync ? m.dernierSync : null,
     sale: Boolean(ok && m.sale === true),
+    supprimees: ok && Array.isArray(m.supprimees) ? m.supprimees.filter((id) => typeof id === 'string') : [],
   };
+}
+
+/** Ajoute des ids supprimés à la liste du marqueur local (sans doublon, les 500 derniers). */
+export const noterSuppressions = (liste, ids) => [...new Set([...liste, ...ids])].slice(-500);
+
+/* ------------------------------------------------------------------ images ajoutées hors de l'appli */
+
+const RE_FICHIER_IMAGE = /^images\/[A-Za-z0-9_.-]+$/;
+const TYPE_PAR_EXTENSION = { webp: 'image/webp', png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', svg: 'image/svg+xml' };
+
+/** Type MIME d'après l'extension d'un nom de fichier, ou null. */
+export const typeDuFichier = (nom) => TYPE_PAR_EXTENSION[String(nom).split('.').pop().toLowerCase()] ?? null;
+
+/**
+ * Une entrée de images/index.json prête à ranger dans IndexedDB (sans son blob), ou null si elle est inutilisable
+ * (id, fichier ou type invalides ; titre, niveau ou milieux refusés par validerCarte). Les champs inconnus sont gardés.
+ */
+export function entreeDuDossier(meta) {
+  if (!meta || typeof meta !== 'object' || Array.isArray(meta)) return null;
+  if (typeof meta.id !== 'string' || !meta.id || meta.id.length > 200) return null;
+  if (typeof meta.fichier !== 'string' || !RE_FICHIER_IMAGE.test(meta.fichier) || !Object.hasOwn(TYPES_IMAGES, meta.type)) return null;
+  const v = validerCarte(meta, { avecFichier: false });
+  if (v.erreur) return null;
+  const { fichier, largeur, hauteur, grille, origine, ...reste } = meta; // repris de v.carte seulement s'ils sont valides
+  return {
+    ...reste, ...v.carte, id: meta.id, type: meta.type,
+    nom: typeof meta.nom === 'string' && meta.nom ? meta.nom.slice(0, 200) : fichier.slice('images/'.length),
+    ajoute: typeof meta.ajoute === 'string' ? meta.ajoute : '',
+  };
+}
+
+/** Les entrées de l'index que l'appli doit garder telles quelles : absentes du navigateur et non supprimées ici. */
+export function etrangeres(index, navigateur, supprimees) {
+  return (Array.isArray(index) ? index : []).filter((m) => m && typeof m === 'object' && !Array.isArray(m)
+    && !navigateur.has(m.id) && !supprimees.has(m.id));
+}
+
+/** Les entrées du dossier à importer dans le navigateur (normalisées, voir entreeDuDossier), chacune avec son `fichier`. */
+export function ajoutsDuDossier({ index, navigateur, supprimees }) {
+  const vus = new Set();
+  const ajouts = [];
+  for (const m of etrangeres(index, navigateur, supprimees)) {
+    const e = entreeDuDossier(m);
+    if (!e || vus.has(e.id)) continue;
+    vus.add(e.id);
+    ajouts.push({ entree: e, fichier: m.fichier });
+  }
+  return ajouts;
+}
+
+/**
+ * Le plan d'écriture de images/, calculé sur ce que le dossier contient VRAIMENT (relu juste avant, ajouts déjà importés) :
+ *   dossier     { index: entrées brutes de index.json, etat: Map id → { sig, fichier } des images lisibles du dossier }
+ *   images      [{ meta (sans blob), sig, fichier }] : les images du navigateur, fichier = nom donné par nomsImages
+ *   supprimees  Set des ids supprimés par le MJ dans l'appli
+ * Une entrée du dossier absente du navigateur garde sa place dans l'index et son fichier, sauf si le MJ l'a supprimée ici.
+ * Rend { ecrire: [ids], supprimer: [fichiers], index: [entrées à écrire], aEcrire }.
+ */
+export function planDossierImages({ dossier, images, supprimees }) {
+  const ids = new Set(images.map((i) => i.meta.id));
+  const garder = etrangeres(dossier.index, ids, supprimees);
+  const idsGardes = new Set(garder.map((g) => g.id));
+  const avant = new Map([...dossier.etat].filter(([id]) => !idsGardes.has(id)));
+  const apres = new Map(images.map((i) => [i.meta.id, { sig: i.sig, fichier: i.fichier }]));
+  const plan = planImages(avant, apres);
+  const fichiersGardes = new Set(garder.map((g) => g.fichier));
+  const supprimer = plan.supprimer.filter((f) => !fichiersGardes.has(f));
+  const index = [...images.map((i) => ({ ...i.meta, fichier: i.fichier })), ...garder];
+  const aEcrire = plan.ecrire.length > 0 || supprimer.length > 0 || JSON.stringify(index) !== JSON.stringify(dossier.index ?? []);
+  return { ecrire: plan.ecrire, supprimer, index, aEcrire };
+}
+
+/** Les cartes d'un ancien bibliotheque/catalogue.json (déjà validées) à importer : ni déjà migrées, ni déjà dans le navigateur. */
+export function cartesAMigrer(cartes, { dejaMigrees, navigateur }) {
+  return cartes.filter((c) => !dejaMigrees.has(c.id) && !navigateur.has(c.id) && typeDuFichier(c.fichier));
+}
+
+/** L'entrée d'image (sans blob) d'une carte de l'ancien catalogue : même id, pour que { source: 'bibliotheque', id } la retrouve. */
+export function entreeDeCarte(carte, ajoute) {
+  const { fichier, ...reste } = carte;
+  return { ...reste, id: carte.id, nom: fichier.split('/').pop(), type: typeDuFichier(fichier), ajoute };
+}
+
+/** Les ids notés dans bibliotheque/catalogue-migre.json ({ ids: [...] }), ou aucun. */
+export function lireMigrees(texte) {
+  try { const m = JSON.parse(texte); return Array.isArray(m?.ids) ? m.ids.filter((id) => typeof id === 'string') : []; } catch { return []; }
 }
 
 /**

@@ -1,10 +1,17 @@
-// Remplit bibliotheque/ de quelques cartes de démonstration dessinées en SVG, pour essayer l'appli sans clé d'API.
-// Usage, depuis la racine du projet :  node outils/demo-bibliotheque.mjs
-// N'écrase rien : un fichier ou un identifiant déjà présent est laissé tel quel. Le dossier est ignoré par git.
-import { mkdir, readFile, writeFile, access } from 'node:fs/promises';
-import { validerCatalogue, FORMAT_CATALOGUE } from '../js/bibliotheque/catalogue.js';
+// Ajoute à la liste de l'appli quelques cartes de démonstration dessinées en SVG, pour l'essayer sans clé d'API.
+// Usage :  CARTE_DE_MJ_DOSSIER=/chemin/du/dossier-de-travail node outils/demo-bibliotheque.mjs
+// Écrit images/<id>.svg + images/index.json du dossier de travail. N'écrase rien : un fichier ou un identifiant déjà présent est laissé tel quel.
+import { mkdir, readFile, writeFile, readdir, rename } from 'node:fs/promises';
+import path from 'node:path';
+import { dossierTravail } from './cartes/dossier.js';
+import { construireEntree, ajouterALIndex, indexVide } from './cartes/entree.js';
 
-const racine = new URL('../bibliotheque/', import.meta.url);
+let dossier;
+try {
+  const r = dossierTravail(process.env);
+  if (r.avertissement) console.error(`Attention : ${r.avertissement}`);
+  dossier = r.dossier;
+} catch (e) { console.error(e.message); process.exit(1); }
 const L = 800, H = 1200;
 
 // Hasard reproductible (mulberry32) : la même démo à chaque lancement.
@@ -32,27 +39,33 @@ const CARTES = [
     dessin: svg('#1c1b21', `<rect x="330" y="700" width="140" height="500" fill="#4a4852" stroke="#0c0b0e" stroke-width="6"/><rect x="130" y="150" width="540" height="560" fill="#55535e" stroke="#0c0b0e" stroke-width="8"/>${[[200, 230], [200, 450], [540, 230], [540, 450]].map(([x, y]) => `<rect x="${x}" y="${y}" width="60" height="150" rx="10" fill="#8b8794" stroke="#0c0b0e" stroke-width="4"/>`).join('')}<rect x="350" y="180" width="100" height="70" fill="#a09ba8" stroke="#0c0b0e" stroke-width="4"/><circle cx="400" cy="440" r="40" fill="#2a2830" stroke="#8b8794" stroke-width="3"/>${grille(50, '#ffffff14')}`) },
 ];
 
-async function existe(url) { try { await access(url); return true; } catch { return false; } }
+const dossierImages = path.join(dossier, 'images');
+const fichierIndex = path.join(dossierImages, 'index.json');
+const lireIndex = async () => {
+  try { return JSON.parse(await readFile(fichierIndex, 'utf8')); } catch (e) {
+    if (e.code === 'ENOENT') return indexVide();
+    console.error(`images/index.json existe mais est illisible (${e.message}) : rien n'est modifié.`); process.exit(1);
+  }
+};
 
-await mkdir(new URL('cartes/', racine), { recursive: true });
-let catalogue = { format: FORMAT_CATALOGUE, version: 1, cartes: [] };
-const fichierCatalogue = new URL('catalogue.json', racine);
-if (await existe(fichierCatalogue)) {
-  try {
-    catalogue = JSON.parse(await readFile(fichierCatalogue, 'utf8'));
-    if (!Array.isArray(catalogue.cartes)) throw new Error('pas de liste « cartes »');
-  } catch (e) { console.error(`bibliotheque/catalogue.json existe mais est illisible (${e.message}) : rien n'est modifié.`); process.exit(1); }
-}
-const ids = new Set(catalogue.cartes.map((c) => c?.id));
+await mkdir(dossierImages, { recursive: true });
+let index = await lireIndex();
+if (!Array.isArray(index)) { console.error('images/index.json n\'est pas une liste : rien n\'est modifié.'); process.exit(1); }
 let ajoutees = 0;
-for (const { dessin, ...entree } of CARTES) {
-  const fichier = `cartes/${entree.id}.svg`;
-  if (ids.has(entree.id) || await existe(new URL(fichier, racine))) { console.log(`déjà là, laissée : ${entree.id}`); continue; }
-  await writeFile(new URL(fichier, racine), dessin);
-  catalogue.cartes.push({ ...entree, fichier, largeur: L, hauteur: H, origine: { type: 'generee', outil: 'demo-bibliotheque', style: 'demo-svg', le: new Date().toISOString().slice(0, 10) }, licence: 'libre', credit: '' });
+for (const { dessin, ...brut } of CARTES) {
+  const fichiersExistants = (await readdir(dossierImages)).map((f) => `images/${f}`);
+  const origine = { type: 'generee', outil: 'demo-bibliotheque', style: 'demo-svg', le: new Date().toISOString().slice(0, 10) };
+  const { entree, problemes } = construireEntree({ ...brut, origine }, { extension: 'svg', largeur: L, hauteur: H });
+  if (!entree) { console.error(`${brut.id} : ${problemes.join(' ; ')}`); process.exit(1); }
+  const r = ajouterALIndex(index, entree, { fichiersExistants });
+  if (r.problemes) { console.log(`déjà là, laissée : ${brut.id}`); continue; }
+  await writeFile(path.join(dossier, entree.fichier), dessin, { flag: 'wx' });
+  index = r.index;
   ajoutees++;
 }
-const verif = validerCatalogue(catalogue);
-for (const a of verif.avertissements) console.warn(`Attention : ${a}`);
-if (ajoutees) await writeFile(fichierCatalogue, JSON.stringify(catalogue, null, 2) + '\n');
-console.log(`${ajoutees} carte(s) de démonstration ajoutée(s) ; bibliotheque/ compte ${verif.cartes.length} carte(s) valide(s).`);
+if (ajoutees) {
+  const temporaire = `${fichierIndex}.tmp`;
+  await writeFile(temporaire, JSON.stringify(index, null, 1));
+  await rename(temporaire, fichierIndex);
+}
+console.log(`${ajoutees} carte(s) de démonstration ajoutée(s) ; images/index.json compte ${index.length} carte(s). L'appli les voit au retour sur son onglet ou au rechargement.`);

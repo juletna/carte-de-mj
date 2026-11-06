@@ -13,10 +13,6 @@ dialog.bib::backdrop { background: rgb(0 0 0 / 0.65); }
 .bib-tete h2 { margin: 0; font-size: 18px; }
 .bib-tete .bib-sans-image-bouton { margin-left: auto; }
 
-.bib-onglets { display: flex; gap: var(--esp-1); border-bottom: 1px solid var(--bord); }
-.bib-onglets button { background: transparent; color: var(--texte-doux); border: 0; border-bottom: 2px solid transparent; border-radius: 0; padding: var(--esp-2) var(--esp-3); min-height: var(--cible); cursor: pointer; font: inherit; }
-.bib-onglets button[aria-selected="true"] { color: var(--texte); border-bottom-color: var(--accent); }
-
 .bib-filtres { display: flex; flex-direction: column; gap: var(--esp-2); }
 .bib-ligne { display: flex; gap: var(--esp-2); flex-wrap: wrap; }
 .bib-recherche { flex: 1 1 220px; }
@@ -31,6 +27,7 @@ dialog.bib::backdrop { background: rgb(0 0 0 / 0.65); }
 .bib-message p { margin: 0 0 var(--esp-2); color: var(--texte-doux); font-size: 14px; }
 .bib-message:empty { display: none; }
 .bib-import[hidden] { display: none; }
+.bib-import > .bib-actions { margin-top: 0; }
 
 .bib-corps { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 280px; grid-template-rows: minmax(0, 1fr); gap: var(--esp-4); }
 .bib-grille { overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: var(--esp-3); align-content: start; padding: 2px; }
@@ -73,12 +70,12 @@ dialog.bib :focus-visible { outline: var(--focus); outline-offset: var(--focus-d
 /* Boutons : .btn, .btn-primaire, .btn-danger viennent de css/base.css. « Supprimer » (deux clics) passe en rouge plein à la confirmation. */
 dialog.bib .btn-danger.danger, #bibliotheque .btn-danger.danger { background: var(--erreur); color: #fff; }
 .bib-tete .btn, .bib-actions .btn { white-space: normal; }
-.bib-tuile, .bib-onglets button { min-height: var(--cible); }
+.bib-tuile { min-height: var(--cible); }
 @media (max-width: 760px) {
   .bib-tuile { min-height: 44px; }
 }
 
-/* Page Bibliothèque, onglet « Générer une carte » (js/page-bibliotheque.js) : trois étapes, du texte au prompt à copier puis à l'import. */
+/* Page Bibliothèque, panneau « Générer une carte » (js/page-bibliotheque.js) : trois étapes, du texte au prompt à copier puis à l'import. */
 #bibliotheque [hidden] { display: none; }
 .bib-generer { display: flex; flex-direction: column; gap: var(--esp-3); max-width: 720px; }
 .bib-etape { display: flex; flex-direction: column; gap: 5px; padding: var(--esp-3) var(--esp-4) var(--esp-4); border: 1px solid var(--bord); border-radius: var(--rayon); background: var(--panneau); }

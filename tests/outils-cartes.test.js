@@ -1,15 +1,18 @@
 /**
  * Tests des fonctions pures de outils/cartes/ : composition du prompt (styles × formats), format par niveau, cadrage,
- * recadrage PNG, validation et ajout d'une entrée du catalogue. Les styles sont lus par `lire` (assets/styles-cartes/).
+ * recadrage PNG, construction et ajout d'une entrée de images/index.json, choix du dossier de travail. Les styles sont lus par `lire` (assets/styles-cartes/).
  */
 import { composerPrompt, extraireSections, formatCarte, promptACopier, cadrageCentre, STYLES, FORMATS, STYLE_PAR_DEFAUT } from '../outils/cartes/prompt.js';
 import { recadrerPng, taillePng } from '../outils/cartes/png.js';
 import { crc32 } from '../js/zip.js';
-import { validerEntree, ajouterAuCatalogue, catalogueVide } from '../outils/cartes/entree.js';
+import { construireEntree, ajouterALIndex, extensionDe, indexVide } from '../outils/cartes/entree.js';
+import { dossierTravail, VARIABLE_DOSSIER, VARIABLE_ANCIENNE } from '../outils/cartes/dossier.js';
 import { NIVEAUX } from '../outils/cartes/vocabulaire.js';
 import { verifier, egal, executerSuite } from './mini-test.js';
 
-const entree = (o = {}) => ({ id: 'foret-01', titre: 'Forêt', fichier: 'cartes/foret-01.webp', largeur: 1024, hauteur: 1536, niveau: 'zone', milieux: ['foret'], tags: ['chemin'], description: 'Un chemin.', grille: { case: 51.2, dx: 0, dy: 0 }, ...o });
+const MAINTENANT = new Date('2026-11-06T10:00:00.000Z');
+const lance = (f) => { try { f(); return false; } catch { return true; } };
+const entree = (o = {}) => ({ id: 'foret-01', titre: 'Forêt', fichier: 'generees/foret-01.webp', largeur: 1024, hauteur: 1536, niveau: 'zone', milieux: ['foret'], tags: ['chemin'], description: 'Un chemin.', grille: { case: 51.2, dx: 0, dy: 0 }, ...o });
 
 /** PNG RGB de `l` × `h` dont le pixel (x, y) vaut [x, y, 7], filtre Sub sur chaque ligne (pour tester le défiltrage). */
 async function pngDeTest(l, h) {
@@ -102,19 +105,48 @@ export async function executer({ lire }) {
       egal([...pixels.subarray(0, 13)], [0, 1, 1, 7, 2, 1, 7, 3, 1, 7, 4, 1, 7], 'ligne 1');
       egal([...pixels.subarray(13, 17)], [0, 1, 2, 7], 'ligne 2');
     }],
-    ['une entrée valide passe, une entrée abîmée est refusée avec ses raisons', () => {
-      egal(validerEntree(entree()), [], 'valide');
-      const p = validerEntree(entree({ id: 'Foret 1', niveau: 'x', milieux: [], fichier: '../a.webp' }));
-      verifier(p.length === 4, `4 problèmes attendus, ${p.length} : ${p.join(' | ')}`);
+    ['entrée : champs complets dans l\'ordre de l\'appli, type et fichier déduits, valeurs par défaut', () => {
+      const { entree: e } = construireEntree(entree({ fichier: 'generees/foret-01.jpeg' }), { extension: extensionDe('a.jpeg'), maintenant: MAINTENANT });
+      egal(Object.keys(e), ['id', 'nom', 'type', 'largeur', 'hauteur', 'ajoute', 'titre', 'niveau', 'milieux', 'tags', 'description', 'licence', 'credit', 'grille', 'origine', 'fichier'], 'champs');
+      egal([e.nom, e.type, e.fichier, e.ajoute, e.licence, e.credit], ['foret-01.jpg', 'image/jpeg', 'images/foret-01.jpg', '2026-11-06T10:00:00.000Z', 'libre', ''], 'valeurs');
+      egal(e.origine, { type: 'generee', outil: 'gpt-image-1', style: STYLE_PAR_DEFAUT, le: '2026-11-06' }, 'origine par défaut');
+      const sans = construireEntree({ id: 'a', titre: 'A', niveau: 'monde', milieux: [] }, { extension: 'png', largeur: 10, hauteur: 5, maintenant: MAINTENANT }).entree;
+      verifier(sans && !('grille' in sans), 'pas de grille si absente');
     }],
-    ['ajout : id en double refusé, catalogue non modifié, valeurs par défaut posées', () => {
-      const vide = catalogueVide();
-      const r = ajouterAuCatalogue(vide, entree());
-      egal(r.catalogue.cartes.length, 1, 'ajoutée');
-      egal(vide.cartes.length, 0, 'original intact');
-      egal(r.catalogue.cartes[0].origine.style, STYLE_PAR_DEFAUT, 'origine');
-      verifier(ajouterAuCatalogue(r.catalogue, entree()).problemes[0].includes('déjà pris'), 'doublon accepté');
-      verifier(ajouterAuCatalogue({ format: 'autre' }, entree()).problemes, 'catalogue illisible accepté');
+    ['entrée abîmée : refusée avec ses raisons', () => {
+      const p = construireEntree(entree({ id: 'Foret 1', niveau: 'x', largeur: undefined, hauteur: undefined }), { extension: 'gif' }).problemes;
+      verifier(p.length === 4, `4 problèmes attendus, ${p.length} : ${p?.join(' | ')}`);
+      verifier(construireEntree(entree({ milieux: ['lune'] }), { extension: 'webp' }).problemes, 'milieu inconnu accepté');
+      verifier(construireEntree(entree({ titre: ' ' }), { extension: 'webp' }).problemes, 'titre vide accepté');
+      verifier(construireEntree(entree({ origine: { type: 'x' } }), { extension: 'webp' }).problemes, 'origine inconnue acceptée');
+      verifier(construireEntree(null, { extension: 'webp' }).problemes, 'entrée absente acceptée');
+    }],
+    ['ajout : id ou fichier en double refusé, index existant et entrées étrangères gardés tels quels', () => {
+      const { entree: e } = construireEntree(entree(), { extension: 'webp', maintenant: MAINTENANT });
+      const etrangere = { id: 'ma-carte', nom: 'ma-carte.png', type: 'image/png', titre: 'À moi', fichier: 'images/ma-carte.png', zut: 1 };
+      const index = [etrangere];
+      const r = ajouterALIndex(index, e);
+      egal(r.index.length, 2, 'ajoutée');
+      verifier(r.index[0] === etrangere, 'entrée étrangère conservée telle quelle');
+      egal(index.length, 1, 'original intact');
+      verifier(ajouterALIndex(r.index, e).problemes[0].includes('déjà pris'), 'doublon accepté');
+      verifier(ajouterALIndex(index, e, { fichiersExistants: ['images/foret-01.png'] }).problemes[0].includes('existe déjà'), 'fichier du même id écrasé');
+      verifier(ajouterALIndex(index, e, { fichiersExistants: ['images/foret-010.png'] }).index, 'un id plus long ne gêne pas');
+      verifier(ajouterALIndex({ format: 'autre' }, e).problemes, 'index illisible accepté');
+      verifier(ajouterALIndex(indexVide(), { ...e, fichier: '../x.webp' }).problemes, 'fichier hors images/ accepté');
+    }],
+    ['dossier de travail : CARTE_DE_MJ_DOSSIER, ancienne variable en secours, erreur claire', () => {
+      egal(dossierTravail({ [VARIABLE_DOSSIER]: '/drive/jeu/' }), { dossier: '/drive/jeu' }, 'variable');
+      verifier(lance(() => dossierTravail({ [VARIABLE_DOSSIER]: 'relatif/jeu' })), 'chemin relatif accepté');
+      const c = dossierTravail({ [VARIABLE_ANCIENNE]: '/drive/jeu/bibliotheque' });
+      egal(c.dossier, '/drive/jeu', 'compat : parent');
+      verifier(c.avertissement.includes(VARIABLE_DOSSIER), 'avertissement');
+      egal(dossierTravail({ [VARIABLE_DOSSIER]: '/a', [VARIABLE_ANCIENNE]: '/b/bibliotheque' }).dossier, '/a', 'la nouvelle variable gagne');
+      for (const env of [{}, { [VARIABLE_DOSSIER]: '' }, { [VARIABLE_ANCIENNE]: '/drive/autre' }]) {
+        let message = '';
+        try { dossierTravail(env); } catch (e) { message = e.message; }
+        verifier(message.includes(VARIABLE_DOSSIER) && message.includes('export'), 'erreur qui explique quoi exporter');
+      }
     }],
   ]);
 }

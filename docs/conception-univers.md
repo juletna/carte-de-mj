@@ -29,80 +29,79 @@ donjon existant. À la table, la Présentation permet d'entrer dans un lieu et d
 | Feature | Session | Possède (seule à écrire dedans) |
 |---|---|---|
 | F2 – skill de génération de cartes | A | `.claude/skills/generer-carte/`, `outils/cartes/` |
-| F1 – bibliothèque de cartes (catalogue, choix, import) | B | `js/bibliotheque/`, `css/bibliotheque.css`, `tests/bibliotheque*.test.js`, `outils/demo-bibliotheque.mjs` |
+| F1 – bibliothèque de cartes (liste, choix, import) | B | `js/bibliotheque/`, `css/bibliotheque.css`, `tests/bibliotheque*.test.js`, `outils/demo-bibliotheque.mjs` |
 | F3 – univers et navigation imbriquée | C | `js/univers*.js`, `js/mj/univers-ui.js`, `js/regie-univers.js`, `css/univers.css`, `tests/univers*.test.js` |
 | F4 – calage de grille sur une carte image | après C | à fixer au lancement |
 
 Fichiers **partagés** (chacun n'y ajoute que ses lignes, au plus court, et rebase avant de pousser) : `README.md`, `tests/node.mjs`,
 `tests.html`, `.gitignore`, `donjon.html`, `presentation.html`, `js/main-mj.js`, `js/regie.js`, `js/stockage.js`.
 
-## 1. Les images : où elles vivent (prototype)
+## 1. Les images : où elles vivent
 
-Deux origines, deux rangements, une seule façon de les désigner.
-
-### Bibliothèque locale (images générées par le skill)
-
-Un dossier à la racine du projet, **ignoré par git** : `bibliotheque/`.
+Une seule liste de cartes : les images gardées par le navigateur (IndexedDB, base `carte-de-mj`, magasin `images`), que la sauvegarde
+recopie dans le **dossier de travail** choisi par le MJ, sous `images/` + `images/index.json` (voir le README, « Dossier de travail »).
 
 ```
-bibliotheque/
-  catalogue.json
-  cartes/foret-ruines-01.webp
-  cartes/port-01.webp
+<dossier de travail>/
+  images/index.json              la liste (format : section 2)
+  images/foret-ruines-01.png     un fichier par carte, nommé <id>.<ext>
+  generees/                      brouillons du skill, hors de la liste
+  references/<style>/            images de référence de style, hors de la liste
 ```
 
-- Le serveur local (`python3 outils/serveur.py`) le sert comme le reste : l'appli lit `bibliotheque/catalogue.json` par `fetch`.
-  Absent ou illisible : la bibliothèque est simplement vide, avec un message qui dit comment la remplir (le skill).
-- Le skill (session A) est **le seul à écrire** dans ce dossier. L'appli ne fait que lire.
-- Sur le site publié (GitHub Pages), le dossier n'existe pas : la bibliothèque est vide, l'import d'images reste possible.
-- **Aucune image n'est versionnée**, ni carte ni image de référence : chacun a les siennes, de bonne qualité, sur son disque.
-  Les tests fabriquent leurs images (petits SVG ou canvas écrits dans le test). Pour essayer l'appli sans clé d'API,
-  `node outils/demo-bibliotheque.mjs` (session B) remplit `bibliotheque/` de quelques cartes de démonstration dessinées en SVG,
-  sans écraser ce qui y est déjà.
-- `fichier` accepte `.webp`, `.png`, `.jpg`, `.jpeg` et `.svg`.
-
-### Images importées par le MJ (dans le navigateur)
-
-IndexedDB, base `carte-de-mj`, magasin `images` : `{ id, nom, type (MIME), blob, largeur, hauteur, ajoute (ISO) }`.
-`localStorage` n'est pas utilisé pour les images (trop petit). Une image importée accepte les mêmes métadonnées qu'une carte
-du catalogue (titre, niveau, milieux, tags), rangées à côté du blob.
+- **Magasin `images`** : `{ id, nom, type (MIME), blob, largeur, hauteur, ajoute (ISO) }` plus les métadonnées de la section 2
+  (titre, niveau, milieux, tags…). `localStorage` n'est pas utilisé pour les images (trop petit).
+- **Une entrée ajoutée hors de l'appli** (par le skill, ou à la main dans `images/`) est importée dans IndexedDB : au démarrage,
+  au retour sur l'onglet et avant chaque réécriture de `images/index.json`, l'appli relit l'index. Une entrée ajoutée hors appli n'est jamais retirée de
+  l'index ; seule une suppression faite par le MJ dans l'appli en retire une.
+- Le skill écrit `images/<id>.<ext>` et `images/index.json`. Il ne touche jamais à `dossier-carte-de-mj.json` ni à `donnees/`.
+- **Sans dossier de travail**, la liste est celle du navigateur. Sur le site publié, rien d'autre n'existe : l'import d'images reste possible.
+- **Aucune image n'est versionnée**, ni carte ni image de référence : chacun a les siennes. Les tests fabriquent leurs images
+  (petits SVG ou canvas). Pour essayer l'appli sans clé d'API : `CARTE_DE_MJ_DOSSIER=… node outils/demo-bibliotheque.mjs`
+  ajoute sept cartes SVG à la liste du dossier, sans écraser ce qui y est déjà.
+- Extensions : `.webp`, `.png`, `.jpg` et `.svg` (`image/webp`, `image/png`, `image/jpeg`, `image/svg+xml`).
+- **Ancien catalogue** : un dossier de travail qui contient encore `bibliotheque/catalogue.json` voit ses cartes importées dans la liste
+  au démarrage (même `id`). Les ids migrés sont notés dans `bibliotheque/catalogue-migre.json`. Le dossier `bibliotheque/` reste ignoré par git.
 
 ### Référence d'image (le contrat entre B et C)
 
 Partout où une carte image est désignée (univers, partie), on écrit :
 
 ```json
-{ "source": "bibliotheque", "id": "foret-ruines-01" }
-{ "source": "navigateur",   "id": "img-k3j9x2" }
+{ "source": "navigateur", "id": "foret-ruines-01" }
 ```
 
-Jamais une URL ni un `blob:` : ils ne survivent pas à un rechargement.
+Jamais une URL ni un `blob:` : ils ne survivent pas à un rechargement. `{ "source": "bibliotheque", "id": … }` est **l'ancien format** :
+il reste valable dans les mondes existants (lu d'abord dans les images avec le même `id`, puis dans l'ancien catalogue en secours),
+mais plus aucune référence nouvelle ne l'utilise.
 
-## 2. Format du catalogue (`bibliotheque/catalogue.json`)
+## 2. Format de la liste (`images/index.json`)
+
+Un tableau JSON, écrit par l'appli avec `JSON.stringify(index, null, 1)` :
 
 ```json
-{
-  "format": "carte-de-mj-bibliotheque", "version": 1,
-  "cartes": [
-    {
-      "id": "foret-ruines-01",
-      "titre": "Clairière aux ruines",
-      "fichier": "cartes/foret-ruines-01.webp",
-      "largeur": 1400, "hauteur": 2100,
-      "niveau": "zone",
-      "milieux": ["foret", "ruines"],
-      "tags": ["chemin", "colonnes", "sanctuaire", "fleurs", "jour"],
-      "description": "Clairière traversée par un chemin, colonnes brisées, petit sanctuaire circulaire à l'est.",
-      "grille": { "case": 70, "dx": 0, "dy": 0 },
-      "origine": { "type": "generee", "outil": "gpt-image-1", "style": "peint-v1", "le": "2026-11-06" },
-      "licence": "libre",
-      "credit": ""
-    }
-  ]
-}
+[
+  {
+    "id": "foret-ruines-01",
+    "nom": "foret-ruines-01.png", "type": "image/png",
+    "largeur": 1536, "hauteur": 864,
+    "ajoute": "2026-11-06T10:00:00.000Z",
+    "titre": "Clairière aux ruines",
+    "niveau": "zone",
+    "milieux": ["foret", "ruines"],
+    "tags": ["chemin", "colonnes", "sanctuaire", "fleurs", "jour"],
+    "description": "Clairière traversée par un chemin, colonnes brisées, petit sanctuaire circulaire à l'est.",
+    "licence": "libre",
+    "credit": "",
+    "grille": { "case": 48, "dx": 0, "dy": 0 },
+    "origine": { "type": "generee", "outil": "gpt-image-1", "style": "peint-v2", "le": "2026-11-06" },
+    "fichier": "images/foret-ruines-01.png"
+  }
+]
 ```
 
 - `id` : minuscules, chiffres, tirets, au plus 64 caractères, unique. Le nom du fichier en dérive.
+- `fichier` : `images/<id>.<ext>` (`webp`, `png`, `jpg` ou `svg`), le nom que l'appli donne elle-même à la copie. `type` : le MIME qui va avec.
 - `niveau` (une valeur, pour les poupées russes) : `monde`, `region`, `zone` (lieu extérieur à l'échelle des figurines),
   `localite` (village, ville, port), `batiment` (intérieur), `souterrain`.
 - `milieux` (plusieurs) : `foret`, `plaine`, `montagne`, `desert`, `eau`, `cote`, `marais`, `neige`, `ville`, `ruines`, `souterrain`.
@@ -111,7 +110,7 @@ Jamais une URL ni un `blob:` : ils ne survivent pas à un rechargement.
 - `grille` (facultatif) : taille d'une case en pixels de l'image et décalage de la grille. Absent : carte d'ambiance, sans grille.
   Le skill écrit la grille **demandée** ; le calage (F4) la corrigera.
 - `origine.type` : `generee`, `importee` ou `externe`. `licence` et `credit` : à afficher avec la carte quand `credit` n'est pas vide.
-- La validation (`validerCatalogue`) écarte une entrée invalide en le disant, sans refuser tout le catalogue. Un champ inconnu est ignoré.
+- La validation des champs descriptifs est `validerCarte` (`js/bibliotheque/catalogue.js`), la même pour l'appli et pour les scripts du skill. Un champ inconnu est ignoré.
 
 Recherche et filtres (session B) : filtre par `niveau`, par `milieux` (cumulables), recherche texte sur `titre`, `tags`,
 `description` et les noms des milieux.
@@ -120,23 +119,25 @@ Recherche et filtres (session B) : filtre par `niveau`, par `milieux` (cumulable
 
 Rangé **dans le dépôt** (`.claude/skills/generer-carte/`) pour servir à tous : le projet est ouvert.
 
-- `SKILL.md` : le déroulé (demande du MJ → prompt → génération → validation par le MJ → tags → ajout au catalogue).
-- `assets/styles-cartes/<style>.md` (sortis du skill le 6 novembre 2026 pour que la page Bibliothèque les lise aussi, onglet « Générer une carte ») :
+- `SKILL.md` : le déroulé (demande du MJ → prompt → génération → brouillon dans `generees/` → validation par le MJ → tags → ajout à `images/index.json`).
+- `assets/styles-cartes/<style>.md` (sortis du skill le 6 novembre 2026 pour que la page Bibliothèque les lise aussi, panneau « Générer une carte ») :
   un fichier par style (`peint-v2` dessin animé coloré, par défaut ; `parchemin-v1` vieille carte ; `peint-v1` aquarelle), avec le bloc de style,
   les règles d'échelle (repères : une porte = 1 case, une table = 1 × 2 cases, un arbre adulte = 2 à 3 cases), un gabarit par niveau et un rappel final.
   Une nouvelle version de style = un nouveau fichier, jamais une réécriture.
 - `js/bibliotheque/prompt.js` : **le seul composeur de prompt**, partagé par le skill et la page. Il déclare les styles (`STYLES`) et les formats
   (`FORMATS` : paysage 16:9 par défaut, portrait 2:3, carré, avec leurs grilles). Le format n'est plus dans le style depuis le 6 novembre 2026 :
   les deux se choisissent indépendamment. Le paysage est demandé en 3:2 et recadré au centre en 16:9 (script : `outils/cartes/png.js` ; page : à l'import).
-- Les images de référence **validées par le MJ** (avec leur prompt) vont dans `bibliotheque/references/<style>/`, donc **hors de git** :
+- Les images de référence **validées par le MJ** (avec leur prompt) vont dans `references/<style>/` du dossier de travail, donc **hors de git** :
   chacun constitue les siennes, en bonne qualité. Le skill les donne au générateur comme point de départ du style et sait démarrer
   sans aucune référence (premier usage). Seules des images générées par nous y entrent, jamais celles d'un autre créateur.
-- `outils/cartes/` : le script qui appelle l'API d'images et le script qui ajoute une entrée valide au catalogue (même validation que l'appli,
-  en important le module pur de la session B, ou en recopiant ses règles s'il n'existe pas encore).
+- `outils/cartes/` : `generer.mjs` appelle l'API d'images et écrit un brouillon dans `generees/` ; `ajouter.mjs` copie le brouillon validé vers
+  `images/<id>.<ext>` et ajoute l'entrée à `images/index.json` (logique pure dans `entree.js`, qui réutilise `validerCarte`) ; `dossier.js` lit la
+  variable `CARTE_DE_MJ_DOSSIER` (chemin absolu de la racine du dossier de travail). Aucun écrasement, écriture de l'index atomique
+  (relecture, fichier `.tmp`, `rename`).
 - Générateur par défaut : `gpt-image-1` d'OpenAI (accepte des images de référence). La clé est lue dans la variable
   d'environnement `OPENAI_API_KEY` : **jamais écrite dans le dépôt**, chacun apporte la sienne. Le fournisseur est isolé dans un seul
   fichier pour pouvoir en changer.
-- Sortie : paysage 16:9 en PNG (1536 × 864) par défaut, WebP pour les formats non recadrés, dans `bibliotheque/cartes/`, entrée ajoutée à `bibliotheque/catalogue.json`.
+- Sortie : paysage 16:9 en PNG (1536 × 864) par défaut, WebP pour les formats non recadrés, brouillon dans `generees/`, puis copie dans `images/` et entrée ajoutée à `images/index.json` à la validation du MJ.
 
 ## 4. Le modèle d'un univers (F3, session C)
 
@@ -202,9 +203,9 @@ de la bibliothèque, session B), poser un point d'un clic sur l'image, lui donne
 La session B fournit, dans `js/bibliotheque/index.js` :
 
 ```js
-/** Ouvre le choix d'une carte (catalogue + images du navigateur + import). Résout la référence choisie, ou null si annulé. */
+/** Ouvre le choix d'une carte (une seule liste + import). Résout la référence choisie, ou null si annulé. */
 export async function choisirCarte(options = { niveau: undefined }) {}
-/** URL affichable d'une référence d'image (fichier du catalogue ou objectURL d'IndexedDB), ou null si elle n'existe plus. */
+/** URL affichable d'une référence d'image (objectURL d'IndexedDB), ou null si elle n'existe plus. */
 export async function urlImage(ref) {}
 /** Les métadonnées d'une référence (titre, niveau, milieux, largeur, hauteur, grille, crédit), ou null. */
 export async function infosImage(ref) {}

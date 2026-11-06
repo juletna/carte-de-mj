@@ -1,35 +1,31 @@
 /**
- * Bibliothèque de cartes : choix d'une carte (catalogue local + images du navigateur + import).
+ * Bibliothèque de cartes : choix d'une carte dans une seule liste (les images d'IndexedDB : importées ici, ou ajoutées au dossier
+ * de travail par le skill generer-carte) et import.
  * Interface publique, utilisée par l'univers (docs/conception-univers.md, section 5) :
  *   choisirCarte(options)  → référence { source, id } choisie, ou null si annulé ; avec `options.sansImage`, le bouton « Sans image pour l'instant »
  *                            ferme la fenêtre en rendant { sansImage: true } (créer un lieu « à illustrer » : le plan d'abord, les images ensuite)
  *   urlImage(ref)          → URL affichable, ou null si la carte n'existe plus
  *   infosImage(ref)        → métadonnées (titre, niveau, milieux, largeur, hauteur, grille, credit…), ou null
- * Une référence est { source: 'bibliotheque' | 'navigateur', id } : jamais une URL, qui ne survivrait pas au rechargement.
+ * Une référence est { source: 'navigateur', id } : jamais une URL, qui ne survivrait pas au rechargement. L'ancien format
+ * { source: 'bibliotheque', id } reste lu : d'abord l'image de même id (les cartes de l'ancien catalogue y sont importées par le
+ * dossier de travail), sinon bibliotheque/catalogue.json du dossier ou du site, en secours.
  */
 import { h, deuxTemps, fichierChoisi } from '../dom.js';
 import { btn } from '../univers-boutons.js';
-import { validerCatalogue, selectionner, creditAffiche } from './catalogue.js';
-import { NIVEAUX, MILIEUX, libelleNiveau, libelleMilieu } from './vocabulaire.js';
+import { validerCatalogue, selectionner } from './catalogue.js';
+import { NIVEAUX, MILIEUX, libelleNiveau } from './vocabulaire.js';
+import { ficheCarte, champsImport, metaImport, MESSAGE_VIDE } from './fiche.js';
 import { importerImage, listerImages, lireImage, supprimerImage } from './images.js';
 import { lireFichierBibliotheque, urlBibliotheque } from './source.js';
 
-const DOSSIER = 'bibliotheque/';
-const COMMENT_REMPLIR = 'Pour la remplir : compose un prompt dans l’onglet « Générer une carte » de la page Bibliothèque et importe l’image obtenue dans « Mes images », ou lance la génération avec le skill « generer-carte » de Claude Code, ou, pour essayer, « node outils/demo-bibliotheque.mjs » depuis la racine du projet. Tu peux aussi importer d’autres images dans « Mes images », ou choisir un dossier de travail (bouton « Sauvegarde ») qui contient un sous-dossier bibliotheque/.';
-
+/** Ancien catalogue (bibliotheque/catalogue.json du dossier de travail ou du site), lu seulement pour les références d'avant. */
 let catalogueEnCours;
-function chargerCatalogue(rafraichir = false) {
-  if (rafraichir || !catalogueEnCours) catalogueEnCours = lireCatalogue();
+function chargerCatalogue() {
+  catalogueEnCours ??= lireFichierBibliotheque('catalogue.json').then((r) => {
+    if (r.statut !== 'ok') return [];
+    try { return validerCatalogue(JSON.parse(r.texte)).cartes; } catch { return []; }
+  });
   return catalogueEnCours;
-}
-export async function lireCatalogue() {
-  const r = await lireFichierBibliotheque('catalogue.json');
-  if (r.statut === 'absent') return { cartes: [], avertissements: [], message: `Aucun catalogue (${DOSSIER}catalogue.json est absent du site comme du dossier de travail). ${COMMENT_REMPLIR}` };
-  if (r.statut === 'erreur') return { cartes: [], avertissements: [], message: `Le catalogue n’a pas pu être lu (ouvre l’appli par « python3 outils/serveur.py », pas en double-cliquant sur le fichier, ou choisis un dossier de travail dans « Sauvegarde »). ${COMMENT_REMPLIR}` };
-  let brut;
-  try { brut = JSON.parse(r.texte); } catch { return { cartes: [], avertissements: [], message: `${DOSSIER}catalogue.json est illisible (ce n’est pas du JSON valide).` }; }
-  const v = validerCatalogue(brut);
-  return { ...v, message: v.cartes.length ? '' : `Le catalogue est vide. ${COMMENT_REMPLIR}` };
 }
 
 const urlsCreees = new Map(); // id d'image du navigateur → objectURL
@@ -44,17 +40,14 @@ const infosDe = (c) => ({ titre: c.titre, niveau: c.niveau, milieux: c.milieux, 
 
 async function trouver(ref) {
   if (!ref || typeof ref !== 'object' || typeof ref.id !== 'string') return null;
-  if (ref.source === 'bibliotheque') {
-    const c = (await chargerCatalogue()).cartes.find((x) => x.id === ref.id);
-    return c ? { url: urlBibliotheque(c.fichier), infos: infosDe(c) } : null;
-  }
-  if (ref.source === 'navigateur') {
-    try {
-      const e = await lireImage(ref.id);
-      return e ? { url: urlDepuisBlob(e), infos: infosDe({ ...e, credit: '', licence: '' }) } : null;
-    } catch { return null; }
-  }
-  return null;
+  if (ref.source !== 'navigateur' && ref.source !== 'bibliotheque') return null;
+  try {
+    const e = await lireImage(ref.id);
+    if (e) return { url: urlDepuisBlob(e), infos: infosDe(e) };
+  } catch { /* IndexedDB indisponible : l'ancien catalogue peut encore servir */ }
+  if (ref.source !== 'bibliotheque') return null;
+  const c = (await chargerCatalogue()).find((x) => x.id === ref.id);
+  return c ? { url: urlBibliotheque(c.fichier), infos: infosDe(c) } : null;
 }
 
 export async function urlImage(ref) { return (await trouver(ref))?.url ?? null; }
@@ -67,10 +60,8 @@ export function choisirCarte(options = {}) {
     const ancienFocus = document.activeElement;
     const dialogue = h('dialog', { className: 'bib', 'aria-labelledby': 'bib-titre' });
     let resultat = null;
-    let onglet = 'bibliotheque';
     const etat = { niveau: options?.niveau || '', milieux: new Set(), requete: '' };
-    let choisi = null; // { ref, titre, ... }
-    let catalogue = { cartes: [], avertissements: [], message: '' };
+    let choisi = null; // { ref, entree, url }
     let images = [];
     let erreurImages = '';
     let formulaireOuvert = false;
@@ -79,15 +70,9 @@ export function choisirCarte(options = {}) {
     const fermer = btn('Annuler', () => dialogue.close(), { icone: 'fermer', classe: 'btn-discret' });
     const sansImage = btn('Sans image pour l’instant', () => { resultat = { sansImage: true }; dialogue.close(); }, { icone: 'plus', classe: 'bib-sans-image-bouton' });
     sansImage.title = 'Crée le lieu tout de suite, sur un fond neutre : tu poses ses points maintenant et son image plus tard';
-    const bOnglets = [['bibliotheque', 'Bibliothèque'], ['navigateur', 'Mes images']].map(([id, libelle]) => {
-      const b = h('button', { type: 'button', textContent: libelle, role: 'tab', id: `bib-onglet-${id}` });
-      b.addEventListener('click', () => { onglet = id; choisi = null; formulaireOuvert = false; dessiner(); });
-      return [id, b];
-    });
-    const barreOnglets = h('div', { className: 'bib-onglets', role: 'tablist', 'aria-label': 'Origine des cartes' }, ...bOnglets.map(([, b]) => b));
     const zoneFiltres = h('div', { className: 'bib-filtres' });
     const zoneMessage = h('div', { className: 'bib-message', role: 'status' });
-    const grille = h('div', { className: 'bib-grille', role: 'list' });
+    const grille = h('div', { className: 'bib-grille', role: 'list', 'aria-label': 'Cartes' });
     const detail = h('div', { className: 'bib-detail', 'aria-live': 'polite' });
     const zoneImport = h('div', { className: 'bib-import' });
 
@@ -109,7 +94,9 @@ export function choisirCarte(options = {}) {
       h('div', { className: 'bib-puces', role: 'group', 'aria-label': 'Milieux (cumulables)' }, ...puces),
     );
 
-    function tuile(entree, ref, url) {
+    function tuile(entree) {
+      const ref = { source: 'navigateur', id: entree.id };
+      const url = urlDepuisBlob(entree);
       const img = h('img', { src: url, alt: '', loading: 'lazy' });
       img.addEventListener('error', () => img.replaceWith(h('span', { className: 'bib-sans-image', textContent: 'image introuvable' })));
       const b = h('button', { type: 'button', className: 'bib-tuile', role: 'listitem', 'aria-pressed': String(choisi?.ref.id === ref.id) },
@@ -127,48 +114,29 @@ export function choisirCarte(options = {}) {
       detail.replaceChildren();
       if (!choisi) { detail.append(h('p', { className: 'bib-aide', textContent: 'Choisis une vignette pour la voir en détail.' })); return; }
       const e = choisi.entree;
-      const credit = onglet === 'bibliotheque' ? creditAffiche(e) : '';
-      const lignes = [h('strong', { textContent: e.titre }), h('span', { textContent: `${libelleNiveau(e.niveau)}${e.milieux.length ? ' · ' + e.milieux.map(libelleMilieu).join(', ') : ''}` })];
-      if (e.largeur && e.hauteur) lignes.push(h('span', { className: 'bib-doux', textContent: `${e.largeur} × ${e.hauteur} px` }));
-      if (e.description) lignes.push(h('span', { textContent: e.description }));
-      if (e.tags?.length) lignes.push(h('span', { className: 'bib-doux', textContent: 'Tags : ' + e.tags.join(', ') }));
-      if (credit) lignes.push(h('span', { className: 'bib-credit', textContent: `Crédit : ${credit}` }));
       const actions = h('div', { className: 'bib-actions' }, btn('Choisir cette carte', () => { resultat = choisi.ref; dialogue.close(); }, { classe: 'btn-primaire' }));
-      if (onglet === 'navigateur') {
-        const sup = h('button', { type: 'button', className: 'btn btn-danger' });
-        deuxTemps(sup, 'Supprimer', 'Confirmer la suppression', async () => {
-          try { await supprimerImage(choisi.ref.id); liberer(choisi.ref.id); choisi = null; await recharger(); }
-          catch (err) { erreurImages = `Suppression impossible : ${err.message}`; dessiner(); }
-        });
-        actions.append(sup);
-      }
-      detail.append(h('div', { className: 'bib-apercu' }, h('img', { src: choisi.url, alt: `Aperçu : ${e.titre}` })), h('div', { className: 'bib-fiche' }, ...lignes), actions);
+      const sup = h('button', { type: 'button', className: 'btn btn-danger' });
+      deuxTemps(sup, 'Supprimer', 'Confirmer la suppression', async () => {
+        try { await supprimerImage(choisi.ref.id); liberer(choisi.ref.id); choisi = null; await recharger(); }
+        catch (err) { erreurImages = `Suppression impossible : ${err.message}`; dessiner(); }
+      });
+      actions.append(sup);
+      detail.append(h('div', { className: 'bib-apercu' }, h('img', { src: choisi.url, alt: `Aperçu : ${e.titre}` })), ficheCarte(e), actions);
     }
 
     function dessinerListe() {
-      const source = onglet === 'bibliotheque' ? catalogue.cartes : images;
-      const visibles = selectionner(source, { niveau: etat.niveau, milieux: [...etat.milieux], requete: etat.requete });
-      grille.replaceChildren(...visibles.map((c) => onglet === 'bibliotheque'
-        ? tuile(c, { source: 'bibliotheque', id: c.id }, urlBibliotheque(c.fichier))
-        : tuile(c, { source: 'navigateur', id: c.id }, urlDepuisBlob(c))));
+      const visibles = selectionner(images, { niveau: etat.niveau, milieux: [...etat.milieux], requete: etat.requete });
+      grille.replaceChildren(...visibles.map(tuile));
       const msgs = [];
-      if (onglet === 'bibliotheque') {
-        if (catalogue.message) msgs.push(catalogue.message);
-        else if (!visibles.length) msgs.push('Aucune carte ne correspond à ces filtres.');
-        for (const a of catalogue.avertissements) msgs.push(`Attention : ${a}.`);
-      } else {
-        if (erreurImages) msgs.push(erreurImages);
-        if (!images.length && !erreurImages) msgs.push('Aucune image importée pour l’instant. Importe un fichier (webp, png, jpg ou svg) : il reste dans ce navigateur.');
-        else if (images.length && !visibles.length) msgs.push('Aucune image ne correspond à ces filtres.');
-      }
+      if (erreurImages) msgs.push(erreurImages);
+      if (!images.length && !erreurImages) msgs.push(MESSAGE_VIDE);
+      else if (images.length && !visibles.length) msgs.push('Aucune carte ne correspond à ces filtres.');
       zoneMessage.replaceChildren(...msgs.map((m) => h('p', { textContent: m })));
       dessinerDetail();
     }
 
     function dessinerImport() {
       zoneImport.replaceChildren();
-      zoneImport.hidden = onglet !== 'navigateur';
-      if (zoneImport.hidden) return;
       const entree = h('input', { type: 'file', accept: '.webp,.png,.jpg,.jpeg,.svg,image/webp,image/png,image/jpeg,image/svg+xml', hidden: true });
       const importer = btn('Importer une image…', () => entree.click(), { icone: 'importer' }); // jamais doré ici : « Choisir cette carte » est l'unique action principale
       entree.addEventListener('change', (e) => {
@@ -179,62 +147,48 @@ export function choisirCarte(options = {}) {
     }
 
     function ouvrirFormulaire(fichier) {
-      const nom = h('input', { type: 'text', value: fichier.name.replace(/\.[^.]+$/, '').slice(0, 120), maxLength: 120, id: 'bib-f-titre' });
-      const niveau = h('select', { id: 'bib-f-niveau' }, ...NIVEAUX.map((n) => h('option', { value: n.id, textContent: n.libelle })));
-      niveau.value = etat.niveau || options?.niveau || 'zone';
-      const tags = h('input', { type: 'text', placeholder: 'tags séparés par des virgules', id: 'bib-f-tags' });
-      const milieux = MILIEUX.map((m) => h('label', { className: 'bib-case' }, h('input', { type: 'checkbox', value: m.id }), ` ${m.libelle}`));
+      formulaireOuvert = true;
+      const champs = champsImport(fichier, { niveau: etat.niveau || options?.niveau || 'zone' });
       const erreur = h('p', { className: 'bib-erreur', role: 'alert' });
       const ajouter = btn('Ajouter', null, { icone: 'plus' });
       ajouter.addEventListener('click', async () => {
         ajouter.disabled = true; erreur.textContent = '';
         try {
-          const e = await importerImage(fichier, {
-            titre: nom.value, niveau: niveau.value, tags: tags.value.split(',').map((t) => t.trim()).filter(Boolean),
-            milieux: milieux.filter((l) => l.firstChild.checked).map((l) => l.firstChild.value),
-          });
+          const e = await importerImage(fichier, metaImport(champs));
           formulaireOuvert = false; await recharger(); choisi = { ref: { source: 'navigateur', id: e.id }, entree: images.find((i) => i.id === e.id) ?? e, url: urlDepuisBlob(e) }; dessiner();
         } catch (err) { erreur.textContent = `Import impossible : ${err.message}`; ajouter.disabled = false; }
       });
-      const annuler = btn('Annuler l’import', () => { zoneImport.replaceChildren(); dessinerImport(); }, { classe: 'btn-discret' });
+      const annuler = btn('Annuler l’import', () => { formulaireOuvert = false; dessinerImport(); }, { classe: 'btn-discret' });
       zoneImport.replaceChildren(h('form', { className: 'bib-formulaire', onsubmit: (e) => e.preventDefault() },
-        h('strong', { textContent: `Importer « ${fichier.name} »` }),
-        h('label', { htmlFor: 'bib-f-titre', textContent: 'Titre' }), nom,
-        h('label', { htmlFor: 'bib-f-niveau', textContent: 'Niveau' }), niveau,
-        h('fieldset', {}, h('legend', { textContent: 'Milieux' }), h('div', { className: 'bib-cases' }, ...milieux)),
-        h('label', { htmlFor: 'bib-f-tags', textContent: 'Tags' }), tags,
+        h('strong', { textContent: `Importer « ${fichier.name} »` }), ...champs.elements,
         erreur, h('div', { className: 'bib-actions' }, ajouter, annuler)));
-      nom.focus(); nom.select();
+      champs.titre.focus(); champs.titre.select();
     }
 
     async function recharger() {
       try { images = await listerImages(); erreurImages = ''; }
-      catch (e) { images = []; erreurImages = `Les images du navigateur sont indisponibles : ${e.message}`; }
+      catch (e) { images = []; erreurImages = `Les cartes de ce navigateur sont indisponibles : ${e.message}`; }
       dessiner();
     }
 
     function dessiner() {
-      for (const [id, b] of bOnglets) { b.setAttribute('aria-selected', String(id === onglet)); b.tabIndex = id === onglet ? 0 : -1; }
       if (!formulaireOuvert) dessinerImport();
       dessinerListe();
     }
 
-    barreOnglets.addEventListener('keydown', (e) => {
-      if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
-      onglet = onglet === 'bibliotheque' ? 'navigateur' : 'bibliotheque'; choisi = null; dessiner();
-      bOnglets.find(([id]) => id === onglet)[1].focus();
-    });
+    // Cartes arrivées du dossier de travail pendant que la fenêtre est ouverte (skill generer-carte) : la liste se met à jour.
+    const surAjouts = () => { recharger(); };
+    addEventListener('cdm-images-ajoutees', surAjouts);
 
     dialogue.append(h('div', { className: 'bib-cadre' },
-      h('div', { className: 'bib-tete' }, titre, ...(options?.sansImage ? [sansImage] : []), fermer), barreOnglets, zoneFiltres, zoneMessage, zoneImport,
+      h('div', { className: 'bib-tete' }, titre, ...(options?.sansImage ? [sansImage] : []), fermer), zoneFiltres, zoneMessage, zoneImport,
       h('div', { className: 'bib-corps' }, grille, detail)));
     dialogue.addEventListener('click', (e) => { if (e.target === dialogue) dialogue.close(); });
-    dialogue.addEventListener('close', () => { dialogue.remove(); ancienFocus?.focus?.(); resolve(resultat); });
+    dialogue.addEventListener('close', () => { removeEventListener('cdm-images-ajoutees', surAjouts); dialogue.remove(); ancienFocus?.focus?.(); resolve(resultat); });
     document.body.append(dialogue);
     dialogue.showModal();
     dessiner();
     champRecherche.focus();
-    chargerCatalogue(true).then((c) => { catalogue = c; dessinerListe(); });
     recharger();
   });
 }

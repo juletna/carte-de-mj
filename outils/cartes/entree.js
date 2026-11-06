@@ -1,52 +1,64 @@
 /**
- * Validation d'une entrée du catalogue (`bibliotheque/catalogue.json`), format de docs/conception-univers.md section 2.
- * Module pur. Mêmes règles que la validation de l'appli (js/bibliotheque), recopiées tant que ce module n'existe pas.
+ * Entrées de la liste de cartes de l'appli : `images/index.json` du dossier de travail (format : docs/conception-univers.md, section 2).
+ * Construction et validation d'une entrée, ajout à un index sans rien écraser. Module pur ; les champs descriptifs sont validés
+ * par `validerCarte` de js/bibliotheque/catalogue.js, la même règle que l'appli.
  */
-import { NIVEAUX, MILIEUX, ORIGINES, EXTENSIONS } from './vocabulaire.js';
+import { validerCarte } from '../../js/bibliotheque/catalogue.js';
 import { STYLE_PAR_DEFAUT } from './prompt.js';
 
-export const FORMAT_CATALOGUE = 'carte-de-mj-bibliotheque';
 const RE_ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const RE_FICHIER = /^images\/[A-Za-z0-9_.-]+$/;
+/** Types admis, par extension du fichier (jpeg est écrit jpg, comme le fait l'appli). */
+export const TYPES_PAR_EXTENSION = { webp: 'image/webp', png: 'image/png', jpg: 'image/jpeg', svg: 'image/svg+xml' };
 
-export function catalogueVide() { return { format: FORMAT_CATALOGUE, version: 1, cartes: [] }; }
+export function indexVide() { return []; }
 
-/** Rend la liste des problèmes (vide si l'entrée est valide). `idsExistants` : ids déjà au catalogue. */
-export function validerEntree(e, idsExistants = []) {
+/** L'extension normalisée (webp, png, jpg, svg) d'un chemin, ou null. */
+export function extensionDe(chemin) {
+  const e = typeof chemin === 'string' ? chemin.split('.').pop().toLowerCase() : '';
+  const n = e === 'jpeg' ? 'jpg' : e;
+  return TYPES_PAR_EXTENSION[n] ? n : null;
+}
+
+/**
+ * Construit l'entrée complète de l'index à partir de l'entrée du skill.
+ * `contexte` : { extension, largeur, hauteur } (déduits du fichier image), `maintenant` (Date, pour `ajoute`).
+ * Rend { entree } ou { problemes }.
+ */
+export function construireEntree(brut, { extension, largeur, hauteur, maintenant = new Date() } = {}) {
+  if (!brut || typeof brut !== 'object' || Array.isArray(brut)) return { problemes: ['entrée absente'] };
   const p = [];
-  if (!e || typeof e !== 'object') return ['entrée absente'];
-  if (typeof e.id !== 'string' || !RE_ID.test(e.id) || e.id.length > 64) p.push('id : minuscules, chiffres et tirets, 64 caractères au plus');
-  else if (idsExistants.includes(e.id)) p.push(`id « ${e.id} » déjà pris`);
-  if (typeof e.titre !== 'string' || !e.titre.trim()) p.push('titre manquant');
-  const ext = typeof e.fichier === 'string' ? e.fichier.split('.').pop().toLowerCase() : '';
-  if (typeof e.fichier !== 'string' || !e.fichier || e.fichier.includes('..') || e.fichier.startsWith('/') || !EXTENSIONS.includes(ext)) p.push(`fichier : chemin relatif sans « .. », extension parmi ${EXTENSIONS.join(', ')}`);
-  for (const c of ['largeur', 'hauteur']) if (!Number.isInteger(e[c]) || e[c] <= 0) p.push(`${c} : entier positif`);
-  if (!NIVEAUX.includes(e.niveau)) p.push(`niveau : un parmi ${NIVEAUX.join(', ')}`);
-  if (!Array.isArray(e.milieux) || !e.milieux.length || e.milieux.some((m) => !MILIEUX.includes(m))) p.push(`milieux : au moins un parmi ${MILIEUX.join(', ')}`);
-  if (!Array.isArray(e.tags) || e.tags.some((t) => typeof t !== 'string' || !t.trim())) p.push('tags : liste de mots');
-  if (e.description !== undefined && typeof e.description !== 'string') p.push('description : texte');
-  if (e.grille !== undefined && !(e.grille && e.grille.case > 0 && Number.isFinite(e.grille.dx) && Number.isFinite(e.grille.dy))) p.push('grille : { case > 0, dx, dy }');
-  if (e.origine !== undefined && !(e.origine && ORIGINES.includes(e.origine.type))) p.push(`origine.type : un parmi ${ORIGINES.join(', ')}`);
-  return p;
+  if (typeof brut.id !== 'string' || !RE_ID.test(brut.id) || brut.id.length > 64) p.push('id : minuscules, chiffres et tirets, 64 caractères au plus');
+  if (!TYPES_PAR_EXTENSION[extension]) p.push(`fichier : extension parmi ${Object.keys(TYPES_PAR_EXTENSION).join(', ')}`);
+  const l = brut.largeur ?? largeur, h = brut.hauteur ?? hauteur;
+  if (!Number.isInteger(l) || l <= 0 || !Number.isInteger(h) || h <= 0) p.push('largeur et hauteur : entiers positifs (à donner dans l\'entrée si elles ne se lisent pas dans le fichier)');
+  const avecOrigine = { ...brut, origine: brut.origine ?? { type: 'generee', outil: 'gpt-image-1', style: STYLE_PAR_DEFAUT, le: maintenant.toISOString().slice(0, 10) } };
+  const { carte, erreur } = validerCarte({ ...avecOrigine, licence: brut.licence ?? 'libre', credit: brut.credit ?? '' }, { avecFichier: false });
+  if (erreur) p.push(erreur);
+  else if (brut.grille !== undefined && !carte.grille) p.push('grille : { case entre 4 et 2000, dx, dy }');
+  else if (brut.origine !== undefined && !carte.origine) p.push('origine.type : generee, importee ou externe');
+  if (p.length) return { problemes: p };
+  const { titre, niveau, milieux, tags, description, licence, credit, grille, origine } = carte;
+  const entree = { id: brut.id, nom: `${brut.id}.${extension}`, type: TYPES_PAR_EXTENSION[extension], largeur: l, hauteur: h, ajoute: maintenant.toISOString(), titre, niveau, milieux, tags, description, licence, credit };
+  if (grille) entree.grille = grille;
+  entree.origine = origine;
+  entree.fichier = `images/${brut.id}.${extension}`;
+  return { entree };
 }
 
-/** Normalise l'entrée (champs connus seulement, valeurs par défaut) avant validation et écriture. */
-export function normaliserEntree(e) {
-  const sortie = {
-    id: e.id, titre: typeof e.titre === 'string' ? e.titre.trim() : e.titre, fichier: e.fichier, largeur: e.largeur, hauteur: e.hauteur,
-    niveau: e.niveau, milieux: e.milieux, tags: e.tags ?? [], description: e.description ?? '',
-  };
-  if (e.grille) sortie.grille = e.grille;
-  sortie.origine = e.origine ?? { type: 'generee', outil: 'gpt-image-1', style: STYLE_PAR_DEFAUT, le: new Date().toISOString().slice(0, 10) };
-  sortie.licence = e.licence ?? 'libre';
-  sortie.credit = e.credit ?? '';
-  return sortie;
-}
-
-/** Ajoute l'entrée au catalogue sans rien écraser. Rend { catalogue } ou { problemes }. */
-export function ajouterAuCatalogue(catalogue, entree) {
-  if (!catalogue || catalogue.format !== FORMAT_CATALOGUE || !Array.isArray(catalogue.cartes)) return { problemes: ['catalogue illisible : non modifié'] };
-  const e = normaliserEntree(entree);
-  const problemes = validerEntree(e, catalogue.cartes.map((c) => c.id));
-  if (problemes.length) return { problemes };
-  return { catalogue: { ...catalogue, cartes: [...catalogue.cartes, e] } };
+/**
+ * Ajoute l'entrée à l'index sans rien écraser (les entrées déjà là, même étrangères, sont gardées telles quelles).
+ * `fichiersExistants` : chemins déjà présents dans images/ (« images/x.png »). Rend { index } ou { problemes }.
+ */
+export function ajouterALIndex(index, entree, { fichiersExistants = [] } = {}) {
+  if (!Array.isArray(index)) return { problemes: ['index illisible : non modifié'] };
+  const p = [];
+  if (!entree || typeof entree.id !== 'string' || !RE_ID.test(entree.id) || entree.id.length > 64) p.push('id invalide');
+  if (!entree || typeof entree.fichier !== 'string' || !RE_FICHIER.test(entree.fichier)) p.push('fichier : images/<id>.<extension>');
+  if (p.length) return { problemes: p };
+  if (index.some((c) => c?.id === entree.id)) p.push(`id « ${entree.id} » déjà pris dans l'index`);
+  if (index.some((c) => c?.fichier === entree.fichier)) p.push(`fichier « ${entree.fichier} » déjà dans l'index`);
+  if (fichiersExistants.some((f) => f === entree.fichier || f.startsWith(`images/${entree.id}.`))) p.push(`un fichier images/${entree.id}.* existe déjà : rien n'est écrasé`);
+  if (p.length) return { problemes: p };
+  return { index: [...index, entree] };
 }

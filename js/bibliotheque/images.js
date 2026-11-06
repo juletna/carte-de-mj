@@ -1,7 +1,9 @@
 /**
  * Images importées par le MJ, rangées dans IndexedDB (base « carte-de-mj », magasin « images »).
- * Entrée : { id, nom, type (MIME), blob, largeur, hauteur, ajoute (ISO), titre, niveau, milieux, tags, description }.
- * `apresEcritureImages` : écouteurs prévenus après chaque écriture (dossier de travail, js/dossier-travail.js).
+ * Entrée : { id, nom, type (MIME), blob, largeur, hauteur, ajoute (ISO), titre, niveau, milieux, tags, description, credit, licence,
+ * grille?, origine? }. C'est la liste unique des cartes : importées ici, ou ajoutées au dossier de travail (skill generer-carte).
+ * `apresEcritureImages` : écouteurs prévenus après chaque écriture (dossier de travail, js/dossier-travail.js), avec
+ * { supprimees: [ids] } quand des images ont disparu.
  * Touche indexedDB et le DOM (dimensions de l'image) : pas pour Node. Toute erreur est rendue, jamais avalée en silence.
  */
 import { validerCarte } from './catalogue.js';
@@ -25,15 +27,19 @@ function ouvrir() {
   return ouverture;
 }
 
-/** Fonctions appelées après chaque écriture réussie (le dossier de travail y recopie les images). Une erreur d'un écouteur n'empêche rien. */
+/**
+ * Fonctions appelées après chaque écriture réussie (le dossier de travail y recopie les images), avec { supprimees: [ids] }.
+ * Une erreur d'un écouteur n'empêche rien.
+ */
 export const apresEcritureImages = new Set();
-const prevenir = () => { for (const f of apresEcritureImages) { try { f(); } catch (e) { console.warn('écouteur d’images :', e); } } };
+const prevenir = (detail) => { for (const f of apresEcritureImages) { try { f(detail); } catch (e) { console.warn('écouteur d’images :', e); } } };
 
-function transaction(mode, action) {
+/** `detail` : ce que reçoivent les écouteurs (rempli pendant la transaction) ; `silencieux` : personne n'est prévenu. */
+function transaction(mode, action, { detail = { supprimees: [] }, silencieux = false } = {}) {
   return ouvrir().then((db) => new Promise((resolve, reject) => {
     const tx = db.transaction(MAGASIN, mode);
     const req = action(tx.objectStore(MAGASIN));
-    tx.oncomplete = () => { if (mode === 'readwrite') prevenir(); resolve(req?.result); };
+    tx.oncomplete = () => { if (mode === 'readwrite' && !silencieux) prevenir(detail); resolve(req?.result); };
     tx.onerror = () => reject(tx.error ?? new Error('écriture impossible'));
     tx.onabort = () => reject(tx.error ?? new Error('opération annulée (espace plein ?)'));
   }));
@@ -81,7 +87,7 @@ export async function recadrerImage(fichier, largeur, hauteur) {
 const nouvelId = () => `img-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 
 /**
- * Importe un fichier image avec ses métadonnées { titre, niveau, milieux, tags, description, origine }. Rend l'entrée rangée.
+ * Importe un fichier image avec ses métadonnées { titre, niveau, milieux, tags, description, credit, licence, origine }. Rend l'entrée rangée.
  * `colonnes` (facultatif) : nombre de cases demandées sur la largeur (onglet « Générer une carte ») ; la grille en découle
  * d'après la largeur réelle de l'image, que le générateur a pu changer.
  * Lève une Error au message lisible si le fichier ne convient pas ou si le rangement échoue.
@@ -90,7 +96,7 @@ export async function importerImage(fichier, meta = {}) {
   const type = typeImage(fichier);
   if (!type) throw new Error('format non pris en charge (webp, png, jpg ou svg)');
   if (fichier.size > TAILLE_MAX) throw new Error('image trop lourde (25 Mo au plus)');
-  const verif = validerCarte({ titre: meta.titre || fichier.name.replace(/\.[^.]+$/, ''), niveau: meta.niveau, milieux: meta.milieux, tags: meta.tags, description: meta.description, origine: meta.origine }, { avecFichier: false });
+  const verif = validerCarte({ titre: meta.titre || fichier.name.replace(/\.[^.]+$/, ''), niveau: meta.niveau, milieux: meta.milieux, tags: meta.tags, description: meta.description, credit: meta.credit, licence: meta.licence, origine: meta.origine }, { avecFichier: false });
   if (verif.erreur) throw new Error(verif.erreur);
   const blob = fichier.slice(0, fichier.size, type);
   const { largeur, hauteur } = await dimensions(blob);
@@ -109,11 +115,27 @@ export async function listerImages() {
 /** Une image importée, ou undefined. */
 export const lireImage = (id) => transaction('readonly', (s) => s.get(id));
 
-/** Supprime une image importée (la confirmation en deux clics est dans l'interface). */
-export const supprimerImage = (id) => transaction('readwrite', (s) => s.delete(id));
+/** Supprime une image (la confirmation en deux clics est dans l'interface) ; le dossier de travail la retirera aussi. */
+export const supprimerImage = (id) => transaction('readwrite', (s) => s.delete(id), { detail: { supprimees: [id] } });
 
-/** Remplace TOUTES les images importées par ces entrées (id conservés), en une seule transaction : tout ou rien. */
-export const remplacerToutesImages = (entrees) => transaction('readwrite', (s) => {
-  s.clear();
+/** Remplace TOUTES les images par ces entrées (id conservés), en une seule transaction : tout ou rien. */
+export function remplacerToutesImages(entrees) {
+  const detail = { supprimees: [] };
+  const gardees = new Set(entrees.map((e) => e.id));
+  return transaction('readwrite', (s) => {
+    const avant = s.getAllKeys();
+    avant.onsuccess = () => {
+      detail.supprimees = avant.result.filter((id) => !gardees.has(id));
+      s.clear();
+      for (const e of entrees) s.put(e);
+    };
+  }, { detail });
+}
+
+/**
+ * Range des entrées complètes (avec blob) venues du dossier de travail, sans toucher aux autres. `prevenir` : false pour des images
+ * déjà dans le dossier (rien à y recopier), true pour celles de l'ancien catalogue (à recopier dans images/).
+ */
+export const ajouterImages = (entrees, { prevenir: avertir = false } = {}) => transaction('readwrite', (s) => {
   for (const e of entrees) s.put(e);
-});
+}, { silencieux: !avertir });
