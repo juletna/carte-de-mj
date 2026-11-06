@@ -4,7 +4,7 @@ Règles de composition des panneaux latéraux : l'arbre (gauche), l'inspecteur (
 
 Maquettes avant/après et diagnostic détaillé : [`docs/maquettes/panneaux.html`](maquettes/panneaux.html) (ouvrir dans le navigateur).
 
-Proposé le 6 novembre 2026. **État : en cours de migration** (voir « Migration » en bas). Les jetons `--p-*` sont dans `css/base.css` ; la typographie des panneaux est le dernier bloc de `css/atelier.css`.
+Proposé le 6 novembre 2026. **État : en cours de migration** (voir « Migration » en bas). Les jetons `--p-*` sont dans `css/base.css` ; les règles des panneaux sont dans `css/panneaux.css` (chargée après `css/atelier.css`) : toute nouvelle règle de panneau y va.
 
 ## Pourquoi
 
