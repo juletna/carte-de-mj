@@ -280,7 +280,7 @@ export function demarrerRegie() {
   }
 
   function rendre() {
-    if (!etat.p) return;
+    if (!etat.p) { univers?.redessiner(); return; } // une carte d'univers est affichée : les réglages (partagés) la concernent aussi
     univers.majFil();
     oublierCaseSiResolue();
     const s = salleConsultee();
@@ -603,6 +603,7 @@ export function demarrerRegie() {
     b.addEventListener('click', () => {
       const [dx, dy] = b.dataset.defiler.split(',').map(Number);
       const recentrer = dx === 0 && dy === 0;
+      if (univers.actif()) { univers.defiler(dx, dy, recentrer); return; } // une carte d'univers : la table défile selon univers-etat
       if (commande.main) canal?.postMessage(messageDefiler(dx, dy, recentrer));
       if (etat.pleinIci) ecran.defiler({ dx, dy, recentrer });
     });
@@ -611,7 +612,7 @@ export function demarrerRegie() {
   // --- Câblage des modules de la régie ---------------------------------------------------------------
   // Tout ce qui précède est déclaré (fonctions) ou défini (constantes) : on peut le donner aux modules. Ils ne l'appellent
   // qu'une fois la page démarrée, jamais pendant leur création.
-  const ctx = { etat, r, commande, canal, prendreLaMain, annoncer, rendre, modifie, salleCourante, salleConsultee, entrer, viderSauvegarde, noterRetrait, quitterPleinIci, diffuser, montrerIci };
+  const ctx = { etat, r, commande, canal, affichageTable, prendreLaMain, annoncer, rendre, modifie, salleCourante, salleConsultee, entrer, viderSauvegarde, noterRetrait, quitterPleinIci, diffuser, montrerIci };
   const depart = creerDepart(ctx);
   ctx.depart = depart;
   const univers = creerRegieUnivers(ctx);
@@ -637,6 +638,7 @@ export function demarrerRegie() {
   const aReprendre = retraitAvantRechargement ? stockage.partieDuRetrait(retraitAvantRechargement, etat.presentations) : stockage.partieAReprendre(etat.presentations);
   if (demande?.reprise) entrer(demande.partie, { reprise: true });
   else if (demande) depart.demanderJoueurs(demande.partie);
+  else if (!retraitAvantRechargement && univers.reprendre()) { /* la carte d'univers rouverte */ }
   else if (aReprendre) entrer(aReprendre, { reprise: true, main: !retraitAvantRechargement });
   else depart.afficher();
   // Dit une fois, après le premier affichage ; un échec, lui, est redit à chaque ouverture puisque rien n'est enregistré.

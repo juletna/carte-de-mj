@@ -198,10 +198,10 @@ const TESTS = [
     egal(positionDefilement(2, 400), 400, 'borné');
     egal(positionDefilement(0.5, -10), 0, 'course négative');
     const vue = { image: { source: 'bibliotheque', id: 'x' }, points: [] };
-    egal(messageUnivers(vue, {}).defilement, CENTRE, 'message sans défilement : centre');
-    egal(lireVueUnivers(messageUnivers(vue, {}, { x: 0.2, y: 1 }), AFFICHAGE_PAR_DEFAUT).defilement, { x: 0.2, y: 1 }, 'transmis');
-    egal(lireVueUnivers({ type: TYPE_UNIVERS, vue, defilement: { x: 99, y: -1 } }, AFFICHAGE_PAR_DEFAUT).defilement, { x: 1, y: 0 }, 'borné à la lecture');
-    egal(lireVueUnivers({ type: TYPE_UNIVERS, vue, defilement: 'x' }, AFFICHAGE_PAR_DEFAUT).defilement, CENTRE, 'illisible');
+    egal(messageUnivers(vue, {}).defilement, { x: 0.5, y: 0.5, ordre: 0 }, 'message sans défilement : centre');
+    egal(lireVueUnivers(messageUnivers(vue, {}, { x: 0.2, y: 1 }, 3), AFFICHAGE_PAR_DEFAUT).defilement, { x: 0.2, y: 1, ordre: 3 }, 'transmis');
+    egal(lireVueUnivers({ type: TYPE_UNIVERS, vue, defilement: { x: 99, y: -1, ordre: -4 } }, AFFICHAGE_PAR_DEFAUT).defilement, { x: 1, y: 0, ordre: 0 }, 'borné à la lecture');
+    egal(lireVueUnivers({ type: TYPE_UNIVERS, vue, defilement: 'x' }, AFFICHAGE_PAR_DEFAUT).defilement, { x: 0.5, y: 0.5, ordre: 0 }, 'illisible');
   }],
 ];
 

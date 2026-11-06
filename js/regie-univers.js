@@ -10,7 +10,7 @@ import * as stockage from './stockage.js';
 import * as pres from './presentation.js';
 import * as modele from './univers.js';
 import * as pu from './univers-partie.js';
-import { messageUnivers } from './univers-protocole.js';
+import { messageUnivers, CENTRE, decalerDefilement } from './univers-protocole.js';
 import { creerCarteUnivers } from './univers-carte.js';
 import * as images from './univers-images.js';
 import { affichageDeReglages, casesDeReglages } from './affichage.js';
@@ -23,6 +23,8 @@ export function creerRegieUnivers(ctx) {
   let courant = null;   // { univers, partie } : l'univers dont la carte est affichée (ou dont on est dans un donjon)
   let pointId = null;   // point choisi sur la carte
   let sequence = 0;
+  let defil = { ...CENTRE }; // la partie de la carte montrée à la table quand elle dépasse son écran (voir univers-protocole.js)
+  let ordreDefil = 0;        // change à chaque commande, même « recentrer » deux fois de suite : la table n'applique que ce qui est nouveau
   const donjons = () => stockage.chargerDonjons()?.donjons ?? {};
   const universEnregistres = () => stockage.chargerUnivers().etat?.univers ?? {};
 
@@ -52,9 +54,42 @@ export function creerRegieUnivers(ctx) {
     if (lieu) carte.majGrille(grilleDuLieu(lieu), opacite()); // le réglage « Cases » a pu changer
     if (!ctx.commande.main) return true; // en retrait : on ne parle pas à la table, et on ne lui envoie pas non plus un plan vide
     const v = vue();
-    if (v) ctx.canal?.postMessage(messageUnivers(v, affichageDeReglages(ctx.r)));
+    if (v) ctx.canal?.postMessage(messageUnivers(v, ctx.affichageTable(), defil, ordreDefil));
     return true;
   }
+
+  // --- Réglages et défilement de la table ---------------------------------------------------------------------------
+  // Le panneau de réglages de la régie de donjon (taille de case, cases, mode de la table, rotation, miroir…) est le même : ses blocs sont
+  // déplacés ici tant qu'une carte d'univers est affichée, puis rendus à la régie de donjon. Leurs écouteurs restent attachés.
+  const blocs = [document.querySelector('#regie .bloc-table'), document.querySelector('#regie details.reglages')].filter(Boolean);
+  const reperes = new Map();
+  function prendreLesReglages() {
+    for (const bloc of blocs) {
+      if (reperes.has(bloc)) continue;
+      const repere = document.createComment('reglages'); // où le bloc retournera
+      bloc.before(repere);
+      reperes.set(bloc, repere);
+      panneau.append(bloc);
+    }
+    $('plein-ici').hidden = true; // « Plein écran ici » ne montre que les salles
+    $('mini-active').closest('label').hidden = true; // pas de mini-carte pour une carte d'univers
+    $('calibrer-table').hidden = true; // le calibrage dessine une carte bancaire sur la salle : mesure-le depuis une salle (Donjon ou donjon d'un univers)
+  }
+  function rendreLesReglages() {
+    for (const [bloc, repere] of reperes) { repere.replaceWith(bloc); }
+    reperes.clear();
+    $('plein-ici').hidden = false;
+    $('mini-active').closest('label').hidden = false;
+    $('calibrer-table').hidden = etat.calibrage === true;
+  }
+  /** Les flèches et « recentrer » de « Faire défiler la vue table » (regie.js les appelle quand une carte d'univers est affichée). */
+  function defiler(dx, dy, recentrer) {
+    if (!courant) return;
+    defil = recentrer ? { ...CENTRE } : decalerDefilement(defil, dx, dy);
+    ordreDefil++;
+    diffuser();
+  }
+  function recentrerTable() { defil = { ...CENTRE }; ordreDefil++; }
 
   // --- Départ -----------------------------------------------------------------------------------------------
   function listerDepart() {
@@ -88,15 +123,17 @@ export function creerRegieUnivers(ctx) {
     courant = { univers, partie };
     pointId = null;
     ctx.prendreLaMain();
-    if (!ctx.commande.retrait) stockage.oublierPartieOuverte();
+    if (!ctx.commande.retrait) stockage.memoriserPartieOuverte(pu.cleOuverteUnivers(univers.id)); // un rechargement rouvre cette carte
     ctx.viderSauvegarde();
     etat.p = null; etat.consultee = null;
     ctx.noterRetrait();
     ctx.quitterPleinIci();
+    recentrerTable();
     if (!partie.lieuCourant) { ctx.annoncer('Cet univers n’a plus aucune carte.', 8000); return; }
     sauver();
     if (partie.dans && reprise && donjons()[partie.dans.donjon]) { entrerDonjon(partie.dans); return; }
     afficherEcran();
+    prendreLesReglages();
     rendre();
     if (notes.length) ctx.annoncer(notes.join(' '), 12000);
     titre.focus({ preventScroll: true });
@@ -106,6 +143,7 @@ export function creerRegieUnivers(ctx) {
     const d = donjons()[idDonjon];
     if (!d) return;
     ecran.hidden = true;
+    rendreLesReglages();
     const existante = stockage.chargerPresentations()[d.id];
     if (existante) {
       ctx.entrer(existante, { reprise: true });
@@ -120,23 +158,26 @@ export function creerRegieUnivers(ctx) {
     if (!but) { ctx.annoncer('Cette destination n’existe plus : le point est signalé ⚠. Rien n’a été retiré.', 8000); return; }
     sauver();
     pointId = null;
+    recentrerTable();
     if (but.donjon) entrerDonjon(but); else rendre();
   }
   /** De retour d'un donjon : sa partie reste enregistrée telle quelle ; la régie quitte la partie de donjon et revient à la carte. */
   function quitterLeDonjon() {
     ctx.viderSauvegarde();
-    if (!ctx.commande.retrait) stockage.oublierPartieOuverte();
+    if (!ctx.commande.retrait) stockage.memoriserPartieOuverte(pu.cleOuverteUnivers(courant.univers.id));
     etat.p = null; etat.consultee = null;
     ctx.noterRetrait();
     ctx.quitterPleinIci();
     $('regie').hidden = true;
     $('fil-univers').hidden = true;
     afficherEcran();
+    prendreLesReglages();
   }
   /** Après un changement de lieu ou de niveau : on enregistre, on sort du donjon si l'on y était, et on redessine la carte. */
   function apres() {
     sauver();
     pointId = null;
+    recentrerTable();
     if (ecran.hidden) quitterLeDonjon();
     rendre();
   }
@@ -232,19 +273,24 @@ export function creerRegieUnivers(ctx) {
     masquer.addEventListener('change', () => { if (masquer.checked) partie.masquerNoms = true; else delete partie.masquerNoms; sauver(); rendre(); });
     const nbCaches = lieu.points.filter((q) => q.cache && !pu.pointRevele(partie, lieu.id, q)).length;
     panneau.replaceChildren(
-      h('section', { className: 'bloc-table', 'aria-label': 'Table' }, h('h2', { textContent: 'Table' }),
+      h('section', { 'aria-label': 'Carte à la table' }, h('h2', { textContent: 'Carte à la table' }),
         h('p', { className: 'note', textContent: ctx.commande.main ? `La table voit cette carte${nbCaches ? ` sans ${pluriel(nbCaches, 'point caché', 'points cachés')}` : ''}.` : 'Cette régie est en retrait : la table ne voit pas ce que tu fais ici.' }),
-        h('div', { className: 'actions' }, bouton('Ouvrir la fenêtre table', () => ouvrirFenetreTable())),
         h('label', { className: 'ligne case' }, masquer, ' Masquer les noms à la table')),
       h('section', { 'aria-label': 'Point choisi' }, ...choisi),
       h('section', { 'aria-label': 'Points de ce lieu' }, h('h2', { textContent: `Points (${lieu.points.length})` }), lieu.points.length ? h('ul', { className: 'univers-liste' }, ...liste) : h('p', { className: 'note', textContent: 'Aucun point sur cette carte.' })),
       ...(lieu.notes ? [h('section', { 'aria-label': 'Notes du lieu' }, h('h2', { textContent: 'Notes du lieu' }), h('p', { className: 'univers-notes', textContent: lieu.notes }))] : []),
-      h('p', { className: 'note' }, bouton('← Liste des donjons et univers', () => { ecran.hidden = true; ctx.depart.afficher(); }, 'discret petit')));
+      h('p', { className: 'note' }, bouton('← Liste des donjons et univers', () => { ecran.hidden = true; rendreLesReglages(); if (!ctx.commande.retrait) stockage.oublierPartieOuverte(); ctx.depart.afficher(); }, 'discret petit')),
+      ...(reperes.size ? blocs : []));
   }
-  function ouvrirFenetreTable() {
-    const w = window.open(new URL('presentation.html?vue=table', location.href).href, 'carte-de-mj-table', 'popup,width=1024,height=768');
-    if (w) w.focus(); else ctx.annoncer('Le navigateur a bloqué la fenêtre. Autorise les fenêtres pour ce site, ou ouvre presentation.html?vue=table dans un nouvel onglet.', 10000);
+  /** Rouvre la carte d'univers qui était ouverte avant un rechargement (la partie mémorisée sait où l'on en était). Vrai si c'est fait. */
+  function reprendre() {
+    const id = pu.universOuvert(stockage.idPartieOuverte());
+    const u = id && universEnregistres()[id];
+    const partie = id && stockage.chargerPartiesUnivers()[id];
+    if (!u || !partie) return false;
+    ouvrir(u, partie, { reprise: true });
+    return !ecran.hidden || !!etat.p;
   }
 
-  return { listerDepart, diffuser, majFil, actif: () => !ecran.hidden };
+  return { listerDepart, diffuser, majFil, reprendre, defiler, redessiner: () => { if (courant && !ecran.hidden) rendre(); }, actif: () => !ecran.hidden };
 }

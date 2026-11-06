@@ -9,6 +9,7 @@
 import { creerCarteUnivers } from './univers-carte.js';
 import * as images from './univers-images.js';
 import { dimensionsTable } from './univers-grille.js';
+import { CENTRE, positionDefilement } from './univers-protocole.js';
 import { casesDeReglages, TAILLE_PAR_DEFAUT } from './affichage.js';
 import { $, h } from './dom.js';
 
@@ -20,7 +21,8 @@ export function creerTableUnivers() {
   const carte = creerCarteUnivers(zone, {});
   let sequence = 0;
   let courante = null; // { vue, affichage, cle }
-  let defilerAuCentre = false;
+  let aPlacer = true;       // vrai : poser le défilement demandé par la régie au prochain dimensionnement (nouvelle carte, nouvelle taille ou nouvelle demande)
+  let defilement = { ...CENTRE, ordre: 0 };  // ce que la régie demande (fractions 0–1 de la course, repère de la carte)
   let connue = null; // { ref, url } : la dernière image chargée
 
   /** Donne à l'image sa taille à l'écran (voir dimensionsTable) ; rappelée au chargement de l'image, au redimensionnement et à chaque message. */
@@ -37,26 +39,27 @@ export function creerTableUnivers() {
     img.style.width = `${Math.round(d.largeur)}px`;
     img.style.height = `${Math.round(d.hauteur)}px`;
     zone.classList.toggle('defile', d.defile);
-    if (d.defile && defilerAuCentre) {
-      zone.scrollLeft = (zone.scrollWidth - zone.clientWidth) / 2;
-      zone.scrollTop = (zone.scrollHeight - zone.clientHeight) / 2;
+    if (d.defile && aPlacer) {
+      zone.scrollLeft = positionDefilement(defilement.x, zone.scrollWidth - zone.clientWidth);
+      zone.scrollTop = positionDefilement(defilement.y, zone.scrollHeight - zone.clientHeight);
     }
-    defilerAuCentre = false;
+    aPlacer = false;
   }
-  carte.image.addEventListener('load', () => { defilerAuCentre = true; dimensionner(); });
+  carte.image.addEventListener('load', () => { aPlacer = true; dimensionner(); });
   if (typeof ResizeObserver === 'function') new ResizeObserver(() => dimensionner()).observe(zone);
   else window.addEventListener('resize', dimensionner);
 
   return {
     /** Montre la vue (relue par lireVueUnivers). L'image arrive quand la bibliothèque a répondu ; sans elle, un message le dit. */
-    async montrer({ image, nom, points, grille }, affichage = {}) {
+    async montrer({ image, nom, points, grille }, affichage = {}, demande = { ...CENTRE, ordre: 0 }) {
       const moi = ++sequence;
       racine.hidden = false;
       $('orientation-table').classList.add('avec-univers');
       titre.hidden = !nom;
       titre.textContent = nom ?? '';
       const cle = `${image.source}:${image.id}:${affichage.mode}:${grille ? `${grille.case}/${grille.dx}/${grille.dy}` : ''}:${affichage.taille}`;
-      if (cle !== courante?.cle) defilerAuCentre = true;
+      if (cle !== courante?.cle || demande.x !== defilement.x || demande.y !== defilement.y || demande.ordre !== defilement.ordre) aPlacer = true; // sinon le doigt d'un joueur qui a fait défiler la carte n'est pas contredit
+      defilement = { x: demande.x, y: demande.y, ordre: demande.ordre };
       courante = { vue: { image, nom, points, grille }, affichage, cle };
       const donnees = { grille: grille ?? null, opacite: casesDeReglages(affichage) / 100, points: points.map((p) => ({ id: p.id, x: p.x, y: p.y, nom: p.nom ?? '' })), alt: nom ? `Carte : ${nom}` : 'Carte' };
       const refCle = `${image.source}:${image.id}`;

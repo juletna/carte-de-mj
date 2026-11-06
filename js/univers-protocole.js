@@ -30,11 +30,13 @@ export const decalerDefilement = (d, dx, dy, pas = PAS_DEFILEMENT) => bornerDefi
 export const positionDefilement = (fraction, course) => Math.round(borner01(fraction) * Math.max(0, Number.isFinite(course) ? course : 0));
 
 /** @param {{image:object, nom?:string, points:object[]}} vue  le résultat de vueDeLaTable() ; `defilement` : voir CENTRE */
-export const messageUnivers = (vue, affichage, defilement = CENTRE) => ({ type: TYPE_UNIVERS, vue, affichage, defilement: bornerDefilement(defilement) });
+export const messageUnivers = (vue, affichage, defilement = CENTRE, ordre = 0) => ({ type: TYPE_UNIVERS, vue, affichage, defilement: { ...bornerDefilement(defilement), ordre } });
+/** `ordre` : compteur de la régie, qui change à chaque commande de défilement (même « recentrer » deux fois de suite) ; entier positif, sinon 0. */
+const entierOrdre = (v) => (Number.isSafeInteger(v) && v > 0 ? v : 0);
 
 /**
  * Côté table : relit un message `univers-etat`. Un point mal formé est écarté ; une image invalide fait refuser le message.
- * @returns {{defilement:{x:number,y:number}, vue:{image:{source:string,id:string}, nom?:string, grille?:{case:number,dx:number,dy:number}, points:{id:string,x:number,y:number,nom?:string}[]}, affichage:object}|null}
+ * @returns {{defilement:{x:number,y:number,ordre:number}, vue:{image:{source:string,id:string}, nom?:string, grille?:{case:number,dx:number,dy:number}, points:{id:string,x:number,y:number,nom?:string}[]}, affichage:object}|null}
  */
 export function lireVueUnivers(m, affichageActuel) {
   if (!estObjet(m) || m.type !== TYPE_UNIVERS || !estObjet(m.vue) || !imageValide(m.vue.image)) return null;
@@ -45,5 +47,5 @@ export function lireVueUnivers(m, affichageActuel) {
   const grille = normaliserGrille(m.vue.grille);
   if (grille) vue.grille = grille;
   if (typeof m.vue.nom === 'string' && m.vue.nom) vue.nom = m.vue.nom.slice(0, LIMITES.nom);
-  return { vue, affichage: validerAffichage(m.affichage, affichageActuel), defilement: bornerDefilement(estObjet(m.defilement) ? m.defilement : CENTRE) };
+  return { vue, affichage: validerAffichage(m.affichage, affichageActuel), defilement: { ...bornerDefilement(estObjet(m.defilement) ? m.defilement : CENTRE), ordre: entierOrdre(estObjet(m.defilement) ? m.defilement.ordre : 0) } };
 }

@@ -34,7 +34,7 @@ export function demarrerTable() {
       if (!lu) return;
       recu = true;
       ecran.appliquer({ plan: null, mini: null, caseVisee: null, affichage: lu.affichage }, '');
-      universTable.montrer(lu.vue, lu.affichage);
+      universTable.montrer(lu.vue, lu.affichage, lu.defilement);
     } else if (m.type === MESSAGES.ETAT) {
       universTable.masquer();
       recu = true;
