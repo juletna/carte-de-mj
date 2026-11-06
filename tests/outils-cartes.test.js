@@ -1,13 +1,13 @@
 /**
  * Tests des fonctions pures de outils/cartes/ : composition du prompt, format par niveau, validation et ajout d'une entrée du catalogue.
- * Le style est lu par `lire` (fichier du skill), sans API propre à Node.
+ * Le style est lu par `lire` (assets/styles-cartes/), sans API propre à Node.
  */
-import { composerPrompt, extraireSections, formatDuNiveau } from '../outils/cartes/prompt.js';
+import { composerPrompt, extraireSections, formatDuNiveau, promptACopier } from '../outils/cartes/prompt.js';
 import { validerEntree, ajouterAuCatalogue, catalogueVide } from '../outils/cartes/entree.js';
 import { NIVEAUX } from '../outils/cartes/vocabulaire.js';
 import { verifier, egal, executerSuite } from './mini-test.js';
 
-const STYLE = '.claude/skills/generer-carte/style/peint-v1.md';
+const STYLE = 'assets/styles-cartes/peint-v1.md';
 const entree = (o = {}) => ({ id: 'foret-01', titre: 'Forêt', fichier: 'cartes/foret-01.webp', largeur: 1024, hauteur: 1536, niveau: 'zone', milieux: ['foret'], tags: ['chemin'], description: 'Un chemin.', grille: { case: 51.2, dx: 0, dy: 0 }, ...o });
 
 export async function executer({ lire }) {
@@ -23,6 +23,12 @@ export async function executer({ lire }) {
       let leve = 0;
       for (const a of [{ niveau: 'lune', scene: 'x' }, { niveau: 'zone', scene: '  ' }]) { try { composerPrompt({ style, ...a }); } catch { leve++; } }
       egal(leve, 2, 'refus');
+    }],
+    ['prompt à copier : format en clair, cases pour un niveau à grille, aucune pour un monde', () => {
+      const z = promptACopier({ style, niveau: 'zone', scene: 'une clairière' });
+      verifier(z.startsWith(composerPrompt({ style, niveau: 'zone', scene: 'une clairière' })) && z.includes('1024 × 1536') && z.includes('20 × 30 squares'), 'zone');
+      const m = promptACopier({ style, niveau: 'monde', scene: 'un archipel' });
+      verifier(m.includes('1024 × 1536') && !m.includes('The picture covers'), 'monde');
     }],
     ['style : les sections attendues existent', () => {
       const s = extraireSections(style);

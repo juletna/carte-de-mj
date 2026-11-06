@@ -12,7 +12,7 @@ import { dossierBibliotheque } from './dossier.js';
 const racine = fileURLToPath(new URL('../../', import.meta.url));
 let bibliotheque; // <dépôt>/bibliotheque, ou CARTE_DE_MJ_BIBLIOTHEQUE (dossier de travail de l'appli)
 try { bibliotheque = dossierBibliotheque(racine, process.env); } catch (e) { console.error(e.message); process.exit(1); }
-const FICHIER_STYLE = (style) => path.join(racine, '.claude/skills/generer-carte/style', `${style}.md`);
+const FICHIER_STYLE = (style) => path.join(racine, 'assets/styles-cartes', `${style}.md`);
 const TYPES = { '.png': 'image/png', '.webp': 'image/webp', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg' };
 const MAX_REFERENCES = 3;
 
@@ -27,7 +27,7 @@ Options :
   --ref <image>         image de référence de style, répétable (png, webp, jpg)
   --sans-reference      ne pas utiliser bibliotheque/references/<style>/
   --format webp|png     format de sortie (défaut : webp)
-  --style <nom>         fichier de style du skill (défaut : peint-v1)
+  --style <nom>         fichier de style de assets/styles-cartes/ (défaut : peint-v1)
   --qualite <q>         qualité demandée à l'API (défaut : high)
   --essai               montre la requête et le prompt sans appeler l'API
   --help, -h            cette aide

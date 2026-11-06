@@ -14,7 +14,7 @@ Exemple de scénario qui a servi de cas concret : « Les Lanternes de Pré-Doré
 ## Les décisions de principe
 
 1. **Une seule skill côté MJ, un seul outil d'image.** Une skill `histoire` transforme un scénario en fichier « aventure » et sait générer les cartes manquantes,
-   en réutilisant `outils/cartes/generer.mjs` et `style/peint-v1.md` (pas de copie : le style ne doit exister qu'une fois). Générer une carte seule reste possible
+   en réutilisant `outils/cartes/generer.mjs` et `assets/styles-cartes/peint-v1.md` (pas de copie : le style ne doit exister qu'une fois). Générer une carte seule reste possible
    (`generer-carte` gardée ou ramenée à une section de la skill). Chaque image se valide à l'œil, une par une : elle coûte de l'argent.
 2. **Le Monde reste la racine ; une histoire est un calque.** Le monde possède lieux, points et donjons. Une histoire ne possède rien : elle renvoie à des lieux et
    à des donjons et peut en ajouter. Un monde peut porter plusieurs histoires ; deux histoires peuvent partager un lieu. Dans l'arbre : une branche « Histoires »

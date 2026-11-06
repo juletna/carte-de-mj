@@ -437,6 +437,7 @@ Choisir une carte image (monde, région, zone, localité, bâtiment, souterrain)
 
 - Essai : `node outils/demo-bibliotheque.mjs` (7 cartes SVG de démonstration, sans rien écraser), puis `python3 outils/serveur.py` et `bibliotheque.html`. La page affiche le catalogue et « Mes images » (`js/page-bibliotheque.js`).
 - Sans `bibliotheque/catalogue.json` (ou sur le site publié), la bibliothèque est vide avec un message ; l'import reste possible.
+- **Générer une carte** (onglet de `bibliotheque.html`, sans clé ni serveur) : le MJ choisit le niveau et décrit la scène ; la page compose le prompt du style peint (`assets/styles-cartes/peint-v1.md`, même composeur que le skill : `js/bibliotheque/prompt.js`, `promptACopier`), avec le format et le nombre de cases en clair. « Copier le prompt », coller dans ChatGPT ou un autre générateur d'images, puis « Importer l'image obtenue… » : l'image rejoint « Mes images » avec niveau, description, origine (`generee`, `peint-v1`) et grille déjà remplis (case = largeur réelle ÷ cases demandées, à caler ensuite dans l'atelier).
 - Interface pour les autres modules : `js/bibliotheque/index.js` (`choisirCarte`, `urlImage`, `infosImage`). Une carte se désigne par `{ source: 'bibliotheque' | 'navigateur', id }`, jamais par une URL. Format du catalogue : `docs/conception-univers.md`.
 
 ## Sauvegarder et restaurer tout

@@ -121,7 +121,7 @@ Recherche et filtres (session B) : filtre par `niveau`, par `milieux` (cumulable
 Rangé **dans le dépôt** (`.claude/skills/generer-carte/`) pour servir à tous : le projet est ouvert.
 
 - `SKILL.md` : le déroulé (demande du MJ → prompt → génération → validation par le MJ → tags → ajout au catalogue).
-- `style/peint-v1.md` : le bloc de style fixe et les règles d'échelle (taille d'image, nombre de cases, repères : une porte = 1 case,
+- `assets/styles-cartes/peint-v1.md` (sorti du skill le 6 novembre 2026 pour que la page Bibliothèque le lise aussi, onglet « Générer une carte ») : le bloc de style fixe et les règles d'échelle (taille d'image, nombre de cases, repères : une porte = 1 case,
   une table = 1 × 2 cases, un arbre adulte = 2 à 3 cases). Une nouvelle version de style = un nouveau fichier, jamais une réécriture.
 - Les images de référence **validées par le MJ** (avec leur prompt) vont dans `bibliotheque/references/<style>/`, donc **hors de git** :
   chacun constitue les siennes, en bonne qualité. Le skill les donne au générateur comme point de départ du style et sait démarrer

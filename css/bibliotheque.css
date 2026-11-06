@@ -76,3 +76,19 @@ dialog.bib .btn-danger.danger, #bibliotheque .btn-danger.danger { background: va
 @media (max-width: 760px) {
   .bib-tuile { min-height: 44px; }
 }
+
+/* Page Bibliothèque, onglet « Générer une carte » (js/page-bibliotheque.js) : trois étapes, du texte au prompt à copier puis à l'import. */
+#bibliotheque [hidden] { display: none; }
+.bib-generer { display: flex; flex-direction: column; gap: var(--esp-3); max-width: 720px; }
+.bib-etape { display: flex; flex-direction: column; gap: 5px; padding: var(--esp-3) var(--esp-4) var(--esp-4); border: 1px solid var(--bord); border-radius: var(--rayon); background: var(--panneau); }
+.bib-etape h2 { margin: 0 0 var(--esp-2); font-size: 15px; font-weight: 650; color: var(--p-texte-1); }
+.bib-etape label, .bib-formulaire label { font-size: 12.5px; color: var(--p-texte-3); margin-top: var(--esp-2); }
+.bib-etape label:first-of-type { margin-top: 0; }
+.bib-etape select, .bib-etape textarea, .bib-formulaire textarea {
+  background: var(--champ); color: var(--p-texte-1); border: 1px solid var(--bord); border-radius: var(--rayon);
+  padding: var(--esp-2) var(--esp-3); min-height: var(--cible); font: inherit; font-size: 14px; box-sizing: border-box; width: 100%; resize: vertical;
+}
+.bib-prompt { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px !important; line-height: 1.45; color: var(--p-texte-2) !important; }
+.bib-note { margin: 0; font-size: 12.5px; color: var(--p-texte-3); }
+.bib-note:empty { display: none; }
+.bib-etape .bib-actions { margin-top: var(--esp-2); }

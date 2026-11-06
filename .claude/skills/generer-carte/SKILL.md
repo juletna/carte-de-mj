@@ -5,12 +5,14 @@ description: Génère une carte illustrée (monde, région, zone, village, bâti
 
 # Générer une carte
 
-Tout est en français avec le MJ. Les prompts envoyés au générateur sont en anglais (déjà écrits dans `style/peint-v1.md`).
+Tout est en français avec le MJ. Les prompts envoyés au générateur sont en anglais (déjà écrits dans `assets/styles-cartes/peint-v1.md`, que la page Bibliothèque lit aussi).
 Les cartes et les images de référence vivent dans `bibliotheque/` à la racine, **ignoré par git** : n'y ajoute jamais rien à un commit.
 Si le MJ utilise le « dossier de travail » de l'appli (bouton Sauvegarde, voir le README), la bibliothèque peut vivre dans ce dossier : exporte
 `CARTE_DE_MJ_BIBLIOTHEQUE=/chemin/absolu/du/dossier/bibliotheque` avant les scripts `outils/cartes/*.mjs`, qui écrivent alors là (cartes, références,
 catalogue) au lieu de `<dépôt>/bibliotheque/`. Sans la variable, rien ne change. L'appli relit le catalogue du dossier au rechargement de la page.
 Claude ne dessine pas : `outils/cartes/generer.mjs` appelle l'API d'images (`gpt-image-1`).
+Sans clé ni Claude, le MJ peut faire la même chose dans l'appli : onglet « Générer une carte » de la Bibliothèque (prompt à copier dans ChatGPT, puis import).
+Si la clé est absente, rappelle-lui cette voie.
 
 ## Avant de commencer
 
@@ -23,7 +25,7 @@ Claude ne dessine pas : `outils/cartes/generer.mjs` appelle l'API d'images (`gpt
 
 1. **Comprendre la demande.** Il te faut le *niveau* (`monde`, `region`, `zone` = lieu extérieur à l'échelle des figurines, `localite` = village/ville/port,
    `batiment` = intérieur, `souterrain`) et la *scène*. Si le niveau manque, déduis-le (« une forêt avec des ruines » → `zone`) et dis-le ; ne pose une question
-   que si c'est vraiment ambigu. Un monde ou une région n'ont pas de grille ; les autres ont une grille demandée (voir `style/peint-v1.md`, section Format).
+   que si c'est vraiment ambigu. Un monde ou une région n'ont pas de grille ; les autres ont une grille demandée (voir `assets/styles-cartes/peint-v1.md`, section Format).
 2. **Écrire la scène** en anglais, concrète et à l'échelle : ce qu'il y a, où, en quelle taille (« a circular shrine 6 squares across in the east »,
    « a path 2 squares wide crossing from north to south »). Pas de texte, pas de personnages : le style les interdit déjà. Choisis un `id`
    (minuscules, chiffres, tirets, ex. `foret-ruines-01` ; si le fichier existe déjà, ajoute un suffixe).
@@ -39,7 +41,7 @@ Claude ne dessine pas : `outils/cartes/generer.mjs` appelle l'API d'images (`gpt
    pas de texte ni de personnages parasites ? bords nets ? Le MJ répond par : valider, relancer, varier, ou corriger.
    - **Relancer** : même commande avec un autre `id` (`-b`, `-c`). Les essais écartés restent sur le disque ; propose de les supprimer à la fin, ne les supprime pas sans accord.
    - **Varier** : garde la scène et change un point (saison, heure, état : « at night », « after a fire »), ou passe l'image validée en `--ref` pour une variante cohérente.
-   - **Corriger** : ajoute la correction à la scène (« no bridge », « bigger trees ») ; ne modifie pas `peint-v1.md`.
+   - **Corriger** : ajoute la correction à la scène (« no bridge », « bigger trees ») ; ne modifie pas `assets/styles-cartes/peint-v1.md`.
 6. **Proposer les métadonnées** une fois l'image validée, et laisser le MJ les corriger :
    - `titre` court en français ; `niveau` ; `milieux` (plusieurs, parmi `foret plaine montagne desert eau cote marais neige ville ruines souterrain`) ;
    - `tags` : 5 à 8 mots français (éléments visibles, ambiance, moment : `chemin`, `colonnes`, `sanctuaire`, `nuit`…) ;
@@ -71,5 +73,5 @@ Quand le MJ dit qu'une image validée est une bonne représentante du style (« 
 
 - Ne jamais afficher, écrire, journaliser ou committer `OPENAI_API_KEY` (pas de `echo $OPENAI_API_KEY`, pas de `env`).
 - Ne jamais committer le contenu de `bibliotheque/` (ignoré par git ; vérifie `git status` si un doute).
-- Ne pas modifier `style/peint-v1.md` pour un cas particulier : une nouvelle version de style est un nouveau fichier (`peint-v2.md`, `--style peint-v2`).
+- Ne pas modifier `assets/styles-cartes/peint-v1.md` pour un cas particulier : une nouvelle version de style est un nouveau fichier (`peint-v2.md`, `--style peint-v2`).
 - Ne pas toucher à `js/` : l'appli ne fait que lire la bibliothèque.

@@ -59,18 +59,21 @@ export function dimensions(blob) {
 const nouvelId = () => `img-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 
 /**
- * Importe un fichier image avec ses métadonnées { titre, niveau, milieux, tags, description }. Rend l'entrée rangée.
+ * Importe un fichier image avec ses métadonnées { titre, niveau, milieux, tags, description, origine }. Rend l'entrée rangée.
+ * `colonnes` (facultatif) : nombre de cases demandées sur la largeur (onglet « Générer une carte ») ; la grille en découle
+ * d'après la largeur réelle de l'image, que le générateur a pu changer.
  * Lève une Error au message lisible si le fichier ne convient pas ou si le rangement échoue.
  */
 export async function importerImage(fichier, meta = {}) {
   const type = typeImage(fichier);
   if (!type) throw new Error('format non pris en charge (webp, png, jpg ou svg)');
   if (fichier.size > TAILLE_MAX) throw new Error('image trop lourde (25 Mo au plus)');
-  const verif = validerCarte({ titre: meta.titre || fichier.name.replace(/\.[^.]+$/, ''), niveau: meta.niveau, milieux: meta.milieux, tags: meta.tags, description: meta.description }, { avecFichier: false });
+  const verif = validerCarte({ titre: meta.titre || fichier.name.replace(/\.[^.]+$/, ''), niveau: meta.niveau, milieux: meta.milieux, tags: meta.tags, description: meta.description, origine: meta.origine }, { avecFichier: false });
   if (verif.erreur) throw new Error(verif.erreur);
   const blob = fichier.slice(0, fichier.size, type);
   const { largeur, hauteur } = await dimensions(blob);
   const entree = { id: nouvelId(), nom: String(fichier.name).slice(0, 200), type, blob, largeur, hauteur, ajoute: new Date().toISOString(), ...verif.carte };
+  if (Number.isInteger(meta.colonnes) && meta.colonnes > 0) entree.grille = { case: Math.round((largeur / meta.colonnes) * 100) / 100, dx: 0, dy: 0 };
   await transaction('readwrite', (s) => s.add(entree));
   return entree;
 }

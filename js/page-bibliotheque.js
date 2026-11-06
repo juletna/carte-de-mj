@@ -1,6 +1,8 @@
 /**
  * Page « Bibliothèque » (bibliotheque.html) : les cartes du catalogue local (dossier bibliotheque/) et « Mes images »
  * (importées, gardées dans ce navigateur). Filtres, recherche, aperçu, crédit, import et suppression d'une image importée.
+ * Onglet « Générer une carte » : compose le prompt du style peint-v1 (assets/styles-cartes/) à copier dans un générateur
+ * d'images, puis importe l'image obtenue avec son niveau et sa grille déjà remplis. Sans clé ni serveur.
  * Elle réutilise js/bibliotheque/ (lecture du catalogue, vocabulaire, images).
  */
 import { h, deuxTemps, fichierChoisi } from './dom.js';
@@ -10,10 +12,14 @@ import { NIVEAUX, MILIEUX, NIVEAUX_AIDE, libelleNiveau, libelleMilieu } from './
 import { lireCatalogue } from './bibliotheque/index.js';
 import { urlBibliotheque } from './bibliotheque/source.js';
 import { importerImage, listerImages, supprimerImage } from './bibliotheque/images.js';
+import { promptACopier, extraireSections, formatDuNiveau } from './bibliotheque/prompt.js';
 
 
 const racine = document.getElementById('bibliotheque');
 const etat = { onglet: 'bibliotheque', niveau: '', milieux: new Set(), requete: '' };
+const STYLE = 'peint-v1';
+let style = null; // texte de assets/styles-cartes/peint-v1.md, ou une Error
+let preremplir = null; // métadonnées venues de l'onglet Générer pour le prochain import
 let catalogue = { cartes: [], avertissements: [], message: '' };
 let images = [];
 let erreurImages = '';
@@ -36,7 +42,7 @@ const puces = MILIEUX.map((m) => {
   return b;
 });
 
-const onglets = [['bibliotheque', 'Cartes du catalogue'], ['navigateur', 'Mes images']].map(([id, libelle]) => {
+const onglets = [['bibliotheque', 'Cartes du catalogue'], ['navigateur', 'Mes images'], ['generer', 'Générer une carte']].map(([id, libelle]) => {
   const b = h('button', { type: 'button', textContent: libelle, role: 'tab', id: `onglet-${id}`, 'aria-controls': 'bib-contenu' });
   b.addEventListener('click', () => { etat.onglet = id; choisi = null; dessiner(); });
   return [id, b];
@@ -44,7 +50,8 @@ const onglets = [['bibliotheque', 'Cartes du catalogue'], ['navigateur', 'Mes im
 const barreOnglets = h('div', { className: 'bib-onglets', role: 'tablist', 'aria-label': 'Origine des cartes' }, ...onglets.map(([, b]) => b));
 barreOnglets.addEventListener('keydown', (e) => {
   if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
-  etat.onglet = etat.onglet === 'bibliotheque' ? 'navigateur' : 'bibliotheque'; choisi = null; dessiner();
+  const ids = onglets.map(([id]) => id);
+  etat.onglet = ids[(ids.indexOf(etat.onglet) + (e.key === 'ArrowRight' ? 1 : ids.length - 1)) % ids.length]; choisi = null; dessiner();
   onglets.find(([id]) => id === etat.onglet)[1].focus();
 });
 
@@ -52,14 +59,73 @@ const zoneMessage = h('div', { className: 'bib-message', role: 'status' });
 const zoneImport = h('div', { className: 'bib-import' });
 const grille = h('div', { className: 'bib-grille', role: 'list' });
 const detail = h('div', { className: 'bib-detail', 'aria-live': 'polite' });
+const zoneFiltres = h('div', { className: 'bib-filtres' },
+  h('div', { className: 'bib-ligne' }, champRecherche, choixNiveau),
+  h('div', { className: 'bib-puces', role: 'group', 'aria-label': 'Milieux (cumulables)' }, ...puces));
+const corps = h('div', { className: 'bib-corps', id: 'bib-contenu', role: 'tabpanel' }, grille, detail);
+const zoneGenerer = h('div', { className: 'bib-generer', role: 'tabpanel', 'aria-labelledby': 'onglet-generer' });
 
-racine.append(
-  barreOnglets,
-  h('div', { className: 'bib-filtres' },
-    h('div', { className: 'bib-ligne' }, champRecherche, choixNiveau),
-    h('div', { className: 'bib-puces', role: 'group', 'aria-label': 'Milieux (cumulables)' }, ...puces)),
-  zoneMessage, zoneImport,
-  h('div', { className: 'bib-corps', id: 'bib-contenu', role: 'tabpanel' }, grille, detail));
+racine.append(barreOnglets, zoneFiltres, zoneMessage, zoneImport, corps, zoneGenerer);
+
+// --- Générer une carte : prompt à copier ---
+const genNiveau = h('select', { id: 'gen-niveau' }, ...NIVEAUX.map((n) => h('option', { value: n.id, textContent: `${n.libelle} (${NIVEAUX_AIDE[n.id]})` })));
+genNiveau.value = 'zone';
+const genScene = h('textarea', { id: 'gen-scene', rows: 4, maxLength: 2000, placeholder: 'Une clairière dans une forêt de chênes, avec un petit sanctuaire en ruine de 6 cases à l’est et un chemin de 2 cases qui la traverse du nord au sud.' });
+const genGrille = h('p', { className: 'bib-note' });
+const genPrompt = h('textarea', { id: 'gen-prompt', rows: 10, readOnly: true, className: 'bib-prompt' });
+const genEtat = h('p', { className: 'bib-note', role: 'status' });
+const copier = btn('Copier le prompt', async () => {
+  try { await navigator.clipboard.writeText(genPrompt.value); genEtat.textContent = 'Copié. Colle-le dans ChatGPT ou un autre générateur d’images.'; }
+  catch { genPrompt.select(); genEtat.textContent = 'Copie refusée par le navigateur : le prompt est sélectionné, copie-le au clavier.'; }
+}, { icone: 'copier', classe: 'btn-primaire' });
+const entreeGen = h('input', { type: 'file', accept: '.webp,.png,.jpg,.jpeg,image/webp,image/png,image/jpeg', hidden: true });
+entreeGen.addEventListener('change', (e) => {
+  const f = fichierChoisi(e);
+  if (!f) return;
+  const format = style instanceof Error || !style ? null : formatDuNiveau(extraireSections(style), genNiveau.value);
+  preremplir = {
+    niveau: genNiveau.value, description: genScene.value.trim().slice(0, 600), colonnes: format?.grille?.colonnes,
+    origine: { type: 'generee', style: STYLE, le: new Date().toISOString().slice(0, 10) },
+  };
+  etat.onglet = 'navigateur'; choisi = null; dessiner(); ouvrirFormulaire(f);
+});
+const importerGen = btn('Importer l’image obtenue…', () => entreeGen.click(), { icone: 'importer' });
+
+function majPrompt() {
+  const scene = genScene.value.trim();
+  copier.disabled = true;
+  if (!style) { genPrompt.value = ''; genGrille.textContent = 'Chargement du style…'; return; }
+  if (style instanceof Error) { genPrompt.value = ''; genGrille.textContent = `Le style n’a pas pu être lu (${style.message}). Ouvre l’appli par « python3 outils/serveur.py » ou depuis le site.`; return; }
+  const g = formatDuNiveau(extraireSections(style), genNiveau.value).grille;
+  genGrille.textContent = g ? `Grille demandée : ${g.colonnes} × ${g.lignes} cases (une case = 1,5 m). Elle sera posée à l’import.` : 'Pas de grille à ce niveau.';
+  if (!scene) { genPrompt.value = ''; genPrompt.placeholder = 'Décris la carte pour voir le prompt.'; return; }
+  genPrompt.value = promptACopier({ style, niveau: genNiveau.value, scene });
+  copier.disabled = false;
+}
+genNiveau.addEventListener('change', () => { genEtat.textContent = ''; majPrompt(); });
+genScene.addEventListener('input', () => { genEtat.textContent = ''; majPrompt(); });
+
+zoneGenerer.append(
+  h('section', { className: 'bib-etape' },
+    h('h2', { textContent: '1. Décrire la carte' }),
+    h('label', { htmlFor: 'gen-niveau', textContent: 'Niveau' }), genNiveau, genGrille,
+    h('label', { htmlFor: 'gen-scene', textContent: 'Scène' }), genScene,
+    h('p', { className: 'bib-note', textContent: 'En français ou en anglais. Dis ce qu’il y a, où, et en quelle taille : une porte fait 1 case, un arbre 2 à 3, un chemin 2. Pas besoin de demander l’absence de texte ou de personnages : le style s’en charge.' })),
+  h('section', { className: 'bib-etape' },
+    h('h2', { textContent: '2. Copier le prompt' }),
+    h('label', { htmlFor: 'gen-prompt', textContent: 'Prompt (style peint, en anglais)' }), genPrompt,
+    h('div', { className: 'bib-actions' }, copier), genEtat,
+    h('p', { className: 'bib-note', textContent: 'Colle-le dans ChatGPT (ou un autre générateur d’images). Pour garder le même style d’une carte à l’autre, joins aussi une de tes cartes réussies comme image de référence.' })),
+  h('section', { className: 'bib-etape' },
+    h('h2', { textContent: '3. Importer l’image' }),
+    h('p', { className: 'bib-note', textContent: 'Télécharge l’image obtenue puis importe-la : elle rejoint « Mes images » avec son niveau, sa description et sa grille déjà remplis.' }),
+    h('div', { className: 'bib-actions' }, importerGen, entreeGen)));
+
+fetch(`assets/styles-cartes/${STYLE}.md`)
+  .then((r) => { if (!r.ok) throw new Error(`erreur ${r.status}`); return r.text(); })
+  .then((t) => { style = t; }, (e) => { style = e instanceof Error ? e : new Error(String(e)); })
+  .finally(majPrompt);
+majPrompt();
 
 function tuile(entree, ref, url) {
   const img = h('img', { src: url, alt: '', loading: 'lazy' });
@@ -129,9 +195,11 @@ function dessinerImport() {
 }
 
 function ouvrirFormulaire(fichier) {
+  const pre = preremplir; preremplir = null;
   const nom = h('input', { type: 'text', value: fichier.name.replace(/\.[^.]+$/, '').slice(0, 120), maxLength: 120, id: 'bib-f-titre' });
   const niveau = h('select', { id: 'bib-f-niveau' }, ...NIVEAUX.map((n) => h('option', { value: n.id, textContent: n.libelle })));
-  niveau.value = etat.niveau || 'zone';
+  niveau.value = pre?.niveau || etat.niveau || 'zone';
+  const description = h('textarea', { rows: 2, maxLength: 600, id: 'bib-f-description', value: pre?.description ?? '' });
   const tags = h('input', { type: 'text', placeholder: 'tags séparés par des virgules', id: 'bib-f-tags' });
   const milieux = MILIEUX.map((m) => h('label', { className: 'bib-case' }, h('input', { type: 'checkbox', value: m.id }), ` ${m.libelle}`));
   const erreur = h('p', { className: 'bib-erreur', role: 'alert' });
@@ -141,7 +209,8 @@ function ouvrirFormulaire(fichier) {
     try {
       const e = await importerImage(fichier, {
         titre: nom.value, niveau: niveau.value, tags: tags.value.split(',').map((t) => t.trim()).filter(Boolean),
-        milieux: milieux.filter((l) => l.firstChild.checked).map((l) => l.firstChild.value),
+        milieux: milieux.filter((l) => l.firstChild.checked).map((l) => l.firstChild.value), description: description.value,
+        ...(pre && niveau.value === pre.niveau ? { colonnes: pre.colonnes } : {}), ...(pre ? { origine: pre.origine } : {}),
       });
       await recharger();
       choisi = { ref: { source: 'navigateur', id: e.id }, entree: images.find((i) => i.id === e.id) ?? e, url: urlDepuisBlob(e) };
@@ -154,6 +223,8 @@ function ouvrirFormulaire(fichier) {
     h('label', { htmlFor: 'bib-f-niveau', textContent: 'Niveau' }), niveau,
     h('fieldset', {}, h('legend', { textContent: 'Milieux' }), h('div', { className: 'bib-cases' }, ...milieux)),
     h('label', { htmlFor: 'bib-f-tags', textContent: 'Tags' }), tags,
+    h('label', { htmlFor: 'bib-f-description', textContent: 'Description' }), description,
+    ...(pre?.colonnes && niveau.value === pre.niveau ? [h('p', { className: 'bib-note', textContent: `Grille posée : ${pre.colonnes} cases sur la largeur (à caler ensuite dans l’atelier si besoin).` })] : []),
     erreur, h('div', { className: 'bib-actions' }, ajouter, btn('Annuler l’import', () => dessinerImport(), { classe: 'btn-discret' }))));
   nom.focus(); nom.select();
 }
@@ -165,7 +236,11 @@ async function recharger() {
 
 function dessiner() {
   for (const [id, b] of onglets) { b.setAttribute('aria-selected', String(id === etat.onglet)); b.tabIndex = id === etat.onglet ? 0 : -1; }
+  const generer = etat.onglet === 'generer';
+  zoneGenerer.hidden = !generer;
+  for (const z of [zoneFiltres, zoneMessage, corps]) z.hidden = generer;
   dessinerImport();
+  if (generer) return;
   dessinerListe();
 }
 

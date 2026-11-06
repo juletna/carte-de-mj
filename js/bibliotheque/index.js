@@ -14,7 +14,7 @@ import { importerImage, listerImages, lireImage, supprimerImage } from './images
 import { lireFichierBibliotheque, urlBibliotheque } from './source.js';
 
 const DOSSIER = 'bibliotheque/';
-const COMMENT_REMPLIR = 'Pour la remplir : lance la génération avec le skill « generer-carte » de Claude Code, ou, pour essayer, « node outils/demo-bibliotheque.mjs » depuis la racine du projet. Tu peux aussi importer tes propres images dans « Mes images », ou choisir un dossier de travail (bouton « Sauvegarde ») qui contient un sous-dossier bibliotheque/.';
+const COMMENT_REMPLIR = 'Pour la remplir : compose un prompt dans l’onglet « Générer une carte » de la page Bibliothèque et importe l’image obtenue dans « Mes images », ou lance la génération avec le skill « generer-carte » de Claude Code, ou, pour essayer, « node outils/demo-bibliotheque.mjs » depuis la racine du projet. Tu peux aussi importer d’autres images dans « Mes images », ou choisir un dossier de travail (bouton « Sauvegarde ») qui contient un sous-dossier bibliotheque/.';
 
 let catalogueEnCours;
 function chargerCatalogue(rafraichir = false) {
