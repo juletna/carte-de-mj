@@ -100,37 +100,14 @@ export function creerCarteUnivers(parent, { onPoint, onVide, onDeplace } = {}) {
     return b;
   }
 
-  /**
-   * Le champ du nom posé sur la carte, à droite du point (là où sera son étiquette) : on nomme un point neuf sans quitter la carte des yeux.
-   * Entrée ou Échap le ferment (`surFin('entree' | 'echap')`), quitter le champ aussi (`surFin('sortie')`) ; chaque frappe passe par `surTape`.
-   * Un champ retiré par un redessin (la carte se reconstruit) ne finit rien : son remplaçant prend la suite.
-   */
-  function champNom(p, { valeur = '', libelle = 'Nom du point', surTape, surFin }) {
-    const champ = h('input', { type: 'text', className: `univers-nom-carte${p.x > 0.55 ? ' a-gauche' : ''}`, value: valeur, maxLength: 80, spellcheck: false, placeholder: libelle, 'aria-label': libelle, autocomplete: 'off' });
-    champ.style.left = `${p.x * 100}%`;
-    champ.style.top = `${p.y * 100}%`;
-    let fini = false;
-    const finir = (comment) => { if (fini) return; fini = true; surFin?.(comment); };
-    champ.addEventListener('input', () => surTape?.(champ.value));
-    champ.addEventListener('keydown', (e) => {
-      if (e.key !== 'Enter' && e.key !== 'Escape') return;
-      e.preventDefault(); e.stopPropagation();
-      finir(e.key === 'Enter' ? 'entree' : 'echap');
-    });
-    champ.addEventListener('blur', () => setTimeout(() => { if (champ.isConnected && document.activeElement !== champ) finir('sortie'); }, 0));
-    for (const t of ['pointerdown', 'click']) champ.addEventListener(t, (e) => e.stopPropagation()); // un clic dans le champ ne pose pas de point
-    return champ;
-  }
-
   return {
     /**
      * @param {{url:string|null, alt?:string, absente?:string, points:{id:string,x:number,y:number,nom?:string,titre?:string,aria?:string,classes?:string[],selectionne?:boolean}[], modifiable?:boolean, arme?:boolean}} o
      * `grille` : { case, dx, dy } en pixels de l'image (js/univers-grille.js), tracée avec l'opacité `opacite` (0 à 1, le réglage « Cases »).
      * `poser` : un clic dans une zone vide appelle `onVide` (poser un point, dans le Monde) ; `arme` fait de même, avec un cadre en pointillés.
-     * `nomEnCours` : { id, valeur?, libelle?, surTape(texte), surFin(comment) } : un champ de nom sur la carte, à côté de ce point (voir `champNom`).
      * `url` null : l'image n'existe plus (ou la bibliothèque manque) ; `absente` dit pourquoi, les points restent posés.
      */
-    afficher({ url, alt = '', absente = 'Image introuvable.', points, modifiable = false, arme = false, poser = false, grille = null, opacite = 0.4, nomEnCours = null }) {
+    afficher({ url, alt = '', absente = 'Image introuvable.', points, modifiable = false, arme = false, poser = false, grille = null, opacite = 0.4 }) {
       etat = { modifiable, arme, poser };
       grilleAffichee = { grille, opacite };
       cadre.classList.toggle('arme', arme);
@@ -140,15 +117,7 @@ export function creerCarteUnivers(parent, { onPoint, onVide, onDeplace } = {}) {
       dessinerGrille();
       manque.hidden = !!url;
       manque.textContent = absente;
-      const enCours = nomEnCours && points.find((p) => p.id === nomEnCours.id);
-      const avaitFocus = couche.contains(document.activeElement) && document.activeElement.classList.contains('univers-nom-carte');
-      const champ = enCours ? champNom(enCours, nomEnCours) : null;
-      couche.replaceChildren(...points.map((p) => marqueur(p === enCours ? { ...p, nom: '' } : p, modifiable)), ...(champ ? [champ] : []));
-      if (champ) {
-        champ.focus({ preventScroll: true });
-        if (!avaitFocus) champ.select();
-        else champ.setSelectionRange(champ.value.length, champ.value.length);
-      }
+      couche.replaceChildren(...points.map((p) => marqueur(p, modifiable)));
     },
     cadre,
     image: img,
@@ -162,6 +131,8 @@ export function creerCarteUnivers(parent, { onPoint, onVide, onDeplace } = {}) {
       if (!r.width || !r.height || !img.naturalWidth) return null;
       return { x: Math.min(img.naturalWidth, Math.max(0, ((e.clientX - r.left) / r.width) * img.naturalWidth)), y: Math.min(img.naturalHeight, Math.max(0, ((e.clientY - r.top) / r.height) * img.naturalHeight)) };
     },
+    /** Le bouton d'un point (pour y accrocher une bulle), ou null. */
+    marqueur: (idPoint) => couche.querySelector(`[data-id="${CSS.escape(idPoint)}"]`),
     focaliser(idPoint) { couche.querySelector(`[data-id="${CSS.escape(idPoint)}"]`)?.focus(); },
   };
 }

@@ -24,7 +24,6 @@ import { resumeTailleLieu } from './dimensions.js';
 import { chargerReglages } from '../stockage.js';
 import { vignetteLieu } from './vignette-lieu.js';
 import { creerSection } from './section.js';
-import { creerListe } from './liste.js';
 
 const NOUVELLE_CARTE = '__nouvelle-carte__';
 export { vignetteLieu };
@@ -151,9 +150,8 @@ export function enregistrerInspecteursMonde(coquille, U) {
     },
   });
 
-  /** Le corps d'un lieu, et de la carte du monde dans le panneau du monde : orphelins, points, notes, carte (départ de la partie, grille, image). */
+  /** Le corps d'un lieu, et de la carte du monde dans le panneau du monde : orphelins, notes, carte (départ de la partie, grille, image). */
   function contenuCarte(conteneur, u, l) {
-    const orph = modele.orphelins(u, U.donjons()).filter((o) => o.lieu === l.id);
     const notes = avecCle(h('textarea', { rows: 3, maxLength: 20000, value: l.notes, spellcheck: true, placeholder: 'Ce que les joueurs savent, ce qui se cache ici…', 'aria-label': 'Notes du lieu' }), 'lieu-notes');
     notes.addEventListener('change', () => U.notesDuLieu(notes.value));
     const departCoche = avecCle(h('input', { type: 'checkbox', checked: modele.lieuDeDepart(u) === l.id, role: 'switch' }), 'lieu-depart');
@@ -167,40 +165,28 @@ export function enregistrerInspecteursMonde(coquille, U) {
     const etatGrille = { lieu: `Grille calée : cases de ${taille} px`, catalogue: `Grille du catalogue : cases de ${taille} px`, aucune: 'Pas de grille', ambiance: 'Carte d’ambiance, sans grille' }[eff.origine];
     const peutCaler = !!l.image && (!info || calagePossible(info.niveau));
     conteneur.append(
-      ...(orph.length ? [h('p', { className: 'note erreur' }, icone('alerte'), ` ${pluriel(orph.length, 'point mène', 'points mènent')} vers une destination qui n’existe plus : ils sont signalés, rien n’a été retiré.`)] : []),
-      listePoints(u, l),
+      ...alerteOrphelins(l),
       section('lieu-notes', 'Notes', [notes]),
       section('lieu-carte', 'Carte', [
         depart,
         ...(!l.image ? [h('p', { className: 'note', textContent: 'Pas d’image pour l’instant : un fond neutre tient lieu de carte. Les points posés gardent leur place quand l’image arrive.' })] : []),
         ...(peutCaler ? [h('div', { className: 'ligne' }, h('span', { className: 'univers-etat-grille doux', textContent: etatGrille }), avecCle(btn('Caler la grille', () => U.definirMode('grille'), { icone: 'grille', classe: 'btn-discret' }), 'caler'))] : []),
-        h('div', { className: 'actions' }, btn(l.image ? 'Changer l’image' : 'Choisir une image', () => U.changerImage(), { icone: 'bibliotheque', classe: 'btn-discret' }))]));
+        h('div', { className: 'actions' }, btn(l.image ? 'Changer l’image' : 'Choisir une image', () => U.changerImage(), { icone: 'bibliotheque', classe: 'btn-discret' }),
+          // Pour le clavier (la souris pose un point d'un clic sur la carte) : un point au centre, sa bulle ouverte sur son nom.
+          btn('Point au centre', () => U.poserPoint(0.5, 0.5), { icone: 'point', classe: 'btn-discret', titre: 'Pose un point au centre de la carte (au clavier) ; à la souris, clique sur la carte' }))]));
     retrouverFocus();
   }
 
-  function listePoints(u, l) {
-    const choisi = U.pointId();
-    const ICONE_GENRE = { carte: 'monde', donjon: 'donjon', '': 'point' };
-    const rangees = l.points.map((p) => {
-      const orph = U.orphelinDe(p);
-      const dest = modele.nomDestination(u, p.vers, U.donjons());
-      return {
-        nom: p.nom, vide: 'Point sans nom', choisie: p.id === choisi,
-        icone: orph ? 'alerte' : p.cache ? 'oeil-barre' : ICONE_GENRE[genreDestination(p.vers)],
-        alerte: !!orph,
-        detail: p.vers ? ['vers ', { fort: dest }, ...(orph ? [` (${orph})`] : [])] : dest,
-        titre: [orph, p.cache ? 'Caché à la table' : ''].filter(Boolean).join(' · ') || undefined,
-        surChoix: () => U.selectionnerPoint(p.id),
-      };
-    });
-    return section('lieu-points', 'Points', [
-      rangees.length
-        ? creerListe(rangees)
-        : h('p', { className: 'note', textContent: 'Aucun point : clique sur la carte pour en poser un.' })], {
-      compte: l.points.length || null,
-      aide: 'Clique sur une zone vide de la carte : un point s’y pose et son nom se tape juste à côté (Entrée, puis clique le suivant). Choisis ensuite où il mène dans ce panneau. Clique sur un point pour rouvrir son panneau, double-clique pour entrer. Glisse un point, ou utilise les flèches du clavier, pour le déplacer. Échap lâche le point, Suppr l’efface (« Annuler » le remet).',
-      action: { libelle: 'Poser un point au centre de la carte', icone: 'plus', executer: () => U.poserPoint(0.5, 0.5, { surCarte: false }) },
-    });
+  /**
+   * Les points de la carte ne sont plus listés ici : la carte les montre, et chacun se règle dans sa bulle. Le panneau ne garde que ce que la
+   * carte ne dit pas : les points dont la destination n'existe plus, chacun cliquable (sa bulle s'ouvre).
+   */
+  function alerteOrphelins(l) {
+    const orph = l.points.filter((p) => U.orphelinDe(p));
+    if (!orph.length) return [];
+    return [h('div', { className: 'note erreur univers-orphelins' },
+      h('p', {}, icone('alerte'), ` ${pluriel(orph.length, 'point mène', 'points mènent')} vers une destination qui n’existe plus (rien n’a été retiré) :`),
+      h('div', { className: 'actions' }, ...orph.map((p) => btn(p.nom || 'Point sans nom', () => U.selectionnerPoint(p.id), { classe: 'btn-discret', titre: U.orphelinDe(p) }))))];
   }
 
   // --- Point -----------------------------------------------------------------------------------------------------------------
@@ -218,7 +204,7 @@ export function enregistrerInspecteursMonde(coquille, U) {
       return b;
     };
     const segments = h('div', { className: 'univers-segment', role: 'group', 'aria-label': 'Où mène ce point' },
-      choisir('carte', 'Carte', 'g-carte', () => { if (genre !== 'carte') { U.saisie.choixGenre = 'carte'; U.saisie.cle = 'g-carte'; redessiner(); } }),
+      choisir('carte', 'Carte', 'g-carte', () => { if (genre !== 'carte') { U.saisie.choixGenre = 'carte'; U.saisie.cle = 'g-carte'; U.rendre(); } }), // la bulle et le panneau bas suivent
       choisir('donjon', 'Donjon', 'g-donjon', () => {
         if (genre === 'donjon') return;
         const d = Object.values(donjons)[0];
@@ -286,16 +272,43 @@ export function enregistrerInspecteursMonde(coquille, U) {
       const u = mondeDe(sel, c);
       const p = U.pointCourant();
       if (!u || !p || p.id !== sel.id) { conteneur.append(soustitre('Ce point n’existe plus.')); return; }
-      const orph = U.orphelinDe(p);
-      const cache = avecCle(h('input', { type: 'checkbox', checked: !!p.cache, role: 'switch' }), 'cache');
-      cache.addEventListener('change', () => { U.modifierPoint({ cache: cache.checked }); U.saisie.cle = 'cache'; U.rendre(); });
-      const interrupteur = h('label', { className: 'univers-interrupteur', title: 'Caché : le point n’apparaît à la table qu’une fois révélé en jeu' }, cache, h('span', { className: 'univers-glissiere', 'aria-hidden': 'true' }),
-        h('span', { textContent: p.cache ? 'Caché' : 'Visible' }));
       conteneur.append(
         section('point-destination', 'Destination', destination(p, u)),
-        ...(orph ? [h('p', { className: 'note erreur' }, icone('alerte'), ` Destination perdue : ${orph}. Choisis-en une autre ; rien n’a été retiré.`)] : []),
-        section('point-table', 'À la table', [interrupteur]));
+        ...noteOrphelin(p),
+        section('point-table', 'À la table', [interrupteur(p)]));
       retrouverFocus();
     },
+  });
+
+  /** Visible / Caché à la table (panneau bas et bulle). */
+  function interrupteur(p) {
+    const cache = avecCle(h('input', { type: 'checkbox', checked: !!p.cache, role: 'switch' }), 'cache');
+    cache.addEventListener('change', () => { U.modifierPoint({ cache: cache.checked }); U.saisie.cle = 'cache'; U.rendre(); });
+    return h('label', { className: 'univers-interrupteur', title: 'Caché : le point n’apparaît à la table qu’une fois révélé en jeu' }, cache, h('span', { className: 'univers-glissiere', 'aria-hidden': 'true' }),
+      h('span', { textContent: p.cache ? 'Caché' : 'Visible' }));
+  }
+  function noteOrphelin(p) {
+    const orph = U.orphelinDe(p);
+    return orph ? [h('p', { className: 'note erreur' }, icone('alerte'), ` Destination perdue : ${orph}. Choisis-en une autre ; rien n’a été retiré.`)] : [];
+  }
+
+  // --- La bulle d'un point, sur la carte (ordinateur) : tout ce qui le concerne, sans toucher au panneau -------------------------------
+  // Le nom en tête (Entrée : fini, on peut cliquer le point suivant), la destination, Visible / Caché, puis Entrer et Supprimer.
+  U.definirBulle((conteneur, p, u) => {
+    const nom = avecCle(h('input', { type: 'text', className: 'univers-bulle-nom', value: p.nom, maxLength: 80, spellcheck: false, autocomplete: 'off', placeholder: 'Nom du point', 'aria-label': 'Nom du point' }), 'nom');
+    nom.addEventListener('input', () => U.nommerPoint(nom.value));
+    nom.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); U.fermerBulle(); } });
+    const fermer = btn('Fermer', () => U.fermerBulle(), { icone: 'fermer', iconeSeule: true, classe: 'btn-discret', titre: 'Fermer (Échap)' });
+    const supprimer = btn('Supprimer', () => U.supprimerPoint(), { icone: 'supprimer', classe: 'btn-discret univers-bulle-supprimer', titre: 'Supprime ce point (Suppr) ; « Annuler » le remet' });
+    conteneur.append(
+      h('div', { className: 'univers-bulle-tete' }, nom, fermer),
+      h('div', { className: 'univers-bulle-corps' },
+        h('p', { className: 'univers-bulle-titre', textContent: 'Mène vers' }),
+        ...destination(p, u),
+        ...noteOrphelin(p),
+        interrupteur(p)),
+      h('div', { className: 'univers-bulle-pied' },
+        ...(p.vers ? [btn('Entrer', () => U.entrerDansPoint(), { classe: 'btn-discret', titre: 'Va à la destination (double-clic sur le point : même chose)' })] : []),
+        supprimer));
   });
 }

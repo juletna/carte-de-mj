@@ -26,15 +26,16 @@ export function inscrireMonde(coquille, ctx) {
   enregistrerInspecteursMonde(coquille, U);
   creerBarreLieu(coquille, U);
 
-  // --- Le point choisi est la sélection commune ----------------------------------------------------------------------
+  // --- Le point choisi : sa bulle sur ordinateur, la sélection commune (le panneau bas) sous 760 px -------------------------
   const contexte = () => ({ monde: U.donnees().actif, lieu: U.lieu() });
   /** La sélection du lieu affiché : le monde si c'est sa carte (le nœud monde la porte), sinon le lieu. */
   const selectionDuLieu = () => {
     const monde = U.donnees().actif;
     return U.lieu() === carteDuMonde(U.monde()) ? selection('monde', monde, { monde }) : selection('lieu', U.lieu(), contexte());
   };
+  // Sur ordinateur, le point se règle dans sa bulle, sur la carte : le panneau garde le lieu (ou le monde) et ne bouge pas.
   U.surPoint((id) => {
-    if (id) coquille.selectionner(selection('point', id, contexte()));
+    if (id && telephone()) coquille.selectionner(selection('point', id, contexte()));
     else if (coquille.selection()?.type === 'point' && U.lieu()) coquille.selectionner(selectionDuLieu());
   });
   /** Sous 760 px, choisir un point sur la carte déplie le panneau bas (replié, il ne montrerait que son titre). */

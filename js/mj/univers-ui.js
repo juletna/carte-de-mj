@@ -9,10 +9,12 @@
  * stockage et le format de fichier gardent le mot « univers » (compatibilité) ; seul ce qui s'affiche dit « monde ».
  * Rien ici ne retire une destination en silence : un lieu ou un donjon supprimé laisse des points orphelins, signalés.
  *
- * La carte n'a pas d'outil à choisir pour ses points (`mode()` : 'carte') : un clic dans le vide pose un point et ouvre, à côté de lui, un champ
- * pour son nom (Entrée : fini, on peut cliquer le suivant) ; un clic sur un point le choisit, le glisser le déplace, Échap le lâche, Suppr le
- * supprime (« Annuler » le remet). Seul le calage de la grille est un mode ('grille', actif tant que `calage.actif()`).
- * Le point choisi est une sélection commune de la coquille (type 'point') : `surPoint(f)` prévient l'atelier, `synchroniser(sel)` le contraire.
+ * La carte n'a pas d'outil à choisir pour ses points (`mode()` : 'carte') : un clic dans le vide pose un point et ouvre sa bulle, accrochée à lui,
+ * le nom prêt à taper (Entrée : fini ; pendant qu'on enchaîne des points neufs, le clic suivant pose le suivant) ; un clic sur un point ouvre sa
+ * bulle (nom, destination, visible, Entrer, Supprimer ; contenu fourni par `definirBulle`), le glisser le déplace, Échap ferme la bulle, Suppr
+ * supprime le point (« Annuler » le remet). Le panneau de droite ne change donc pas quand on choisit un point. Seul le calage est un mode.
+ * Sous 760 px, pas de bulle : le point choisi devient la sélection commune de la coquille (type 'point', le panneau bas) ; `surPoint(f)`
+ * prévient l'atelier, `synchroniser(sel)` le contraire. Le fil d'Ariane n'apparaît qu'à partir de deux niveaux (`filAriane`, rangé dans la barre).
  */
 import * as stockage from '../stockage.js';
 import * as modele from '../univers.js';
@@ -29,6 +31,7 @@ import { calagePossible, nomDuNouveauLieu } from '../univers-vue.js';
 import { $, h, fichierChoisi } from '../dom.js';
 import { pluriel, sansAccents } from '../format.js';
 import { telephone } from '../telephone.js';
+import { positionBulle } from '../mise-en-page.js';
 
 const TAILLE_MAX_FICHIER = 5 * 1024 * 1024;
 const DELAI_DOUBLE_CLIC = 450;
@@ -40,8 +43,9 @@ export function creerUniversUI(ctx) {
   let lieuId = null;        // lieu affiché
   let fil = [];             // lieux traversés pour y arriver (fil d'Ariane), lieu affiché compris
   let pointId = null;       // point choisi (son inspecteur est ouvert)
-  let nomSurCarte = null;   // le point neuf qu'on nomme dans le champ posé sur la carte (null : aucun)
+  let pointNeuf = null;     // le point qu'on vient de poser : tant que sa bulle est ouverte, un clic dans le vide pose le suivant
   let focusApres = null;    // le point à qui rendre le focus clavier au prochain dessin de la carte
+  let contenuBulle = null;  // (conteneur, point, univers) → remplit la bulle d'un point (js/atelier/inspecteurs-monde.js, `definirBulle`)
   let sequence = 0;         // pour ignorer une URL d'image qui arrive après un changement de lieu
   let retraits = [];        // lieux retirés, pour « Annuler »
   let dernierClic = { id: null, t: 0 };
@@ -65,7 +69,10 @@ export function creerUniversUI(ctx) {
   const filAriane = h('nav', { className: 'univers-fil', 'aria-label': 'Fil d’Ariane' });
   const zoneCarte = h('div', { className: 'univers-zone-carte' });
   const vide = h('div', { className: 'univers-vide', hidden: true });
-  const scene = h('section', { className: 'univers-scene', id: 'scene-monde', 'aria-label': 'Carte du lieu', hidden: true }, filAriane, zoneCarte, vide, zoneNotifications);
+  // La bulle du point choisi, accrochée à lui sur la carte (sur ordinateur ; sous 760 px, le panneau bas fait ce travail).
+  const bulle = h('div', { className: 'univers-bulle', role: 'dialog', 'aria-label': 'Point de la carte', hidden: true });
+  bulle.addEventListener('focusin', (e) => { if (e.target.dataset?.cle) saisie.cle = e.target.dataset.cle; });
+  const scene = h('section', { className: 'univers-scene', id: 'scene-monde', 'aria-label': 'Carte du lieu', hidden: true }, filAriane, zoneCarte, vide, bulle, zoneNotifications);
   $('cadre-scene').append(scene);
 
   // Lieu sans image : sur son fond neutre, un seul bouton pour y poser l'image (les points se posent et se relient comme sur n'importe quelle carte).
@@ -77,14 +84,23 @@ export function creerUniversUI(ctx) {
       const maintenant = Date.now();
       const double = dernierClic.id === id && maintenant - dernierClic.t < DELAI_DOUBLE_CLIC;
       dernierClic = { id, t: double ? 0 : maintenant };
+      if (id !== pointNeuf) pointNeuf = null;
       selectionner(id);
       if (double) entrerDansPoint(); else rendre();
     },
-    onVide: (x, y) => { if (!calage.actif()) poserPoint(x, y); }, // poser un point est le geste principal : un clic dans le vide, toujours (Échap lâche le point choisi)
+    // Poser un point est le geste principal : un clic dans le vide le fait. Seule exception, la bulle d'un point déjà là (ouvert pour le
+    // modifier) : ce clic la referme d'abord. Pendant qu'on enchaîne des points neufs, chaque clic pose le suivant.
+    onVide: (x, y) => {
+      if (calage.actif()) return;
+      if (bulleOuverte() && pointId !== pointNeuf) { selectionner(null); rendre(); return; }
+      poserPoint(x, y);
+    },
     onDeplace: (id, x, y) => { modele.deplacerPoint(univ(), lieuId, id, x, y); selectionner(id); sauver(); rendre(); },
   });
   carte.cadre.append(fondAction);
   zoneCarte.addEventListener('click', (e) => { if (e.target === zoneCarte && pointId) { selectionner(null); rendre(); } });
+  zoneCarte.addEventListener('scroll', () => placerBulle(), { passive: true });
+  window.addEventListener('resize', () => placerBulle());
 
   // Le calage de la grille d'un lieu (js/mj/univers-calage.js) : l'outil Calage de la barre ; ses réglages sont dans l'inspecteur du lieu.
   const calage = creerCalage({
@@ -113,7 +129,8 @@ export function creerUniversUI(ctx) {
   const orphelinDe = (p) => modele.raisonOrpheline(univ(), p.vers, donjons());
   /** Choisit (ou lâche) un point ; l'atelier est prévenu pour que l'inspecteur suive. */
   function selectionner(id) {
-    if (id !== pointId) { saisie.choixGenre = null; saisie.cle = null; nomSurCarte = null; }
+    if (id !== pointId) { saisie.choixGenre = null; saisie.cle = null; }
+    if (!id) pointNeuf = null;
     const change = id !== pointId;
     pointId = id;
     if (change) surPoint?.(id);
@@ -258,23 +275,27 @@ export function creerUniversUI(ctx) {
   }
 
   // --- Points -----------------------------------------------------------------------------------------
-  /**
-   * Pose un point et le choisit. `surCarte` (le clic sur la carte, hors téléphone) : son nom se tape dans un champ posé à côté du point ;
-   * sinon (le « + » du panneau, le téléphone, dont le panneau bas couvre la carte) : dans le champ du nom de l'inspecteur.
-   */
-  function poserPoint(x, y, { surCarte = !telephone() } = {}) {
+  /** Pose un point et le choisit : sa bulle s'ouvre (sous 760 px, le panneau bas), le nom prêt à taper. */
+  function poserPoint(x, y) {
     try {
       const p = modele.ajouterPoint(univ(), lieuId, { x, y, nom: '' });
-      selectionner(p.id);
-      if (surCarte) nomSurCarte = p.id; else saisie.cle = 'nom';
+      selectionner(p.id); pointNeuf = p.id; saisie.cle = 'nom';
       sauver(); rendre();
     } catch (err) { dire(err.message, { erreur: true }); }
   }
-  /** La fin du champ de nom posé sur la carte : Entrée ou Échap rendent le focus au point (le clavier continue) ; quitter le champ, non. */
-  function finNomSurCarte(id, comment) {
-    if (nomSurCarte !== id) return; // un autre point est déjà en cours (le clic qui a fait quitter le champ en a posé un neuf)
-    nomSurCarte = null;
-    if (comment !== 'sortie') focusApres = id;
+  /** Le nom tapé dans la bulle : la carte (l'étiquette) et le panneau suivent à chaque frappe, sans redessiner la bulle (le champ garde la main). */
+  function nommerPoint(nom) {
+    if (!point()) return;
+    modifierPoint({ nom });
+    rendreCarte();
+    surChangement.forEach((f) => f({ bulle: false }));
+  }
+  /** Referme la bulle (Entrée dans le nom, ✕, Échap) ; le focus clavier revient au point, pour continuer au clavier. */
+  function fermerBulle() {
+    const id = pointId;
+    if (!id) return;
+    if (bulle.contains(document.activeElement)) focusApres = id;
+    selectionner(null);
     rendre();
   }
   function modifierPoint(champs) { modele.modifierPoint(univ(), lieuId, pointId, champs); sauver(); }
@@ -334,7 +355,7 @@ export function creerUniversUI(ctx) {
   // --- Rendu : fil d'Ariane et carte ----------------------------------------------------------------------------
   function rendreFil() {
     const u = univ();
-    filAriane.hidden = !u || !fil.length;
+    filAriane.hidden = !u || fil.length < 2; // un seul niveau : le nom est déjà dans l'arbre et dans le panneau
     filAriane.replaceChildren();
     if (!u) return;
     fil.forEach((id, i) => {
@@ -365,14 +386,7 @@ export function creerUniversUI(ctx) {
     if (moi !== sequence) return;
     fondAction.hidden = !!l.image || enCalage;
     const aff = enCalage ? calage.grilleAffichee() : { grille: grilleEffective(l, infos).grille, opacite: casesDeReglages(stockage.chargerReglages() ?? {}) / 100 };
-    const enCours = !enCalage && nomSurCarte && l.points.find((p) => p.id === nomSurCarte);
-    const nomEnCours = enCours ? {
-      id: enCours.id, valeur: enCours.nom,
-      // Le panneau suit la frappe (son titre, la liste des points) ; la carte, elle, n'est pas redessinée : le champ garde la main.
-      surTape: (texte) => { if (point()?.id !== enCours.id) return; modifierPoint({ nom: texte }); surChangement.forEach((f) => f()); },
-      surFin: (comment) => finNomSurCarte(enCours.id, comment),
-    } : null;
-    const options = { points: pointsCarte, modifiable: !enCalage, poser: !enCalage, alt: `Carte : ${l.nom}`, nomEnCours, ...aff };
+    const options = { points: pointsCarte, modifiable: !enCalage, poser: !enCalage, alt: `Carte : ${l.nom}`, ...aff };
     const cle = l.image ? cleImage(l.image) : `fond:${l.nom}`;
     if (imageAffichee !== cle) carte.afficher({ ...options, url: null, absente: 'Chargement de l’image…' });
     const url = await images.urlLieu(l);
@@ -380,6 +394,36 @@ export function creerUniversUI(ctx) {
     imageAffichee = url ? cle : null;
     carte.afficher({ ...options, url, absente: 'Image introuvable : la carte n’est plus dans la bibliothèque ou dans ce navigateur (ou la bibliothèque n’est pas disponible). Les points restent posés ; choisis une autre image.' });
     if (focusApres) { carte.focaliser(focusApres); focusApres = null; }
+    placerBulle();
+  }
+
+  // --- La bulle du point choisi --------------------------------------------------------------------------------------------
+  const bulleOuverte = () => !bulle.hidden;
+  /** Remplit la bulle (ou la cache : pas de point, calage, téléphone). Le champ qui avait le focus le retrouve (`saisie.cle`). */
+  function rendreBulle() {
+    const p = point();
+    const visible = !!(p && ouvertEcran && !calage.actif() && !telephone() && contenuBulle);
+    const cle = bulle.contains(document.activeElement) ? document.activeElement.dataset?.cle ?? saisie.cle : saisie.cle;
+    bulle.hidden = !visible;
+    if (!visible) { bulle.replaceChildren(); return; }
+    bulle.replaceChildren();
+    contenuBulle(bulle, p, univ());
+    const el = cle && bulle.querySelector(`[data-cle="${cle}"]`);
+    if (el) { el.focus({ preventScroll: true }); if (cle === 'nom' && !el.value) el.select?.(); }
+    placerBulle();
+  }
+  /** Accroche la bulle à son point, sans qu'elle sorte de la scène (règle pure `positionBulle`, js/mise-en-page.js). */
+  function placerBulle() {
+    if (bulle.hidden || !pointId) return;
+    const m = carte.marqueur(pointId);
+    if (!m) return;
+    const r = m.querySelector('.univers-pastille')?.getBoundingClientRect() ?? m.getBoundingClientRect();
+    const s = scene.getBoundingClientRect();
+    const z = zoneCarte.getBoundingClientRect();
+    const vue = { g: z.left - s.left + 8, h: z.top - s.top + 8, d: z.right - s.left - 8, b: z.bottom - s.top - 8 };
+    const { x, y } = positionBulle({ g: r.left - s.left, h: r.top - s.top, d: r.right - s.left, b: r.bottom - s.top }, vue, bulle.offsetWidth, bulle.offsetHeight);
+    bulle.style.left = `${Math.round(x)}px`;
+    bulle.style.top = `${Math.round(y)}px`;
   }
 
   /** L'état vide du Monde : aucun monde, ou un monde sans lieu. */
@@ -434,6 +478,7 @@ export function creerUniversUI(ctx) {
     rendreVide();
     scene.classList.toggle('en-calage', calage.actif());
     if (u) rendreCarte(); else zoneCarte.hidden = true;
+    rendreBulle();
     surChangement.forEach((f) => f(options));
   }
 
@@ -458,12 +503,12 @@ export function creerUniversUI(ctx) {
   // Échap : quitte le calage, sinon lâche le point (le tiroir et le panneau bas, eux, sont à la coquille ; le champ du nom sur la carte se ferme lui-même).
   // Suppr (ou retour arrière) : supprime le point choisi, hors d'un champ de saisie ; « Annuler » le remet.
   // (Suppr ne vaut que sur la carte ou sans focus : dans le panneau, un retour arrière sur un bouton ne doit rien effacer.)
-  const surLaCarte = (el) => el === document.body || (scene.contains(el) && !el.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"])'));
+  const surLaCarte = (el) => el === document.body || (scene.contains(el) && !bulle.contains(el) && !el.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"])'));
   document.addEventListener('keydown', (e) => {
     if (!ouvertEcran || e.defaultPrevented) return;
     if (e.key === 'Escape') {
       if (calage.actif()) { e.preventDefault(); calage.fermer(); rendre(); dire('Calage abandonné : rien n’a été modifié.'); }
-      else if (pointId) { e.preventDefault(); selectionner(null); rendre(); }
+      else if (pointId) { e.preventDefault(); fermerBulle(); }
     } else if ((e.key === 'Delete' || e.key === 'Backspace') && pointId && point() && !calage.actif() && surLaCarte(e.target)) {
       e.preventDefault();
       supprimerPoint();
@@ -494,11 +539,15 @@ export function creerUniversUI(ctx) {
       if (id === pointId) return;
       if (id !== pointId) { saisie.choixGenre = null; saisie.cle = null; }
       pointId = id;
-      if (ouvertEcran) rendreCarte();
+      if (!id) pointNeuf = null;
+      if (ouvertEcran) { rendreCarte(); rendreBulle(); }
     },
     creerMondeNeuf, renommerMonde, supprimerLeMonde, exporterMonde, importerMonde, importerMondeLu,
     ajouterLieuLibre, renommerLieu, notesDuLieu, definirDepart, supprimerLeLieu, changerImage,
-    poserPoint, modifierPoint, changerDestination, destinationNouvelleCarte, supprimerPoint, entrerDansPoint,
+    poserPoint, nommerPoint, fermerBulle, modifierPoint,
+    /** `f(conteneur, point, univers)` remplit la bulle du point choisi (js/atelier/inspecteurs-monde.js). */
+    definirBulle: (f) => { contenuBulle = f; rendreBulle(); },
+    filAriane, changerDestination, destinationNouvelleCarte, supprimerPoint, entrerDansPoint,
     selectionnerPoint: (id) => { selectionner(id); rendre(); },
     rendreCarte, rendre,
   };
