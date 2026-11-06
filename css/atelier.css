@@ -121,6 +121,9 @@ body.atelier-avec-inspecteur { --largeur-inspecteur: 330px; }
   .atelier-inspecteur.replie .atelier-inspecteur-plier .icone { transform: rotate(180deg); }
   /* Le panneau bas ne cache pas le bas de la page : de la place en dessous. */
   body.atelier-avec-inspecteur { padding-bottom: 45vh; padding-bottom: 45dvh; }
+  /* Arbre : la zone du chevron fait 44 px de large (plier sans choisir). */
+  .atelier-bascule { width: 44px; margin-left: -6px; }
+  .atelier-bascule.vide { width: 16px; margin-left: 0; }
   /* « Grille » : une feuille du bas, aux cibles de 44 px. */
   .atelier-grille { position: static; }
   .atelier-grille-panneau { position: fixed; left: 0; right: 0; bottom: 0; top: auto; width: auto; z-index: 95; border-width: 1px 0 0; border-radius: 12px 12px 0 0; padding: var(--esp-4) var(--esp-4) max(var(--esp-4), env(safe-area-inset-bottom)); }

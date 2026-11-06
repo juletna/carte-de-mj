@@ -19,8 +19,13 @@ const LIBELLE_PASTILLE = { table: 'à la table', decouvert: 'découvert', cache:
  *   surChoix : appelé quand on choisit un nœud (clic, Entrée) ; un groupe (« hors monde ») ne se choisit pas, il se plie.
  */
 export function creerArbreVue({ mode = 'preparer', surChoix, pastille = null, titre = 'Arbre de l’atelier' } = {}) {
-  const ouverts = new Set(); // clés dépliées par le MJ (en plus des défauts)
-  const fermes = new Set();  // clés repliées par le MJ
+  // Les nœuds dépliés / repliés par le MJ, gardés le temps de la session (sessionStorage, par clé de nœud et par mode).
+  const CLE_PLIS = `carte-de-mj:atelier-arbre-plis:${mode}`;
+  const lirePlis = () => { try { const p = JSON.parse(sessionStorage.getItem(CLE_PLIS)); return { o: Array.isArray(p?.o) ? p.o : [], f: Array.isArray(p?.f) ? p.f : [] }; } catch { return { o: [], f: [] }; } };
+  const plisLus = lirePlis();
+  const ouverts = new Set(plisLus.o); // clés dépliées par le MJ (en plus des défauts)
+  const fermes = new Set(plisLus.f);  // clés repliées par le MJ
+  const garderPlis = () => { try { sessionStorage.setItem(CLE_PLIS, JSON.stringify({ o: [...ouverts], f: [...fermes] })); } catch { /* stockage indisponible : les plis ne durent que cette page */ } };
   let donnees = { arbre: null, actifCle: null };
   let filtreTexte = '';
   let vignette = null; // (noeud) → élément qui remplace l'icône du nœud (l'image d'un lieu), ou null : voir `definirVignette`
@@ -55,7 +60,7 @@ export function creerArbreVue({ mode = 'preparer', surChoix, pastille = null, ti
       texte.append(h('span', { className: 'doux atelier-noeud-aussi', textContent: m, title: m }));
     }
     const image = vignette?.(n) ?? null;
-    const ligne = h('div', { className: 'atelier-ligne' }, bascule, image ?? h('span', { className: 'atelier-icone', 'aria-hidden': 'true' }, icone(ICONE[n.type] ?? 'donjon')), texte);
+    const ligne = h('div', { className: 'atelier-ligne', title: [n.nom, ...(n.aussiDepuis?.length ? [`aussi depuis ${n.aussiDepuis.join(', ')}`] : [])].join(' · ') }, bascule, image ?? h('span', { className: 'atelier-icone', 'aria-hidden': 'true' }, icone(ICONE[n.type] ?? 'donjon')), texte);
     if (n.depart) ligne.append(h('span', { className: 'atelier-badge', textContent: 'départ', title: 'Lieu de départ du monde' }));
     if (n.nonRelie) ligne.append(h('span', { className: 'atelier-badge discret', textContent: 'non relié', title: 'Aucun chemin depuis le lieu de départ' }));
     if (mode === 'jouer' && pastille && n.type !== 'groupe') {
@@ -74,7 +79,16 @@ export function creerArbreVue({ mode = 'preparer', surChoix, pastille = null, ti
 
   function basculer(cle, ouvrir) {
     if (ouvrir) { fermes.delete(cle); ouverts.add(cle); } else { ouverts.delete(cle); fermes.add(cle); }
+    garderPlis();
     dessiner(cle);
+  }
+
+  /** Replie toutes les branches (le MJ rouvre ce qu'il veut ; aller quelque part déplie le chemin). */
+  function toutReplier() {
+    ouverts.clear();
+    if (donnees.arbre) for (const n of parcourir(donnees.arbre)) if (n.enfants?.length) fermes.add(n.cle);
+    garderPlis();
+    dessiner();
   }
 
   const visibles = () => [...liste.querySelectorAll('[role="treeitem"]')];
@@ -133,13 +147,14 @@ export function creerArbreVue({ mode = 'preparer', surChoix, pastille = null, ti
 
   /** `arbre` : le résultat d'`arbreAtelier` ; `actifCle` : le nœud à marquer (par défaut `arbre.actif.cle`). */
   function maj({ arbre, actifCle = arbre?.actif?.cle ?? null }) {
-    if (actifCle !== donnees.actifCle) for (const cle of [...(arbre?.actif?.chemin ?? []), ...(actifCle ? [actifCle] : [])]) fermes.delete(cle); // aller quelque part déplie le chemin
+    // Aller vers un NOUVEAU nœud déplie son chemin ; un simple rafraîchissement (mêmes nœuds) ne défait jamais un pli du MJ.
+    if (actifCle !== donnees.actifCle) { for (const cle of [...(arbre?.actif?.chemin ?? []), ...(actifCle ? [actifCle] : [])]) fermes.delete(cle); garderPlis(); }
     donnees = { arbre, actifCle };
     dessiner();
   }
 
   /** `f(noeud)` rend une vignette (un élément) à la place de l'icône d'un nœud, ou null pour garder l'icône ; à redessiner ensuite avec `maj`. */
-  function definirVignette(f) { vignette = f; }
+  function definirVignette(f) { vignette = f; if (donnees.arbre) dessiner(); }
 
-  return { element, maj, definirVignette, focus: () => (liste.querySelector('.courant') ?? visibles()[0])?.focus({ preventScroll: true }), filtre };
+  return { element, maj, definirVignette, toutReplier, focus: () => (liste.querySelector('.courant') ?? visibles()[0])?.focus({ preventScroll: true }), filtre };
 }

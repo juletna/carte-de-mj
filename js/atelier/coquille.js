@@ -81,6 +81,7 @@ export function creerCoquille({
   }
   /** Une entrée dans le « ⋯ » de l'en-tête de l'arbre (nouveau donjon, importer, coller…). */
   function ajouterAction(a) { actionsArbre.push(a); majMenu(); }
+  ajouterAction({ libelle: 'Tout replier', icone: 'chevron-gauche', executer: () => vue.toutReplier() });
 
   // --- Colonne de droite : l'inspecteur ----------------------------------------------------------------------------
   const colonneInspecteur = h('aside', { className: `atelier-inspecteur${inspecteurGenerique ? '' : ' sans-generique'}`, 'aria-label': 'Inspecteur : la sélection', hidden: !inspecteurToujoursVisible });
