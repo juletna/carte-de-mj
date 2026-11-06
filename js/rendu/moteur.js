@@ -39,6 +39,7 @@ const GRILLE_TRAIT = 'rgba(0, 0, 0, 0.45)'; // lignes de la grille
  *        animer = à la table seulement : garde le décor dans un canevas et rend une scène dont `image(ms)` ne redessine que la lumière, les flammes, les pions et les marques
  *        marques = repères d'interface dessinés par-dessus (le thème en décide l'apparence) :
  *          portesReliees: [{mur, position}]            portes reliées à une autre salle
+ *          escaliersRelies: [{x, y}]                   escaliers reliés à une salle d'un autre niveau (la case de l'objet)
  *          selection: {genre, element}                 élément sélectionné (porte, objet ou créature)
  *          caseVisee: {x, y}                           case montrée par le MJ à la table (« c'est là que tu veux te mettre ? »)
  *        Les éléments `cache: true` (secrets) restent visibles dans la vue MJ : dessinés en
@@ -179,6 +180,10 @@ function peindreDessus(ctx, plan, t, { reperes, theme, marques }) {
 
   // Repères d'interface, tout au-dessus.
   for (const p of marques.portesReliees || []) theme.marqueLiaison?.(ctx, rectPorte(plan, p), p.mur, t, p);
+  for (const e of marques.escaliersRelies || []) {
+    const o = (plan.objets || []).find((x) => x.type === 'escalier' && x.x === e.x && x.y === e.y);
+    if (o) theme.marqueLiaison?.(ctx, rectDe('objet', o), null, t, e); // au milieu de l'escalier
+  }
   if (marques.selection) theme.marqueSelection?.(ctx, rectDe(marques.selection.genre, marques.selection.element, plan), t, marques.selection.genre);
 }
 

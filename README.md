@@ -125,6 +125,9 @@ pour prouver qu'une refactorisation ne les change pas. Après un changement voul
   objet, une créature ou une porte secret : « un coffre caché », « deux gobelins cachés », « une porte secrète au mur nord ».
   Le plan reçoit `cache: true`. Dans le Donjon (vue MJ) ces éléments restent visibles, dessinés en translucide avec un
   contour en pointillés. Un élément caché n'est jamais regroupé avec un visible dans la description réécrite.
+- **Escaliers** : un escalier descend, sauf « un escalier qui monte » (ou « montant », « deux escaliers qui montent ») ;
+  « qui descend » se lit aussi. Le plan reçoit `sens: 'monte'` pour celui qui monte, rien pour l'autre, et la description
+  réécrite redit « qui monte ». Le sens dit vers quel niveau mène l'escalier (voir « Niveaux et escaliers »).
 - **Conventions** : le nord est en haut. L'entrée est le mur de la première porte (sud par défaut).
   « Le fond » est le mur opposé à l'entrée.
 
@@ -194,6 +197,23 @@ Dans chaque salle, la description reste la seule référence (texte → plan →
   sont recalculés à chaque lecture du texte). Déplacer la porte au glisser fait suivre la liaison. Si vous retouchez le texte
   et que la porte disparaît, la liaison n'est pas supprimée : elle est signalée comme **orpheline**, avec un bouton pour la
   retirer ; rétablir la porte dans le texte la répare.
+- **Niveaux et escaliers** : un escalier se relie comme une porte, mais il mène à un autre niveau (`js/niveaux.js`). Une porte
+  relie deux salles du même niveau, un escalier deux niveaux voisins : celui qui monte mène à l'étage du dessus, celui qui
+  descend à l'étage du dessous. Le niveau d'une salle n'est écrit nulle part : il se déduit des liaisons, en partant de la
+  première salle (« Rez-de-chaussée », puis « Étage 1 », « Sous-sol 1 »…). Une salle que rien ne rattache à la première part du
+  rez-de-chaussée ; si deux chemins se contredisent (deux escaliers qui descendent l'un vers l'autre), le premier trouvé l'emporte.
+  - *Dans le Donjon* : un clic sur un escalier non relié propose « Créer la salle du dessous » (ou « du dessus » s'il monte :
+    6 × 6 cases, avec l'escalier du retour dans l'autre sens, écrit dans sa description), « Relier » à une salle existante
+    (l'escalier du retour y est posé là où il y a de la place) et « Il monte plutôt » / « Il descend plutôt ». Relié, il dit où il
+    mène et à quel niveau, avec « Aller à… » et « Délier », et porte la pastille bleue, au milieu des marches. Une liaison
+    ne relie jamais une porte à un escalier. Déplacer l'escalier fait suivre la liaison ; le supprimer la retire ; un escalier
+    effacé du texte laisse une liaison orpheline, comme une porte. Dès que le donjon a plusieurs niveaux, le titre de la salle
+    affichée dit son niveau.
+  - *Plan du donjon* : un plan par niveau, du plus haut au plus bas, l'un sous l'autre, chacun sous son nom et séparé du
+    précédent par un trait (aussi sur la miniature). Un escalier ne trace pas de couloir. Un donjon d'un seul niveau est
+    dessiné exactement comme avant.
+  - *Dessin* : l'escalier qui descend reste un creux ; celui qui monte est un empilement de marches de plus en plus hautes
+    (peint), de plus en plus claires (vectoriel), à flèche évidée (papier).
 - **Caché / visible** : cliquez un élément (porte, objet ou pion) puis « Marquer comme caché » / « Rendre visible ».
 - **Notes** : un bloc de notes par salle, enregistré, jamais réécrit par la description.
 - **Annuler** : chaque salle a sa propre pile « Annuler le déplacement », gardée en mémoire le temps de la session
@@ -221,10 +241,14 @@ Dans chaque salle, la description reste la seule référence (texte → plan →
     "s-x1y2z3": { "id": "s-x1y2z3", "nom": "Entrée", "texte": "Salle de 6 par 6 cases, …", "plan": { "…": "voir js/schema.js" }, "notes": "" }
   },
   "liaisons": [
-    { "id": "l-q9w8e7", "a": { "salle": "s-x1y2z3", "mur": "est", "position": 2 }, "b": { "salle": "s-k4j5h6", "mur": "ouest", "position": 2 } }
+    { "id": "l-q9w8e7", "a": { "salle": "s-x1y2z3", "mur": "est", "position": 2 }, "b": { "salle": "s-k4j5h6", "mur": "ouest", "position": 2 } },
+    { "id": "l-e5r6t7", "a": { "salle": "s-x1y2z3", "escalier": true, "x": 1, "y": 1 }, "b": { "salle": "s-m7n8b9", "escalier": true, "x": 0, "y": 0 } }
   ]
 }
 ```
+
+Une extrémité de liaison est une porte (`mur`, `position`) ou un escalier (`escalier: true`, et la case `x`, `y` de l'objet escalier).
+C'est un ajout facultatif au format, qui reste en version 1 : un fichier sans escalier relié se lit comme avant.
 
 Les identifiants de salles et de liaisons sont stables et uniques. Les éléments secrets sont marqués `cache: true` dans les
 plans. Ces précautions préparent un éventuel jeu en ligne, qui n'est pas construit.
@@ -263,6 +287,10 @@ ni de la Fiche ni d'un réseau, et n'exige de décrire quoi que ce soit : elle o
     (coché par défaut) emmène les pions de camp `pj` de la salle, placés au plus près de la porte d'arrivée, sans superposition ni sortie de
     la pièce (dans une salle pleine, un pion monte sur un objet, jamais sur un autre pion ; sans aucune place il reste en arrière, avec un message).
     Une porte non reliée propose de créer la salle d'à côté (voir Improvisation). Les portes sont aussi listées dans le panneau, au clavier.
+  - *Escaliers* : un escalier relié se franchit comme une porte (« Monter à… » / « Descendre à… », avec le niveau d'arrivée) ;
+    le groupe arrive autour de l'escalier du retour. Non relié, il propose de créer la salle du dessus ou du dessous : décrite
+    ou non, elle reçoit l'escalier du retour si le texte n'en place pas un dans le bon sens. La table sait seulement si un
+    escalier monte ou descend, pour le dessiner.
   - *Révéler* : un clic sur un élément caché propose « Révéler » / « Recacher » ; « Révéler toute la salle » révèle tout.
   - *Table ou consultation* : cliquer une salle de la miniature la **consulte** sans la montrer ni la marquer découverte. Un bandeau
     permanent dit si la salle regardée est « À LA TABLE » (vert) ou en « CONSULTATION » (jaune, cadre en pointillés) et rappelle laquelle
@@ -397,7 +425,8 @@ js/palette.js       palette du Donjon : vignettes de portes, de mobilier et de c
 js/vignettes.js     une vignette (petit canvas) par élément de la palette, dessinée avec le thème vectoriel
 js/rail.js          rail d'outils du Donjon et panneau contextuel ; la table `OUTILS` (identifiant, titre, catalogue) dont dérivent les titres et les outils du catalogue
 js/pose.js          règle unique de « où poser un élément » (et élément qui gêne), chevauchement : ajouter, retirer, redimensionner, changer de forme (pur, sans DOM)
-js/plan-donjon.js   plan du donjon : salles posées à leur vraie taille, reliées par des couloirs (pur, sans DOM) ; façade : `disposerPlan` assemble, et tout ce qui s'importait de ce fichier s'y importe encore
+js/plan-donjon.js   plan du donjon : salles posées à leur vraie taille, reliées par des couloirs (pur, sans DOM) ; façade : `disposerPlan` assemble, et tout ce qui s'importait de ce fichier s'y importe encore ; un plan par niveau, l'un sous l'autre
+js/niveaux.js       niveaux d'un donjon, déduits des escaliers reliés ; leurs noms (pur, sans DOM ni parseur : la table et l'impression le lisent)
 js/plan-donjon/     le détail du plan : pose-salles (où va chaque salle, blocs, salles isolées), couloirs (points des portes, tracé simple, ponts), routage (tracé des couloirs autour des salles et note d'un plan)
 js/rapport.js       rapport texte à copier pour signaler une erreur de lecture
 js/affichage.js     réglages d'affichage : taille par défaut et bornes, échelle par défaut, taille de la carte à la table (modes « remplir » / « échelle réelle »), validation de ce que reçoit la table, case qui tient un plan, limites de canvas (pur, sans DOM)

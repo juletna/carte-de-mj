@@ -36,9 +36,12 @@ export function creerVueCarte(ctx) {
     const portesReliees = planAffiche.portes
       .filter((p) => modele.liaisonDePorte(d, s.id, reel.portes.find((q) => q.id === p.id) || p))
       .map((p) => ({ mur: p.mur, position: p.position }));
+    const escaliersRelies = planAffiche.objets
+      .filter((o) => o.type === 'escalier' && modele.liaisonDePorte(d, s.id, reel.objets.find((q) => q.id === o.id) || o))
+      .map((o) => ({ x: o.x, y: o.y }));
     const trouve = modele.retrouverElement(reel, etat.selection);
     const element = trouve && planAffiche[trouve.liste][trouve.index];
-    return { portesReliees, selection: element ? { genre: trouve.genre, element } : null };
+    return { portesReliees, escaliersRelies, selection: element ? { genre: trouve.genre, element } : null };
   }
 
   // --- Taille de la carte : ajustement automatique et zoom -------------------------------------

@@ -17,7 +17,7 @@ import { extraireDimensions, extraireSol, extraireForme } from './dimensions.js'
 import { extraireAmbiance } from './ambiance.js';
 import {
   trouverObjet, definition, nomAffiche, souderExpressions, PIECES,
-  ADJ_GRAND, ADJ_CACHE, ADJ_DECOR, MOTS_VIDES, emploiDeFeu, COULEURS, CAMPS, TAILLES_CREATURE,
+  ADJ_GRAND, ADJ_CACHE, ADJ_DECOR, SENS_ESCALIER, MOTS_VIDES, emploiDeFeu, COULEURS, CAMPS, TAILLES_CREATURE,
 } from './lexique.js';
 import { analyserPosition } from './positions.js';
 import { construirePlan } from './placement.js';
@@ -92,12 +92,15 @@ export function analyserProposition(prop, intentions, ignores) {
     }
 
     // Adjectifs après le nom : taille, couleur, camp (« deux dragons rouges hostiles »).
-    let couleur = null, camp = creature ? trouve.def.camp : null;
+    let couleur = null, camp = creature ? trouve.def.camp : null, sens = null;
     for (let j = i + 1; j <= i + 3 && j < mots.length; j++) {
       const m = mots[j], sing = m.replace(/s$/, '');
       if (ADJ_GRAND.has(m)) { taille = 1; utilises.add(j); continue; }
       if (ADJ_CACHE.has(m)) { cache = true; utilises.add(j); continue; }
       if (!creature && ADJ_DECOR.has(m)) { utilises.add(j); continue; }
+      // « un escalier qui monte », « un escalier montant » : vers quel niveau il mène.
+      if (trouve.def.type === 'escalier' && m === 'qui' && SENS_ESCALIER[mots[j + 1]]) { sens = SENS_ESCALIER[mots[j + 1]]; utilises.add(j).add(j + 1); j++; continue; }
+      if (trouve.def.type === 'escalier' && SENS_ESCALIER[m]) { sens = SENS_ESCALIER[m]; utilises.add(j); continue; }
       if (!creature) break;
       if (m in TAILLES_CREATURE) { taille += TAILLES_CREATURE[m]; utilises.add(j); continue; }
       if (COULEURS[m] || COULEURS[sing]) { couleur = m in COULEURS ? m : sing; utilises.add(j); continue; }
@@ -114,6 +117,7 @@ export function analyserProposition(prop, intentions, ignores) {
     const intention = { genre: trouve.def.genre, type: trouve.def.type, n, taille, position };
     if (creature) Object.assign(intention, { camp, couleur });
     if (cache) intention.cache = true;
+    if (sens === 'monte') intention.sens = 'monte';
     intentions.push(intention);
   }
 

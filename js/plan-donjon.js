@@ -35,6 +35,7 @@
 import { ECART_LIAISON, ECART_MIN, ECART_MIN_NOM, ECART_PASSAGE, espaceDuDonjon, generateur, poserSalles } from './plan-donjon/pose-salles.js';
 import { PONT_DEMI_LONGUEUR, cheminCouloir, lignesDeLiaisons, pontsDe } from './plan-donjon/couloirs.js';
 import { tracerCouloirs } from './plan-donjon/routage.js';
+import { estEscalier, niveaux, nomNiveau } from './niveaux.js';
 
 // Ce que le plan expose, avec ce qu'il avait avant le découpage.
 export { ECART_LIAISON, ECART_MIN, ECART_MIN_NOM, ECART_PASSAGE, PONT_DEMI_LONGUEUR, cheminCouloir, pontsDe };
@@ -71,6 +72,50 @@ export function disposerPlan(d) {
   const ids = Object.keys(d.salles || {});
   if (!ids.length) return { positions: {}, largeur: 2 * MARGE_PLAN, longueur: 2 * MARGE_PLAN, couloirs: [], ponts: [], isolees: [], etiquetteIsolees: null };
 
+  // Un escalier n'est pas un couloir : il change de niveau. Chaque niveau a son plan, le plus haut en premier, l'un sous l'autre.
+  const niv = niveaux(d);
+  const parNiveau = [...new Set(ids.map((id) => niv[id]))].sort((a, b) => b - a);
+  const liaisonsPortes = (d.liaisons || []).filter((l) => !estEscalier(l.a));
+  if (parNiveau.length === 1) return disposerNiveau({ ...d, liaisons: liaisonsPortes }, ids);
+
+  // `etiquettes` n'existe que sur plusieurs niveaux : le nom de chaque niveau, et l'étiquette de ses salles en rangée.
+  const plan = { positions: {}, largeur: 0, longueur: 0, couloirs: [], ponts: [], isolees: [], etiquetteIsolees: null, etiquettes: [] };
+  const reliees = new Set((d.liaisons || []).flatMap((l) => [l.a.salle, l.b.salle]));
+  let y0 = 0;
+  for (const n of parNiveau) {
+    const dedans = ids.filter((id) => niv[id] === n);
+    const salles = Object.fromEntries(dedans.map((id) => [id, d.salles[id]]));
+    const liaisons = liaisonsPortes.filter((l) => l.a.salle in salles && l.b.salle in salles);
+    const p = disposerNiveau({ ...d, salles, liaisons }, dedans);
+    const dy = y0 + HAUTEUR_NIVEAU;
+    const glisser = (o) => { o.y += dy; };
+    Object.values(p.positions).forEach(glisser);
+    for (const c of p.couloirs) { glisser(c.de); glisser(c.vers); (c.chemin || []).forEach(glisser); }
+    p.ponts.forEach(glisser);
+    Object.assign(plan.positions, p.positions);
+    plan.couloirs.push(...p.couloirs);
+    plan.ponts.push(...p.ponts);
+    plan.isolees.push(...p.isolees);
+    plan.etiquettes.push({ texte: nomNiveau(n), x: MARGE_PLAN, y: y0 + 1, niveau: n });
+    if (p.etiquetteIsolees) {
+      // Dans un niveau, une salle sans porte reliée peut tenir par son seul escalier : elle n'est pas « non reliée ».
+      const texte = p.isolees.some((id) => !reliees.has(id)) ? ETIQUETTE_ISOLEES : ETIQUETTE_PAR_ESCALIER;
+      plan.etiquettes.push({ texte, x: p.etiquetteIsolees.x, y: p.etiquetteIsolees.y + dy });
+    }
+    plan.largeur = Math.max(plan.largeur, p.largeur);
+    y0 = dy + p.longueur;
+  }
+  plan.longueur = y0;
+  plan.largeur = Math.max(plan.largeur, LARGEUR_NIVEAUX_MIN);
+  return plan;
+}
+
+const HAUTEUR_NIVEAU = 3;         // cases au-dessus du plan d'un niveau, pour écrire son nom
+const LARGEUR_NIVEAUX_MIN = 14;   // cases : de quoi écrire « REZ-DE-CHAUSSÉE » au-dessus d'un donjon étroit
+export const ETIQUETTE_PAR_ESCALIER = 'Salles reliées par un escalier';
+
+/** Le plan d'un seul niveau (les liaisons de `d` sont celles de ses portes) : plusieurs essais, le meilleur gardé. */
+function disposerNiveau(d, ids) {
   const espace = espaceDuDonjon(d, ids);
   const essais = Math.max(1, Math.min(ESSAIS_MAX, Math.floor(SALLES_ESSAIS / ids.length)));
   let meilleur = calculerPlan(d, ids, espace, null);
@@ -85,7 +130,9 @@ export function disposerPlan(d) {
 
 /** Ce dont dépend la disposition : si cette clé ne change pas, le plan déjà calculé reste bon (il est coûteux à refaire). */
 export function cleDisposition(d) {
-  const salles = Object.values(d.salles).map((s) => [s.id, s.plan.largeur, s.plan.longueur, s.plan.forme, s.plan.bras, s.plan.position, s.plan.portes]);
+  // Les escaliers font les niveaux : leur case et leur sens comptent aussi.
+  const salles = Object.values(d.salles).map((s) => [s.id, s.plan.largeur, s.plan.longueur, s.plan.forme, s.plan.bras, s.plan.position, s.plan.portes,
+    s.plan.objets.filter((o) => o.type === 'escalier').map((o) => [o.x, o.y, o.sens])]);
   return JSON.stringify([salles, d.liaisons]);
 }
 

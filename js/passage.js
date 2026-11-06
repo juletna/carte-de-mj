@@ -1,10 +1,12 @@
 /**
- * Passage : faire passer le groupe par une porte, créer la salle derrière une porte, poser des pions dans une salle.
+ * Passage : faire passer le groupe par une porte (ou un escalier), créer la salle derrière une porte (ou au bout d'un
+ * escalier), poser des pions dans une salle. Partout ici, « porte » vaut aussi pour un escalier : `idPorte` est alors
+ * l'identifiant de l'objet escalier, et la liaison le désigne par sa case (voir donjon.js).
  * Module PUR (voir partie.js pour la partie sur laquelle il agit). C'est lui qui lit le parseur de salle (`analyser`,
  * `decrire`) quand le MJ décrit la salle d'à côté en jouant.
  */
 import * as modele from './donjon.js';
-import { liaisonDePorte } from './donjon.js';
+import { liaisonDePorte, estEscalier, extremite, phraseRetour } from './donjon.js';
 import { OPPOSE, longueurMur } from './murs.js';
 import { definition } from './parseur/lexique.js';
 import { analyser } from './parseur/index.js';
@@ -20,8 +22,15 @@ import { tousLesElements, afficherATable, revelerElement, recacherElement, nomPe
 const taillePion = (k) => k.taille || 1;
 const rect = (e) => ({ x: e.x, y: e.y, l: e.taille ?? e.l ?? 1, h: e.taille ?? e.h ?? 1 });
 
-/** Point de la porte, au bord de la pièce, en cases. */
+/** La porte, ou l'objet escalier, d'identifiant `id` dans le plan (undefined sinon). */
+const passageDe = (plan, id) => plan?.portes.find((q) => q.id === id) || plan?.objets.find((o) => o.id === id && o.type === 'escalier');
+
+/** Point de la porte, au bord de la pièce, ou milieu de l'escalier, en cases. */
 function pointPorte(plan, arrivee) {
+  if (estEscalier(arrivee)) {
+    const e = plan.objets.find((o) => o.type === 'escalier' && o.x === arrivee.x && o.y === arrivee.y);
+    return e ? [e.x + e.l / 2, e.y + e.h / 2] : [arrivee.x + 0.5, arrivee.y + 0.5];
+  }
   const a = ancragePorte(plan, arrivee.mur, arrivee.position);
   return a ? [a.x, a.y] : [plan.largeur / 2, plan.longueur / 2];
 }
@@ -91,11 +100,11 @@ function deplacerGroupe(p, idSource, idDest, arrivee) {
 
 /** Salle et porte d'arrivée derrière une porte, ou null si la porte n'est reliée à rien. */
 export function destinationPorte(p, idSalle, idPorte) {
-  const porte = p.donjon.salles[idSalle]?.plan.portes.find((q) => q.id === idPorte);
+  const porte = passageDe(p.donjon.salles[idSalle]?.plan, idPorte);
   if (!porte) return null;
   const lien = liaisonDePorte(p.donjon, idSalle, porte);
   const salle = lien && p.donjon.salles[lien.autre.salle];
-  return salle ? { salle, arrivee: { mur: lien.autre.mur, position: lien.autre.position } } : null;
+  return salle ? { salle, arrivee: { ...lien.autre } } : null;
 }
 
 /**
@@ -104,9 +113,10 @@ export function destinationPorte(p, idSalle, idPorte) {
  * @returns {{ok:boolean, message?:string, vers?:string, deplaces?:number, restes?:number}}
  */
 export function passerPorte(p, idSalle, idPorte, { groupe = true } = {}) {
-  if (!p.donjon.salles[idSalle]?.plan.portes.some((q) => q.id === idPorte)) return { ok: false, message: 'Cette porte n’existe plus.' };
+  const porte = passageDe(p.donjon.salles[idSalle]?.plan, idPorte);
+  if (!porte) return { ok: false, message: 'Cette porte n’existe plus.' };
   const dest = destinationPorte(p, idSalle, idPorte);
-  if (!dest) return { ok: false, message: 'Cette porte ne mène nulle part : elle n’est reliée à aucune salle.' };
+  if (!dest) return { ok: false, message: estEscalier(porte) ? 'Cet escalier ne mène nulle part : il n’est relié à aucune salle.' : 'Cette porte ne mène nulle part : elle n’est reliée à aucune salle.' };
   const suite = groupe ? deplacerGroupe(p, idSalle, dest.salle.id, dest.arrivee) : { deplaces: 0, restes: 0 };
   afficherATable(p, dest.salle.id);
   return { ok: true, vers: dest.salle.id, ...suite };
@@ -122,11 +132,11 @@ export function passerPorte(p, idSalle, idPorte, { groupe = true } = {}) {
  */
 export function creerSalleApresPorte(p, idSalle, idPorte, description = '', { nom = '', echelle } = {}) {
   const d = p.donjon;
-  const porte = d.salles[idSalle]?.plan.portes.find((q) => q.id === idPorte);
+  const porte = passageDe(d.salles[idSalle]?.plan, idPorte);
   if (!porte) return { ok: false, message: 'Cette porte n’existe plus.' };
-  if (liaisonDePorte(d, idSalle, porte)) return { ok: false, message: 'Cette porte est déjà reliée à une salle.' };
+  if (liaisonDePorte(d, idSalle, porte)) return { ok: false, message: estEscalier(porte) ? 'Cet escalier est déjà relié à une salle.' : 'Cette porte est déjà reliée à une salle.' };
   if (Object.keys(d.salles).length >= modele.MAX_SALLES) return { ok: false, message: `Ce donjon a déjà ${modele.MAX_SALLES} salles : c’est le maximum.` };
-  const depuis = { salle: idSalle, mur: porte.mur, position: porte.position };
+  const depuis = extremite(idSalle, porte);
   const texte = String(description ?? '').trim();
   const nomSalle = String(nom ?? '').trim();
 
@@ -135,6 +145,7 @@ export function creerSalleApresPorte(p, idSalle, idPorte, description = '', { no
     if (nomSalle) modele.renommerSalle(d, salle.id, nomSalle);
     return { ok: true, salle, ignores: [] };
   }
+  if (estEscalier(porte)) return creerSalleAuBoutDeLEscalier(d, depuis, porte, texte, { nomSalle, echelle });
 
   const mur = OPPOSE[porte.mur];
   const analyse = analyser(texte, { echelle, entree: mur }); // « au fond » se lit depuis la porte de retour
@@ -155,6 +166,27 @@ export function creerSalleApresPorte(p, idSalle, idPorte, description = '', { no
     modele.relier(d, depuis, { salle: salle.id, mur, position: retour.position });
   } catch (err) {
     modele.supprimerSalle(d, salle.id); // ne laisse pas une salle isolée derrière nous
+    return { ok: false, message: err.message };
+  }
+  return { ok: true, salle, ignores: analyse.ignores };
+}
+
+/**
+ * La salle décrite au bout d'un escalier : l'escalier du retour est celui que le texte place, dans le bon sens (visible) ;
+ * sinon il est ajouté à la description. Même contrat que `creerSalleApresPorte`.
+ */
+function creerSalleAuBoutDeLEscalier(d, depuis, escalier, texte, { nomSalle, echelle }) {
+  const sens = escalier.sens === 'monte' ? undefined : 'monte'; // le retour va dans l'autre sens
+  const estRetour = (o) => o.type === 'escalier' && o.sens === sens && !o.cache;
+  let analyse = analyser(texte, { echelle });
+  if (!analyse.plan.objets.some(estRetour)) analyse = { ...analyser(`${texte}, ${phraseRetour(escalier)}`, { echelle }), ignores: analyse.ignores };
+  const retour = analyse.plan.objets.find(estRetour);
+  if (!retour) return { ok: false, message: 'Cette salle n’a plus de place pour l’escalier du retour : décris-la plus grande.' };
+  const salle = modele.ajouterSalle(d, { nom: nomSalle || undefined, texte: decrire(analyse.plan), plan: analyse.plan });
+  try {
+    modele.relier(d, depuis, extremite(salle.id, retour));
+  } catch (err) {
+    modele.supprimerSalle(d, salle.id);
     return { ok: false, message: err.message };
   }
   return { ok: true, salle, ignores: analyse.ignores };

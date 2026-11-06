@@ -111,6 +111,23 @@ function paroi(ctx, V, a, b, n, da, db, c, sombre = 0.6) {
   encre(ctx, dl(ctx, A0[0], A0[1], A1[0], A1[1], ton(c, k * 1.1), ton(c, k * 0.45)), 0.9);
 }
 
+/** Un escalier qui monte vers le fond (−y) : des marches en volume, de plus en plus hautes, jusqu'au tiers d'un mur. */
+function escalierQuiMonte(ctx, w, h, t, o) {
+  const { V, r } = preparerObjet(ctx, o), x0 = -w * 0.43, x1 = w * 0.43, y0 = -h * 0.47, y1 = h * 0.47;
+  const n = Math.max(4, Math.round((y1 - y0) / (t * 0.27))), sh = (y1 - y0) / n, H = 0.36; // plus haut, il passerait par-dessus le mur
+  const marche = (i) => {
+    const ya = y1 - (i + 1) * sh, yb = y1 - i * sh, k = 0.85 + 0.35 * (i / (n - 1)); // plus haute, plus claire
+    const pts = rectPts(x0, ya, x1 - x0, yb - ya);
+    V.prisme(ctx, r, pts, 0, ((i + 1) * H) / n, PIERRE_SOMBRE, () => {
+      chemin(ctx, pts, true, r, 0.3); encre(ctx, dl(ctx, x0, ya, x1, yb, ton(PIERRE, k * 0.86), ton(PIERRE, k * 1.05)), 1);
+      ctx.beginPath(); ctx.moveTo(x0, yb); ctx.lineTo(x1, yb); trait(ctx, 'rgba(255,255,255,0.3)', 1.1); // le nez de la marche
+    });
+  };
+  // La plus loin de l'œil d'abord : vue de devant, la marche du fond (la plus haute) ; vue de derrière, celle de devant.
+  if (V.vue.cy >= (y0 + y1) / 2) for (let i = n - 1; i >= 0; i--) marche(i);
+  else for (let i = 0; i < n; i++) marche(i);
+}
+
 // --- Les objets -------------------------------------------------------------------------------------------------
 
 export const objets = {
@@ -278,6 +295,7 @@ export const objets = {
   },
 
   escalier(ctx, w, h, t, o) {
+    if (o?.sens === 'monte') return escalierQuiMonte(ctx, w, h, t, o);
     // Les marches descendent vers le fond (−y) : un creux dans le sol, dont les marches s'enfoncent de plus en plus.
     const { V, r } = preparerObjet(ctx, o), x0 = -w * 0.43, x1 = w * 0.43, y0 = -h * 0.47, y1 = h * 0.47;
     const n = Math.max(4, Math.round((y1 - y0) / (t * 0.27))), sh = (y1 - y0) / n, D = 0.5, niv = (i) => (-(i + 1) * D) / n; // niveau (négatif) de la marche i, 0 = devant

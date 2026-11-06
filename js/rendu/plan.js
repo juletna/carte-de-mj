@@ -34,6 +34,8 @@ const NOM_FOND = 'rgba(20, 19, 17, 0.85)'; // la pastille sombre sous un nom
 const NOM_COULEUR = '#f4efe4';
 const NOM_ACTIF = '#f0c64a'; // le nom de la salle active
 const NOM_ISOLEES = '#b8b3a8'; // l'étiquette des salles isolées
+const NOM_NIVEAU = '#c9b98f'; // le nom d'un niveau (donjon à plusieurs niveaux) et le trait qui le sépare du précédent
+const MARGE_LIGNE = 1; // cases laissées de chaque côté de ce trait
 
 /** Une porte pas encore ouverte : un trait rouge cerné de blanc, posé sur le mur, assez épais pour se voir en tout petit. */
 function dessinerPorteFermee(ctx, p, plan, { mur, position }, t) {
@@ -171,6 +173,20 @@ export function dessinerPlanDonjon(canvas, d, disposition, { taille = 16, actif 
   }
   if (actif) cadre(actif, CADRE_ACTIF, Math.max(surbrillance ? 2 : 3, t * 0.18), surbrillance ? VOILE_ACTIF_TEINTE : survol === actif ? VOILE_ACTIF_SURVOL : null);
 
+  // Donjon sur plusieurs niveaux : un trait sépare chaque niveau du précédent (même sans les noms, sur la miniature).
+  const separations = (disposition.etiquettes || []).filter((e) => e.niveau !== undefined && e.y >= 2); // le premier niveau n'a rien au-dessus
+  if (separations.length) {
+    ctx.save();
+    ctx.strokeStyle = NOM_NIVEAU;
+    ctx.globalAlpha = 0.5;
+    ctx.lineWidth = Math.max(1, t * 0.08);
+    ctx.setLineDash([Math.max(3, t * 0.4), Math.max(3, t * 0.3)]);
+    for (const e of separations) {
+      ctx.beginPath(); ctx.moveTo(MARGE_LIGNE * t, (e.y - 0.5) * t); ctx.lineTo((disposition.largeur - MARGE_LIGNE) * t, (e.y - 0.5) * t); ctx.stroke();
+    }
+    ctx.restore();
+  }
+
   if (!noms) return { taille: t, largeur: largeurPx, hauteur: hauteurPx };
 
   // Noms : au-dessus de chaque salle, sur une pastille sombre pour rester lisibles sur la roche comme sur un couloir.
@@ -196,6 +212,11 @@ export function dessinerPlanDonjon(canvas, d, disposition, { taille = 16, actif 
   if (disposition.etiquetteIsolees) {
     const e = disposition.etiquetteIsolees;
     ecrire(ETIQUETTE_ISOLEES, e.x * t, e.y * t + police, NOM_ISOLEES, 400);
+  }
+  // Donjon sur plusieurs niveaux : le nom de chaque niveau au-dessus de son plan, souligné sur toute la largeur.
+  for (const e of disposition.etiquettes || []) {
+    if (e.niveau !== undefined) ecrire(e.texte.toUpperCase(), e.x * t, e.y * t + police, NOM_NIVEAU, Math.max((disposition.largeur - 2 * e.x) * t, 120));
+    else ecrire(e.texte, e.x * t, e.y * t + police, NOM_ISOLEES, 400);
   }
   ctx.restore();
 

@@ -80,7 +80,7 @@ function intentionExistante(genre, e) {
   const position = { zone: 'cases', etendue: [e.x, e.y, e.x + l - 1, e.y + h - 1], rotation: e.rotation, libelle: '' };
   return genre === 'creature'
     ? { genre, type: e.type, n: 1, taille: 0, camp: e.camp, couleur: null, position }
-    : { genre, type: e.type, n: 1, taille: 0, position };
+    : { genre, type: e.type, n: 1, taille: 0, position, ...(e.sens === 'monte' ? { sens: 'monte' } : {}) };
 }
 
 /**

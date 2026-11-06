@@ -30,6 +30,15 @@ export const PORTES = Object.fromEntries(OUVERTURES.flatMap((d) => d.mots.map((m
  */
 export const ADJ_CACHE = new Set(['cache', 'cachee', 'caches', 'cachees', 'secret', 'secrete', 'secrets', 'secretes']);
 
+/**
+ * Sens d'un escalier (« un escalier qui monte », « deux escaliers descendants ») : le mot → `monte` ou `descend`.
+ * Un escalier descend quand rien n'est dit : le plan n'écrit `sens: 'monte'` que pour celui qui monte.
+ */
+export const SENS_ESCALIER = {
+  monte: 'monte', montent: 'monte', montant: 'monte', montants: 'monte',
+  descend: 'descend', descendent: 'descend', descendant: 'descend', descendants: 'descend',
+};
+
 /** Adjectifs qui décrivent un objet sans rien changer au plan (« des champignons lumineux », « une flaque d'eau ») : lus, pas signalés. */
 export const ADJ_DECOR = new Set(['lumineux', 'lumineuse', 'lumineuses', 'phosphorescent', 'phosphorescents', 'phosphorescente', 'phosphorescentes', 'luminescent', 'luminescents', 'luminescente', 'luminescentes']);
 

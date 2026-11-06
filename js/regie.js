@@ -254,12 +254,13 @@ export function demarrerRegie() {
     return tailleQuiTient($('scene'), plan.largeur, plan.longueur, r.taille, telephone() ? 10 : 28);
   }
 
-  /** Repères posés sur la carte de la régie : portes reliées (pastille bleue) et élément sélectionné. */
+  /** Repères posés sur la carte de la régie : portes et escaliers reliés (pastille bleue) et élément sélectionné. */
   function marques(planAffiche) {
     const s = salleConsultee();
     const portesReliees = planAffiche.portes.filter((q) => modele.liaisonDePorte(etat.p.donjon, s.id, q)).map((q) => ({ mur: q.mur, position: q.position }));
+    const escaliersRelies = planAffiche.objets.filter((o) => o.type === 'escalier' && modele.liaisonDePorte(etat.p.donjon, s.id, o)).map((o) => ({ x: o.x, y: o.y }));
     const trouve = selection.trouver(planAffiche, etat.selection);
-    return { portesReliees, selection: trouve, ...(etat.caseVisee?.salle === s.id ? { caseVisee: etat.caseVisee } : {}) };
+    return { portesReliees, escaliersRelies, selection: trouve, ...(etat.caseVisee?.salle === s.id ? { caseVisee: etat.caseVisee } : {}) };
   }
 
   function dessinerRegie(plan) {

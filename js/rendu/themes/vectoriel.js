@@ -346,11 +346,11 @@ export const objets = {
     ctx.beginPath(); ctx.moveTo(-s / 2, -s / 2); ctx.lineTo(s / 2, s / 2); ctx.moveTo(s / 2, -s / 2); ctx.lineTo(-s / 2, s / 2); ctx.stroke();
   },
 
-  escalier(ctx, w, h, t) {
-    // Marches de plus en plus sombres vers l'arrière : l'escalier descend.
-    const ew = w * 0.86, eh = h * 0.94, n = 6;
+  escalier(ctx, w, h, t, o) {
+    // Marches de plus en plus sombres vers l'arrière : l'escalier descend ; de plus en plus claires : il monte.
+    const ew = w * 0.86, eh = h * 0.94, n = 6, monte = o?.sens === 'monte';
     for (let i = 0; i < n; i++) {
-      const v = 150 - i * 18;
+      const v = monte ? 96 + i * 18 : 150 - i * 18;
       rect(ctx, -ew / 2, eh / 2 - (eh * (i + 1)) / n, ew, eh / n, `rgb(${v},${v - 4},${v - 10})`, 'rgba(0,0,0,0.5)', 1);
     }
     ctx.fillStyle = 'rgba(255,255,255,0.75)';
@@ -570,9 +570,9 @@ export function repereCache(ctx, r, t) {
   ctx.restore();
 }
 
-/** Porte reliée : pastille bleue avec deux maillons, posée côté pièce. */
+/** Porte reliée : pastille bleue avec deux maillons, posée côté pièce. Escalier relié (`mur` null) : au milieu de l'escalier. */
 export function marqueLiaison(ctx, r, mur, t) {
-  const dedans = { nord: [0, 1], sud: [0, -1], ouest: [1, 0], est: [-1, 0] }[mur];
+  const dedans = { nord: [0, 1], sud: [0, -1], ouest: [1, 0], est: [-1, 0] }[mur] || [0, 0];
   const cx = (r.x + r.l / 2) * t + dedans[0] * t * 0.42;
   const cy = (r.y + r.h / 2) * t + dedans[1] * t * 0.42;
   const rayon = Math.max(6, t * 0.16);

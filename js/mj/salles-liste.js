@@ -7,7 +7,7 @@
  */
 import * as modele from '../donjon.js';
 import { creerMiniPlan } from '../miniplan.js';
-import { reperePorte } from '../coordonnees.js';
+import { nomCase, reperePorte } from '../coordonnees.js';
 import { $, h, deuxTemps } from '../dom.js';
 
 export function creerSalles(ctx) {
@@ -32,7 +32,8 @@ export function creerSalles(ctx) {
       b.addEventListener('click', () => { modele.delier(d, o.liaison.id); rendre(); });
       return h('div', { className: 'orpheline' },
         h('p', { className: 'note erreur' },
-          `Liaison orpheline : il n’y a plus de porte au mur ${o.mur} (repère ${reperePorte(o.mur, o.position)}), `
+          (modele.estEscalier(o) ? `Liaison orpheline : il n’y a plus d’escalier en ${nomCase(o.x, o.y)}, `
+            : `Liaison orpheline : il n’y a plus de porte au mur ${o.mur} (repère ${reperePorte(o.mur, o.position)}), `)
           + 'qui menait à « ', h('strong', { textContent: autre?.nom ?? '?' }), ' ». Rétablis la porte dans le texte, ou retire la liaison.'),
         b);
     }));
@@ -60,9 +61,8 @@ export function creerSalles(ctx) {
       nom.addEventListener('change', () => {
         modele.renommerSalle(d, s.id, nom.value);
         nom.value = s.nom;
-        if (actif) $('nom-salle-active').textContent = `· ${s.nom}`;
         majOnglets();
-        rendre();
+        rendre(); // le titre de la salle affichée suit
       });
       const aller = h('button', { type: 'button', className: 'discret', textContent: actif ? 'Affichée' : 'Afficher', disabled: actif });
       aller.addEventListener('click', () => activerSalle(s.id));

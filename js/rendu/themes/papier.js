@@ -238,15 +238,17 @@ export const objets = {
     ctx.strokeStyle = GRIS; ctx.lineWidth = trait(t, 0.015); ctx.stroke();
   },
 
-  escalier(ctx, w, h, t) {
-    // Marches : traits parallèles, flèche vers le bas de l'escalier (l'arrière de la case).
+  escalier(ctx, w, h, t, o) {
+    // Marches : traits parallèles, flèche vers l'arrière de la case : pleine s'il descend, évidée s'il monte.
     const ew = w * 0.86, eh = h * 0.94, n = 6;
     rect(ctx, -ew / 2, -eh / 2, ew, eh, '#fff', NOIR, trait(t, 0.03));
     ctx.beginPath();
     for (let i = 1; i < n; i++) { const y = -eh / 2 + (eh * i) / n; ctx.moveTo(-ew / 2, y); ctx.lineTo(ew / 2, y); }
     ctx.strokeStyle = GRIS; ctx.lineWidth = trait(t, 0.015); ctx.stroke();
-    ctx.fillStyle = NOIR;
+    const monte = o?.sens === 'monte';
+    ctx.fillStyle = monte ? '#fff' : NOIR;
     ctx.beginPath(); ctx.moveTo(0, -eh * 0.38); ctx.lineTo(-t * 0.14, -eh * 0.14); ctx.lineTo(t * 0.14, -eh * 0.14); ctx.closePath(); ctx.fill();
+    if (monte) { ctx.strokeStyle = NOIR; ctx.lineWidth = trait(t, 0.02); ctx.stroke(); }
   },
 
   fosse(ctx, w, h, t) {
@@ -456,7 +458,7 @@ export function repereCache(ctx, r, t) {
 
 /** Porte reliée : pastille côté pièce, avec le numéro de la salle derrière (« → 2 »). */
 export function marqueLiaison(ctx, r, mur, t, p = {}) {
-  const dedans = { nord: [0, 1], sud: [0, -1], ouest: [1, 0], est: [-1, 0] }[mur];
+  const dedans = { nord: [0, 1], sud: [0, -1], ouest: [1, 0], est: [-1, 0] }[mur] || [0, 0]; // escalier : au milieu
   const cx = (r.x + r.l / 2) * t + dedans[0] * t * 0.4;
   const cy = (r.y + r.h / 2) * t + dedans[1] * t * 0.4;
   const rayon = Math.max(8, t * 0.18);

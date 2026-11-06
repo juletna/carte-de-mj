@@ -12,7 +12,7 @@ import { MURS, longueurMur } from './murs.js';
 import { decrire } from './parseur/decrire.js';
 import { estObjet } from './format.js';
 import {
-  FORMAT, FORMAT_ANCIEN, VERSION, MAX_SALLES, LIMITES, coupe, dictionnaire, nomParDefaut, idUnique, planDepuisTexte, creerDonjon,
+  FORMAT, FORMAT_ANCIEN, VERSION, MAX_SALLES, LIMITES, coupe, dictionnaire, nomParDefaut, idUnique, planDepuisTexte, creerDonjon, extremite,
 } from './donjon.js';
 
 const MAX_LIAISONS = 1000;
@@ -54,9 +54,15 @@ function validerSalle(brut, id, echelle) {
   };
 }
 
+const cleExtremite = (e) => (e.escalier === true ? `${e.salle}|escalier|${e.x}|${e.y}` : `${e.salle}|${e.mur}|${e.position}`);
+
 function validerExtremite(e, salles) {
   if (!estObjet(e)) return 'extrémité invalide';
   if (typeof e.salle !== 'string' || !(e.salle in salles)) return 'salle inconnue';
+  if (e.escalier === true) {
+    const { largeur, longueur } = salles[e.salle].plan;
+    return Number.isInteger(e.x) && Number.isInteger(e.y) && e.x >= 0 && e.y >= 0 && e.x < largeur && e.y < longueur ? null : 'escalier hors de la salle';
+  }
   if (!MURS.includes(e.mur)) return 'mur inconnu';
   if (!Number.isInteger(e.position) || e.position < 0 || e.position >= longueurMur(e.mur, salles[e.salle].plan.largeur, salles[e.salle].plan.longueur)) return 'position hors du mur';
   return null;
@@ -97,11 +103,12 @@ export function validerDonjon(brut, { echelle } = {}) {
   else if (brut.liaisons?.length > MAX_LIAISONS) avertissements.push(`${brut.liaisons.length - MAX_LIAISONS} liaison(s) ignorée(s) au-delà de ${MAX_LIAISONS}`);
   for (const [i, l] of brutes.entries()) {
     const probleme = !estObjet(l) ? 'liaison invalide' : validerExtremite(l.a, salles) || validerExtremite(l.b, salles)
-      || (l.a.salle === l.b.salle ? 'liaison d’une salle avec elle-même' : null);
-    const cleA = probleme ? null : `${l.a.salle}|${l.a.mur}|${l.a.position}`;
-    const cleB = probleme ? null : `${l.b.salle}|${l.b.mur}|${l.b.position}`;
+      || (l.a.salle === l.b.salle ? 'liaison d’une salle avec elle-même' : null)
+      || ((l.a.escalier === true) !== (l.b.escalier === true) ? 'une porte reliée à un escalier' : null);
+    const cleA = probleme ? null : cleExtremite(l.a);
+    const cleB = probleme ? null : cleExtremite(l.b);
     if (probleme || vues.has(cleA) || vues.has(cleB)) {
-      avertissements.push(`liaison ${i + 1} ignorée : ${probleme || 'une porte est déjà reliée'}`);
+      avertissements.push(`liaison ${i + 1} ignorée : ${probleme || 'une porte (ou un escalier) est déjà reliée'}`);
       continue;
     }
     vues.add(cleA); vues.add(cleB);
@@ -109,8 +116,8 @@ export function validerDonjon(brut, { echelle } = {}) {
     ids.add(id);
     liaisons.push({
       id,
-      a: { salle: l.a.salle, mur: l.a.mur, position: l.a.position },
-      b: { salle: l.b.salle, mur: l.b.mur, position: l.b.position },
+      a: extremite(l.a.salle, l.a),
+      b: extremite(l.b.salle, l.b),
     });
   }
 

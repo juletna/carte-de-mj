@@ -63,6 +63,7 @@ export function creerPlaceurs({ plan, g, W, L, entree, fond, graine, fixes }) {
     }
     const o = { id: `o${plan.objets.length + 1}`, type: def.type, x: c[0], y: c[1], l, h, rotation };
     if (def.cache) o.cache = true;
+    if (def.sens === 'monte') o.sens = 'monte';
     plan.objets.push(o);
     return o;
   }

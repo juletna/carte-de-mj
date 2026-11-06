@@ -68,7 +68,7 @@ export function construirePlan({ largeur: W, longueur: L, sol, forme, intentions
   for (const it of objets) {
     if (it.position.etendue) it.n = 1;
     if (it.position.cases) it.n = Math.max(it.n, it.position.cases.length);
-    const def = { ...definition(it.type), camp: it.camp, couleur: it.couleur, cache: it.cache };
+    const def = { ...definition(it.type), camp: it.camp, couleur: it.couleur, cache: it.cache, sens: it.sens };
     const cote = Math.max(1, def.l + it.taille); // une créature reste carrée, même rapetissée
     const l = Math.min(W, def.genre === 'creature' ? cote : def.l + it.taille);
     const h = Math.min(L, def.genre === 'creature' ? cote : def.h + it.taille);

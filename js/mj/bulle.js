@@ -48,28 +48,48 @@ export function creerBulle(ctx) {
       h('p', { className: 'selection-titre', textContent: libelleSelection(trouve) }),
     ];
 
-    const lien = trouve.genre === 'porte' ? modele.liaisonDePorte(d, s.id, el) : null;
-    if (trouve.genre === 'porte') {
+    // Une porte relie deux salles du même niveau, un escalier deux niveaux voisins : les mêmes actions pour les deux.
+    const escalier = modele.estEscalier(el);
+    const reliable = trouve.genre === 'porte' || escalier;
+    const lien = reliable ? modele.liaisonDePorte(d, s.id, el) : null;
+    if (reliable) {
       if (lien) {
         const autre = d.salles[lien.autre.salle];
-        contenu.push(h('p', {}, 'Reliée à ', h('strong', { textContent: autre.nom }), '.'));
+        contenu.push(escalier
+          ? h('p', {}, `${el.sens === 'monte' ? 'Monte' : 'Descend'} à `, h('strong', { textContent: autre.nom }), ` (${modele.nomNiveau(modele.niveaux(d)[autre.id])}).`)
+          : h('p', {}, 'Reliée à ', h('strong', { textContent: autre.nom }), '.'));
         if (modele.liaisonsOrphelines(d).some((o) => o.liaison === lien.liaison && o.cote !== lien.cote)) {
-          contenu.push(h('p', { className: 'note erreur', textContent: 'La porte de retour a disparu dans cette salle : la liaison est orpheline là-bas.' }));
+          contenu.push(h('p', { className: 'note erreur', textContent: `${escalier ? 'L’escalier' : 'La porte'} de retour a disparu dans cette salle : la liaison est orpheline là-bas.` }));
         }
         contenu.push(h('div', { className: 'actions' },
           bouton(`Aller à « ${autre.nom} »`, () => ctx.activerSalle(autre.id)),
           bouton('Délier', () => { modele.delier(d, lien.liaison.id); etat.message = 'Liaison retirée.'; rendre(); }, 'discret')));
       } else {
-        const depuis = { salle: s.id, mur: el.mur, position: el.position };
-        contenu.push(h('div', { className: 'actions' }, bouton('Créer la salle derrière', () => {
+        const depuis = modele.extremite(s.id, el);
+        const ou = escalier ? (el.sens === 'monte' ? 'en haut de cet escalier' : 'en bas de cet escalier') : 'derrière cette porte';
+        const creer = bouton(escalier ? `Créer la salle ${el.sens === 'monte' ? 'du dessus' : 'du dessous'}` : 'Créer la salle derrière', () => {
           try {
             const { salle: nouvelle } = modele.creerSalleDerriere(d, { depuis, echelle: r.echelle });
             etat.neuves.add(nouvelle.id);
-            etat.message = `Salle « ${nouvelle.nom} » créée derrière cette porte (6 × 6 cases). Tu restes ici.`;
+            etat.message = `Salle « ${nouvelle.nom} » créée ${ou} (6 × 6 cases${escalier ? `, ${modele.nomNiveau(modele.niveaux(d)[nouvelle.id]).toLowerCase()}` : ''}). Tu restes ici.`;
             ctx.salles.majListe();
           } catch (err) { etat.message = err.message; }
           rendre();
-        })));
+        });
+        const actions = [creer];
+        if (escalier) {
+          // Le sens se change tant que l'escalier n'est pas relié : ensuite, il fixe le niveau de la salle d'arrivée.
+          const sens = bouton(el.sens === 'monte' ? 'Il descend plutôt' : 'Il monte plutôt', () => {
+            const objets = s.plan.objets.map((o) => {
+              if (o.id !== el.id) return o;
+              const { sens: _, ...sans } = o;
+              return el.sens === 'monte' ? sans : { ...sans, sens: 'monte' };
+            });
+            ctx.modifierPlan({ ...s.plan, objets }, { garderSelection: true });
+          }, 'discret');
+          actions.push(sens);
+        }
+        contenu.push(h('div', { className: 'actions' }, ...actions));
         const autres = modele.listerSalles(d).filter((x) => x.id !== s.id);
         if (autres.length) {
           const choix = h('select', { id: 'relier-choix', 'aria-label': 'Salle à relier' },
@@ -82,11 +102,15 @@ export function creerBulle(ctx) {
             try {
               modele.relierASalle(d, depuis, cible.id, { echelle: r.echelle });
               ctx.historique.pile(donjon().id, cible.id).push({ texte: texteAvant, ancres, liaisons: [] }); // annulable depuis la salle d'arrivée
-              etat.message = `Reliée à « ${cible.nom} » : une porte a été ajoutée sur son mur ${OPPOSE[el.mur]}.`;
+              etat.message = escalier
+                ? `Relié à « ${cible.nom} » : un escalier qui ${el.sens === 'monte' ? 'descend' : 'monte'} y a été ajouté.`
+                : `Reliée à « ${cible.nom} » : une porte a été ajoutée sur son mur ${OPPOSE[el.mur]}.`;
             } catch (err) { etat.message = err.message; }
             rendre();
           }, 'discret');
-          relier.title = 'Relier cette porte à une salle existante (une porte est ajoutée sur son mur opposé)';
+          relier.title = escalier
+            ? 'Relier cet escalier à une salle existante (un escalier de retour y est ajouté)'
+            : 'Relier cette porte à une salle existante (une porte est ajoutée sur son mur opposé)';
           contenu.push(h('div', { className: 'ligne-relier' }, choix, relier));
         }
       }
@@ -101,7 +125,7 @@ export function creerBulle(ctx) {
     }, 'discret');
     let supprimer;
     if (lien) {
-      supprimer = h('button', { type: 'button', className: 'discret', title: 'Supprime cette porte et retire sa liaison (annulable)' });
+      supprimer = h('button', { type: 'button', className: 'discret', title: `Supprime ${escalier ? 'cet escalier' : 'cette porte'} et retire sa liaison (annulable)` });
       deuxTemps(supprimer, 'Supprimer', 'Retirer la liaison et supprimer ?', supprimerSelection);
     } else {
       supprimer = bouton('Supprimer', supprimerSelection, 'discret');

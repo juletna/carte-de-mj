@@ -6,8 +6,15 @@
  *   format: 'carte-de-mj-donjon', version: 1,
  *   id, nom, salleActive,
  *   salles:   { <id>: { id, nom, texte, plan, notes } },
- *   liaisons: [{ id, a: {salle, mur, position}, b: {salle, mur, position} }]
+ *   liaisons: [{ id, a: <extrémité>, b: <extrémité> }]
  * }
+ *
+ * Une extrémité est une PORTE { salle, mur, position } ou un ESCALIER { salle, escalier: true, x, y } (la case de l'objet
+ * escalier). Une liaison relie deux portes ou deux escaliers, jamais une porte à un escalier.
+ *
+ * NIVEAUX : une porte relie deux salles du même niveau, un escalier deux niveaux voisins. Le niveau d'une salle n'est
+ * écrit nulle part : il se déduit des liaisons (`niveaux`), en partant de la première salle (niveau 0). Un escalier qui
+ * monte (`sens: 'monte'` dans le plan, « un escalier qui monte » dans le texte) mène au niveau du dessus ; sinon, il descend.
  *
  * La validation d'un donjon venu de l'extérieur (`validerDonjon`) et l'import d'un fichier (`convertirImport`) sont dans
  * donjon-validation.js, qui lit ce module : rien ici ne l'importe.
@@ -30,6 +37,11 @@ import { analyser } from './parseur/index.js';
 import { decrire } from './parseur/decrire.js';
 import { retirerElement } from './pose.js';
 import { ECHELLE_PAR_DEFAUT } from './affichage.js';
+import { interpreterCommande } from './parseur/commandes.js';
+import { nomCase } from './coordonnees.js';
+import { estEscalier, escalierEn } from './niveaux.js';
+
+export { estEscalier, escalierEn, ecartDeNiveau, niveaux, nomNiveau } from './niveaux.js';
 
 export const FORMAT = 'carte-de-mj-donjon';
 export const FORMAT_ANCIEN = 'jdr-carte';
@@ -117,7 +129,7 @@ export function supprimerElement(d, idSalle, desc) {
   const trouve = s && retrouverElement(s.plan, desc);
   if (!trouve) return null;
   const liaisonsRetirees = [];
-  if (trouve.genre === 'porte') {
+  if (trouve.genre === 'porte' || estEscalier(trouve.element)) {
     const lien = liaisonDePorte(d, idSalle, trouve.element);
     if (lien) { liaisonsRetirees.push(lien.liaison); delier(d, lien.liaison.id); }
   }
@@ -204,17 +216,25 @@ export const estDebutant = (donjons) => Object.values(donjons).every((d) => d.li
 
 // --- Liaisons ---------------------------------------------------------------------
 
-const memeExtremite = (e, salle, mur, position) => e.salle === salle && e.mur === mur && e.position === position;
-const aPorte = (plan, mur, position) => plan.portes.some((p) => p.mur === mur && p.position === position);
+/**
+ * L'extrémité de liaison d'un élément de la salle : une porte ({mur, position}), un objet escalier ({type: 'escalier', x, y})
+ * ou une extrémité déjà faite.
+ */
+export const extremite = (salle, e) => (estEscalier(e) ? { salle, escalier: true, x: e.x, y: e.y } : { salle, mur: e.mur, position: e.position });
+const memeExtremite = (e, salle, el) => e.salle === salle && (estEscalier(e)
+  ? estEscalier(el) && e.x === el.x && e.y === el.y
+  : !estEscalier(el) && e.mur === el.mur && e.position === el.position);
+/** L'élément (porte ou escalier) désigné par une extrémité existe-t-il encore dans le plan ? */
+const aAncre = (plan, e) => (estEscalier(e) ? !!escalierEn(plan, e.x, e.y) : plan.portes.some((p) => p.mur === e.mur && p.position === e.position));
 
 /**
- * Trouve la liaison d'une porte (désignée par salle + mur + position).
+ * Trouve la liaison d'une porte (salle + mur + position) ou d'un escalier (salle + case de l'objet).
  * @returns {{liaison:object, cote:'a'|'b', ici:object, autre:object}|null}
  */
 export function liaisonDePorte(d, salle, porte) {
   for (const l of d.liaisons) {
     for (const [cote, autreCote] of [['a', 'b'], ['b', 'a']]) {
-      if (memeExtremite(l[cote], salle, porte.mur, porte.position)) {
+      if (memeExtremite(l[cote], salle, porte)) {
         return { liaison: l, cote, ici: l[cote], autre: l[autreCote] };
       }
     }
@@ -222,20 +242,22 @@ export function liaisonDePorte(d, salle, porte) {
   return null;
 }
 
-/** Relie deux portes existantes de deux salles différentes. Lève une Error en français sinon. */
+/** Relie deux portes (ou deux escaliers) existants de deux salles différentes. Lève une Error en français sinon. */
 export function relier(d, a, b) {
   const sa = d.salles[a?.salle], sb = d.salles[b?.salle];
   if (!sa || !sb) throw new Error('salle inconnue');
-  if (sa === sb) throw new Error('une porte ne peut pas relier une salle à elle-même');
+  if (sa === sb) throw new Error(estEscalier(a) ? 'un escalier ne peut pas relier une salle à elle-même' : 'une porte ne peut pas relier une salle à elle-même');
+  if (estEscalier(a) !== estEscalier(b)) throw new Error('un escalier se relie à un autre escalier, une porte à une autre porte');
   for (const [e, s] of [[a, sa], [b, sb]]) {
-    if (!MURS.includes(e.mur) || !aPorte(s.plan, e.mur, e.position)) throw new Error(`aucune porte au mur ${e.mur} (position ${e.position + 1}) de « ${s.nom} »`);
+    if (estEscalier(e)) {
+      if (!aAncre(s.plan, e)) throw new Error(`aucun escalier en ${nomCase(e.x, e.y)} dans « ${s.nom} »`);
+      if (liaisonDePorte(d, s.id, e)) throw new Error(`cet escalier de « ${s.nom} » est déjà relié`);
+      continue;
+    }
+    if (!MURS.includes(e.mur) || !aAncre(s.plan, e)) throw new Error(`aucune porte au mur ${e.mur} (position ${e.position + 1}) de « ${s.nom} »`);
     if (liaisonDePorte(d, s.id, e)) throw new Error(`cette porte de « ${s.nom} » est déjà reliée`);
   }
-  const liaison = {
-    id: idUnique('l', d.liaisons.map((l) => l.id)),
-    a: { salle: a.salle, mur: a.mur, position: a.position },
-    b: { salle: b.salle, mur: b.mur, position: b.position },
-  };
+  const liaison = { id: idUnique('l', d.liaisons.map((l) => l.id)), a: extremite(a.salle, a), b: extremite(b.salle, b) };
   d.liaisons.push(liaison);
   return liaison;
 }
@@ -246,13 +268,13 @@ export function delier(d, idLiaison) {
   return d.liaisons.length < avant;
 }
 
-/** Une porte a bougé : la liaison suit. Renvoie le nombre d'extrémités mises à jour. */
+/** Une porte (ou un escalier) a bougé : la liaison suit. Renvoie le nombre d'extrémités mises à jour. */
 export function suivrePorte(d, salle, avant, apres) {
   let n = 0;
   for (const l of d.liaisons) {
     for (const cote of ['a', 'b']) {
-      if (memeExtremite(l[cote], salle, avant.mur, avant.position)) {
-        l[cote] = { salle, mur: apres.mur, position: apres.position };
+      if (memeExtremite(l[cote], salle, avant)) {
+        l[cote] = extremite(salle, apres);
         n++;
       }
     }
@@ -260,19 +282,23 @@ export function suivrePorte(d, salle, avant, apres) {
   return n;
 }
 
-/** Applique suivrePorte aux portes déplacées entre deux plans issus l'un de l'autre (mêmes ids). */
+/** Applique suivrePorte aux portes et aux escaliers déplacés entre deux plans issus l'un de l'autre (mêmes ids). */
 export function suivrePortesDeplacees(d, salle, ancien, nouveau) {
   let n = 0;
   for (const p of nouveau.portes) {
     const avant = ancien.portes.find((q) => q.id === p.id);
     if (avant && (avant.mur !== p.mur || avant.position !== p.position)) n += suivrePorte(d, salle, avant, p);
   }
+  for (const o of nouveau.objets) {
+    const avant = o.type === 'escalier' && ancien.objets.find((q) => q.id === o.id && q.type === 'escalier');
+    if (avant && (avant.x !== o.x || avant.y !== o.y)) n += suivrePorte(d, salle, avant, o);
+  }
   return n;
 }
 
 /**
- * Extrémités de liaison dont la porte n'existe plus dans le plan de leur salle.
- * @returns {{liaison:object, cote:'a'|'b', salle:string, mur:string, position:number}[]}
+ * Extrémités de liaison dont la porte (ou l'escalier) n'existe plus dans le plan de leur salle.
+ * @returns {{liaison:object, cote:'a'|'b', salle:string, mur?:string, position?:number, escalier?:true, x?:number, y?:number}[]}
  */
 export function liaisonsOrphelines(d) {
   const res = [];
@@ -280,17 +306,20 @@ export function liaisonsOrphelines(d) {
     for (const cote of ['a', 'b']) {
       const e = l[cote];
       const s = d.salles[e.salle];
-      if (!s || !aPorte(s.plan, e.mur, e.position)) res.push({ liaison: l, cote, salle: e.salle, mur: e.mur, position: e.position });
+      if (!s || !aAncre(s.plan, e)) res.push({ liaison: l, cote, ...e });
     }
   }
   return res;
 }
 
+/** Ce qu'on dit d'une extrémité dans un message : « la porte du mur est » ou « l’escalier en B2 ». */
+export const nomExtremite = (e) => (estEscalier(e) ? `l’escalier en ${nomCase(e.x, e.y)}` : `la porte du mur ${e.mur}`);
+
 /** Position des extrémités de liaison d'une salle, à rétablir si on annule une modification de son texte. */
 export function ancresDeSalle(d, salle) {
   const res = [];
   for (const l of d.liaisons) {
-    for (const cote of ['a', 'b']) if (l[cote].salle === salle) res.push({ liaison: l.id, cote, mur: l[cote].mur, position: l[cote].position });
+    for (const cote of ['a', 'b']) if (l[cote].salle === salle) res.push({ liaison: l.id, cote, extremite: { ...l[cote] } });
   }
   return res;
 }
@@ -299,7 +328,7 @@ export function ancresDeSalle(d, salle) {
 export function restaurerAncres(d, ancres) {
   for (const a of ancres || []) {
     const l = d.liaisons.find((x) => x.id === a.liaison);
-    if (l) l[a.cote] = { salle: l[a.cote].salle, mur: a.mur, position: a.position };
+    if (l) l[a.cote] = { ...a.extremite, salle: l[a.cote].salle };
   }
 }
 
@@ -312,6 +341,7 @@ export function restaurerAncres(d, ancres) {
  * @param {{depuis:{salle:string, mur:string, position:number}, echelle?:number}} options
  */
 export function creerSalleDerriere(d, { depuis, echelle }) {
+  if (estEscalier(depuis)) return creerSalleAuBoutDe(d, { depuis, echelle });
   const source = d.salles[depuis.salle];
   const porteSource = source?.plan.portes.find((p) => p.mur === depuis.mur && p.position === depuis.position);
   if (!porteSource) throw new Error('aucune porte à cet endroit');
@@ -336,6 +366,7 @@ export function relierASalle(d, depuis, versSalle, { echelle } = {}) {
   const source = d.salles[depuis.salle], cible = d.salles[versSalle];
   if (!source || !cible) throw new Error('salle inconnue');
   if (source === cible) throw new Error('choisis une autre salle');
+  if (estEscalier(depuis)) return relierEscalierASalle(d, depuis, cible, { echelle });
   const porteSource = source.plan.portes.find((p) => p.mur === depuis.mur && p.position === depuis.position);
   if (!porteSource) throw new Error('aucune porte à cet endroit');
   if (liaisonDePorte(d, depuis.salle, depuis)) throw new Error('cette porte est déjà reliée');
@@ -356,6 +387,47 @@ export function relierASalle(d, depuis, versSalle, { echelle } = {}) {
   const texte = decrire(planAvec);
   definirTexte(d, cible.id, texte, planDepuisTexte(texte, cible.id, echelle));
   const liaison = relier(d, depuis, { salle: cible.id, mur, position });
+  return { salle: cible, liaison, texteAvant };
+}
+
+// --- Salles au bout d'un escalier ---------------------------------------------------------
+
+/** L'escalier non relié désigné par `depuis` (sinon une Error en français). */
+function escalierLibre(d, depuis) {
+  const e = escalierEn(d.salles[depuis.salle]?.plan, depuis.x, depuis.y);
+  if (!e) throw new Error('aucun escalier à cet endroit');
+  if (liaisonDePorte(d, depuis.salle, depuis)) throw new Error('cet escalier est déjà relié');
+  return e;
+}
+/** L'escalier du retour : il monte si celui de départ descend, et inversement. */
+export const phraseRetour = (e) => `un escalier${e.sens === 'monte' ? '' : ' qui monte'}`;
+
+/**
+ * Crée une salle de 6 × 6 cases au bout d'un escalier (à l'étage du dessus s'il monte, du dessous s'il descend) avec
+ * l'escalier du retour, et relie les deux. Même contrat que `creerSalleDerriere`.
+ */
+function creerSalleAuBoutDe(d, { depuis, echelle }) {
+  const e = escalierLibre(d, depuis);
+  const plan = analyser(`Salle de ${COTE_NOUVELLE_SALLE} par ${COTE_NOUVELLE_SALLE} cases, ${phraseRetour(e)}`, { echelle }).plan;
+  const salle = ajouterSalle(d, { texte: decrire(plan), echelle });
+  const retour = salle.plan.objets.find((o) => o.type === 'escalier');
+  const liaison = relier(d, depuis, extremite(salle.id, retour));
+  return { salle, liaison };
+}
+
+/**
+ * Relie un escalier à une salle existante : l'escalier du retour y est posé là où il y a de la place, et la description de
+ * la salle est réécrite avec decrire(). Même contrat que `relierASalle`.
+ */
+function relierEscalierASalle(d, depuis, cible, { echelle }) {
+  const e = escalierLibre(d, depuis);
+  const r = interpreterCommande(`ajoute ${phraseRetour(e)}`, cible.plan);
+  if (!r.ok) throw new Error(`« ${cible.nom} » n'a plus de place pour un escalier`);
+  const pose = r.plan.objets.find((o) => o.id === r.ajoutes[0]);
+  const texteAvant = cible.texte;
+  const texte = decrire(r.plan);
+  definirTexte(d, cible.id, texte, planDepuisTexte(texte, cible.id, echelle));
+  const liaison = relier(d, depuis, { salle: cible.id, escalier: true, x: pose.x, y: pose.y });
   return { salle: cible, liaison, texteAvant };
 }
 

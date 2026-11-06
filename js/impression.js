@@ -23,6 +23,7 @@
  * celle dont le grand côté suit le grand côté de la salle.
  */
 import { planPublic } from './vue-publique.js';
+import { estEscalier, escalierEn, niveaux, nomNiveau } from './niveaux.js';
 import { lettreColonne, nomCase, reperePorte } from './coordonnees.js';
 import { nomAffiche } from './parseur/lexique.js';
 import { EPAISSEUR_MUR } from './rendu/geometrie.js';
@@ -266,9 +267,12 @@ export const phrasesFeuilleMJ = {
     const d = s.decoupage;
     return `${s.plan.largeur} × ${s.plan.longueur} cases, ${pluriel(d.pages.length, 'page', 'pages')} A4 ${d.orientation === 'portrait' ? 'portrait' : 'paysage'}${d.reduite ? `, échelle réduite (1 case = ${virgule(d.mmParCase)} mm)` : ''}`;
   },
-  liaison: (l) => (!l.vers
-    ? `Porte au ${l.porte} → salle introuvable`
-    : `Porte au ${l.porte} → Plan ${l.vers.numero} « ${l.vers.nom} » (porte au ${l.vers.porte})${l.vers.imprimee ? '' : ' · salle non imprimée'}${l.orpheline ? ' · cette porte n’existe plus dans le plan' : ''}`),
+  liaison: (l) => {
+    const quoi = l.escalier ? 'Escalier' : 'Porte au';
+    if (!l.vers) return `${quoi} ${l.porte} → salle introuvable`;
+    return `${quoi} ${l.porte} → Plan ${l.vers.numero} « ${l.vers.nom} » (${l.escalier ? `${l.vers.niveau}, escalier` : 'porte au'} ${l.vers.porte})`
+      + `${l.vers.imprimee ? '' : ' · salle non imprimée'}${l.orpheline ? ` · ${l.escalier ? 'cet escalier' : 'cette porte'} n’existe plus dans le plan` : ''}`;
+  },
 };
 
 /**
@@ -303,11 +307,22 @@ export function secretsDuPlan(plan) {
 function liaisonsDeSalle(donjon, idSalle, numeros, imprimees) {
   const plan = donjon.salles[idSalle].plan;
   const res = [];
+  let niv = null; // calculé une fois, au premier escalier
   for (const l of donjon.liaisons || []) {
     const ici = l.a.salle === idSalle ? l.a : l.b.salle === idSalle ? l.b : null;
     if (!ici) continue;
     const autre = ici === l.a ? l.b : l.a;
     const s = donjon.salles[autre.salle];
+    if (estEscalier(ici)) {
+      niv ||= niveaux(donjon);
+      res.push({
+        escalier: true, x: ici.x, y: ici.y,
+        porte: `en ${nomCase(ici.x, ici.y)}`,
+        vers: s ? { numero: numeros[autre.salle], nom: s.nom, imprimee: imprimees.has(autre.salle), porte: `en ${nomCase(autre.x, autre.y)}`, niveau: nomNiveau(niv[autre.salle]).toLowerCase() } : null,
+        orpheline: !escalierEn(plan, ici.x, ici.y),
+      });
+      continue;
+    }
     res.push({
       mur: ici.mur, position: ici.position,
       porte: libellePorte(ici.mur, ici.position),
@@ -315,7 +330,8 @@ function liaisonsDeSalle(donjon, idSalle, numeros, imprimees) {
       orpheline: !plan.portes.some((p) => p.mur === ici.mur && p.position === ici.position),
     });
   }
-  return res.sort((a, b) => a.mur.localeCompare(b.mur) || a.position - b.position);
+  // Les portes dans l'ordre du mur et de la position, puis les escaliers dans l'ordre de lecture.
+  return res.sort((a, b) => (!!a.escalier - !!b.escalier) || (a.escalier ? a.y - b.y || a.x - b.x : a.mur.localeCompare(b.mur) || a.position - b.position));
 }
 
 /**
@@ -357,7 +373,10 @@ export function preparerImpression(donjon, { salles, version = 'joueurs', pions 
     return {
       id: salle.id, numero: numeros[salle.id], nom: salle.nom, notes: salle.notes || '',
       plan, decoupage, liaisons, secrets: secretsDuPlan(plan),
-      marques: { portesReliees: liaisons.filter((l) => l.vers && !l.orpheline).map((l) => ({ mur: l.mur, position: l.position, vers: l.vers.numero })) },
+      marques: {
+        portesReliees: liaisons.filter((l) => !l.escalier && l.vers && !l.orpheline).map((l) => ({ mur: l.mur, position: l.position, vers: l.vers.numero })),
+        escaliersRelies: liaisons.filter((l) => l.escalier && l.vers && !l.orpheline).map((l) => ({ x: l.x, y: l.y, vers: l.vers.numero })),
+      },
     };
   });
   const propositions = echelle === 'page' ? [] : choisies.flatMap((s) => {

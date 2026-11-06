@@ -24,6 +24,7 @@
  * couleur (facultative) : rouge, bleu, vert… (voir COULEURS dans lexique.js).
  * etat (facultatif, posé en partie par la Présentation) : « blesse » ou « mort » ; absent = normal.
  * fiche (facultatif, posé en partie) : identifiant du personnage du donjon dont ce pion est le pion (voir personnages.js).
+ * sens (facultatif, sur un escalier) : « monte » ; absent = l'escalier descend. Il dit vers quel niveau mène l'escalier (voir donjon.js).
  * rotation : direction du regard de l'objet (0 nord, 90 est, 180 sud, 270 ouest).
  * position d'une porte : index de case le long du mur (de l'ouest vers l'est
  * pour nord/sud, du nord vers le sud pour est/ouest).
@@ -126,7 +127,7 @@ export function validerPlan(brut) {
       return erreurs.push(`objet ${i + 1} (${o.type}) : hors de la pièce`);
     }
     const rotation = ((Math.round((Number(o.rotation) || 0) / 90) * 90) % 360 + 360) % 360;
-    plan.objets.push({ id: String(o.id || `o${i + 1}`), type: o.type, x: o.x, y: o.y, l, h, rotation, ...marqueCache(o) });
+    plan.objets.push({ id: String(o.id || `o${i + 1}`), type: o.type, x: o.x, y: o.y, l, h, rotation, ...(o.type === 'escalier' && o.sens === 'monte' ? { sens: 'monte' } : {}), ...marqueCache(o) });
   });
 
   const numeros = {};

@@ -66,7 +66,8 @@ export function planPublic(plan, { visible = (e) => !estCache(e), garder = () =>
     version: VERSION_PLAN, id: idPublic(plan.id), nom: '', ...normaliserForme(plan),
     largeur: plan.largeur, longueur: plan.longueur, sol: plan.sol, ...champsAmbiance(plan), entree: 'sud',
     portes: (plan.portes || []).filter((q) => visible(q, 'porte')).map((q) => ({ id: q.id, mur: q.mur, position: q.position, type: q.type })),
-    objets: (plan.objets || []).filter((o) => visible(o, 'objet')).map((o) => ({ id: o.id, type: o.type, x: o.x, y: o.y, l: o.l, h: o.h, rotation: o.rotation })),
+    objets: (plan.objets || []).filter((o) => visible(o, 'objet'))
+      .map((o) => ({ id: o.id, type: o.type, x: o.x, y: o.y, l: o.l, h: o.h, rotation: o.rotation, ...(o.type === 'escalier' && o.sens === 'monte' ? { sens: 'monte' } : {}) })),
     creatures: (plan.creatures || []).filter((k) => visible(k, 'creature') && garder(k)).map(creature),
     connexions: [],
   };

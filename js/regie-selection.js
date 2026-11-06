@@ -5,6 +5,7 @@
  */
 import * as pres from './presentation.js';
 import { LISTES } from './schema.js';
+import { niveaux, nomNiveau } from './niveaux.js';
 import { libelleSelection } from './coordonnees.js';
 import { nomAffiche } from './parseur/lexique.js';
 import { h, bouton, $ } from './dom.js';
@@ -46,7 +47,8 @@ export function creerSelection(ctx) {
     etat.consultee = res.vers;
     etat.selection = null;
     etat.messageCommande = null;
-    etat.message = [`Passage dans « ${arrivee} » : la salle est maintenant à la table.`, ...phrasesGroupe(res, depart)].join(' ');
+    const passage = porte.type === 'escalier' ? `${porte.sens === 'monte' ? 'Montée' : 'Descente'} vers « ${arrivee} »` : `Passage dans « ${arrivee} »`;
+    etat.message = [`${passage} : la salle est maintenant à la table.`, ...phrasesGroupe(res, depart)].join(' ');
     modifie();
   }
 
@@ -57,7 +59,8 @@ export function creerSelection(ctx) {
     const b = etat.brouillon;
     const res = pres.creerSalleEtPasser(etat.p, s.id, porte.id, b?.texte || '', { nom: b?.nom || '', echelle: r.echelle, groupe: etat.groupeSuit });
     if (!res.ok) { etat.message = res.message; rendre(); return; }
-    const parts = [`Salle « ${res.salle.nom} » créée derrière la porte, reliée à « ${depart} » : elle est maintenant à la table.`, ...phrasesGroupe(res, depart)];
+    const ou = porte.type === 'escalier' ? `${porte.sens === 'monte' ? 'en haut' : 'en bas'} de l’escalier` : 'derrière la porte';
+    const parts = [`Salle « ${res.salle.nom} » créée ${ou}, reliée à « ${depart} » : elle est maintenant à la table.`, ...phrasesGroupe(res, depart)];
     if (res.ignores?.length) parts.push(`Mots non compris dans la description : ${res.ignores.join(', ')}.`);
     etat.consultee = res.vers;
     etat.selection = null;
@@ -87,6 +90,8 @@ export function creerSelection(ctx) {
   }
 
   function formulaireNouvelleSalle(s, porte) {
+    const escalier = porte.type === 'escalier';
+    const ou = escalier ? (porte.sens === 'monte' ? 'en haut de cet escalier' : 'en bas de cet escalier') : '';
     const cle = `${s.id}|${porte.id}`;
     if (etat.brouillon?.cle !== cle) etat.brouillon = { cle, texte: '', nom: '' };
     const brouillon = etat.brouillon;
@@ -96,10 +101,14 @@ export function creerSelection(ctx) {
     const nom = h('input', { type: 'text', id: 'nom-nouvelle', value: brouillon.nom, maxLength: 80, placeholder: 'Nom de la salle (facultatif)' });
     nom.addEventListener('input', () => { brouillon.nom = nom.value; });
     return [
-      h('p', { className: 'note', textContent: 'Cette porte n’est reliée à aucune salle. Tu peux créer la salle d’à côté maintenant : elle sera reliée à cette porte, et le groupe peut y passer.' }),
+      h('p', { className: 'note', textContent: escalier
+        ? `Cet escalier n’est relié à aucune salle. Tu peux créer la salle ${ou} maintenant : elle sera reliée à cet escalier, et le groupe peut y passer.`
+        : 'Cette porte n’est reliée à aucune salle. Tu peux créer la salle d’à côté maintenant : elle sera reliée à cette porte, et le groupe peut y passer.' }),
       h('div', { className: 'nouvelle-salle' },
         h('label', { htmlFor: 'description-nouvelle', textContent: 'Décrire la nouvelle salle (facultatif)' }), description,
-        h('p', { className: 'note', textContent: 'Même langage que dans le Donjon. Laisse vide pour une salle de 6 × 6 cases. Une porte de retour est ajoutée sur le mur opposé si la description n’en place pas.' }),
+        h('p', { className: 'note', textContent: escalier
+          ? `Même langage que dans le Donjon. Laisse vide pour une salle de 6 × 6 cases. Un escalier qui ${porte.sens === 'monte' ? 'descend' : 'monte'} est ajouté si la description n’en place pas.`
+          : 'Même langage que dans le Donjon. Laisse vide pour une salle de 6 × 6 cases. Une porte de retour est ajoutée sur le mur opposé si la description n’en place pas.' }),
         nom),
       caseGroupe(s),
       h('div', { className: 'actions' }, bouton('Créer la salle et y passer', () => creerEtPasser(porte))),
@@ -164,12 +173,16 @@ export function creerSelection(ctx) {
       contenu.push(boutons);
     }
 
-    if (trouve.genre === 'porte') {
+    // Une porte et un escalier se franchissent de la même façon ; l'escalier change de niveau.
+    const escalier = trouve.genre === 'objet' && el.type === 'escalier';
+    if (trouve.genre === 'porte' || escalier) {
       const dest = pres.destinationPorte(p, s.id, el.id);
       if (dest) {
-        contenu.push(h('p', {}, 'Mène à ', h('strong', { textContent: dest.salle.nom }), pres.estDecouverte(p, dest.salle.id) ? ' (déjà découverte).' : ' (non découverte).'));
+        const niveau = escalier ? ` · ${nomNiveau(niveaux(p.donjon)[dest.salle.id])}` : '';
+        contenu.push(h('p', {}, 'Mène à ', h('strong', { textContent: dest.salle.nom }), `${niveau}${pres.estDecouverte(p, dest.salle.id) ? ' (déjà découverte).' : ' (non découverte).'}`));
         contenu.push(caseGroupe(s));
-        contenu.push(h('div', { className: 'actions' }, bouton(`Passer dans la salle « ${dest.salle.nom} »`, () => passer(el), '')));
+        const action = escalier ? `${el.sens === 'monte' ? 'Monter' : 'Descendre'} à « ${dest.salle.nom} »` : `Passer dans la salle « ${dest.salle.nom} »`;
+        contenu.push(h('div', { className: 'actions' }, bouton(action, () => passer(el), '')));
       } else {
         contenu.push(...formulaireNouvelleSalle(s, el));
       }

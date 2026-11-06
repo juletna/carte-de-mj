@@ -93,10 +93,18 @@ function rendre() {
   ctx.bulle.maj();
   ctx.salles.majOrphelines();
   ctx.salles.majMiniCarte();
+  majTitreSalle();
   majAide();
   salleForme.majForme();
   personnages.maj();
   sauvegarder();
+}
+
+/** Nom de la salle affichée, avec son niveau dès que le donjon en a plusieurs (des escaliers relient ses salles). */
+function majTitreSalle() {
+  const niv = modele.niveaux(donjon());
+  const plusieurs = new Set(Object.values(niv)).size > 1;
+  $('nom-salle-active').textContent = `· ${salle().nom}${plusieurs ? ` · ${modele.nomNiveau(niv[salle().id])}` : ''}`;
 }
 
 function sauvegarder() {
@@ -180,7 +188,7 @@ function afficherSalleActive() {
   deselectionner();
   $('description').value = salle().texte;
   $('notes').value = salle().notes;
-  $('nom-salle-active').textContent = `· ${salle().nom}`;
+  majTitreSalle();
   ctx.menu.majDonjons();
   ctx.salles.majListe();
   generer();
