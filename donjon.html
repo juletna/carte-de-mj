@@ -11,12 +11,15 @@
   <link rel="stylesheet" href="css/donjon.css">
   <link rel="stylesheet" href="css/bibliotheque.css">
   <link rel="stylesheet" href="css/univers.css">
+  <link rel="stylesheet" href="css/atelier.css">
 </head>
 <body>
   <!-- Barre de navigation commune (js/navigation.js), puis les commandes du donjon. Écran étroit (js/telephone.js, CSS sous
        760 px) : la barre compacte reste en haut, et la barre du donjon porte les onglets Texte / Carte. -->
   <header class="menu-site" data-navigation></header>
   <header id="barre">
+    <!-- Arbre de l'atelier (js/atelier/coquille.js) : tiroir sous 760 px ; sur ordinateur, rouvre l'arbre quand il est replié. -->
+    <button id="arbre-bouton" type="button" class="btn btn-icone btn-discret atelier-arbre-bouton" aria-label="Arbre" title="L'arbre : monde, lieux, donjons, salles"><span data-icone="menu"></span></button>
 
     <div class="onglets" role="group" aria-label="Afficher">
       <button type="button" class="btn" data-onglet="texte" aria-pressed="true">Texte</button>
@@ -111,6 +114,9 @@
     <a id="presenter" class="btn btn-primaire" href="presentation.html" title="Présente ce donjon : reprend sa partie en cours s'il en a une, sinon en commence une"><span data-icone="jouer"></span>Jouer</a>
   </header>
 
+  <!-- L'atelier (js/atelier/coquille.js) : la coquille ajoute la colonne de l'arbre au début et celle de l'inspecteur à la fin ;
+       les blocs ci-dessous (anciens rail et panneau, scène) y restent branchés tant que le lot Donjon n'a pas migré les siens. -->
+  <div id="atelier" class="atelier">
   <!-- Onglets des salles : toujours visibles, au-dessus de la carte, quel que soit l'outil (js/main-mj.js, majOnglets). -->
   <div class="salles-barre">
     <button id="plan-bouton" type="button" class="btn btn-discret bouton-plan" aria-pressed="false" aria-controls="plan-donjon"
@@ -323,6 +329,7 @@
 
   <!-- Écran étroit, onglet Carte : la zone réservée aux actions de la sélection, quand rien n'est sélectionné. -->
   <p id="aide-carte" class="aide-carte">Touche une porte, un objet ou un pion : ses actions apparaissent ici.</p>
+  </div>
 
   <div id="univers" class="univers" hidden></div>
 

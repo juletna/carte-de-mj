@@ -23,10 +23,11 @@ import { casesDeReglages } from '../affichage.js';
 import { idUnique } from '../donjon.js';
 import { positionBulle } from '../mise-en-page.js';
 import { telephone } from '../telephone.js';
-import { analyserHash, hashMonde, lienJouer, calagePossible, genreDestination, nomDuNouveauLieu } from '../univers-vue.js';
+import { analyserHash, lienJouer, calagePossible, genreDestination, nomDuNouveauLieu } from '../univers-vue.js';
 import { $, h, fichierChoisi } from '../dom.js';
 import { pluriel, sansAccents } from '../format.js';
 import { marquerCourant } from '../navigation.js';
+import { ecrireRoute } from '../atelier-route.js';
 
 const TAILLE_MAX_FICHIER = 5 * 1024 * 1024;
 const DELAI_DOUBLE_CLIC = 450;
@@ -44,6 +45,7 @@ export function creerUniversUI(ctx) {
   let sequence = 0;         // pour ignorer une URL d'image qui arrive après un changement de lieu
   let retraits = [];        // lieux retirés, pour « Annuler »
   let dernierClic = { id: null, t: 0 };
+  const surChangement = []; // appelés après chaque rendu (la coquille de l'atelier suit le lieu affiché et les données)
   let renomme = false;      // le nom du monde est en cours d'édition dans la barre
 
   const univ = () => reserve.univers[reserve.actif] ?? null;
@@ -586,12 +588,14 @@ export function creerUniversUI(ctx) {
       rendrePanneau();
       rendreBulle();
       zoneCarte.hidden = true;
+      surChangement.forEach((f) => f());
       return;
     }
     racine.classList.toggle('en-calage', calage.actif());
     rendrePanneau();
     rendreBulle();
     rendreCarte();
+    surChangement.forEach((f) => f());
   }
 
   // --- Ouverture, adresse `#monde` ------------------------------------------------------------------------------------------------
@@ -599,7 +603,7 @@ export function creerUniversUI(ctx) {
   declencheur?.prepend(icone('monde')); // l'icône est posée ici : le balisage n'a pas d'emoji
   const sansHash = () => `${location.pathname}${location.search}`;
   function majAdresse() {
-    const voulu = hashMonde(reserve.actif);
+    const voulu = ecrireRoute({ page: 'monde', monde: reserve.actif, lieu: lieuId }); // #monde=<id>&lieu=<id>
     if (location.hash !== voulu) history.replaceState(null, '', `${sansHash()}${voulu}`);
   }
   function ouvrirEcran({ id = null } = {}) {
@@ -652,5 +656,12 @@ export function creerUniversUI(ctx) {
   allerA(univ()?.racine ?? null);
   const ouvertureDirecte = analyserHash(location.hash);
   if (ouvertureDirecte) ouvrirEcran(ouvertureDirecte);
-  return { ouvrir: ouvrirEcran, fermer: fermerEcran, ouvert: () => !racine.hidden };
+  return {
+    ouvrir: ouvrirEcran, fermer: fermerEcran, ouvert: () => !racine.hidden,
+    // Pour la coquille de l'atelier (js/atelier/coquille.js) : les mondes, le lieu affiché, et un abonnement aux changements.
+    donnees: () => ({ univers: reserve.univers, actif: reserve.actif }),
+    lieu: () => lieuId,
+    allerALieu: (id) => { allerA(id); rendre(); },
+    surChangement: (f) => { surChangement.push(f); },
+  };
 }

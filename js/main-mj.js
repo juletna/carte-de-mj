@@ -26,8 +26,15 @@ import { creerVueCarte } from './mj/vue-carte.js';
 import { creerVuePlan } from './mj/vue-plan.js';
 import { creerUniversUI } from './mj/univers-ui.js';
 import { lierReglagesRendu } from './reglages-rendu.js';
+import { creerCoquille } from './atelier/coquille.js';
+import { inscrireDonjon } from './atelier/inscrire-donjon.js';
+import { inscrireMonde } from './atelier/inscrire-monde.js';
+import { lireRoute } from './atelier-route.js';
 import { $, h } from './dom.js';
 import { icone } from './icones.js';
+
+// L'adresse d'ouverture, lue avant que l'écran Monde ne réécrive la sienne (il ouvre sur le lieu de départ) : F5 retrouve le même nœud.
+const routeInitiale = lireRoute(location.hash);
 
 // Icônes SVG communes (js/icones.js) : chaque <span data-icone="nom"> du HTML statique est remplacé par l'icône.
 for (const marque of document.querySelectorAll('[data-icone]')) marque.replaceWith(icone(marque.dataset.icone));
@@ -101,6 +108,7 @@ function rendre() {
   salleForme.majForme();
   personnages.maj();
   sauvegarder();
+  ctx.coquille?.rafraichir(); // l'arbre de l'atelier suit les noms (salles, donjons) ; il ne se redessine que s'ils ont changé
 }
 
 /** Nom de la salle affichée, avec son niveau dès que le donjon en a plusieurs (des escaliers relient ses salles). */
@@ -197,6 +205,7 @@ function afficherSalleActive() {
   generer();
   $('panneau').scrollTo({ top: 0 });
   ctx.menu.fermer();
+  if (!ctx.univers?.ouvert()) ctx.coquille?.positionner({ donjon: etat.actif, salle: donjon().salleActive }); // l'arbre et l'adresse suivent la salle
   const nouvelle = etat.neuves.delete(salle().id);
   if (nouvelle && !garderMini && !matchMedia('(pointer: coarse)').matches) $('description').focus({ preventScroll: true });
 }
@@ -348,8 +357,44 @@ ctx.onglets = activerOnglets(document.querySelector('.onglets'), {
 // --- Univers : cartes imbriquées, préparation (js/mj/univers-ui.js) ---
 ctx.univers = creerUniversUI(ctx);
 
+// --- Atelier : arbre unifié, sélection commune, inspecteur, adresse (js/atelier/coquille.js) ---
+// L'ancien rail et l'ancien panneau restent branchés ; les lots Donjon et Monde y inscrivent leurs inspecteurs (inscrire-donjon.js, inscrire-monde.js).
+/** Où va la scène quand l'arbre ou l'adresse changent : le Monde (écran #univers) ou une salle du Donjon. */
+function allerALaRoute(route) {
+  if (route.page === 'monde') {
+    ctx.univers.ouvrir({ id: route.monde ?? null });
+    ctx.univers.allerALieu(route.lieu ?? null); // sans lieu : celui de départ
+    return;
+  }
+  const etaitMonde = ctx.univers.ouvert();
+  if (etaitMonde) ctx.univers.fermer({ rendreFocus: false });
+  const d = etat.donjons[route.donjon];
+  if (!d) return;
+  const dejaLa = !etaitMonde && !etat.plan && etat.actif === d.id && (!route.salle || d.salleActive === route.salle); // rien à redessiner
+  if (!dejaLa) {
+    etat.actif = d.id;
+    if (route.salle && route.salle in d.salles) ctx.activerSalle(route.salle); else ctx.afficherSalleActive();
+  }
+  if (!route.salle) ctx.coquille.positionner({ donjon: d.id }); // le nœud donjon de l'arbre, pas sa salle active
+}
+ctx.coquille = creerCoquille({
+  racine: $('atelier'), mode: 'preparer', scene: $('cadre-scene'), bouton: $('arbre-bouton'),
+  donnees: () => ({
+    univers: ctx.univers.donnees().univers, mondeActif: ctx.univers.donnees().actif,
+    donjons: etat.donjons, donjonActif: { donjon: etat.actif, salle: donjon().salleActive },
+  }),
+  surNavigation: allerALaRoute,
+});
+ctx.univers.surChangement(() => {
+  if (!ctx.univers.ouvert()) { ctx.coquille.rafraichir(); return; }
+  ctx.coquille.positionner({ monde: ctx.univers.donnees().actif, lieu: ctx.univers.lieu() });
+});
+inscrireDonjon(ctx.coquille, ctx);
+inscrireMonde(ctx.coquille, ctx);
+
 // --- Démarrage ----------------------------------------------------------------
 afficherSalleActive();
+ctx.coquille.naviguer(routeInitiale); // F5 retrouve le même nœud ; une adresse périmée retombe sur le donjon actif
 if (charge.miseDeCote) { // dit après le premier dessin : le bandeau de la carte est prêt, et l'avertissement reste aussi dans le panneau des fichiers
   const phrase = stockage.phraseMiseDeCote(charge.miseDeCote);
   annoncerCarte(phrase, !charge.miseDeCote.ok, 15000);

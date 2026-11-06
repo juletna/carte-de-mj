@@ -12,9 +12,9 @@ export function calagePossible(niveau) {
   return NIVEAUX_AVEC_GRILLE.includes(niveau);
 }
 
-/** `#monde` → { id: null } ; `#monde=<id>` → { id } ; toute autre adresse → null. */
+/** `#monde` → { id: null } ; `#monde=<id>` → { id } (un `&lieu=<id>` à la suite est ignoré ici : voir js/atelier-route.js) ; toute autre adresse → null. */
 export function analyserHash(hash) {
-  const m = /^#monde(?:=(.*))?$/.exec(String(hash ?? ''));
+  const m = /^#monde(?:=([^&]*))?(?:&.*)?$/.exec(String(hash ?? ''));
   if (!m) return null;
   let id = null;
   if (m[1]) { try { id = decodeURIComponent(m[1]) || null; } catch { id = null; } }

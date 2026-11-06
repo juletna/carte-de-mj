@@ -131,20 +131,21 @@ body.vue-plan #aide-carte { display: none; }
 
 /* --- Ordinateur (au-dessus de 760 px) : barre, rail 64 px, panneau 300 px, puis bande des salles et carte --- */
 @media not all and (max-width: 760px) { /* complément exact de (max-width: 760px), largeurs fractionnaires comprises */
-  body { grid-template-columns: 64px 300px minmax(0, 1fr); grid-template-rows: auto auto auto minmax(0, 1fr); height: 100vh; height: 100dvh; overflow: hidden; }
+  /* Colonnes : arbre de l'atelier (css/atelier.css, replié = 0), rail, panneau, scène, inspecteur (0 tant qu'aucun type n'y est inscrit). */
+  body { grid-template-columns: var(--largeur-arbre) 64px 300px minmax(0, 1fr) var(--largeur-inspecteur); grid-template-rows: auto auto auto minmax(0, 1fr); height: 100vh; height: 100dvh; overflow: hidden; }
   /* Panneau replié : la colonne disparaît et la carte récupère la place (l'ajustement passe par le ResizeObserver de la scène). */
-  body.panneau-replie { grid-template-columns: 64px 0 minmax(0, 1fr); }
+  body.panneau-replie { grid-template-columns: var(--largeur-arbre) 64px 0 minmax(0, 1fr) var(--largeur-inspecteur); }
   body.panneau-replie #panneau { display: none; }
 
   /* Rangée 1 : la barre commune (identique aux autres pages) ; rangée 2 : les commandes du donjon. */
   body > .menu-site { grid-column: 1 / -1; grid-row: 1; }
-  #barre { grid-column: 1 / -1; grid-row: 2; position: relative; z-index: 50; display: flex; align-items: center; gap: var(--esp-3); padding: 0 var(--esp-3); min-height: 48px; }
+  #barre { grid-column: 2 / -1; grid-row: 2; position: relative; z-index: 50; display: flex; align-items: center; gap: var(--esp-3); padding: 0 var(--esp-3); min-height: 48px; }
   #barre .onglets { display: none; }
 
-  #rail { grid-column: 1; grid-row: 3 / 5; min-height: 0; }
-  #panneau { grid-column: 2; grid-row: 3 / 5; min-height: 0; min-width: 0; padding: 10px 12px; gap: 8px; }
-  .salles-barre { grid-column: 3; grid-row: 3; }
-  #cadre-scene { grid-column: 3; grid-row: 4; position: relative; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+  #rail { grid-column: 2; grid-row: 3 / 5; min-height: 0; }
+  #panneau { grid-column: 3; grid-row: 3 / 5; min-height: 0; min-width: 0; padding: 10px 12px; gap: 8px; }
+  .salles-barre { grid-column: 4; grid-row: 3; }
+  #cadre-scene { grid-column: 4; grid-row: 4; position: relative; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
   /* flex et marges automatiques (pas place-items) : une carte zoomée plus grande que la scène reste entièrement atteignable au défilement. */
   #scene { flex: 1 1 auto; display: flex; min-width: 0; min-height: 0; }
   #support { margin: auto; padding: var(--bande-salle); flex: none; }
@@ -170,7 +171,8 @@ body.vue-plan #aide-carte { display: none; }
   /* Onglets Texte / Carte : l'onglet choisi en teinte dorée légère (le doré plein est celui de « Jouer »). */
   #barre .onglets button[aria-pressed="true"] { background: rgba(217, 169, 41, 0.16); color: var(--accent); border: 1px solid var(--accent); font-weight: 700; }
   #barre .onglets button[aria-pressed="false"] { background: var(--panneau); color: var(--texte); border: 1px solid var(--bord); font-weight: 600; }
-  #menu-donjon-nom { display: none; }
+  #menu-donjon-nom, .mot-donjon { display: none; } /* la place de la barre va à l'arbre, aux onglets et à « Jouer » */
+  #menu-donjon-bouton { padding-left: var(--esp-2); padding-right: var(--esp-2); }
   .menu-donjon { position: static; }
   .menu-panneau { position: fixed; left: var(--esp-2); right: var(--esp-2); top: calc(var(--barre-onglets) + var(--h-barre)); width: auto; max-height: calc(100vh - var(--barre-onglets) - var(--h-barre) - 8px); max-height: calc(100dvh - var(--barre-onglets) - var(--h-barre) - 8px); }
 

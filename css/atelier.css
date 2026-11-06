@@ -1,0 +1,104 @@
+/* Carte de MJ — l'atelier : arbre à gauche, scène au centre, inspecteur à droite (js/atelier/coquille.js).
+   Charge après donjon.css et univers.css. Jetons de css/base.css. La grille de la page est dans donjon.css (colonnes de body) ;
+   ici : les composants (arbre, inspecteur, barre d'outils, onglets) et leur version téléphone (tiroir, panneau bas).
+   Au-dessus de 760 px : ordinateur. En dessous : l'arbre est un tiroir, l'inspecteur un panneau bas repliable. */
+
+:root { --largeur-arbre: 260px; --largeur-inspecteur: 0px; }
+body.arbre-replie { --largeur-arbre: 0px; }
+body.atelier-avec-inspecteur { --largeur-inspecteur: 300px; }
+
+/* Le conteneur ne pose rien : ses enfants prennent leur place dans la grille de la page. */
+.atelier { display: contents; }
+
+/* --- Arbre --- */
+.atelier-arbre { display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden; background: var(--panneau); border-right: 1px solid var(--bord); }
+.atelier-arbre-tete { flex: none; display: flex; align-items: center; gap: var(--esp-1); padding: var(--esp-2) var(--esp-2) var(--esp-2) var(--esp-3); border-bottom: 1px solid var(--bord); }
+.atelier-arbre-titre { flex: 1 1 auto; margin: 0; min-width: 0; }
+.atelier-fermer-tiroir { display: none; }
+.atelier-arbre-vue { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: var(--esp-2); display: flex; flex-direction: column; gap: var(--esp-2); }
+.atelier-arbre-filtre { width: 100%; box-sizing: border-box; }
+.atelier-arbre-liste, .atelier-arbre-liste ul { list-style: none; margin: 0; padding: 0; }
+.atelier-arbre-liste ul { margin-left: 14px; border-left: 1px solid var(--bord); }
+.atelier-noeud { margin: 0; outline: none; }
+.atelier-ligne { display: flex; align-items: center; gap: 6px; min-height: var(--cible); padding: 2px 6px 2px 2px; border: 1px solid transparent; border-radius: var(--rayon); cursor: pointer; color: var(--texte); }
+.atelier-ligne:hover { background: var(--champ); }
+.atelier-noeud:focus-visible > .atelier-ligne { outline: var(--focus); outline-offset: -2px; }
+.atelier-noeud.courant > .atelier-ligne { background: var(--champ); border-color: var(--accent); color: var(--accent); }
+.atelier-noeud.type-groupe > .atelier-ligne { color: var(--texte-doux); font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; }
+.atelier-noeud.type-monde > .atelier-ligne { font-weight: 600; }
+.atelier-bascule { flex: none; width: 16px; align-self: stretch; display: flex; align-items: center; justify-content: center; color: var(--texte-doux); }
+.atelier-chevron { width: 6px; height: 6px; border-right: 1.75px solid currentColor; border-bottom: 1.75px solid currentColor; transform: translateY(-2px) rotate(45deg); transition: transform .12s; }
+.atelier-bascule.replie .atelier-chevron { transform: rotate(-45deg); }
+@media (prefers-reduced-motion: reduce) { .atelier-chevron { transition: none; } }
+.atelier-icone { flex: none; display: inline-flex; width: 18px; height: 18px; color: var(--texte-doux); }
+.atelier-icone .icone { width: 100%; height: 100%; }
+.atelier-noeud.courant > .atelier-ligne .atelier-icone { color: currentColor; }
+.atelier-noeud-texte { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; font-size: 13px; line-height: 1.25; }
+.atelier-noeud-nom, .atelier-noeud-aussi { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.atelier-noeud-aussi { font-size: 11px; }
+.atelier-badge { flex: none; padding: 1px 6px; border-radius: 999px; border: 1px solid var(--accent); color: var(--accent); font-size: 11px; }
+.atelier-badge.discret { border-color: var(--bord); color: var(--texte-doux); }
+/* Mode jeu : pastille d'état (à la table / déjà montré / pas encore). */
+.atelier-pastille { flex: none; width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--texte-doux); }
+.atelier-pastille.table { background: var(--accent); border-color: var(--accent); }
+.atelier-pastille.decouvert { background: var(--texte-doux); }
+.atelier-menu { position: relative; }
+.atelier-menu > summary { list-style: none; cursor: pointer; }
+.atelier-menu > summary::-webkit-details-marker { display: none; }
+.atelier-menu-corps { position: absolute; right: 0; top: calc(100% + 4px); z-index: 30; min-width: 220px; display: flex; flex-direction: column; gap: 2px; padding: 4px; background: var(--panneau); border: 1px solid var(--bord); border-radius: var(--rayon); box-shadow: 0 8px 24px rgba(0, 0, 0, .55); }
+.atelier-menu-item { justify-content: flex-start; width: 100%; text-align: left; }
+.atelier-voile { display: none; }
+
+/* --- Barre d'outils de la scène (vide et cachée tant que personne n'y met rien) --- */
+.atelier-barre { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: var(--esp-2); padding: var(--esp-1) var(--esp-3); background: var(--panneau); border-bottom: 1px solid var(--bord); }
+.atelier-barre:empty { display: none; }
+
+/* --- Inspecteur --- */
+.atelier-inspecteur { display: flex; flex-direction: column; gap: var(--esp-3); min-width: 0; min-height: 0; overflow-y: auto; padding: var(--esp-3); background: var(--panneau); border-left: 1px solid var(--bord); }
+.atelier-inspecteur-plier { display: none; }
+.atelier-inspecteur-tete { display: flex; flex-wrap: wrap; align-items: center; gap: var(--esp-2); }
+.atelier-inspecteur-titre { flex: 1 1 100%; margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.atelier-inspecteur-actions { display: flex; flex: 1 1 auto; flex-wrap: wrap; gap: var(--esp-2); }
+.atelier-inspecteur-plus { position: relative; }
+.atelier-inspecteur-plus > summary { list-style: none; cursor: pointer; }
+.atelier-inspecteur-plus > summary::-webkit-details-marker { display: none; }
+.atelier-inspecteur-plus-corps { position: absolute; right: 0; top: calc(100% + 4px); z-index: 30; min-width: 200px; display: flex; flex-direction: column; gap: var(--esp-2); padding: var(--esp-2); background: var(--panneau); border: 1px solid var(--bord); border-radius: var(--rayon); box-shadow: 0 8px 24px rgba(0, 0, 0, .55); }
+.atelier-inspecteur-corps { display: flex; flex-direction: column; gap: var(--esp-3); }
+.atelier-onglets { display: flex; gap: var(--esp-1); }
+.atelier-onglet { flex: 1 1 0; min-width: 0; }
+.atelier-onglet[aria-selected="true"] { border-color: var(--accent); color: var(--accent); background: rgba(217, 169, 41, 0.16); font-weight: 600; }
+
+/* --- Ordinateur : le Monde (écran #univers) laisse l'arbre et l'inspecteur visibles --- */
+@media not all and (max-width: 760px) { /* complément exact de (max-width: 760px) */
+  .atelier-arbre { grid-column: 1; grid-row: 2 / 5; }
+  body.arbre-replie .atelier-arbre { display: none; }
+  .atelier-inspecteur { grid-column: 5; grid-row: 3 / 5; }
+  .atelier-arbre-bouton { display: none; }
+  body.arbre-replie .atelier-arbre-bouton { display: inline-flex; }
+  .univers { left: var(--largeur-arbre); right: var(--largeur-inspecteur); }
+  /* L'arbre de l'atelier remplace celui de l'écran Monde ; l'ancien tiroir « Lieux » n'a plus lieu d'être. */
+  .univers .univers-arbre, .univers .univers-lieux-bouton { display: none; }
+}
+
+/* --- Écran étroit (sous 760 px) : arbre en tiroir, inspecteur en panneau bas --- */
+@media (max-width: 760px) {
+  .atelier-arbre-bouton { display: inline-flex; flex: none; }
+  .atelier-replier { display: none; }
+  .atelier-fermer-tiroir { display: inline-flex; }
+  .atelier-arbre { position: fixed; top: 0; bottom: 0; left: 0; z-index: 90; width: min(320px, 88vw); visibility: hidden; transform: translateX(-100%); transition: transform .15s, visibility 0s .15s; box-shadow: 0 0 28px rgba(0, 0, 0, .6); }
+  .atelier-arbre.ouvert { visibility: visible; transform: none; transition: transform .15s; }
+  .atelier-voile { position: fixed; inset: 0; z-index: 89; background: rgba(0, 0, 0, .5); }
+  .atelier-voile:not([hidden]) { display: block; }
+  @media (prefers-reduced-motion: reduce) { .atelier-arbre, .atelier-arbre.ouvert { transition: none; } }
+  .atelier-inspecteur { position: fixed; left: 0; right: 0; bottom: 0; z-index: 35; max-height: 45vh; max-height: 45dvh; padding: var(--esp-3) var(--esp-4) max(var(--esp-3), env(safe-area-inset-bottom)); border-left: 0; border-top: 1px solid var(--accent); border-radius: 12px 12px 0 0; box-shadow: 0 -8px 28px rgba(0, 0, 0, .6); }
+  .atelier-inspecteur-plier { display: inline-flex; position: absolute; top: var(--esp-1); right: var(--esp-1); z-index: 1; }
+  .atelier-inspecteur-titre { padding-right: 52px; }
+  .atelier-inspecteur.replie { overflow: hidden; max-height: 64px; }
+  .atelier-inspecteur.replie > :not(.atelier-inspecteur-plier):not(.atelier-inspecteur-tete) { display: none; }
+  .atelier-inspecteur.replie .atelier-inspecteur-actions, .atelier-inspecteur.replie .atelier-inspecteur-plus { display: none; }
+  .atelier-inspecteur.replie .atelier-inspecteur-plier .icone { transform: rotate(180deg); }
+  /* Le panneau bas ne cache pas le bas de la page : de la place en dessous. */
+  body.atelier-avec-inspecteur { padding-bottom: 45vh; padding-bottom: 45dvh; }
+  /* Onglets du mode jouer : barre du bas. */
+  .atelier-onglets { position: sticky; bottom: 0; }
+}
