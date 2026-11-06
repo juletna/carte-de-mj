@@ -18,6 +18,7 @@ import { OPPOSE } from '../murs.js';
 import { variantesDe, varianteDe, varianteParDefaut, nomVariante } from '../catalogue.js';
 import { selection as creerSelection, selectionElement, meme, TYPES_ELEMENT } from '../atelier-selection.js';
 import { creerSection } from '../atelier/section.js';
+import { creerVignette } from '../vignettes.js';
 
 export function creerBulle(ctx) {
   const { etat } = ctx;
@@ -178,13 +179,22 @@ export function creerBulle(ctx) {
     // Une variante (torche éteinte, flamme bleue…) : une liste de l'aspect de l'objet, annulable comme tout changement du plan.
     const variantes = trouve.genre === 'objet' ? variantesDe(el.type) : [];
     if (variantes.length > 1) {
-      const choix = h('select', { id: 'variante-choix', 'aria-label': 'Aspect', title: 'Aspect de l’objet' },
-        ...variantes.map((v) => h('option', { value: v.id, textContent: nomVariante(el.type, v.id), selected: v.id === varianteDe(el) })));
-      choix.addEventListener('change', () => modifierObjet(el, (o) => {
+      // Des vignettes (les mêmes dessins que la carte et le catalogue) plutôt qu'une liste : on voit à quoi ressemble chaque aspect.
+      const courant = varianteDe(el);
+      const maj = (id) => modifierObjet(el, (o) => {
         const { variante: _, ...sans } = o;
-        return choix.value === varianteParDefaut(o.type) ? sans : { ...sans, variante: choix.value };
-      }));
-      contenu.push(creerSection({ cle: 'element:aspect', titre: 'Aspect', enfants: [choix] }).element); // le menu porte son aria-label : le titre de la section suffit à l'œil
+        return id === varianteParDefaut(o.type) ? sans : { ...sans, variante: id };
+      });
+      const grille = h('div', { className: 'aspect-grille', role: 'group', 'aria-label': 'Aspect de l’objet' },
+        ...variantes.map((v) => {
+          const nom = nomVariante(el.type, v.id);
+          const b = h('button', { type: 'button', className: 'palette-item palette-aspect', title: nom, 'aria-label': nom, 'aria-pressed': String(v.id === courant), 'data-variante': v.id },
+            h('span', { className: 'palette-vignette' }, creerVignette({ genre: 'objet', type: el.type, ...(v.id === varianteParDefaut(el.type) ? {} : { variante: v.id }) })),
+            h('span', { className: 'palette-nom', textContent: nom.charAt(0).toUpperCase() + nom.slice(1) }));
+          b.addEventListener('click', () => { if (v.id !== courant) maj(v.id); });
+          return b;
+        }));
+      contenu.push(creerSection({ cle: 'element:aspect', titre: 'Aspect', enfants: [grille] }).element);
     }
 
     if (etat.message) contenu.push(h('p', { className: 'note', role: 'status', textContent: etat.message }));

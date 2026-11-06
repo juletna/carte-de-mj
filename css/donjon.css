@@ -84,6 +84,9 @@ details.exemples summary { font-size: 13px; }
 .palette-aspects .palette-intertitre { margin: 4px 0 6px; }
 .palette-aspects .palette-grille { grid-template-columns: repeat(auto-fill, minmax(62px, 1fr)); max-height: 204px; overflow-y: auto; scrollbar-width: thin; }
 .palette-aspect { cursor: pointer; touch-action: manipulation; }
+/* L'aspect de l'objet choisi, dans l'inspecteur : les mêmes vignettes, en grille de quatre. */
+.aspect-grille { display: grid; grid-template-columns: repeat(auto-fill, minmax(62px, 1fr)); gap: 6px; }
+.aspect-grille .palette-item[aria-pressed="true"] .palette-nom { color: var(--accent); font-weight: 600; }
 .palette-vide { margin: 8px 0 0; font-size: 13px; color: var(--texte-doux); }
 .palette-aide { flex: none; align-self: flex-start; }
 .palette-aide .aide-texte { max-width: none; font-size: 12px; line-height: 1.35; }
