@@ -22,7 +22,7 @@ import { creerZip } from './zip.js';
 import { listerImages, remplacerToutesImages, apresEcritureImages } from './bibliotheque/images.js';
 import {
   CLE_LOCALE, NOM_MARQUEUR, nomFichierCle, cleDuFichier, donneesDuStock, comparer, signatureImage, planImages,
-  lireMarqueur, texteMarqueur, lireLocal, decider, texteEtat,
+  lireMarqueur, texteMarqueur, lireLocal, decider, texteEtat, nomCopie,
 } from './dossier-travail-logique.js';
 
 const DELAI = 600;
@@ -201,6 +201,17 @@ async function pousserTout(p, nav, dossier) {
   local.sale = false; saleHors = false; ecrireLocal();
 }
 
+/** Copie le contenu du dossier (marqueur, donnees/, images/) dans copies/<date>/ avant de le remplacer. Rend le chemin de la copie. */
+async function copierDossierAvant(p) {
+  const nomC = nomCopie(new Date());
+  const cible = await sousDossier(await sousDossier(p, 'copies', true), nomC, true);
+  const copier = async (de, vers) => { for await (const [n, h] of de.entries()) if (h.kind === 'file') await ecrireFichier(vers, n, await h.getFile()); };
+  const marq = await lireTexte(p, NOM_MARQUEUR);
+  if (marq !== null) await ecrireFichier(cible, NOM_MARQUEUR, marq);
+  for (const sd of ['donnees', 'images']) { const de = await sousDossier(p, sd); if (de) await copier(de, await sousDossier(cible, sd, true)); }
+  return `copies/${nomC}`;
+}
+
 /** Télécharge l'état actuel du navigateur (zip), comme avant une restauration. */
 async function telechargerAvant() {
   const maintenant = new Date();
@@ -333,7 +344,7 @@ export async function dissocier() {
   definir('aucun');
 }
 
-/** Tranche un conflit : 'dossier' (le navigateur est remplacé, son état est téléchargé avant) ou 'navigateur' (le dossier est remplacé). */
+/** Tranche un conflit : 'dossier' (le navigateur est remplacé, son état est téléchargé avant) ou 'navigateur' (le dossier est remplacé, son contenu copié avant dans copies/<date>/). */
 export async function resoudreConflit(choix) {
   if (etat !== 'conflit' || !poignee) return;
   await enFile(async () => {
@@ -341,6 +352,7 @@ export async function resoudreConflit(choix) {
     try {
       if (choix === 'dossier') { await tirerTout(poignee, dossier, true); return; }
       definir('synchronisation');
+      await copierDossierAvant(poignee);
       await pousserTout(poignee, await lireNavigateur(), dossier);
       conflit = null; enAttente.clear(); echecs = 0; derniere = ''; quand = new Date();
       definir('connecte');

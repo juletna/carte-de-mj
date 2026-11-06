@@ -123,6 +123,9 @@ export function decider({ dossier, navigateur, identique, local }) {
 const deux = (n) => String(n).padStart(2, '0');
 export const heure = (d) => `${deux(d.getHours())}:${deux(d.getMinutes())}`;
 
+/** Nom du sous-dossier de copies/ où l'appli range le contenu du dossier avant de le remplacer : AAAA-MM-JJ-HHhMM (heure locale). */
+export const nomCopie = (d) => `${d.getFullYear()}-${deux(d.getMonth() + 1)}-${deux(d.getDate())}-${deux(d.getHours())}h${deux(d.getMinutes())}`;
+
 /** La ligne d'état du dialogue. `etat` : indisponible | aucun | synchronisation | connecte | a-reconnecter | conflit | erreur. */
 export function texteEtat({ etat, nom = '', quand = null, erreur = '' }) {
   const dossier = nom ? `« ${nom} »` : 'le dossier';

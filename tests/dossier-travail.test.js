@@ -4,7 +4,7 @@
  * Les accès au dossier (File System Access API) ne se testent pas sous Node : voir README, « Dossier de travail ».
  */
 import {
-  nomFichierCle, cleDuFichier, donneesDuStock, comparer, signatureImage, planImages, lireMarqueur, texteMarqueur, lireLocal, decider, texteEtat, heure,
+  nomFichierCle, cleDuFichier, donneesDuStock, comparer, signatureImage, planImages, lireMarqueur, texteMarqueur, lireLocal, decider, texteEtat, heure, nomCopie,
   FORMAT_DOSSIER,
 } from '../js/dossier-travail-logique.js';
 import { dossierBibliotheque } from '../outils/cartes/dossier.js';
@@ -122,6 +122,7 @@ export async function executer() {
       verifier(/Conflit/.test(texteEtat({ etat: 'conflit', nom: 'Jeu' })), 'conflit');
       egal(texteEtat({ etat: '?' }), '', 'état inconnu');
       egal(heure(new Date(2026, 0, 1, 14, 3)), '14:03', 'heure');
+      egal(nomCopie(new Date(2026, 10, 6, 9, 5)), '2026-11-06-09h05', 'nom de la copie');
     }],
     ['outils/cartes : bibliothèque par défaut ou CARTE_DE_MJ_BIBLIOTHEQUE', () => {
       egal(dossierBibliotheque('/depot', {}), '/depot/bibliotheque', 'défaut');

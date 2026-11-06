@@ -45,7 +45,7 @@ function sectionDossier() {
   const reconnecterBtn = h('button', { type: 'button', className: 'btn btn-primaire', title: 'Redonne à l\'appli le droit d\'écrire dans le dossier' }, 'Reconnecter');
   const dissocierBtn = h('button', { type: 'button', className: 'btn btn-discret', title: 'Oublie le dossier ; ses fichiers restent où ils sont' }, 'Dissocier');
   const prendre = h('button', { type: 'button', className: 'btn btn-danger', title: 'Remplace ce navigateur par le contenu du dossier (une sauvegarde .zip de ce navigateur est téléchargée d\'abord)' }, 'Prendre le dossier');
-  const garder = h('button', { type: 'button', className: 'btn', title: 'Remplace le contenu du dossier par celui de ce navigateur' }, 'Garder ce navigateur');
+  const garder = h('button', { type: 'button', className: 'btn', title: 'Remplace le contenu du dossier par celui de ce navigateur (l’ancien contenu est copié avant dans copies/)' }, 'Garder ce navigateur');
   const actions = h('div', { className: 'actions' }, choisir, reconnecterBtn, dissocierBtn);
   const actionsConflit = h('div', { className: 'actions', hidden: true }, prendre, garder);
   const racine = h('section', { className: 'dossier-travail', 'aria-labelledby': 'dossier-titre' },
@@ -64,7 +64,7 @@ function sectionDossier() {
     const c = e.etat === 'conflit' ? e.conflit : null;
     actionsConflit.hidden = !c;
     conflitTexte.hidden = !c;
-    if (c) conflitTexte.textContent = `Dans le dossier : ${c.dossier}${c.modifie ? ` (modifié le ${c.modifie.slice(0, 10)})` : ''}. Dans ce navigateur : ${c.navigateur}. Prendre le dossier remplace ce navigateur, après avoir téléchargé son état dans un .zip ; garder ce navigateur remplace le contenu du dossier.`;
+    if (c) conflitTexte.textContent = `Dans le dossier : ${c.dossier}${c.modifie ? ` (modifié le ${c.modifie.slice(0, 10)})` : ''}. Dans ce navigateur : ${c.navigateur}. Prendre le dossier remplace ce navigateur, après avoir téléchargé son état dans un .zip ; garder ce navigateur remplace le contenu du dossier, après l’avoir copié dans copies/.`;
   };
   const echec = (err) => { erreur.hidden = false; erreur.textContent = `Dossier de travail : ${err.message}`; };
   const agir = (bouton, travail, recharger = false) => bouton.addEventListener('click', async () => {
