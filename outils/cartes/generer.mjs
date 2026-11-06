@@ -1,10 +1,13 @@
-// Génère une image de carte : node outils/cartes/generer.mjs --niveau zone --id foret-ruines-01 --scene "…" [--ref image]… [--format webp|png] [--essai]
-// Écrit bibliotheque/cartes/<id>.<format> (+ <id>.prompt.txt) sans jamais écraser. La clé OPENAI_API_KEY n'est jamais affichée.
+// Génère une image de carte : node outils/cartes/generer.mjs --niveau zone --id foret-ruines-01 --scene "…" [--style …] [--format paysage|portrait|carre] [--ref image]… [--essai]
+// Même prompt que l'onglet « Générer une carte » de la Bibliothèque (js/bibliotheque/prompt.js : STYLES, FORMATS).
+// Écrit bibliotheque/cartes/<id>.<type> (+ <id>.prompt.txt) sans jamais écraser. La clé OPENAI_API_KEY n'est jamais affichée.
+// Quand le format recadre (paysage : 3:2 demandé, 16:9 gardé), l'image est demandée en PNG, recadrée au centre et écrite en PNG.
 import { readFile, writeFile, mkdir, readdir, access } from 'node:fs/promises';
 import { parseArgs } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { composerPrompt, extraireSections, formatDuNiveau } from './prompt.js';
+import { composerPrompt, formatCarte, cadrageCentre, STYLES, FORMATS, STYLE_PAR_DEFAUT, FORMAT_PAR_DEFAUT } from './prompt.js';
+import { recadrerPng, taillePng } from './png.js';
 import { construireRequete, appeler } from './fournisseur-openai.js';
 import { NIVEAUX } from './vocabulaire.js';
 import { dossierBibliotheque } from './dossier.js';
@@ -24,10 +27,11 @@ Options :
   --niveau <niveau>     niveau de la carte (obligatoire)
   --id <id>             identifiant et nom de fichier : minuscules, chiffres, tirets (obligatoire)
   --scene "<texte>"     ce que la carte montre, de préférence en anglais (obligatoire)
+  --style <id>          ${STYLES.map((s) => `${s.id} (${s.libelle})`).join(', ')} ; défaut : ${STYLE_PAR_DEFAUT}
+  --format <id>         ${FORMATS.map((f) => `${f.id} (${f.libelle})`).join(', ')} ; défaut : ${FORMAT_PAR_DEFAUT}
   --ref <image>         image de référence de style, répétable (png, webp, jpg)
   --sans-reference      ne pas utiliser bibliotheque/references/<style>/
-  --format webp|png     format de sortie (défaut : webp)
-  --style <nom>         fichier de style de assets/styles-cartes/ (défaut : peint-v1)
+  --type webp|png       type de fichier (défaut : png si le format recadre, sinon webp)
   --qualite <q>         qualité demandée à l'API (défaut : high)
   --essai               montre la requête et le prompt sans appeler l'API
   --help, -h            cette aide
@@ -38,8 +42,9 @@ Exemple :
 let o;
 try {
   ({ values: o } = parseArgs({ options: {
-    niveau: { type: 'string' }, scene: { type: 'string' }, id: { type: 'string' }, style: { type: 'string', default: 'peint-v1' },
-    ref: { type: 'string', multiple: true }, 'sans-reference': { type: 'boolean' }, format: { type: 'string', default: 'webp' },
+    niveau: { type: 'string' }, scene: { type: 'string' }, id: { type: 'string' }, style: { type: 'string', default: STYLE_PAR_DEFAUT },
+    format: { type: 'string', default: FORMAT_PAR_DEFAUT }, type: { type: 'string' },
+    ref: { type: 'string', multiple: true }, 'sans-reference': { type: 'boolean' },
     qualite: { type: 'string', default: 'high' }, essai: { type: 'boolean' }, help: { type: 'boolean', short: 'h' }, aide: { type: 'boolean' },
   } }));
 } catch (e) { console.error(`${/Unknown option '([^']+)'/.exec(e.message)?.[0].replace(/Unknown option '([^']+)'/, 'Option inconnue : $1') ?? e.message}\n\n${AIDE}`); process.exit(1); }
@@ -48,7 +53,9 @@ function sortir(message) { console.error(message); process.exit(1); }
 if (o.help || o.aide) { console.log(AIDE); process.exit(0); }
 if (!o.niveau || !o.scene || !o.id) sortir(`Il manque --niveau, --id ou --scene.\n\n${AIDE}`);
 if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(o.id) || o.id.length > 64) sortir('id : minuscules, chiffres et tirets, 64 caractères au plus.');
-if (!['webp', 'png'].includes(o.format)) sortir('format : webp ou png.');
+if (!STYLES.some((s) => s.id === o.style)) sortir(`style : ${STYLES.map((s) => s.id).join(', ')}.`);
+if (!FORMATS.some((f) => f.id === o.format)) sortir(`format : ${FORMATS.map((f) => f.id).join(', ')} (le type de fichier se choisit avec --type).`);
+if (o.type && !['webp', 'png'].includes(o.type)) sortir('type : webp ou png.');
 
 /** Références explicites, sinon les premières images de bibliotheque/references/<style>/ (point de départ du style). */
 async function lireReferences() {
@@ -65,14 +72,16 @@ async function lireReferences() {
 }
 
 let style;
-try { style = await readFile(FICHIER_STYLE(o.style), 'utf8'); } catch { sortir(`Style inconnu : ${o.style}`); }
+try { style = await readFile(FICHIER_STYLE(o.style), 'utf8'); } catch { sortir(`Style illisible : ${o.style}`); }
 let prompt;
-try { prompt = composerPrompt({ style, niveau: o.niveau, scene: o.scene }); } catch (e) { sortir(e.message); }
-const format = formatDuNiveau(extraireSections(style), o.niveau);
+try { prompt = composerPrompt({ style, niveau: o.niveau, scene: o.scene, format: o.format }); } catch (e) { sortir(e.message); }
+const format = formatCarte(o.format, o.niveau);
+if (format.recadre && o.type === 'webp') sortir(`Le format ${o.format} recadre l'image en ${format.largeur} × ${format.hauteur} : la sortie est en png (le webp ne se recadre pas sans dépendance).`);
+o.type ??= format.recadre ? 'png' : 'webp';
 const references = await lireReferences();
-const requete = construireRequete({ prompt, taille: format.taille, format: o.format, qualite: o.qualite, references });
+const requete = construireRequete({ prompt, taille: format.taille, format: o.type, qualite: o.qualite, references });
 const dossierSortie = path.join(bibliotheque, 'cartes');
-const sortie = path.join(dossierSortie, `${o.id}.${o.format}`);
+const sortie = path.join(dossierSortie, `${o.id}.${o.type}`);
 
 if (o.essai) {
   console.log(JSON.stringify({ essai: true, requete: { ...requete, champs: { ...requete.champs, prompt: undefined } }, prompt, references: references.map((r) => r.nom), sortie: path.relative(racine, sortie), cle: process.env.OPENAI_API_KEY ? 'présente' : 'absente' }, null, 2));
@@ -84,7 +93,14 @@ if (await access(sortie).then(() => true, () => false)) sortir(`${path.relative(
 
 let octets;
 try { octets = await appeler(requete, { cle: process.env.OPENAI_API_KEY, references }); } catch (e) { sortir(`Échec de la génération : ${e.message}`); }
+if (format.recadre) {
+  try {
+    const recue = taillePng(octets);
+    const cadre = cadrageCentre(recue.largeur, recue.hauteur, format.largeur, format.hauteur);
+    if (cadre) octets = Buffer.from(await recadrerPng(octets, cadre));
+  } catch (e) { sortir(`Recadrage impossible (${e.message}) : rien n'a été écrit.`); }
+}
 await mkdir(dossierSortie, { recursive: true });
 await writeFile(sortie, octets, { flag: 'wx' });
 await writeFile(path.join(dossierSortie, `${o.id}.prompt.txt`), prompt + '\n', { flag: 'wx' });
-console.log(JSON.stringify({ fichier: `cartes/${o.id}.${o.format}`, largeur: format.largeur, hauteur: format.hauteur, grille: format.grille ? { case: format.grille.case, dx: 0, dy: 0 } : null, references: references.map((r) => r.nom), octets: octets.length }, null, 2));
+console.log(JSON.stringify({ fichier: `cartes/${o.id}.${o.type}`, style: o.style, format: o.format, largeur: format.largeur, hauteur: format.hauteur, grille: format.grille ? { case: format.grille.case, dx: 0, dy: 0 } : null, references: references.map((r) => r.nom), octets: octets.length }, null, 2));

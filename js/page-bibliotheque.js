@@ -1,8 +1,9 @@
 /**
  * Page « Bibliothèque » (bibliotheque.html) : les cartes du catalogue local (dossier bibliotheque/) et « Mes images »
  * (importées, gardées dans ce navigateur). Filtres, recherche, aperçu, crédit, import et suppression d'une image importée.
- * Onglet « Générer une carte » : compose le prompt du style peint-v1 (assets/styles-cartes/) à copier dans un générateur
- * d'images, puis importe l'image obtenue avec son niveau et sa grille déjà remplis. Sans clé ni serveur.
+ * Onglet « Générer une carte » : compose le prompt (style et format au choix, assets/styles-cartes/, js/bibliotheque/prompt.js,
+ * le même que le skill generer-carte) à copier dans un générateur d'images, puis importe l'image obtenue, recadrée au format
+ * choisi, avec son niveau et sa grille déjà remplis. Sans clé ni serveur.
  * Elle réutilise js/bibliotheque/ (lecture du catalogue, vocabulaire, images).
  */
 import { h, deuxTemps, fichierChoisi } from './dom.js';
@@ -11,14 +12,13 @@ import { selectionner, creditAffiche } from './bibliotheque/catalogue.js';
 import { NIVEAUX, MILIEUX, NIVEAUX_AIDE, libelleNiveau, libelleMilieu } from './bibliotheque/vocabulaire.js';
 import { lireCatalogue } from './bibliotheque/index.js';
 import { urlBibliotheque } from './bibliotheque/source.js';
-import { importerImage, listerImages, supprimerImage } from './bibliotheque/images.js';
-import { promptACopier, extraireSections, formatDuNiveau } from './bibliotheque/prompt.js';
+import { importerImage, listerImages, supprimerImage, recadrerImage } from './bibliotheque/images.js';
+import { promptACopier, formatCarte, STYLES, FORMATS, STYLE_PAR_DEFAUT, FORMAT_PAR_DEFAUT } from './bibliotheque/prompt.js';
 
 
 const racine = document.getElementById('bibliotheque');
 const etat = { onglet: 'bibliotheque', niveau: '', milieux: new Set(), requete: '' };
-const STYLE = 'peint-v1';
-let style = null; // texte de assets/styles-cartes/peint-v1.md, ou une Error
+const styles = new Map(); // id de style → texte de assets/styles-cartes/<id>.md, ou une Error (absent : en cours de lecture)
 let preremplir = null; // métadonnées venues de l'onglet Générer pour le prochain import
 let catalogue = { cartes: [], avertissements: [], message: '' };
 let images = [];
@@ -70,6 +70,10 @@ racine.append(barreOnglets, zoneFiltres, zoneMessage, zoneImport, corps, zoneGen
 // --- Générer une carte : prompt à copier ---
 const genNiveau = h('select', { id: 'gen-niveau' }, ...NIVEAUX.map((n) => h('option', { value: n.id, textContent: `${n.libelle} (${NIVEAUX_AIDE[n.id]})` })));
 genNiveau.value = 'zone';
+const genStyle = h('select', { id: 'gen-style' }, ...STYLES.map((s) => h('option', { value: s.id, textContent: `${s.libelle} (${s.aide})` })));
+genStyle.value = STYLE_PAR_DEFAUT;
+const genFormat = h('select', { id: 'gen-format' }, ...FORMATS.map((f) => h('option', { value: f.id, textContent: `${f.libelle} (${f.aide})` })));
+genFormat.value = FORMAT_PAR_DEFAUT;
 const genScene = h('textarea', { id: 'gen-scene', rows: 4, maxLength: 2000, placeholder: 'Une clairière dans une forêt de chênes, avec un petit sanctuaire en ruine de 6 cases à l’est et un chemin de 2 cases qui la traverse du nord au sud.' });
 const genGrille = h('p', { className: 'bib-note' });
 const genPrompt = h('textarea', { id: 'gen-prompt', rows: 10, readOnly: true, className: 'bib-prompt' });
@@ -82,10 +86,11 @@ const entreeGen = h('input', { type: 'file', accept: '.webp,.png,.jpg,.jpeg,imag
 entreeGen.addEventListener('change', (e) => {
   const f = fichierChoisi(e);
   if (!f) return;
-  const format = style instanceof Error || !style ? null : formatDuNiveau(extraireSections(style), genNiveau.value);
+  const format = formatCarte(genFormat.value, genNiveau.value);
   preremplir = {
-    niveau: genNiveau.value, description: genScene.value.trim().slice(0, 600), colonnes: format?.grille?.colonnes,
-    origine: { type: 'generee', style: STYLE, le: new Date().toISOString().slice(0, 10) },
+    niveau: genNiveau.value, description: genScene.value.trim().slice(0, 600), colonnes: format.grille?.colonnes,
+    cadre: { largeur: format.largeur, hauteur: format.hauteur, libelle: FORMATS.find((f) => f.id === genFormat.value).libelle },
+    origine: { type: 'generee', style: genStyle.value, le: new Date().toISOString().slice(0, 10) },
   };
   etat.onglet = 'navigateur'; choisi = null; dessiner(); ouvrirFormulaire(f);
 });
@@ -94,37 +99,46 @@ const importerGen = btn('Importer l’image obtenue…', () => entreeGen.click()
 function majPrompt() {
   const scene = genScene.value.trim();
   copier.disabled = true;
-  if (!style) { genPrompt.value = ''; genGrille.textContent = 'Chargement du style…'; return; }
-  if (style instanceof Error) { genPrompt.value = ''; genGrille.textContent = `Le style n’a pas pu être lu (${style.message}). Ouvre l’appli par « python3 outils/serveur.py » ou depuis le site.`; return; }
-  const g = formatDuNiveau(extraireSections(style), genNiveau.value).grille;
-  genGrille.textContent = g ? `Grille demandée : ${g.colonnes} × ${g.lignes} cases (une case = 1,5 m). Elle sera posée à l’import.` : 'Pas de grille à ce niveau.';
+  const { largeur, hauteur, recadre, grille: g } = formatCarte(genFormat.value, genNiveau.value);
+  genGrille.textContent = `Image finale : ${largeur} × ${hauteur} px${recadre ? ' (demandée en 3:2, recadrée à l’import)' : ''}. `
+    + (g ? `Grille demandée : ${g.colonnes} × ${g.lignes} cases (une case = 1,5 m), posée à l’import.` : 'Pas de grille à ce niveau.');
+  const style = styles.get(genStyle.value);
+  if (!style) { genPrompt.value = ''; genEtat.textContent = 'Chargement du style…'; lireStyle(genStyle.value); return; }
+  if (style instanceof Error) { genPrompt.value = ''; genEtat.textContent = `Le style n’a pas pu être lu (${style.message}). Ouvre l’appli par « python3 outils/serveur.py » ou depuis le site.`; return; }
   if (!scene) { genPrompt.value = ''; genPrompt.placeholder = 'Décris la carte pour voir le prompt.'; return; }
-  genPrompt.value = promptACopier({ style, niveau: genNiveau.value, scene });
+  genPrompt.value = promptACopier({ style, niveau: genNiveau.value, scene, format: genFormat.value });
   copier.disabled = false;
 }
-genNiveau.addEventListener('change', () => { genEtat.textContent = ''; majPrompt(); });
+const enCours = new Set();
+function lireStyle(id) {
+  if (enCours.has(id)) return;
+  enCours.add(id);
+  fetch(`assets/styles-cartes/${id}.md`)
+    .then((r) => { if (!r.ok) throw new Error(`erreur ${r.status}`); return r.text(); })
+    .then((t) => { styles.set(id, t); }, (e) => { styles.set(id, e instanceof Error ? e : new Error(String(e))); })
+    .finally(() => { enCours.delete(id); genEtat.textContent = ''; majPrompt(); });
+}
+for (const champ of [genNiveau, genStyle, genFormat]) champ.addEventListener('change', () => { genEtat.textContent = ''; majPrompt(); });
 genScene.addEventListener('input', () => { genEtat.textContent = ''; majPrompt(); });
 
 zoneGenerer.append(
   h('section', { className: 'bib-etape' },
     h('h2', { textContent: '1. Décrire la carte' }),
-    h('label', { htmlFor: 'gen-niveau', textContent: 'Niveau' }), genNiveau, genGrille,
+    h('label', { htmlFor: 'gen-niveau', textContent: 'Niveau' }), genNiveau,
+    h('label', { htmlFor: 'gen-style', textContent: 'Style' }), genStyle,
+    h('label', { htmlFor: 'gen-format', textContent: 'Format' }), genFormat, genGrille,
     h('label', { htmlFor: 'gen-scene', textContent: 'Scène' }), genScene,
-    h('p', { className: 'bib-note', textContent: 'En français ou en anglais. Dis ce qu’il y a, où, et en quelle taille : une porte fait 1 case, un arbre 2 à 3, un chemin 2. Pas besoin de demander l’absence de texte ou de personnages : le style s’en charge.' })),
+    h('p', { className: 'bib-note', textContent: 'En français ou en anglais. Dis ce qu’il y a, où, et en quelle taille : une porte fait 1 case, un arbre 2 à 3, un chemin 2. Pas besoin de demander l’absence de texte ou de personnages : le style s’en charge, et les noms de lieux que tu cites ne doivent pas être écrits sur l’image.' })),
   h('section', { className: 'bib-etape' },
     h('h2', { textContent: '2. Copier le prompt' }),
-    h('label', { htmlFor: 'gen-prompt', textContent: 'Prompt (style peint, en anglais)' }), genPrompt,
+    h('label', { htmlFor: 'gen-prompt', textContent: 'Prompt (en anglais)' }), genPrompt,
     h('div', { className: 'bib-actions' }, copier), genEtat,
     h('p', { className: 'bib-note', textContent: 'Colle-le dans ChatGPT (ou un autre générateur d’images). Pour garder le même style d’une carte à l’autre, joins aussi une de tes cartes réussies comme image de référence.' })),
   h('section', { className: 'bib-etape' },
     h('h2', { textContent: '3. Importer l’image' }),
-    h('p', { className: 'bib-note', textContent: 'Télécharge l’image obtenue puis importe-la : elle rejoint « Mes images » avec son niveau, sa description et sa grille déjà remplis.' }),
+    h('p', { className: 'bib-note', textContent: 'Télécharge l’image obtenue puis importe-la : elle est recadrée au format choisi si le générateur en a donné un autre, et rejoint « Mes images » avec son niveau, sa description et sa grille déjà remplis.' }),
     h('div', { className: 'bib-actions' }, importerGen, entreeGen)));
 
-fetch(`assets/styles-cartes/${STYLE}.md`)
-  .then((r) => { if (!r.ok) throw new Error(`erreur ${r.status}`); return r.text(); })
-  .then((t) => { style = t; }, (e) => { style = e instanceof Error ? e : new Error(String(e)); })
-  .finally(majPrompt);
 majPrompt();
 
 function tuile(entree, ref, url) {
@@ -207,7 +221,8 @@ function ouvrirFormulaire(fichier) {
   ajouter.addEventListener('click', async () => {
     ajouter.disabled = true; erreur.textContent = '';
     try {
-      const e = await importerImage(fichier, {
+      const image = pre?.cadre ? (await recadrerImage(fichier, pre.cadre.largeur, pre.cadre.hauteur)).fichier : fichier;
+      const e = await importerImage(image, {
         titre: nom.value, niveau: niveau.value, tags: tags.value.split(',').map((t) => t.trim()).filter(Boolean),
         milieux: milieux.filter((l) => l.firstChild.checked).map((l) => l.firstChild.value), description: description.value,
         ...(pre && niveau.value === pre.niveau ? { colonnes: pre.colonnes } : {}), ...(pre ? { origine: pre.origine } : {}),
@@ -224,6 +239,7 @@ function ouvrirFormulaire(fichier) {
     h('fieldset', {}, h('legend', { textContent: 'Milieux' }), h('div', { className: 'bib-cases' }, ...milieux)),
     h('label', { htmlFor: 'bib-f-tags', textContent: 'Tags' }), tags,
     h('label', { htmlFor: 'bib-f-description', textContent: 'Description' }), description,
+    ...(pre?.cadre ? [h('p', { className: 'bib-note', textContent: `Format ${pre.cadre.libelle} : si l’image a d’autres proportions, elle sera recadrée au centre (les bords en trop sont retirés).` })] : []),
     ...(pre?.colonnes && niveau.value === pre.niveau ? [h('p', { className: 'bib-note', textContent: `Grille posée : ${pre.colonnes} cases sur la largeur (à caler ensuite dans l’atelier si besoin).` })] : []),
     erreur, h('div', { className: 'bib-actions' }, ajouter, btn('Annuler l’import', () => dessinerImport(), { classe: 'btn-discret' }))));
   nom.focus(); nom.select();

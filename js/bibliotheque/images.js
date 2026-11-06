@@ -5,6 +5,7 @@
  * Touche indexedDB et le DOM (dimensions de l'image) : pas pour Node. Toute erreur est rendue, jamais avalée en silence.
  */
 import { validerCarte } from './catalogue.js';
+import { cadrageCentre } from './prompt.js';
 
 const BASE = 'carte-de-mj';
 const MAGASIN = 'images';
@@ -54,6 +55,27 @@ export function dimensions(blob) {
     img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('ce fichier n’est pas une image lisible')); };
     img.src = url;
   });
+}
+
+/**
+ * Recadre au centre une image aux proportions `largeur` : `hauteur` (16:9 du style peint-v2), sans l'agrandir.
+ * Rend { fichier, avant, apres } : `fichier` est un File (webp, ou png quand le navigateur n'encode pas le webp),
+ * ou le fichier d'origine tel quel quand il a déjà ces proportions ou que c'est un SVG.
+ */
+export async function recadrerImage(fichier, largeur, hauteur) {
+  const type = typeImage(fichier);
+  const avant = await dimensions(fichier);
+  const cadre = type === 'image/svg+xml' ? null : cadrageCentre(avant.largeur, avant.hauteur, largeur, hauteur);
+  if (!cadre) return { fichier, avant, apres: avant };
+  const image = await createImageBitmap(fichier, cadre.x, cadre.y, cadre.largeur, cadre.hauteur);
+  const toile = document.createElement('canvas');
+  toile.width = cadre.largeur; toile.height = cadre.hauteur;
+  toile.getContext('2d').drawImage(image, 0, 0);
+  image.close();
+  const blob = await new Promise((resolve, reject) => toile.toBlob((b) => (b ? resolve(b) : reject(new Error('recadrage impossible'))), 'image/webp', 0.92));
+  const ext = blob.type === 'image/webp' ? 'webp' : 'png';
+  const nom = `${String(fichier.name || 'carte').replace(/\.[^.]+$/, '')}-16x9.${ext}`;
+  return { fichier: new File([blob], nom, { type: blob.type }), avant, apres: { largeur: cadre.largeur, hauteur: cadre.hauteur } };
 }
 
 const nouvelId = () => `img-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;

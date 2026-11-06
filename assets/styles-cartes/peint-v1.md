@@ -1,8 +1,11 @@
-# Style « peint-v1 »
+# Style « peint-v1 » : aquarelle peinte
 
-Bloc de style fixe des cartes générées. Ne pas le réécrire : une évolution du style est un nouveau fichier (`peint-v2.md`).
-`outils/cartes/generer.mjs` lit ce fichier : il en extrait les sections par leurs titres (`## Bloc de style`, `## Échelle`,
-`## Format`, `## Gabarit : <niveau>`). Garder ces titres tels quels.
+Premier style des cartes générées (style par défaut jusqu'au 6 novembre 2026, remplacé par `peint-v2.md`, toujours proposé).
+Ne pas le réécrire pour un cas particulier : une évolution du style est un nouveau fichier.
+`js/bibliotheque/prompt.js` en extrait les sections par leurs titres (`## Bloc de style`, `## Échelle`, `## Gabarit : <niveau>`) ;
+garder ces titres tels quels. Dans un gabarit, `{scene}` reçoit la scène et `{cases}` la taille en cases.
+Le 6 novembre 2026, le format (autrefois une section `## Format` ici, portrait 1024 × 1536) est sorti du style : il se choisit
+à part (`FORMATS` dans `js/bibliotheque/prompt.js`), et les gabarits ont reçu `{cases}` au lieu d'un nombre de cases écrit en dur.
 
 ## Bloc de style
 
@@ -27,22 +30,6 @@ Concrete size references to respect inside the picture:
 - a corridor: 2 squares wide; a standard room: 6 to 10 squares on a side.
 When the level has a grid, do NOT draw any grid lines, numbers or coordinates in the picture: the grid is added later.
 
-## Format
-
-Image de 1024 × 1536 pixels (portrait 2:3), le plus grand format que `gpt-image-1` accepte en portrait.
-Les cartes `monde` et `region` n'ont pas de grille : pas de nombre de cases.
-Pour les autres niveaux, le nombre de cases visibles sur la largeur × la hauteur donne la grille demandée
-(`grille.case` = 1024 divisé par le nombre de cases en largeur).
-
-| Niveau | Grille demandée | Case en pixels |
-|---|---|---|
-| monde | aucune | |
-| region | aucune | |
-| zone | 20 × 30 cases | 51,2 |
-| localite | 24 × 36 cases | 42,67 |
-| batiment | 16 × 24 cases | 64 |
-| souterrain | 20 × 30 cases | 51,2 |
-
 ## Gabarit : monde
 
 Map of a whole fantasy world or continent seen from very high above, as an illustrated atlas: coastlines, oceans, mountain ranges,
@@ -56,21 +43,21 @@ of roofs, ruins and landmarks as small recognizable painted symbols. No grid, no
 
 ## Gabarit : zone
 
-Battle map of an outdoor place at figurine scale, about 20 squares wide and 30 squares tall (each square is 1.5 m), seen from directly above:
+Battle map of an outdoor place at figurine scale, {cases} (each square is 1.5 m), seen from directly above:
 individual trees, rocks, paths, water, walls and ruins drawn at true size. Walkable ground clearly distinct from obstacles. Scene: {scene}
 
 ## Gabarit : localite
 
-Map of a village, town or port at street scale, about 24 squares wide and 36 squares tall (each square is 1.5 m), seen from directly above:
+Map of a village, town or port at street scale, {cases} (each square is 1.5 m), seen from directly above:
 roofs of buildings with their real footprint, streets 2 squares wide, squares, wells, fences, gardens, quays. Scene: {scene}
 
 ## Gabarit : batiment
 
-Interior floor plan of a building at figurine scale, about 16 squares wide and 24 squares tall (each square is 1.5 m), seen from directly above
+Interior floor plan of a building at figurine scale, {cases} (each square is 1.5 m), seen from directly above
 with the roof removed: walls with thickness, doors 1 square wide, floors with visible material (planks, tiles, flagstones), furniture at true size. Scene: {scene}
 
 ## Gabarit : souterrain
 
-Dungeon, cave or crypt map at figurine scale, about 20 squares wide and 30 squares tall (each square is 1.5 m), seen from directly above:
+Dungeon, cave or crypt map at figurine scale, {cases} (each square is 1.5 m), seen from directly above:
 thick stone walls, corridors 2 squares wide, rooms of 6 to 10 squares, doors 1 square wide, stairs, pillars, rubble, water, with the
 rock outside the rooms painted dark. Scene: {scene}

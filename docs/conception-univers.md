@@ -121,8 +121,13 @@ Recherche et filtres (session B) : filtre par `niveau`, par `milieux` (cumulable
 Rangé **dans le dépôt** (`.claude/skills/generer-carte/`) pour servir à tous : le projet est ouvert.
 
 - `SKILL.md` : le déroulé (demande du MJ → prompt → génération → validation par le MJ → tags → ajout au catalogue).
-- `assets/styles-cartes/peint-v1.md` (sorti du skill le 6 novembre 2026 pour que la page Bibliothèque le lise aussi, onglet « Générer une carte ») : le bloc de style fixe et les règles d'échelle (taille d'image, nombre de cases, repères : une porte = 1 case,
-  une table = 1 × 2 cases, un arbre adulte = 2 à 3 cases). Une nouvelle version de style = un nouveau fichier, jamais une réécriture.
+- `assets/styles-cartes/<style>.md` (sortis du skill le 6 novembre 2026 pour que la page Bibliothèque les lise aussi, onglet « Générer une carte ») :
+  un fichier par style (`peint-v2` dessin animé coloré, par défaut ; `parchemin-v1` vieille carte ; `peint-v1` aquarelle), avec le bloc de style,
+  les règles d'échelle (repères : une porte = 1 case, une table = 1 × 2 cases, un arbre adulte = 2 à 3 cases), un gabarit par niveau et un rappel final.
+  Une nouvelle version de style = un nouveau fichier, jamais une réécriture.
+- `js/bibliotheque/prompt.js` : **le seul composeur de prompt**, partagé par le skill et la page. Il déclare les styles (`STYLES`) et les formats
+  (`FORMATS` : paysage 16:9 par défaut, portrait 2:3, carré, avec leurs grilles). Le format n'est plus dans le style depuis le 6 novembre 2026 :
+  les deux se choisissent indépendamment. Le paysage est demandé en 3:2 et recadré au centre en 16:9 (script : `outils/cartes/png.js` ; page : à l'import).
 - Les images de référence **validées par le MJ** (avec leur prompt) vont dans `bibliotheque/references/<style>/`, donc **hors de git** :
   chacun constitue les siennes, en bonne qualité. Le skill les donne au générateur comme point de départ du style et sait démarrer
   sans aucune référence (premier usage). Seules des images générées par nous y entrent, jamais celles d'un autre créateur.
@@ -131,7 +136,7 @@ Rangé **dans le dépôt** (`.claude/skills/generer-carte/`) pour servir à tous
 - Générateur par défaut : `gpt-image-1` d'OpenAI (accepte des images de référence). La clé est lue dans la variable
   d'environnement `OPENAI_API_KEY` : **jamais écrite dans le dépôt**, chacun apporte la sienne. Le fournisseur est isolé dans un seul
   fichier pour pouvoir en changer.
-- Sortie : WebP, portrait 2:3 par défaut, dans `bibliotheque/cartes/`, entrée ajoutée à `bibliotheque/catalogue.json`.
+- Sortie : paysage 16:9 en PNG (1536 × 864) par défaut, WebP pour les formats non recadrés, dans `bibliotheque/cartes/`, entrée ajoutée à `bibliotheque/catalogue.json`.
 
 ## 4. Le modèle d'un univers (F3, session C)
 

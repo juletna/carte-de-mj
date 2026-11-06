@@ -3,6 +3,7 @@
  * Module pur. Mêmes règles que la validation de l'appli (js/bibliotheque), recopiées tant que ce module n'existe pas.
  */
 import { NIVEAUX, MILIEUX, ORIGINES, EXTENSIONS } from './vocabulaire.js';
+import { STYLE_PAR_DEFAUT } from './prompt.js';
 
 export const FORMAT_CATALOGUE = 'carte-de-mj-bibliotheque';
 const RE_ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -35,7 +36,7 @@ export function normaliserEntree(e) {
     niveau: e.niveau, milieux: e.milieux, tags: e.tags ?? [], description: e.description ?? '',
   };
   if (e.grille) sortie.grille = e.grille;
-  sortie.origine = e.origine ?? { type: 'generee', outil: 'gpt-image-1', style: 'peint-v1', le: new Date().toISOString().slice(0, 10) };
+  sortie.origine = e.origine ?? { type: 'generee', outil: 'gpt-image-1', style: STYLE_PAR_DEFAUT, le: new Date().toISOString().slice(0, 10) };
   sortie.licence = e.licence ?? 'libre';
   sortie.credit = e.credit ?? '';
   return sortie;
