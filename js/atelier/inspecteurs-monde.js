@@ -21,6 +21,7 @@ import { pluriel } from '../format.js';
 import { resumeTailleLieu } from './dimensions.js';
 import { chargerReglages } from '../stockage.js';
 import { vignetteLieu } from './vignette-lieu.js';
+import { creerSection } from './section.js';
 
 const NOUVELLE_CARTE = '__nouvelle-carte__';
 export { vignetteLieu };
@@ -53,8 +54,8 @@ export function enregistrerInspecteursMonde(coquille, U) {
     el.focus({ preventScroll: true });
     if (el.select && (cle === 'monde-nom' || (cle === 'nom' && !el.value))) el.select();
   }
-  /** Une section sobre du corps : un titre discret, puis son contenu. */
-  const section = (titre, ...enfants) => h('section', { className: 'insp-section' }, ...(titre ? [h('h3', {}, titre)] : []), ...enfants);
+  /** Une section du panneau (js/atelier/section.js) : bandeau repliable, puis son contenu. `cle` garde le pli pour la session. */
+  const section = (cle, titre, enfants, options = {}) => creerSection({ cle: `monde:${cle}`, titre, enfants, ...options }).element;
   const soustitre = (nom) => h('p', { className: 'note', textContent: nom });
 
   // --- Monde -----------------------------------------------------------------------------------------------------------------
@@ -133,11 +134,11 @@ export function enregistrerInspecteursMonde(coquille, U) {
       conteneur.append(
         ...(orph.length ? [h('p', { className: 'note erreur' }, icone('alerte'), ` ${pluriel(orph.length, 'point mène', 'points mènent')} vers une destination qui n’existe plus : ils sont signalés, rien n’a été retiré.`)] : []),
         listePoints(u, l),
-        section('Notes', notes),
-        section('Carte',
+        section('lieu-notes', 'Notes', [notes]),
+        section('lieu-carte', 'Carte', [
           depart,
           ...(peutCaler ? [h('div', { className: 'ligne' }, h('span', { className: 'univers-etat-grille doux', textContent: etatGrille }), avecCle(btn('Caler la grille', () => U.definirMode('grille'), { icone: 'grille', classe: 'btn-discret' }), 'caler'))] : []),
-          h('div', { className: 'actions' }, btn('Changer l’image', () => U.changerImage(), { icone: 'bibliotheque', classe: 'btn-discret' }))));
+          h('div', { className: 'actions' }, btn('Changer l’image', () => U.changerImage(), { icone: 'bibliotheque', classe: 'btn-discret' }))]));
       retrouverFocus();
     },
   });
@@ -151,14 +152,14 @@ export function enregistrerInspecteursMonde(coquille, U) {
       if (p.cache) { b.prepend(icone('oeil-barre')); b.title = `${b.title ? `${b.title} · ` : ''}Caché à la table`; }
       return h('li', {}, b, h('span', { className: 'doux', textContent: ` → ${modele.nomDestination(u, p.vers, U.donjons())}${orph ? ` (${orph})` : ''}` }));
     });
-    const auCentre = btn('Point au centre', () => U.poserPoint(0.5, 0.5), { icone: 'point', classe: 'btn-discret', titre: 'Pose un point au centre de la carte (pour le clavier) ; déplace-le ensuite avec les flèches' });
-    return section(`Points${l.points.length ? ` · ${l.points.length}` : ''}`,
+    return section('lieu-points', 'Points', [
       items.length
         ? h('ul', { className: 'univers-liste' }, ...items)
-        : h('p', { className: 'note', textContent: 'Aucun point : choisis l’outil Point, puis clique sur la carte.' }),
-      h('div', { className: 'actions' }, auCentre),
-      h('details', { className: 'aide aide-bloc' }, h('summary', { textContent: 'Comment poser un point ?' }),
-        h('p', { className: 'note', textContent: 'Choisis l’outil Point, puis clique sur une zone vide de la carte : son panneau s’ouvre, nomme-le et choisis où il mène. Clique sur un point (outil Sélection) pour rouvrir son panneau, double-clique pour entrer. Glisse un point, ou utilise les flèches du clavier, pour le déplacer. Un clic dans le vide lâche le point.' })));
+        : h('p', { className: 'note', textContent: 'Aucun point : choisis l’outil Point, puis clique sur la carte.' })], {
+      compte: l.points.length || null,
+      aide: 'Choisis l’outil Point, puis clique sur une zone vide de la carte : son panneau s’ouvre, nomme-le et choisis où il mène. Clique sur un point (outil Sélection) pour rouvrir son panneau, double-clique pour entrer. Glisse un point, ou utilise les flèches du clavier, pour le déplacer. Un clic dans le vide lâche le point.',
+      action: { libelle: 'Poser un point au centre de la carte', icone: 'plus', executer: () => U.poserPoint(0.5, 0.5) },
+    });
   }
 
   // --- Point -----------------------------------------------------------------------------------------------------------------
@@ -250,9 +251,9 @@ export function enregistrerInspecteursMonde(coquille, U) {
       const interrupteur = h('label', { className: 'univers-interrupteur', title: 'Caché : le point n’apparaît à la table qu’une fois révélé en jeu' }, cache, h('span', { className: 'univers-glissiere', 'aria-hidden': 'true' }),
         h('span', { textContent: p.cache ? 'Caché' : 'Visible' }));
       conteneur.append(
-        section('Destination', ...destination(p, u)),
+        section('point-destination', 'Destination', destination(p, u)),
         ...(orph ? [h('p', { className: 'note erreur' }, icone('alerte'), ` Destination perdue : ${orph}. Choisis-en une autre ; rien n’a été retiré.`)] : []),
-        section('À la table', interrupteur));
+        section('point-table', 'À la table', [interrupteur]));
       retrouverFocus();
     },
   });

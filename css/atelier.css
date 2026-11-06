@@ -256,3 +256,32 @@ body.atelier-avec-inspecteur { --largeur-inspecteur: 330px; }
 .atelier-inspecteur-corps .btn-discret:not(.btn-icone):not(.univers-ligne-point) { padding-inline: 0; color: var(--p-texte-3); }
 .atelier-inspecteur-corps .btn-discret:not(.btn-icone):not(.univers-ligne-point):hover { background: transparent; text-decoration: underline; text-underline-offset: 3px; }
 .atelier-inspecteur-corps .actions { justify-content: flex-start; }
+
+/* === Panneaux : la section (js/atelier/section.js, docs/design-panneaux.md étape 2) ===
+   Bandeau de 40 px (chevron, titre, compteur, « ? », action), corps en retrait de 16 px, filet entre deux sections.
+   Un corps qui contient des sections ne pose plus ni marge ni écart : ce sont elles qui rythment le panneau. */
+.atelier-inspecteur-corps:has(.p-section) { padding: 0 0 var(--esp-3); gap: 0; }
+.atelier-inspecteur-corps:has(.p-section) .univers-insp { gap: 0; }
+.atelier-inspecteur-corps:has(.p-section) .univers-insp > :not(.p-section) { margin: var(--esp-3) var(--esp-4) 0; }
+.p-section { border-bottom: 1px solid var(--p-filet); }
+.p-section:last-child { border-bottom: 0; }
+.p-section-tete { display: flex; align-items: center; gap: var(--esp-1); min-height: max(40px, var(--cible)); padding: 0 var(--esp-2) 0 var(--esp-2); }
+.p-section-bascule { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: var(--esp-2); align-self: stretch; padding: 0 var(--esp-1); background: none; border: 0; border-radius: var(--rayon); color: var(--p-texte-1); font: inherit; font-size: 13px; font-weight: 650; text-align: left; cursor: pointer; }
+.p-section-bascule:hover { background: var(--p-surface-survol); }
+.p-section-bascule:focus-visible { outline: var(--focus); outline-offset: -2px; }
+.p-section-titre { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.p-section-chevron { flex: none; width: 6px; height: 6px; margin: 0 3px; border-right: 1.75px solid var(--p-texte-4); border-bottom: 1.75px solid var(--p-texte-4); transform: translateY(-2px) rotate(45deg); transition: transform .12s; }
+.p-section.repliee .p-section-chevron { transform: rotate(-45deg); }
+@media (prefers-reduced-motion: reduce) { .p-section-chevron { transition: none; } }
+.p-section.repliee .p-section-bascule { color: var(--p-texte-2); font-weight: 600; }
+.p-section-compte { flex: none; padding: 1px 7px; border-radius: 999px; background: var(--p-surface-1); color: var(--p-texte-3); font-size: 11.5px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.p-section-compte:empty { display: none; }
+.p-section-tete .p-section-outil { width: 28px; min-height: 28px; height: 28px; color: var(--p-texte-3); }
+.p-section-tete .p-section-outil .icone { width: 16px; height: 16px; }
+.p-section-tete .p-section-outil[aria-expanded="true"] { color: var(--accent); }
+@media (max-width: 760px) { .p-section-tete .p-section-outil { width: var(--cible); height: var(--cible); } }
+.p-section-aide { margin: 0 var(--esp-4) var(--esp-3); max-width: none; }
+.p-section-corps { display: flex; flex-direction: column; gap: var(--esp-3); padding: 0 var(--esp-4) var(--esp-4); }
+.p-section-corps > * { margin: 0; }
+/* Une ligne « état + bouton » (état de la grille d'un lieu) : l'état, puis le bouton, tous deux sur le bord gauche. */
+.atelier-inspecteur .univers-insp .ligne:has(.univers-etat-grille) { align-items: flex-start; }

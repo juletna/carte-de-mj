@@ -61,6 +61,7 @@ import { executer as executerUniversVue } from './univers-vue.test.js';
 import { executer as executerIcones } from './icones.test.js';
 import { executer as executerAtelierArbre } from './atelier-arbre.test.js';
 import { executer as executerAtelierSelection } from './atelier-selection.test.js';
+import { executer as executerSection } from './section.test.js';
 import { executer as executerAtelierRoute } from './atelier-route.test.js';
 import { executer as executerGrilleAffichage } from './grille-affichage.test.js';
 import { executer as executerCartouche } from './cartouche.test.js';
@@ -82,6 +83,7 @@ export const SUITES = [
   executerUniversGrille,
   executerUniversVue, executerIcones,
   executerAtelierArbre, executerAtelierSelection, executerAtelierRoute, executerGrilleAffichage, executerCartouche, executerFilCompact,
+  executerSection,
 ];
 
 /** Joue toutes les suites ; renvoie les résultats { phrase, ecarts, resultat? } à la suite les uns des autres. */
