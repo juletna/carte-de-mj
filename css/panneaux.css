@@ -24,7 +24,8 @@
 /* Inspecteur : en-tête */
 .atelier-inspecteur-tete { padding: 14px var(--esp-4) var(--esp-3); border-bottom-color: var(--p-filet-fort); }
 @media (max-width: 760px) { .atelier-inspecteur-tete { padding-right: 52px; } } /* place du chevron « replier le panneau » (atelier.css) */
-.atelier-inspecteur-type { font-size: 11px; font-weight: 600; letter-spacing: 0.09em; color: var(--accent); }
+.atelier-inspecteur-type { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; letter-spacing: 0.09em; color: var(--accent); }
+.atelier-inspecteur-type .icone { order: -1; flex: none; width: 14px; height: 14px; }
 .atelier-inspecteur .atelier-inspecteur-nom, .atelier-inspecteur .atelier-inspecteur-titre { font-size: 18px; font-weight: 650; color: var(--p-texte-1); }
 .atelier-inspecteur-nom::placeholder { color: var(--p-texte-4); }
 .atelier-inspecteur-resume { font-size: 12.5px; color: var(--p-texte-3); font-variant-numeric: tabular-nums; }
@@ -208,3 +209,16 @@
 .univers-calage > .calage-enregistrer { margin: 0; padding: var(--esp-3) var(--esp-4); border-bottom: 1px solid var(--p-filet); }
 .p-section-corps .calage-champ, .p-section-corps .calage-geste { margin: 0; }
 .p-section-corps .calage-nom { font-size: 12.5px; font-weight: 500; color: var(--p-texte-3); }
+
+/* === Inspecteur de la salle : Taille (L et H en champs compacts, la lettre dans le champ) et Apparence (menus sur deux colonnes) === */
+.champs-num { display: grid; grid-template-columns: 1fr 1fr; gap: var(--esp-2); }
+.champ-num { display: flex; align-items: center; gap: 8px; min-height: max(32px, var(--cible)); padding: 0 10px; background: var(--champ); border: 1px solid var(--bord); border-radius: var(--rayon); color: var(--p-texte-1); }
+.champ-num:focus-within { border-color: var(--accent); }
+.champ-num .pre { flex: none; width: 14px; color: var(--p-texte-3); font-size: 12px; font-weight: 600; }
+.champ-num .unite { flex: none; color: var(--p-texte-4); font-size: 12px; }
+.champ-num input { flex: 1 1 auto; min-width: 0; width: 100%; padding: 0; background: none; border: 0; outline: 0; color: inherit; font: inherit; font-variant-numeric: tabular-nums; -moz-appearance: textfield; }
+.champ-num input::-webkit-outer-spin-button, .champ-num input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+#bloc-taille { display: flex; flex-direction: column; gap: var(--esp-3); }
+.champs-apparence { display: grid; grid-template-columns: 1fr 1fr; gap: var(--esp-2); }
+.champs-apparence .ligne { display: flex; flex-direction: column; align-items: stretch; gap: 5px; margin: 0; min-height: 0; font-size: 12.5px; color: var(--p-texte-3); }
+.champs-apparence select { width: 100%; max-width: none; color: var(--p-texte-1); }

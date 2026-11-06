@@ -9,19 +9,24 @@
  * qu'ils restent toujours dans la page (`$('description')` répond même quand un autre type est affiché). Le nom, lui, est le champ de
  * l'en-tête : il écrit dans `#salle-nom` / `#donjon-nom` (qui restent dans la réserve) et y déclenche « change ».
  *
- *   salle   « 6 × 8 cases · pierre » ; description (dictée, « Compris »), liaisons orphelines, forme / sol / ambiance, notes, exemples.
+ *   salle   « 9 × 12 m · pierre » ; Taille (L, H, forme), Apparence (sol, ambiance, état, éclairage), description (dictée, « Compris »), liaisons orphelines, notes, éléments (liste), exemples.
  *           « ⋯ » : plan JSON, signaler une erreur de lecture, — , supprimer la salle.
  *   donjon  « 3 salles · 2 personnages » ; les personnages (liste, ajouter, au hasard) et, repliée, l'échelle (m par case) avec le plein écran. Le rendu (thème, grille…) est le bouton « Affichage » de la barre.
  *           « ⋯ » : exporter, imprimer, copier, — , supprimer le donjon. (L'arbre liste les salles ; la vue d'ensemble est celle du donjon.)
  *   porte, objet, creature, pion   js/mj/bulle.js (relier, créer la salle derrière, cacher, aspect). « ⋯ » : fermer, délier, supprimer.
  */
-import { $ } from '../dom.js';
+import { $, h } from '../dom.js';
 import { NOMS_SOLS } from '../schema.js';
 import { pluriel } from '../format.js';
-import { resumeTaille } from './dimensions.js';
+import { resumeTaille, tailleEnMetres } from './dimensions.js';
 import { creerSection } from './section.js';
+import { creerListe } from './liste.js';
+import { libelleSelection } from '../coordonnees.js';
+import { descripteur } from '../donjon.js';
+import { telephone } from '../telephone.js';
+import { LISTES } from '../schema.js';
 
-const BLOCS_SALLE = ['bloc-description', 'bloc-orphelines', 'bloc-forme', 'bloc-notes', 'bloc-exemples'];
+const BLOCS_SALLE = ['bloc-description', 'bloc-orphelines', 'bloc-taille', 'bloc-apparence', 'bloc-notes', 'bloc-exemples'];
 const BLOCS_DONJON = ['bloc-personnages', 'bloc-reglages'];
 const AUTRES_BLOCS = ['bloc-salle-nom', 'bloc-avance', 'bloc-donjon-nom', 'bloc-plan']; // restent dans la réserve, ou n'en sortent que sur demande
 const TYPES_ELEMENT = ['porte', 'objet', 'creature', 'pion'];
@@ -70,19 +75,44 @@ export function enregistrerInspecteursDonjon(coquille, ctx) {
     apres?.();
   };
 
+  /** La section « Éléments » : les portes, le mobilier et les créatures de la salle, en liste ; « + » ouvre le catalogue (onglet « Ajouter », tiroir sur téléphone). */
+  const sectionElements = (sel) => {
+    const salle = donjonDe(sel).salles[sel.id];
+    const majuscule = (t) => t.charAt(0).toUpperCase() + t.slice(1);
+    const rangees = [];
+    for (const [genre, cle] of Object.entries(LISTES)) {
+      for (const e of salle?.plan?.[cle] ?? []) {
+        const [debut, ...suite] = libelleSelection({ genre, element: e }).split(' · ');
+        rangees.push({
+          nom: majuscule(debut), icone: genre, position: suite.join(' · '), compacte: true,
+          choisie: etat.selection && etat.selection.genre === genre && JSON.stringify(etat.selection) === JSON.stringify(descripteur(genre, e)),
+          surChoix: () => { etat.selection = descripteur(genre, e); etat.message = ''; ctx.rendre(); },
+        });
+      }
+    }
+    const ouvrirCatalogue = () => { if (telephone()) ctx.carte.ouvrirTiroir(true); else coquille.onglets.choisir('ajouter'); };
+    return creerSection({
+      cle: 'donjon:salle-elements', titre: 'Éléments', compte: String(rangees.length), repliee: true,
+      action: { libelle: 'Ajouter un élément', icone: 'plus', executer: ouvrirCatalogue },
+      enfants: [rangees.length ? creerListe(rangees) : h('p', { className: 'note', textContent: 'Rien pour l’instant : « + » ouvre le catalogue.' })],
+    }).element;
+  };
+
   inspecteur.enregistrer('salle', {
     titre: (sel) => donjonDe(sel).salles[sel.id]?.nom ?? 'Salle',
     renommer: renommerVia('salle-nom'),
     resume: (sel) => {
       const p = donjonDe(sel).salles[sel.id]?.plan;
-      return p ? `${resumeTaille(p.largeur, p.longueur, etat.reglages.echelle)} · ${(NOMS_SOLS[p.sol] ?? 'Pierre').toLowerCase()}` : '';
+      return p ? `${tailleEnMetres(p.largeur, p.longueur, etat.reglages.echelle) || resumeTaille(p.largeur, p.longueur, etat.reglages.echelle)} · ${(NOMS_SOLS[p.sol] ?? 'Pierre').toLowerCase()}` : '';
     },
     rendre: (conteneur, sel) => {
       if (avanceDemande !== sel.id) avanceDemande = null;
       conteneur.append(
+        section('salle-taille', 'Taille', ['bloc-taille']),
+        section('salle-apparence', 'Apparence', ['bloc-apparence']),
         section('salle-description', 'Description', ['bloc-description', 'bloc-orphelines']),
-        section('salle-notes', 'Notes du MJ', ['bloc-notes']),
-        section('salle-forme', 'Forme et ambiance', ['bloc-forme']),
+        section('salle-notes', 'Notes du MJ', ['bloc-notes'], { repliee: true }),
+        sectionElements(sel),
         section('salle-exemples', 'Exemples', ['bloc-exemples'], { repliee: true }),
         ...(avanceDemande ? [section('salle-avance', 'Avancé', ['bloc-avance'])] : []));
       // Demandé par le menu « ⋯ » : la section s'ouvre même si le MJ l'avait repliée.

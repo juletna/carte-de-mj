@@ -236,7 +236,7 @@ body.atelier-avec-inspecteur { --largeur-inspecteur: 330px; }
 .atelier-inspecteur .forme-salle > h3 { margin: 0 0 var(--esp-2); font-size: 13px; font-weight: 600; color: var(--texte); text-transform: none; letter-spacing: 0; }
 .atelier-inspecteur .forme-salle .ligne { margin: 0; min-height: var(--cible-petit); }
 .atelier-inspecteur .forme-salle select { max-width: 60%; }
-.atelier-inspecteur #bloc-forme .forme-salle { display: flex; flex-direction: column; gap: var(--esp-2); }
+.atelier-inspecteur #bloc-taille .forme-salle { display: flex; flex-direction: column; gap: var(--esp-2); }
 .atelier-inspecteur .univers-insp { gap: var(--esp-4); }
 
 /* --- Cartouche d'échelle (js/atelier/cartouche.js) : un encart discret en surimpression dans un coin de la scène ---
@@ -264,7 +264,7 @@ body.atelier-avec-inspecteur { --largeur-inspecteur: 330px; }
   .cartouche-monde { left: var(--esp-2); bottom: var(--esp-2); }
 }
 
-/* Sous 760 px, les champs et les titres repliables de l'inspecteur ont une cible de 44 px (nom éditable, « Forme et ambiance », « Exemples », aides). */
+/* Sous 760 px, les champs et les titres repliables de l'inspecteur ont une cible de 44 px (nom éditable, « Exemples », aides). */
 @media (max-width: 760px) {
   .atelier-inspecteur .atelier-inspecteur-nom { min-height: var(--cible); }
   .atelier-inspecteur details.bloc-inspecteur > summary, .atelier-inspecteur details.exemples > summary, .atelier-inspecteur .aide-bloc > summary { display: flex; align-items: center; min-height: var(--cible); }

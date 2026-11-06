@@ -52,6 +52,8 @@ export function creerSalleForme(ctx) {
     const plan = salle().plan;
     $('salle-sol').value = plan.sol;
     for (const [champ, id] of Object.entries(SELECTEURS_AMBIANCE)) $(id).value = plan[champ] ?? CHAMPS_AMBIANCE[champ][0];
+    $('salle-largeur').value = String(plan.largeur);
+    $('salle-longueur').value = String(plan.longueur);
     const forme = plan.forme || 'rectangle';
     for (const b of $('formes').children) b.setAttribute('aria-pressed', String(b.dataset.forme === forme));
     const max = brasMax(plan);
@@ -112,6 +114,17 @@ export function creerSalleForme(ctx) {
     if (res.erreur) { annoncerCarte(res.erreur, true); return; }
     modifierPlan(res.plan, { suivrePortes: true });
     annoncerCarte(`Salle de ${res.plan.largeur} × ${res.plan.longueur} cases.`);
+  }
+
+  // Largeur et longueur en champs : un changement est un redimensionnement par le bord est (largeur) ou sud (longueur), comme les bandes de la carte.
+  for (const [id, cote, champ] of [['salle-largeur', 'est', 'largeur'], ['salle-longueur', 'sud', 'longueur']]) {
+    $(id).addEventListener('change', (e) => {
+      const voulu = Math.round(Number(e.target.value));
+      const delta = voulu - salle().plan[champ];
+      if (!Number.isFinite(voulu) || !delta) { majForme(); return; }
+      appliquerDimensions(cote, delta);
+      majForme(); // refus (taille impossible) : le champ reprend la valeur du plan
+    });
   }
 
   let annulerBord = null; // abandonne le glissement de bord en cours, s'il y en a un
