@@ -70,8 +70,6 @@ body.presentation a { color: var(--accent); }
 #toast.visible { opacity: 1; pointer-events: auto; transform: translateY(0); }
 @media (prefers-reduced-motion: reduce) { #toast { transition: none; } }
 
-.bloc-table, .cette-salle { border: 1px solid var(--bord); border-radius: var(--rayon); padding: 10px; }
-.bloc-table h2, .cette-salle h2 { margin-bottom: 4px; }
 .croix { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
 .croix button { min-width: max(40px, var(--cible)); }
 .croix .fleche-inverse .icone { transform: rotate(180deg); } /* flèches droite et bas : les icônes gauche et haut retournées */
@@ -184,7 +182,6 @@ details.bloc > .aide, .defilement > .aide { display: block; margin-bottom: 6px; 
 #regie > #principal { grid-column: 2; grid-row: 1; }
 .onglet-contenu { display: flex; flex-direction: column; gap: var(--esp-3); padding: var(--esp-3); }
 .onglet-contenu[hidden], .atelier-onglet[hidden] { display: none; }
-.onglet-contenu h2 { margin: 0 0 var(--esp-1); font-size: 16px; }
 
 @media (max-width: 1100px) and (min-width: 761px) {
   body.presentation:not(.arbre-replie) { --largeur-arbre: 200px; }
@@ -222,7 +219,6 @@ details.bloc > .aide, .defilement > .aide { display: block; margin-bottom: 6px; 
 #univers-regie .univers-zone-carte { flex: 1 1 auto; min-width: 0; border-radius: 0; }
 #titre-univers-regie { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); margin: 0; }
 .univers-regie-panneau { width: auto; }
-.univers-regie-panneau h2 { margin: var(--esp-3) 0 var(--esp-2); }
 
 /* Fenêtre table : l'action principale de la régie, en doré. */
 .bloc-table .actions { display: flex; flex-wrap: wrap; gap: var(--esp-2); }

@@ -92,7 +92,7 @@ Remplace `.insp-section`, `.bloc-inspecteur`, `.retour`, `.cette-salle`, `.bloc-
 
 ### Propriétés
 
-Plusieurs réglages courts (Sol, Ambiance, État, Éclairage, Rotation…) : grille à deux colonnes, étiquette 92px en T3 à gauche, menu à droite, tous de la même largeur. Remplace `label.ligne`. Un choix parmi beaucoup (les 12 formes de salle) devient un menu, pas une rangée de boutons.
+Plusieurs réglages courts (Sol, Ambiance, État, Éclairage, Rotation…) : grille à deux colonnes, étiquette 92px en T3 à gauche, menu à droite, tous de la même largeur. Remplace `label.ligne`. Un choix parmi beaucoup reste compact : les 12 formes de salle sont deux rangées de petites icônes (nom en infobulle et pour les lecteurs d'écran), pas quatre rangées de boutons légendés.
 
 ### Liste
 
@@ -149,7 +149,10 @@ Même grammaire dans le panneau bas. Replié, il ne montre que l'en-tête. Cible
 |---|---|---|
 | Arbre | `js/atelier/arbre-vue.js` | oui |
 | Inspecteur Monde, Lieu, Point | `js/atelier/inspecteurs-monde.js` | oui (typographie, sections, liste des points) |
-| Inspecteur Calage | `js/mj/univers-calage.js` | typographie seulement |
-| Inspecteur Donjon, Salle | `js/atelier/inspecteurs-donjon.js`, `js/mj/salle-forme.js` | oui (« Compris » reste une liste, pas encore en pastilles) |
+| Inspecteur Calage | `js/mj/univers-calage.js` | oui |
+| Inspecteur Donjon, Salle | `js/atelier/inspecteurs-donjon.js`, `js/mj/salle-forme.js` | oui (« Compris » en pastilles, formes en icônes) |
 | Porte, Objet, Créature | `js/mj/bulle.js` | oui (sections « Liaison », « Aspect ») |
-| Jouer · Salle, Joueurs, Table | `presentation.html`, `js/regie.js`, `js/regie-panneau.js` | oui |
+| Jouer · Salle, Joueurs, Table | `presentation.html`, `js/regie.js`, `js/regie-panneau.js` | oui (en-tête de l'onglet Salle) |
+| Jouer · Lieu (monde) | `js/regie-univers.js` | oui |
+
+Nettoyage fait : les règles mortes des anciens panneaux (`.insp-section`, `.aide-bloc`, `.univers-liste`, `.univers-ligne-point`, titres et cadres des blocs de la régie) sont retirées d'`atelier.css`, `univers.css` et `presentation.css`. Les règles de panneau qui restent dans ces feuilles posent la structure (marges, mise en page) ; la typographie et les couleurs sont dans `css/panneaux.css`.

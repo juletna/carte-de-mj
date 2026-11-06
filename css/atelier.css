@@ -126,14 +126,8 @@ body.atelier-avec-inspecteur { --largeur-inspecteur: 330px; }
 /* Le corps : des sections sobres, alignées à gauche, d'un espacement régulier. */
 .atelier-inspecteur-corps { display: flex; flex-direction: column; gap: var(--esp-4); padding: var(--esp-3) var(--esp-3) var(--esp-4); }
 .atelier-inspecteur-actions { display: flex; flex-wrap: wrap; gap: var(--esp-2); }
-.atelier-inspecteur .insp-section > h3, .atelier-inspecteur .bloc-inspecteur > h3, .atelier-inspecteur .retour > h2 { margin: 0 0 var(--esp-2); font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--texte-doux); }
-.atelier-inspecteur .insp-section { display: flex; flex-direction: column; gap: var(--esp-2); }
-.atelier-inspecteur .aide-bloc { display: block; }
-.atelier-inspecteur .aide-bloc > summary { cursor: pointer; font-size: 13px; color: var(--texte-doux); }
-.atelier-inspecteur .aide-bloc > .note { margin-top: var(--esp-2); }
 .atelier-onglets { display: flex; gap: var(--esp-1); }
 .atelier-onglet { flex: 1 1 0; min-width: 0; }
-.atelier-onglet[aria-selected="true"] { border-color: var(--accent); color: var(--accent); background: rgba(217, 169, 41, 0.16); font-weight: 600; }
 
 /* Mode jouer (data-atelier="jouer" sur la racine, posé par la coquille) : l'inspecteur n'a que ses onglets, pas d'en-tête ni de corps génériques. */
 .atelier-inspecteur.sans-generique { padding: 0; gap: 0; }

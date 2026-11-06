@@ -32,7 +32,7 @@
 /* Inspecteur : corps (marge de 16 px, texte courant en T2) */
 .atelier-inspecteur-corps { padding: var(--esp-4); gap: 20px; font-size: 14px; color: var(--p-texte-2); }
 /* Titres de section : 13 px, gras, clairs, casse normale */
-.atelier-inspecteur .insp-section > h3, .atelier-inspecteur .bloc-inspecteur > h3, .atelier-inspecteur .retour > h2,
+.atelier-inspecteur .bloc-inspecteur > h3, .atelier-inspecteur .retour > h2,
 .atelier-inspecteur .univers-insp h3, .atelier-inspecteur .forme-salle > h3,
 .atelier-inspecteur details.bloc-inspecteur > summary, .atelier-inspecteur details.exemples > summary {
   margin: 0 0 var(--esp-2); font-size: 13px; font-weight: 650; line-height: 1.35; letter-spacing: 0; text-transform: none; color: var(--p-texte-1);
@@ -48,11 +48,11 @@
 .atelier-inspecteur-corps input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), .atelier-inspecteur-corps textarea, .atelier-inspecteur-corps select { font-size: 14px; color: var(--p-texte-1); }
 .atelier-inspecteur-corps ::placeholder { color: var(--p-texte-4); }
 /* Notes et aides : T3 */
-.atelier-inspecteur .note, .atelier-inspecteur .doux, .atelier-inspecteur .aide-bloc > summary { font-size: 12.5px; color: var(--p-texte-3); }
+.atelier-inspecteur .note, .atelier-inspecteur .doux { font-size: 12.5px; color: var(--p-texte-3); }
 .atelier-inspecteur .note.erreur { color: var(--erreur); }
 /* Un seul bord gauche : les boutons discrets du corps (hors icônes et rangées de liste) deviennent des liens d'action sans marge interne */
-.atelier-inspecteur-corps .btn-discret:not(.btn-icone):not(.univers-ligne-point) { padding-inline: 0; color: var(--p-texte-3); }
-.atelier-inspecteur-corps .btn-discret:not(.btn-icone):not(.univers-ligne-point):hover { background: transparent; text-decoration: underline; text-underline-offset: 3px; }
+.atelier-inspecteur-corps .btn-discret:not(.btn-icone) { padding-inline: 0; color: var(--p-texte-3); }
+.atelier-inspecteur-corps .btn-discret:not(.btn-icone):hover { background: transparent; text-decoration: underline; text-underline-offset: 3px; }
 .atelier-inspecteur-corps .actions { justify-content: flex-start; }
 
 /* === Panneaux : la section (js/atelier/section.js, docs/design-panneaux.md étape 2) ===
