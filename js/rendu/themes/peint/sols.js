@@ -6,9 +6,14 @@
  * (VIRTUEL px par case, quelle que soit la résolution réelle de la tuile) et PÉRIODIQUE sur PERIODE px : ses bruits viennent de
  * bruit.js (indices de réseau pris modulo la période), donc la tuile se raccorde à elle-même, sans couture. La lumière vient du nord-ouest.
  *
+ * L'AMBIANCE et l'ÉTAT de la salle (lot « ambiance », peint/ambiance.js) sont cuits dans la tuile : `calculerTuile(sol, résolution, {ambiance, etat})`
+ * teinte les pixels, et l'usure ajoute des fissures, des joints sombres et de la mousse (usée), puis la terre et l'herbe qui reprennent le dallage
+ * selon un masque de bruit, `masqueVert` (en ruine). Le masque est périodique comme le reste : il est aussi lu par les petits détails (details.js).
+ *
  * Pour ajouter un sol : une fonction ici, une entrée dans SOLS_PEINTS, et sa couleur de mur dans peint/murs.js.
  */
 import { h2, vbp, fbmp, voroP, lisse } from './bruit.js';
+import { usureDe, teinterSol } from './ambiance.js';
 
 export const CASES_PAR_TUILE = 8;
 const VIRTUEL = 48; // pixels virtuels par case : les constantes des sols ont été réglées à cette échelle
@@ -27,6 +32,9 @@ const mod = (a, n) => ((a % n) + n) % n;
 /** Grain fin (cellules de 3 px virtuels), périodique. */
 const grain = (X, Y, s) => h2(mod(Math.floor(X / 3), PERIODE / 3), mod(Math.floor(Y / 3), PERIODE / 3), s);
 const V = { e: 0, id: 0, dx: 0, dy: 0 }; // sortie réutilisée de voroP
+const FISSURES = [0.3, 0.5, 0.65]; // part des dalles fissurées, selon l'usure
+const JOINT_SOMBRE = [1, 0.72, 0.8];
+const MOUSSE = [74, 102, 54];
 
 /** Dalles irrégulières en biseau (Voronoï), joints sombres : pierre, et la roche autour de la salle. */
 function dalles(X, Y, o, out) {
@@ -39,11 +47,19 @@ function dalles(X, Y, o, out) {
   nx /= l; ny /= l;
   const biseau = Math.max(0, 1 - (E - 1.4) / 5);
   k *= 1 + biseau * (-(nx * 0.6 + ny * 0.8) * 0.34 - 0.07);
-  if (ih < 0.3) { const c = Math.abs(vbp(fx, fy, m(12), m(12), 5 + (id % 13)) - 0.5); if (c < 0.016) k *= 0.5 + c * 25; } // fissure
+  if (ih < FISSURES[o.usure | 0]) { const c = Math.abs(vbp(fx, fy, m(12), m(12), 5 + (id % 13)) - 0.5); if (c < 0.016) k *= 0.5 + c * 25; } // fissure (plus nombreuses quand la salle est usée)
   k += (grain(X, Y, 9) - 0.5) * 0.07;
   let r = (o.a[0] + (o.b[0] - o.a[0]) * ih) * k, g = (o.a[1] + (o.b[1] - o.a[1]) * ih) * k, b = (o.a[2] + (o.b[2] - o.a[2]) * ih) * k;
   const j = lisse((E - 0.5) / 1.3);
-  if (j < 1) { r = o.joint[0] + (r - o.joint[0]) * j; g = o.joint[1] + (g - o.joint[1]) * j; b = o.joint[2] + (b - o.joint[2]) * j; }
+  if (j < 1) {
+    const sombre = JOINT_SOMBRE[o.usure | 0]; // joints plus sombres quand la salle vieillit, et la mousse y prend
+    let jr = o.joint[0] * sombre, jg = o.joint[1] * sombre, jb = o.joint[2] * sombre;
+    if (o.usure) {
+      const mo = fbmp(fx, fy, m(13), o.s + 11), seuil = o.usure === 2 ? 0.52 : 0.58;
+      if (mo > seuil) { const t = Math.min(1, (mo - seuil) * 7); jr += (MOUSSE[0] - jr) * t; jg += (MOUSSE[1] - jg) * t; jb += (MOUSSE[2] - jb) * t; }
+    }
+    r = jr + (r - jr) * j; g = jg + (g - jg) * j; b = jb + (b - jb) * j;
+  }
   out[0] = r; out[1] = g; out[2] = b;
 }
 
@@ -65,8 +81,8 @@ function losanges(X, Y, o, out) {
   const veine = 1 - lisse(Math.abs(fbmp(fx, fy, m(3), o.s + 30, 4) - 0.5) / 0.022); // veines grises qui traversent les dalles
   const ombre = 1 - 0.28 * veine;
   r *= ombre; g *= ombre; b *= ombre;
-  const j = lisse((de - 0.4) / 1);
-  out[0] = o.joint[0] + (r - o.joint[0]) * j; out[1] = o.joint[1] + (g - o.joint[1]) * j; out[2] = o.joint[2] + (b - o.joint[2]) * j;
+  const j = lisse((de - 0.4) / 1), sombre = JOINT_SOMBRE[o.usure | 0];
+  out[0] = o.joint[0] * sombre + (r - o.joint[0] * sombre) * j; out[1] = o.joint[1] * sombre + (g - o.joint[1] * sombre) * j; out[2] = o.joint[2] * sombre + (b - o.joint[2] * sombre) * j;
 }
 
 /** Planches en rangées décalées, grain du bois, rainures et bouts sombres : bois. */
@@ -158,11 +174,70 @@ export const SOLS_PEINTS = {
   roche: { fn: dalles, o: { n: m(6), s: 13, contraste: 0.95, a: [34, 32, 36], b: [52, 48, 50], joint: [12, 11, 13] } },
 };
 
-/** Couleur (r, g, b) d'un sol au point virtuel (X, Y) ; périodique sur PERIODE. Sert aux tests et au calcul de la tuile. */
-export function couleurSol(nom, X, Y, sortie = [0, 0, 0]) {
-  const def = SOLS_PEINTS[nom] || SOLS_PEINTS.pierre;
-  def.fn(X, Y, def.o, sortie);
-  return sortie;
+const OPTIONS_USEES = new Map(); // « sol|usure » → les réglages du sol avec son usure (un objet par couple, pas un par pixel)
+const optionsUsees = (nom, def, usure) => {
+  const cle = `${nom}|${usure}`;
+  if (!OPTIONS_USEES.has(cle)) OPTIONS_USEES.set(cle, { ...def.o, usure });
+  return OPTIONS_USEES.get(cle);
+};
+
+/** Mélange `out` vers la couleur `c` de la part `t`. */
+function vers(out, c, t) { out[0] += (c[0] - out[0]) * t; out[1] += (c[1] - out[1]) * t; out[2] += (c[2] - out[2]) * t; }
+
+/**
+ * Le masque de végétation d'une salle en ruine, de 0 à 1 (fractions de la période, périodique) : la mousse gagne dès 0,538, la terre à 0,558, l'herbe à 0,578 (le bruit se tient entre 0,49 et 0,62 : à peu près la moitié de la salle reste dallée).
+ * Les petits détails (touffes, details.js) le relisent pour ne planter que dans l'herbe.
+ */
+export const masqueVert = (fx, fy) => fbmp(fx, fy, 3, 61) * 0.75 + fbmp(fx, fy, 13, 63) * 0.25;
+export const SEUIL_MOUSSE = 0.538, SEUIL_TERRE = 0.558, SEUIL_HERBE = 0.578;
+
+/** Le décalage (fractions de la période) du motif d'une salle : deux salles ne se ressemblent pas, et les détails le suivent. */
+export const decalageDeTuile = (graine) => [h2(graine & 0xffff, 1, 5), h2(graine & 0xffff, 2, 5)];
+
+/** Salle usée : taches de saleté, mousse par plaques, fissures fines (sur les sols qui n'ont pas déjà leurs dalles). */
+function abimer(X, Y, sol, usure, out) {
+  const fx = X / PERIODE, fy = Y / PERIODE;
+  const sale = fbmp(fx, fy, m(5), 120);
+  if (sale > 0.5) { const k = 1 - Math.min(usure === 2 ? 0.22 : 0.15, (sale - 0.5) * 0.9); out[0] *= k; out[1] *= k; out[2] *= k; }
+  if (sol === 'pierre' || sol === 'marbre' || sol === 'bois' || sol === 'terre') {
+    const mo = fbmp(fx, fy, m(6), 130), seuil = usure === 2 ? 0.58 : 0.65;
+    if (mo > seuil) vers(out, MOUSSE, Math.min(0.55, (mo - seuil) * 5) * (0.75 + 0.5 * grain(X, Y, 131)));
+  }
+  if (sol !== 'pierre') { // la pierre a ses fissures de dalles ; les autres sols en reçoivent de fines
+    const zone = vbp(fx, fy, m(2), m(2), 141);
+    if (zone > (usure === 2 ? 0.4 : 0.55) && Math.abs(vbp(fx, fy, m(9), m(9), 140) - 0.5) < 0.011) { out[0] *= 0.5; out[1] *= 0.5; out[2] *= 0.5; }
+  }
+}
+
+/** Salle en ruine : la terre, puis l'herbe, reprennent le sol là où le masque de végétation est fort. */
+function reprendre(X, Y, sol, out) {
+  if (sol === 'herbe' || sol === 'glace') return;
+  const fx = X / PERIODE, fy = Y / PERIODE, mv = masqueVert(fx, fy);
+  if (mv < SEUIL_MOUSSE) return;
+  if (mv < SEUIL_TERRE) { vers(out, MOUSSE, ((mv - SEUIL_MOUSSE) / (SEUIL_TERRE - SEUIL_MOUSSE)) * 0.6); return; }
+  if (sol !== 'terre' && sol !== 'sable') {
+    const d = fbmp(fx, fy, m(6), 64) * 0.6 + vbp(fx, fy, nb(0.22), nb(0.22), 65) * 0.4, k = 0.72 + 0.5 * d;
+    out[0] = 104 * k; out[1] = 80 * k; out[2] = 56 * k;
+  }
+  if (mv > SEUIL_HERBE) {
+    const brin = vbp(fx, fy, nb(0.42), nb(0.1), 66) * 0.55 + vbp(fx, fy, nb(0.13), nb(0.13), 67) * 0.45, t = lisse((mv - SEUIL_HERBE) / 0.012);
+    let gr = 74 + 70 * brin, gg = 112 + 78 * brin, gb = 46 + 34 * brin;
+    if (mv < SEUIL_HERBE + 0.008) { gr *= 0.62; gg *= 0.66; gb *= 0.6; } // la lisière de l'herbe est plus sombre
+    out[0] += (gr - out[0]) * t; out[1] += (gg - out[1]) * t; out[2] += (gb - out[2]) * t;
+  }
+  const n = (grain(X, Y, 69) - 0.5) * 10;
+  out[0] += n; out[1] += n; out[2] += n;
+}
+
+/**
+ * Couleur (r, g, b) d'un sol au point virtuel (X, Y) ; périodique sur PERIODE. Sert aux tests et au calcul de la tuile.
+ * @param {{ambiance?:string, etat?:string}} [variante]  neutre et neuve : le sol tel quel
+ */
+export function couleurSol(nom, X, Y, sortie = [0, 0, 0], { ambiance = 'neutre', etat = 'neuve' } = {}) {
+  const def = SOLS_PEINTS[nom] || SOLS_PEINTS.pierre, usure = nom === 'roche' ? 0 : usureDe(etat);
+  def.fn(X, Y, usure ? optionsUsees(nom, def, usure) : def.o, sortie);
+  if (usure) { abimer(X, Y, nom, usure, sortie); if (usure === 2) reprendre(X, Y, nom, sortie); }
+  return teinterSol(sortie, ambiance);
 }
 
 const borne = (v) => (v < 0 ? 0 : v > 255 ? 255 : v);
@@ -184,14 +259,14 @@ export const cleTuile = (sol, resolution, { ambiance = 'neutre', etat = 'neuve' 
 
 /**
  * Calcule les pixels d'une tuile.
+ * @param {{ambiance?:string, etat?:string}} [variante]
  * @returns {{cote:number, data:Uint8ClampedArray}} `cote` px de côté, RGBA opaque
  */
-export function calculerTuile(sol, resolution) {
+export function calculerTuile(sol, resolution, variante = {}) {
   const cote = CASES_PAR_TUILE * resolution, pas = VIRTUEL / resolution;
   const data = new Uint8ClampedArray(cote * cote * 4), c = [0, 0, 0];
-  const def = SOLS_PEINTS[sol] || SOLS_PEINTS.pierre;
   for (let py = 0; py < cote; py++) for (let px = 0; px < cote; px++) {
-    def.fn((px + 0.5) * pas, (py + 0.5) * pas, def.o, c);
+    couleurSol(sol, (px + 0.5) * pas, (py + 0.5) * pas, c, variante);
     const i = (py * cote + px) * 4;
     data[i] = borne(c[0]); data[i + 1] = borne(c[1]); data[i + 2] = borne(c[2]); data[i + 3] = 255;
   }

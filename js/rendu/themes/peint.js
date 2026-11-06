@@ -14,16 +14,17 @@
  *                                    `V.lumiere(x, y, h, source)`, voir peint/volumes.js et peint/etat.js) ; le moteur les lit avec `sources()`, fabrique la couche sombre
  *                                    (`creerCouche`) puis pose pénombre, halos et flammes (`eclairer`) entre le décor et les pions. `etat.flammesAnimees` (option `flammes`
  *                                    de `preparer`) éteint les flammes fixes des objets quand `eclairer` dessine les siennes.
- *   - ambiance, état, éclairage (lot 4) : champs du plan lus par `preparer` (etat.ambiance, etat.etatSalle) et déjà dans la clé des tuiles de sol.
+ *   - ambiance, état, éclairage (lot 4) : champs du plan lus par `preparer` (etat.ambiance, etat.etatSalle) : teinte et usure cuites dans les tuiles de sol (peint/sols.js, clé de cache),
+ *                                    murs teintés, ébréchés, mousse et lierre (peint/murs.js), petits détails semés (peint/details.js) ; peint/ambiance.js (pur) porte les tables. L'éclairage ne règle que la pénombre (rendu/lumiere.js).
  *
  * Modules : peint/bruit.js (bruits), peint/sols.js (tuiles), peint/segments.js (murs en segments), peint/murs.js (murs, ombre, portes),
- * peint/trait.js (trait à la main), peint/volumes.js (volumes en fausse 3D), peint/objets.js (les 19 objets), peint/pions.js (pions à plat), peint/etat.js (état du dessin en cours), ../perspective.js (calculs de vue).
+ * peint/trait.js (trait à la main), peint/volumes.js (volumes en fausse 3D), peint/objets.js (les 19 objets), peint/pions.js (pions à plat), peint/details.js (petits détails semés), peint/ambiance.js (teintes et usure : pur), peint/etat.js (état du dessin en cours), ../perspective.js (calculs de vue).
  */
 import { tracerSol } from '../trace.js';
 import { vueDeSalle, IDENTITE, haut as hautVue } from '../perspective.js';
-import { CASES_PAR_TUILE, calculerTuile, cleTuile, resolutionTuile } from './peint/sols.js';
+import { CASES_PAR_TUILE, calculerTuile, cleTuile, resolutionTuile, decalageDeTuile } from './peint/sols.js';
+import { dessinerDetails } from './peint/details.js';
 import { dessinerMurs, dessinerPorte, ombreAuPied } from './peint/murs.js';
-import { h2 } from './peint/bruit.js';
 import { graineDePlan } from '../graine.js';
 import { creerToile } from '../toile.js';
 import { etat } from './peint/etat.js';
@@ -71,11 +72,12 @@ const TUILES_MAX = 40;
 /** La tuile d'un sol pour des cases de `t` px, calculée une fois puis gardée. @returns {{canvas:object, cote:number}|null} */
 function tuile(nom, t) {
   const resolution = resolutionTuile(t, etat.dpr);
-  const cle = cleTuile(nom, resolution, { ambiance: etat.ambiance, etat: etat.etatSalle });
+  const variante = { ambiance: etat.ambiance, etat: nom === 'roche' ? 'neuve' : etat.etatSalle }; // la roche autour de la salle ne s'use pas
+  const cle = cleTuile(nom, resolution, variante);
   if (!tuiles.has(cle)) {
     if (tuiles.size >= TUILES_MAX) tuiles.delete(tuiles.keys().next().value);
     let canvas = null;
-    const { cote, data } = calculerTuile(nom, resolution);
+    const { cote, data } = calculerTuile(nom, resolution, variante);
     canvas = creerToile(cote, cote);
     if (canvas) {
       const g = canvas.getContext('2d'), img = g.createImageData(cote, cote);
@@ -96,7 +98,7 @@ function remplirDeTuile(ctx, nom, t, largeur, hauteur, secours) {
   const motif = une && ctx.createPattern?.(une.canvas, 'repeat');
   if (!motif) { ctx.fillStyle = secours; ctx.fillRect(0, 0, largeur, hauteur); return; }
   const periode = CASES_PAR_TUILE * t, k = periode / une.cote;
-  const ox = -h2(etat.graine & 0xffff, 1, 5) * periode, oy = -h2(etat.graine & 0xffff, 2, 5) * periode;
+  const [dx, dy] = decalageDeTuile(etat.graine), ox = -dx * periode, oy = -dy * periode;
   ctx.save();
   ctx.translate(ox, oy);
   ctx.scale(k, k);
@@ -119,6 +121,7 @@ export function sol(ctx, plan, t) {
   ctx.clip();
   remplirDeTuile(ctx, plan.sol, t, plan.largeur * t, plan.longueur * t, COULEURS_SECOURS[plan.sol] || COULEURS_SECOURS.pierre);
   ctx.restore();
+  dessinerDetails(ctx, plan, t); // cailloux, mousse, feuilles, os, toiles : salle usée ou en ruine seulement
   ombreAuPied(ctx, plan, t);
 }
 

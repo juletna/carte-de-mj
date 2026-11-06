@@ -3,7 +3,7 @@
  *
  * Étapes :
  *   1. normalisation (minuscules, accents, ponctuation) et nombres en chiffres
- *   2. dimensions de la pièce et nature du sol
+ *   2. ambiance, état et éclairage de la salle (ambiance.js), dimensions de la pièce et nature du sol
  *   3. découpage en propositions (« , », « . », « et », « avec »…)
  *   4. dans chaque proposition : objets + quantité + position → « intentions »
  *   5. placement des intentions sur la grille (placement.js)
@@ -14,6 +14,7 @@
 import { normaliser } from './normaliser.js';
 import { convertirNombres } from './nombres.js';
 import { extraireDimensions, extraireSol, extraireForme } from './dimensions.js';
+import { extraireAmbiance } from './ambiance.js';
 import {
   trouverObjet, definition, nomAffiche, souderExpressions, PIECES,
   ADJ_GRAND, ADJ_CACHE, MOTS_VIDES, COULEURS, CAMPS, TAILLES_CREATURE,
@@ -129,7 +130,8 @@ export const preparer = (texte) => souderExpressions(convertirNombres(normaliser
  */
 export function analyser(texte, options = {}) {
   const echelle = options.echelle || ECHELLE_PAR_DEFAUT;
-  const t = preparer(texte);
+  const ambiance = extraireAmbiance(preparer(texte)); // avant le nom : « crypte glaciale du vampire » nomme « crypte du vampire »
+  const t = ambiance.reste;
   const nom = extraireNom(t);
 
   const forme = extraireForme(nom.reste);
@@ -154,8 +156,10 @@ export function analyser(texte, options = {}) {
   });
 
   if (nom.nom) plan.nom = nom.nom.charAt(0).toUpperCase() + nom.nom.slice(1);
+  Object.assign(plan, ambiance.champs);
   const compris = [...(nom.nom ? [`nom : ${plan.nom}`] : []), ...dims.compris, ...forme.compris];
   if (sol.valeur !== 'pierre') compris.push(`sol : ${sol.valeur}`);
+  compris.push(...ambiance.compris);
   compris.push(...journal);
   return { plan, compris, ignores: [...new Set(ignores)] };
 }

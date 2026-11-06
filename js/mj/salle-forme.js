@@ -1,13 +1,16 @@
 /**
- * La forme, le sol et les dimensions de la salle affichée : boutons de forme avec leur épaisseur et leur position (js/formes.js),
- * sol, bandes autour de la carte (glisser, ou boutons − et +). Chaque changement passe par `modifierPlan` : la description suit.
+ * La forme, le sol, l'ambiance, l'état, l'éclairage et les dimensions de la salle affichée : boutons de forme avec leur épaisseur et leur position (js/formes.js),
+ * sol, ambiance / état / éclairage (champs facultatifs du plan : schema.js), bandes autour de la carte (glisser, ou boutons − et +). Chaque changement passe par `modifierPlan` : la description suit.
  * Fabrique `creerSalleForme(ctx)` ; `ctx` est celui de main-mj.js (`salle`, `modifierPlan`, `annoncerCarte`,
  * `carte`), lu au moment de l'appel. Renvoie `majForme` : à rappeler après chaque rendu.
  */
-import { SOLS, NOMS_SOLS } from '../schema.js';
+import { SOLS, NOMS_SOLS, CHAMPS_AMBIANCE, NOMS_AMBIANCES, NOMS_ETATS_SALLE, NOMS_ECLAIRAGES } from '../schema.js';
 import { redimensionner, changerForme } from '../pose.js';
 import { FORMES, LIBELLES_FORMES, POSITIONS_FORMES, LIBELLES_POSITIONS, NOMS_POSITIONS, libelleDesBras, casesRetirees, brasDe, brasMax, nombreCases } from '../formes.js';
 import { $, h } from '../dom.js';
+
+/** Champ du plan → sélecteur de l'onglet Salle (donjon.html). */
+const SELECTEURS_AMBIANCE = { ambiance: 'salle-ambiance', etat: 'salle-etat', eclairage: 'salle-eclairage' };
 
 export function creerSalleForme(ctx) {
   const salle = () => ctx.salle();
@@ -47,6 +50,7 @@ export function creerSalleForme(ctx) {
   function majForme() {
     const plan = salle().plan;
     $('salle-sol').value = plan.sol;
+    for (const [champ, id] of Object.entries(SELECTEURS_AMBIANCE)) $(id).value = plan[champ] ?? CHAMPS_AMBIANCE[champ][0];
     const forme = plan.forme || 'rectangle';
     for (const b of $('formes').children) b.setAttribute('aria-pressed', String(b.dataset.forme === forme));
     const max = brasMax(plan);
@@ -80,6 +84,16 @@ export function creerSalleForme(ctx) {
   $('salle-sol').addEventListener('change', (e) => {
     modifierPlan({ ...salle().plan, sol: e.target.value });
   });
+
+  // Ambiance, état et éclairage : la valeur par défaut (la première) n'écrit rien dans le plan, comme un champ absent.
+  const NOMS_CHAMPS = { ambiance: NOMS_AMBIANCES, etat: NOMS_ETATS_SALLE, eclairage: NOMS_ECLAIRAGES };
+  for (const [champ, id] of Object.entries(SELECTEURS_AMBIANCE)) {
+    $(id).replaceChildren(...CHAMPS_AMBIANCE[champ].map((v) => h('option', { value: v, textContent: NOMS_CHAMPS[champ][v] })));
+    $(id).addEventListener('change', (e) => {
+      const { [champ]: _ancien, ...plan } = salle().plan;
+      modifierPlan(e.target.value === CHAMPS_AMBIANCE[champ][0] ? plan : { ...plan, [champ]: e.target.value });
+    });
+  }
 
   const champsForme = () => ({ forme: salle().plan.forme, bras: Number($('forme-bras').value), position: salle().plan.position });
   $('forme-bras').addEventListener('input', () => {

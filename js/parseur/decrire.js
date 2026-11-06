@@ -10,6 +10,7 @@ import { estFeminin, estSymetrique } from '../catalogue.js';
 import { nomCase, reperePorte } from '../coordonnees.js';
 import { REGARD_VERS, portesEntreeDabord, murEntree } from '../murs.js';
 import { nomDesBras } from '../formes.js';
+import { MOTS_AMBIANCE } from './ambiance.js';
 
 const NOMBRES = ['', 'un', 'deux', 'trois', 'quatre', 'cinq', 'six', 'sept', 'huit', 'neuf', 'dix', 'onze', 'douze'];
 const DIRECTIONS = { 0: 'le nord', 90: 'l’est', 180: 'le sud', 270: 'l’ouest' };
@@ -126,6 +127,8 @@ export function debutDescription(plan) {
 export function decrire(plan) {
   const propositions = debutDescription(plan);
   if (plan.sol && plan.sol !== 'pierre') propositions.push(`sol en ${plan.sol}`);
+  // Ambiance, état et éclairage : un mot par champ présent (« neutre » n'a pas de mot : c'est l'absence de champ).
+  for (const champ of ['ambiance', 'etat', 'eclairage']) if (MOTS_AMBIANCE[champ][plan[champ]]) propositions.push(MOTS_AMBIANCE[champ][plan[champ]]);
 
   // La porte du mur d'entrée d'abord : c'est la première porte qui définit l'entrée.
   propositions.push(...portesEntreeDabord(plan).map(decrirePorte));

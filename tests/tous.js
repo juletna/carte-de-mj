@@ -45,6 +45,7 @@ import { executer as executerFicheJeu } from './fiche-jeu.test.js';
 import { executer as executerFicheBase } from './fiche-base.test.js';
 import { executer as executerRail } from './rail.test.js';
 import { executer as executerPeint } from './peint.test.js';
+import { executer as executerAmbiance } from './ambiance.test.js';
 import { executer as executerLumiere } from './lumiere.test.js';
 
 /** Les suites, dans l'ordre d'exécution : chacune reçoit `{ lire }` et rend (ou promet) une liste de résultats. */
@@ -55,7 +56,7 @@ export const SUITES = [
   executerThemes, executerReferences, executerOutils, executerMurs, executerCoordonnees, executerSchema,
   executerGeometrie, executerAffichage, executerVisibilite, executerParseurCommun, executerMesuresImpression,
   executerHistorique, executerMiseEnPage, executerRegie, executerStockage, executerContratFiche, executerCatalogue,
-  executerVuePublique, executerProtocoleTable, executerFicheDes, executerFicheJeu, executerFicheBase, executerRail, executerPeint, executerLumiere,
+  executerVuePublique, executerProtocoleTable, executerFicheDes, executerFicheJeu, executerFicheBase, executerRail, executerPeint, executerLumiere, executerAmbiance,
 ];
 
 /** Joue toutes les suites ; renvoie les résultats { phrase, ecarts, resultat? } à la suite les uns des autres. */

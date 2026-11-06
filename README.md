@@ -42,10 +42,16 @@ Au-dessus de 760 px, ni la mise en page ni la carte ne changent. En dessous, le 
     on voit donc les faces des murs tournées vers le centre (trois assises de briques, ombrées par une lumière venue du nord-ouest) et leur dessus, presque noir. KP est calculé par salle
     pour que le décalage et l'épaisseur du mur tiennent dans la marge de roche ; sans relief, KP vaut 0 et la salle est vue à plat. Une salle non rectangulaire (croix, L, U…) suit le
     même principe, mur par mur.
-  - **Pénombre** : l'obscurité de la salle à la table, de 0 à 100 % (45 % par défaut). Un voile (le décor multiplié par la couleur d'ambiance de la salle, neutre pour l'instant) est posé sur le décor,
+  - **Pénombre** : l'obscurité de la salle à la table, de 0 à 100 % (45 % par défaut). Un voile (le décor multiplié par la couleur d'ambiance de la salle : `ambiance` du plan) est posé sur le décor,
     percé d'un trou radial autour de chaque source de lumière (torche, autel…), avec un halo coloré ; les pions, la case montrée, les éléments secrets et les marques de sélection restent au-dessus
-    et lisibles. **La vue du MJ (Donjon et régie) n'en garde que 35 %** pour tout voir ; **la table a la pénombre pleine**. Le champ `eclairage` du plan, quand le schéma le connaîtra, multiplie la pénombre :
+    et lisibles. **La vue du MJ (Donjon et régie) n'en garde que 35 %** pour tout voir ; **la table a la pénombre pleine**. Le champ `eclairage` du plan multiplie la pénombre :
     `eclairee` ×0,4, `penombre` ×1, `obscurite` ×1,6 (jamais plus de 95 % d'opacité). Un objet qui brûle déclare sa source avec `V.lumiere(x, y, h, { s, r, c, k, petite? })` (voir `themes/peint/volumes.js`).
+  - **Ambiance, état et éclairage de la salle** (onglet Salle du Donjon, sous le sol : trois sélecteurs, avec « Annuler » ; ou dans la description, voir « Ce que comprend le parseur ») : la valeur par défaut (neutre, neuve, pénombre) n'écrit rien dans le plan.
+    L'**ambiance** teinte le sol et les murs (froide : bleutée ; chaude : ocre ; de nuit : bleu sombre et plus contrastée) et la pénombre. L'**état** (thème peint seulement) : *usée* = fissures, joints plus sombres où la mousse prend,
+    blocs de mur ébréchés, un peu de mousse ; *en ruine* = en plus, la terre et l'herbe reprennent le dallage (un masque de bruit raccordable), des blocs manquent dans les murs et sur leur dessus, la mousse couvre le dessus des murs et le lierre grimpe sur les faces.
+    Des petits détails sont semés selon l'état et l'ambiance (cailloux, mousse, feuilles mortes, touffes d'herbe en ruine, os et toiles d'araignée dans les coins des salles usées ou en ruine, froides ou de nuit) ; le tirage ne dépend que de l'identifiant de la salle et de la case
+    (même rendu à la régie et à la table), jamais sous un objet, un pion ou le seuil d'une porte. L'**éclairage** règle la pénombre (`eclairee` ×0,4, `penombre` ×1, `obscurite` ×1,6). Le sol, l'ambiance et l'état sont cuits dans les tuiles de sol, gardées en cache par
+    combinaison (sol, ambiance, état, résolution). Le thème vectoriel et le papier ignorent ces trois champs.
   - **Flammes animées** (case à cocher, oui par défaut) : à la table seulement, les flammes dansent et les lumières vacillent (environ 30 images par seconde). Le décor est dessiné une fois et gardé dans un canevas ;
     chaque image ne redessine que la lumière, les flammes, les pions et les marques. L'animation s'arrête quand l'onglet est caché ou que la carte n'est plus affichée, avec `prefers-reduced-motion`,
     quand la case est décochée et sur un canevas trop grand (plus de 12 millions de pixels) : les objets gardent alors leur petite flamme fixe. Le Donjon et la régie restent fixes.
@@ -75,6 +81,15 @@ pour prouver qu'une refactorisation ne les change pas. Après un changement voul
 
 - **Dimensions** : « 4 m par 12 », « 6 cases sur 6 », « carrée de 9 m », « 7,5 m de large et 15 m de long »,
   « petite pièce », « couloir ». Échelle par défaut : 1 case = 1,5 m, arrondi à la case la plus proche.
+- **Ambiance, état et éclairage de la salle** (champs facultatifs `ambiance`, `etat`, `eclairage` du plan ; absents, la salle est neutre, neuve et dans la pénombre) :
+  - ambiance : « glaciale », « froide », « gelée » → `froide` ; « chaleureuse », « chaude », « accueillante » → `chaude` ; « de nuit », « nocturne », « au clair de lune » (« sous la lune ») → `nuit` ;
+  - état : « neuve », « propre » → `neuve` ; « usée », « délabrée », « vieille », « ancienne » (ou « vieux », « ancien ») → `usee` ; « en ruine(s) », « ruinée », « abandonnée », « effondrée », « envahie par la végétation » (ou « de lierre », « par les ronces »…) → `ruine` ;
+  - éclairage : « bien éclairée », « illuminée », « lumineuse » → `eclairee` ; « sombre », « dans la pénombre », « mal éclairée » → `penombre` ; « plongée dans le noir », « obscure », « noire », « dans l'obscurité » → `obscurite`.
+  Avec ou sans accents, dans n'importe quelle proposition (« crypte glaciale en ruine, plongée dans le noir, 10 cases sur 8, quatre piliers, deux torches »). Un adjectif collé à un objet, un pion ou une porte
+  lui appartient (« un chevalier sombre », « un garde de nuit », « une porte noire », « un vieux coffre », « une ancienne liche » ne changent pas la salle) ; « vieille » et « ancienne » ne comptent que contre un nom de lieu
+  (« vieille salle », « crypte ancienne »). « Des ruines » reste un tas de débris, et un mot de type de salle (« crypte ») ne suggère aucune ambiance : sans mot explicite, rien n'est deviné. Le retour « Compris » les nomme
+  (« ambiance : froide », « état de la salle : en ruine », « éclairage : plongée dans le noir ») et la description réécrite par le Donjon les redit (« …, froide, en ruine, plongée dans le noir, … »).
+  Le champ `etat` de la salle n'est pas celui d'une créature (`blesse`, `mort`).
 - **Quantités** : en chiffres ou en lettres (« dix-sept », « une paire de », « des torches »).
 - **Objets** : pilier, colonne, coffre, statue, table, chaise, autel, trône, tonneau, caisse, escalier, fosse, lit,
   bibliothèque, torche, débris, puits, fontaine, sarcophage, ainsi que les portes, herses et arches.
@@ -123,7 +138,7 @@ En régie, le bloc « Personnages » montre les mêmes fiches, et « Poser dans 
 
 ## Formes de salle
 
-Une salle reste un rectangle (largeur × longueur) auquel on retire des cases : croix, octogone, L, T, U, 8, E, F, H, O ou S (`js/formes.js`). Dans l'onglet Salle : un bouton par forme, l'épaisseur des bras, leur position, et le nombre de cases de sol. Le sol se choisit juste en dessous (pierre, bois, terre, sable, herbe, marbre, glace), et s'écrit « sol en bois ». Les mêmes réglages s'écrivent en texte : « Salle en croix de 12 par 13 cases, bras de 2 cases, bras en haut », « en U ouverte au sud », « en L angle au nord-ouest », « en T barre au nord », « octogonale, pans de 2 cases », « en O de 9 par 9 cases » (le O et le 8 ont une cour fermée, vide).
+Une salle reste un rectangle (largeur × longueur) auquel on retire des cases : croix, octogone, L, T, U, 8, E, F, H, O ou S (`js/formes.js`). Dans l'onglet Salle : un bouton par forme, l'épaisseur des bras, leur position, et le nombre de cases de sol. Le sol se choisit juste en dessous (pierre, bois, terre, sable, herbe, marbre, glace), et s'écrit « sol en bois » ; l'ambiance, l'état et l'éclairage de la salle aussi (voir « Apparence de la carte »). Les mêmes réglages s'écrivent en texte : « Salle en croix de 12 par 13 cases, bras de 2 cases, bras en haut », « en U ouverte au sud », « en L angle au nord-ouest », « en T barre au nord », « octogonale, pans de 2 cases », « en O de 9 par 9 cases » (le O et le 8 ont une cour fermée, vide).
 
 - Les cases retirées se recalculent toujours : agrandir une salle agrandit sa forme, et rien n'est stocké en plus.
 - Une porte garde son écriture (mur + position) : elle se pose sur le premier mur rencontré de ce côté, au fond de l'entaille si le coin est retiré.
@@ -412,10 +427,10 @@ js/voix.js          dictée (Web Speech API)
 js/deplacement.js   glisser-déposer et clic sur la carte
 js/catalogue.js     les types d'objets, de créatures et d'ouvertures : mots, taille, nom, genre, couche de dessin (données pures : on y ajoute un objet)
 js/coordonnees.js   coordonnées de cases façon échecs (A1…), repère d'une porte sur son mur, libellé d'une sélection (pur, sans DOM)
-js/parseur/         index (chaîne d'analyse), normalisation, nombres, lexique (vocabulaire et index des mots), dimensions, positions, placement,
+js/parseur/         index (chaîne d'analyse), normalisation, nombres, lexique (vocabulaire et index des mots), ambiance (ambiance, état et éclairage de la salle), dimensions, positions, placement,
                     decrire (plan → texte), commandes (« ajoute trois gobelins » en cours de partie : pur, sans DOM)
 js/parseur/placement/  le détail de placement.js (qui orchestre) : grille (cases occupées, répartition), portes (mur d'entrée, portes), placeurs (une disposition par zone), journal (phrases du journal)
-js/rendu/           moteur Canvas (une salle ; `peindre`), plan.js (le plan complet du donjon : couloirs, ponts, cadres, noms ; s'appuie sur le moteur), géométrie (marge, épaisseur des murs, rectangle d'un élément, ancrage d'une porte : pur), trace.js (tracé Canvas du sol et des murs découpés), portraits de monstres, thème vectoriel, thème papier (impression) et thème peint (themes/peint.js, avec ses modules dans themes/peint/ : bruits, tuiles de sol, murs en segments, volumes en fausse 3D, objets, pions) ; perspective.js (calculs de la fausse 3D : KP, `haut`, repère local d'un objet ; pur), lumiere.js (pénombre par vue et par éclairage, couleurs d'ambiance, liste des sources, vacillement ; pur), themes/peint/lumiere.js (dessin du voile, des halos et des flammes) et graine.js (graine d'une salle)
+js/rendu/           moteur Canvas (une salle ; `peindre`), plan.js (le plan complet du donjon : couloirs, ponts, cadres, noms ; s'appuie sur le moteur), géométrie (marge, épaisseur des murs, rectangle d'un élément, ancrage d'une porte : pur), trace.js (tracé Canvas du sol et des murs découpés), portraits de monstres, thème vectoriel, thème papier (impression) et thème peint (themes/peint.js, avec ses modules dans themes/peint/ : bruits, tuiles de sol, murs en segments, volumes en fausse 3D, objets, pions, ambiance et usure : tables pures, petits détails semés) ; perspective.js (calculs de la fausse 3D : KP, `haut`, repère local d'un objet ; pur), lumiere.js (pénombre par vue et par éclairage, couleurs d'ambiance, liste des sources, vacillement ; pur), themes/peint/lumiere.js (dessin du voile, des halos et des flammes) et graine.js (graine d'une salle)
 tests/              un fichier de test par module (*.test.js), tous.js (la liste unique des suites, lue par node.mjs et tests.html),
                     mini-test.js (assertions et harnais communs), aides-partie.js (donjon et partie d'essai des tests de partie), phrases.js (phrases du parseur), references.js (empreintes de rendu
                     et de disposition, générées par regenerer-references.mjs)

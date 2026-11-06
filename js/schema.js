@@ -7,6 +7,9 @@
  *   "forme": "rectangle",               // ou une autre forme de FORMES (croix, octogone, L, T, U, 8, E, F, H, O, S), avec "bras" et "position" facultatifs : voir formes.js
  *   "largeur": 3, "longueur": 8,        // en cases ; x : ouest→est, y : nord→sud
  *   "sol": "pierre",                    // pierre, bois, terre, sable, herbe, marbre, glace
+ *   "ambiance": "froide",               // facultatif : neutre, froide, chaude, nuit (teinte du décor et de la pénombre ; absent = neutre)
+ *   "etat": "ruine",                    // facultatif : neuve, usee, ruine (usure du décor ; absent = neuve). Champ de la SALLE, sans rapport avec `etat` d'une créature
+ *   "eclairage": "obscurite",           // facultatif : eclairee, penombre, obscurite (force de la pénombre ; absent = penombre)
  *   "entree": "sud",                    // mur d'entrée ; « le fond » est le mur opposé
  *   "portes": [{ "id": "p1", "mur": "sud", "position": 1, "type": "porte" }],
  *   "objets": [{ "id": "o1", "type": "pilier", "x": 0, "y": 2, "l": 1, "h": 1, "rotation": 0 }],
@@ -33,7 +36,17 @@ import { MURS, longueurMur } from './murs.js';
 export const SOLS = ['pierre', 'bois', 'terre', 'sable', 'herbe', 'marbre', 'glace'];
 /** Le nom de chaque sol, pour le sélecteur de l'écran. */
 export const NOMS_SOLS = { pierre: 'Pierre', bois: 'Bois', terre: 'Terre', sable: 'Sable', herbe: 'Herbe', marbre: 'Marbre', glace: 'Glace' };
-const TYPES_OBJETS = new Set(OBJETS.map((o) => o.type));
+/** Ambiances d'une salle (champ `ambiance`), états du décor (champ `etat` de la salle) et éclairages (champ `eclairage`) ; le premier de chaque liste est la valeur par défaut. */
+export const AMBIANCES = ['neutre', 'froide', 'chaude', 'nuit'];
+export const ETATS_SALLE = ['neuve', 'usee', 'ruine'];
+export const ECLAIRAGES = ['penombre', 'eclairee', 'obscurite'];
+/** Le nom de chaque valeur, pour les sélecteurs de l'écran. */
+export const NOMS_AMBIANCES = { neutre: 'Neutre', froide: 'Froide', chaude: 'Chaude', nuit: 'De nuit' };
+export const NOMS_ETATS_SALLE = { neuve: 'Neuve', usee: 'Usée', ruine: 'En ruine' };
+export const NOMS_ECLAIRAGES = { penombre: 'Pénombre', eclairee: 'Bien éclairée', obscurite: 'Plongée dans le noir' };
+/** Les champs facultatifs de salle : champ du plan → valeurs permises (la première est la valeur par défaut, que le sélecteur n'écrit pas). */
+export const CHAMPS_AMBIANCE = { ambiance: AMBIANCES, etat: ETATS_SALLE, eclairage: ECLAIRAGES };
+const TYPES_OBJETS =new Set(OBJETS.map((o) => o.type));
 const TYPES_PORTES = new Set(Object.values(PORTES));
 const TYPES_CREATURES = new Set(CREATURES.map((c) => c.type));
 const CAMPS = ['pj', 'pnj', 'monstre'];
@@ -50,6 +63,21 @@ export const LISTES = { porte: 'portes', objet: 'objets', creature: 'creatures' 
 const entier = (v) => Number.isInteger(v);
 /** `cache: true` conservé tel quel ; toute autre valeur est ignorée (le champ n'existe alors pas). */
 const marqueCache = (e) => (e?.cache === true ? { cache: true } : {});
+
+/**
+ * Les champs facultatifs de salle (ambiance, état, éclairage) d'un plan brut : ceux dont la valeur est connue, rien d'autre. Une valeur inconnue
+ * est ignorée (`inconnu(champ, valeur)` est appelé pour la signaler), une valeur absente aussi.
+ * @returns {{ambiance?:string, etat?:string, eclairage?:string}}
+ */
+export function champsAmbiance(brut, inconnu = () => {}) {
+  const champs = {};
+  for (const [champ, valeurs] of Object.entries(CHAMPS_AMBIANCE)) {
+    const v = brut?.[champ];
+    if (typeof v === 'string' && valeurs.includes(v)) champs[champ] = v;
+    else if (v !== undefined && v !== null) inconnu(champ, v);
+  }
+  return champs;
+}
 
 /**
  * Valide (et corrige quand c'est sans risque) un plan venant d'un fichier
@@ -77,6 +105,7 @@ export function validerPlan(brut) {
     ...normaliserForme(brut),
     largeur: W, longueur: L,
     sol: SOLS.includes(brut.sol) ? brut.sol : 'pierre',
+    ...champsAmbiance(brut, (champ, valeur) => signaler({ ambiance: 'ambiance', etat: 'état de la salle', eclairage: 'éclairage' }[champ], valeur, 'ignoré')),
     entree: MURS.includes(brut.entree) ? brut.entree : 'sud',
     portes: [], objets: [], creatures: [],
     connexions: Array.isArray(brut.connexions) ? brut.connexions : [],
