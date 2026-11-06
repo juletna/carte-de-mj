@@ -14,8 +14,6 @@ body.univers-ouvert .atelier-barre > .barre-donjon, body:not(.univers-ouvert) .a
 .atelier-barre > .barre-lieu { flex: 1 1 auto; min-width: 0; flex-wrap: nowrap; }
 .barre-lieu .btn[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); background: rgba(217, 169, 41, 0.16); font-weight: 600; }
 .barre-lieu .btn[hidden] { display: none; }
-/* « Jouer ce monde » : au bout de la ligne d'outils (js/atelier/inscrire-monde.js), le seul doré de l'écran. */
-.barre-monde-jouer { flex: none; }
 
 /* Aide repliable : .aide de css/base.css ; ici seulement son placement */
 h3 .aide, h2 .aide { margin-left: var(--esp-1); font-weight: 400; }

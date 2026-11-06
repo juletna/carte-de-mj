@@ -90,7 +90,7 @@ body.atelier-avec-inspecteur { --largeur-inspecteur: 330px; }
   /* Même ligne, compacte : arbre, outils en icônes seules, Affichage, puis « Jouer » (icône + mot). Aucune cible sous 44 px, aucun débordement. */
   .atelier-barre { gap: var(--esp-1); padding: var(--esp-1) var(--esp-2); }
   .atelier-barre .btn { min-width: 44px; min-height: 44px; }
-  .outil-lieu .libelle, .barre-monde-jouer .suite, .atelier-barre .bouton-ajouter .libelle { display: none; }
+  .outil-lieu .libelle, .atelier-barre .bouton-ajouter .libelle { display: none; }
   .atelier-barre .bouton-ajouter { padding: 0; width: 44px; justify-content: center; }
   .atelier-barre .barre-donjon, .atelier-barre .barre-groupe { flex-wrap: nowrap; gap: var(--esp-1); }
   .atelier-barre .barre-donjon .btn:not(.pose-pastille) { padding: 0; width: 44px; justify-content: center; }
@@ -106,9 +106,10 @@ body.atelier-avec-inspecteur { --largeur-inspecteur: 330px; }
 .atelier-affichage-titre { margin: 0; font-weight: 600; }
 .atelier-affichage-groupe { display: flex; flex-direction: column; gap: var(--esp-2); }
 .atelier-affichage-sous-titre { margin: 0; color: var(--texte-doux); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
+/* Sur la carte d'un lieu (monde), seule la grille s'applique : thème, sols, relief, pénombre, flammes et repères sont ceux des salles d'un donjon. */
+body.univers-ouvert .atelier-affichage-groupe.pour-donjon { display: none; }
+/* L'interrupteur de la grille : le composant « univers-interrupteur » (css/univers.css), sans doré. */
 .atelier-affichage-interrupteur { justify-content: flex-start; }
-.atelier-affichage-interrupteur { color: var(--texte-doux); }
-.atelier-affichage-interrupteur[aria-checked="true"] { border-color: var(--texte); color: var(--texte); } /* pas de doré ici : le seul doré de la barre est « Jouer » */
 .atelier-affichage-ligne { display: grid; grid-template-columns: 1fr auto; gap: var(--esp-1) var(--esp-2); align-items: center; font-size: 13px; }
 .atelier-affichage-ligne > span:first-child { grid-column: 1 / -1; }
 .atelier-affichage-ligne input[type="range"] { grid-column: 1; width: 100%; min-height: var(--cible); }
@@ -200,7 +201,7 @@ body.atelier-avec-inspecteur { --largeur-inspecteur: 330px; }
   /* « Affichage » : une feuille du bas, aux cibles de 44 px. */
   .atelier-affichage { position: static; }
   .atelier-affichage-panneau { position: fixed; left: 0; right: 0; bottom: 0; top: auto; width: auto; z-index: 95; border-width: 1px 0 0; border-radius: 12px 12px 0 0; padding: var(--esp-4) var(--esp-4) max(var(--esp-4), env(safe-area-inset-bottom)); }
-  .atelier-affichage-interrupteur, .atelier-affichage-ligne input, .atelier-affichage-choix select, .atelier-affichage-case { min-height: 44px; }
+  .atelier-affichage-ligne input, .atelier-affichage-choix select, .atelier-affichage-case { min-height: 44px; }
   .atelier-affichage-case input { width: 24px; height: 24px; margin: 0 10px 0 0; }
   .atelier-affichage-panneau { max-height: 80dvh; }
   /* Onglets du mode jouer : barre du bas. */

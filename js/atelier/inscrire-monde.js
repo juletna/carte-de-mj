@@ -5,13 +5,10 @@
  *   - inspecteurs monde, lieu et point (js/atelier/inspecteurs-monde.js) ;
  *   - barre d'outils : Calage et la consigne des points, qui se posent d'un clic sur la carte (js/atelier/barre-lieu.js) ;
  *   - arbre : vignettes des lieux (le monde porte celle de sa carte), « Ajouter un lieu » en fin de branche de chaque monde, « Monde » dans son menu « + Nouveau » ;
- *   - « Jouer ce monde » (le seul bouton doré de l'écran) au bout de la ligne d'outils, à la place de « Jouer » du donjon ; pas d'en-tête « Monde · nom » ;
+ *   - pas de bouton « Jouer ce monde » ni d'en-tête « Monde · nom » (on joue par l'onglet « Jouer » de la barre de navigation) ;
  *   - le point choisi est la sélection commune (type 'point') ; sur téléphone, l'inspecteur se déplie quand on choisit un point.
  */
 import { $, h } from '../dom.js';
-import { icone } from '../icones.js';
-import { lienBtn } from '../univers-boutons.js';
-import { lienJouer } from '../univers-vue.js';
 import { carteDuMonde } from '../univers.js';
 import { selection } from '../atelier-selection.js';
 import { telephone } from '../telephone.js';
@@ -99,22 +96,5 @@ export function inscrireMonde(coquille, ctx) {
   U.surChangement(majCartouche);
   majCartouche();
 
-  // --- « Jouer ce monde » : le seul bouton doré, au bout de la ligne d'outils (après « Affichage »), à la place du « Jouer » du donjon ---------------
-  // Plus d'en-tête « Monde · nom » : le nom est déjà dans l'arbre (nœud surligné) et dans l'en-tête de l'inspecteur.
-  const jouer = lienBtn('Jouer ce monde', null, { icone: 'jouer', classe: 'btn-primaire barre-monde-jouer', titre: 'Ouvre la Présentation sur ce monde, pour le jouer à la table' });
-  jouer.replaceChildren(icone('jouer'), h('span', { className: 'libelle' }, 'Jouer', h('span', { className: 'suite', textContent: ' ce monde' }))); // sous 760 px : « Jouer » seul
-  jouer.setAttribute('aria-label', 'Jouer ce monde');
-  jouer.hidden = true;
-  coquille.barreFin.append(jouer);
-  function majEntete() {
-    const u = U.monde();
-    jouer.hidden = !U.ouvert() || !u;
-    if (!u) return;
-    jouer.href = lienJouer(u.id);
-    const calage = U.mode() === 'grille'; // pendant le calage, « Enregistrer » est l'unique bouton doré
-    jouer.classList.toggle('btn-primaire', !calage);
-    jouer.classList.toggle('btn-discret', calage);
-  }
-  U.surChangement(majEntete);
-  majEntete();
+  // (Pas de « Jouer ce monde » ici : on joue par l'onglet « Jouer » de la barre de navigation, qui liste les parties.)
 }

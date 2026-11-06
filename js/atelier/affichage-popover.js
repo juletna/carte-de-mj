@@ -72,7 +72,9 @@ export function appliquerRendu(r, champ, valeur) {
 export function creerAffichagePopover({ lire, surChangement }) {
   let derniere = 0; // la dernière opacité visible vue ici ; `casesAvant` (réglages) la garde d'une page à l'autre
   const bouton = h('button', { type: 'button', className: 'btn btn-icone btn-discret atelier-affichage-bouton', 'aria-label': 'Affichage', title: 'Affichage : grille, thème, détails, relief, pénombre, flammes, repères', 'aria-haspopup': 'dialog', 'aria-expanded': 'false' }, icone('affichage'));
-  const interrupteur = h('button', { type: 'button', className: 'btn atelier-affichage-interrupteur', role: 'switch', 'aria-checked': 'true' });
+  // Le même interrupteur que « Départ de la partie » (css/univers.css) : une glissière, et le libellé à côté.
+  const interrupteur = h('input', { type: 'checkbox', role: 'switch', checked: true, 'aria-label': 'Afficher la grille' });
+  const interrupteurLigne = h('label', { className: 'univers-interrupteur atelier-affichage-interrupteur' }, interrupteur, h('span', { className: 'univers-glissiere', 'aria-hidden': 'true' }), h('span', { textContent: 'Afficher la grille' }));
   const curseur = h('input', { type: 'range', min: '0', max: '100', step: '5', id: 'cases', 'aria-label': 'Opacité des lignes de la grille' });
   const valeur = h('output', { className: 'atelier-affichage-valeur' });
   const theme = h('select', { id: 'theme' }, h('option', { value: 'peint', textContent: 'Peint' }), h('option', { value: 'vectoriel', textContent: 'Vectoriel' }));
@@ -84,10 +86,10 @@ export function creerAffichagePopover({ lire, surChangement }) {
   const reperes = h('input', { type: 'checkbox', id: 'reperes' });
   const ligne = (texte, champ, titre) => h('label', { className: 'atelier-affichage-ligne atelier-affichage-choix', title: titre ?? '' }, h('span', { textContent: texte }), champ);
   const caseACocher = (texte, champ) => h('label', { className: 'atelier-affichage-case' }, champ, h('span', { textContent: texte }));
-  const groupe = (titre, ...enfants) => h('div', { className: 'atelier-affichage-groupe' }, h('p', { className: 'atelier-affichage-sous-titre', textContent: titre }), ...enfants);
+  const groupe = (titre, ...enfants) => h('div', { className: `atelier-affichage-groupe${titre === 'Grille' ? '' : ' pour-donjon'}` }, h('p', { className: 'atelier-affichage-sous-titre', textContent: titre }), ...enfants);
   const panneau = h('div', { className: 'atelier-affichage-panneau', role: 'dialog', 'aria-label': 'Affichage', hidden: true },
     h('p', { className: 'atelier-affichage-titre', textContent: 'Affichage' }),
-    groupe('Grille', interrupteur,
+    groupe('Grille', interrupteurLigne,
       h('label', { className: 'atelier-affichage-ligne' }, h('span', { textContent: 'Opacité des lignes' }), curseur, valeur)),
     groupe('Carte', ligne('Thème', theme), ligne('Détails des sols', details, 'Sols dessinés et détaillés, ou sols simples (thème peint).'), caseACocher('Relief des murs', relief)),
     groupe('À la table',
@@ -100,8 +102,7 @@ export function creerAffichagePopover({ lire, surChangement }) {
     const r = lire() ?? {};
     const n = casesDeReglages(r);
     if (n > 0) derniere = n;
-    interrupteur.setAttribute('aria-checked', String(n > 0));
-    interrupteur.textContent = n > 0 ? 'Grille affichée' : 'Grille masquée';
+    interrupteur.checked = n > 0;
     curseur.value = String(n);
     valeur.textContent = `${n} %`;
     theme.value = themeDeReglages(r);
@@ -122,7 +123,7 @@ export function creerAffichagePopover({ lire, surChangement }) {
     if (rendreFocus) bouton.focus();
   }
   bouton.addEventListener('click', () => { if (panneau.hidden) ouvrir(); else fermer(); });
-  interrupteur.addEventListener('click', () => ecrire(casesApresBascule(lire() ?? {}, derniere)));
+  interrupteur.addEventListener('change', () => ecrire(casesApresBascule(lire() ?? {}, derniere)));
   curseur.addEventListener('input', () => ecrire(curseur.value));
   theme.addEventListener('change', () => ecrireRendu('theme', theme.value));
   details.addEventListener('change', () => ecrireRendu('details', details.value));
