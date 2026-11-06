@@ -20,14 +20,17 @@ import { icone } from '../icones.js';
 import { creerSection } from './section.js';
 import * as modele from '../donjon.js';
 import { pluriel } from '../format.js';
+import { NOMS_SOLS, NOMS_AMBIANCES, NOMS_ETATS_SALLE, NOMS_ECLAIRAGES } from '../schema.js';
 import { FAMILLES, BORNES_SALLE, famillesPresentes, genererSalle, normaliserOptionsSalle, estNomParDefaut, salleAUnContenu, salleReliee, typesDesAutresSalles } from '../generateur.js';
 
+/** Les réglages d'apparence : champ du plan, libellé, noms des valeurs. Vide (« Auto ») = l'aspect actuel de la salle ; une valeur est imposée. */
+const APPARENCE = [['sol', 'Sol', NOMS_SOLS], ['ambiance', 'Ambiance', NOMS_AMBIANCES], ['etat', 'État', NOMS_ETATS_SALLE], ['eclairage', 'Éclairage', NOMS_ECLAIRAGES]];
 const CHAMPS = [['monstres', 'Monstres'], ['coffres', 'Coffres'], ['pieges', 'Pièges']];
 
 export function creerSectionAuHasard(ctx) {
   // Gardés le temps de la page.
   // monstres, coffres, pièges : null = automatique ; nouvelleForme : null = pas choisi (voir `formeVoulue`).
-  const reglages = { famille: '', monstres: null, coffres: null, pieges: null, nouvelleForme: null };
+  const reglages = { famille: '', monstres: null, coffres: null, pieges: null, nouvelleForme: null, apparence: {} };
   /** Le dernier tirage appliqué : sert à « Relancer » et à « Tirage N », tant que la description est encore celle qu'il a écrite. */
   let dernier = null;
 
@@ -61,7 +64,7 @@ export function creerSectionAuHasard(ctx) {
     const options = {
       plan: salle.plan, reliee, formes: true, nouvelleForme,
       familles: reglages.famille ? [reglages.famille] : [], typesPresents: typesDesAutresSalles(d, id),
-      monstres: reglages.monstres, coffres: reglages.coffres, pieges: reglages.pieges,
+      monstres: reglages.monstres, coffres: reglages.coffres, pieges: reglages.pieges, apparence: reglages.apparence,
     };
     const r = genererSalle(options);
     if (!r.ok) { ctx.annoncerCarte(r.refus ?? 'Rien n’a été tiré.', true); dernier = null; ctx.coquille?.rafraichir({ inspecteur: true }); return; }
@@ -124,6 +127,14 @@ export function creerSectionAuHasard(ctx) {
       return h('div', { className: 'hasard-salle-champ', title: `Vide : automatique. Sinon de ${min} à ${max}` }, h('span', { className: 'hasard-salle-entete' }, h('span', { className: 'hasard-salle-etiquette', textContent: libelle }), auto), h('span', { className: 'champ-num' }, entree));
     }));
 
+    const apparence = h('div', { className: 'hasard-salle-apparence' }, ...APPARENCE.map(([cle, libelle, noms]) => {
+      const menu = h('select', { 'aria-label': `${libelle} (Auto : celui de la salle)` },
+        h('option', { value: '', textContent: 'Auto' }), ...Object.entries(noms).map(([v, nom]) => h('option', { value: v, textContent: nom })));
+      menu.value = reglages.apparence[cle] ?? '';
+      menu.addEventListener('change', () => { if (menu.value) reglages.apparence[cle] = menu.value; else delete reglages.apparence[cle]; });
+      return h('label', { className: 'ligne' }, libelle, menu);
+    }));
+
     const forme = h('button', {
       type: 'button', className: 'rang-champ rang-interrupteur', role: 'switch', 'aria-checked': String(activee),
       title: 'Tire aussi une nouvelle forme et de nouvelles dimensions',
@@ -146,7 +157,7 @@ export function creerSectionAuHasard(ctx) {
     const generee = dernier && dernier.salle === sel.id && s?.texte === dernier.texte ? dernier : null;
     const corps = [
       h('label', { className: 'hasard-salle-champ' }, h('span', { className: 'hasard-salle-etiquette', textContent: 'Type de monstres' }), famille),
-      champs, noteAuto, forme, aide,
+      champs, noteAuto, apparence, forme, aide,
     ];
     const bouton = h('button', { type: 'button', className: 'btn' }, icone('de'), 'Générer');
     bouton.addEventListener('click', () => generer(sel.id));

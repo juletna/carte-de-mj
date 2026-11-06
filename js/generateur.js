@@ -21,6 +21,7 @@ import { reperePorte } from './coordonnees.js';
 import { OPPOSE, VECTEUR, longueurMur, portesEntreeDabord } from './murs.js';
 import { POSITIONS_FORMES, brasMax, retraitPorte, nombreCases, estSol } from './formes.js';
 import { redimensionner, changerForme } from './pose.js';
+import { SOLS, CHAMPS_AMBIANCE } from './schema.js';
 import { generateur, lireGraine, nouvelleGraine, melanger, GRAINE_MAX } from './alea.js';
 
 export { GRAINE_MAX };
@@ -366,6 +367,8 @@ export function normaliserOptionsSalle(brut = {}) {
   };
   return {
     ...Object.fromEntries(Object.keys(BORNES_SALLE).map((cle) => [cle, nombre(cle)])),
+    // Apparence imposée (sol, ambiance, état, éclairage) : une valeur permise est gardée, tout le reste est null (automatique : l'aspect actuel de la salle).
+    apparence: Object.fromEntries([['sol', SOLS], ...Object.entries(CHAMPS_AMBIANCE)].map(([c, permis]) => [c, permis.includes(brut.apparence?.[c]) ? brut.apparence[c] : null])),
     familles: (Array.isArray(brut.familles) ? brut.familles : []).filter((f) => f in FAMILLES),
     typesPresents: (Array.isArray(brut.typesPresents) ? brut.typesPresents : []).filter((t) => typeof t === 'string'),
     formes: brut.formes !== false,
@@ -415,7 +418,8 @@ const nombreMonstres = (spec) => Object.values(spec.monstres).reduce((a, b) => a
  */
 export function genererSalle(brut = {}) {
   const o = normaliserOptionsSalle(brut);
-  const plan = brut.plan ?? null;
+  // Un réglage d'apparence imposé s'applique au plan avant tout : « remplir » le décrit tel quel, « nouvelle forme » le reprend.
+  const plan = brut.plan ? { ...brut.plan, ...Object.fromEntries(Object.entries(o.apparence).filter(([, v]) => v !== null).map(([c, v]) => [c, v === (c === 'sol' ? SOLS : CHAMPS_AMBIANCE[c])[0] ? undefined : v])) } : null; // la valeur par défaut est l'absence du champ
   const graine = o.graine ?? nouvelleGraine();
   const alea = generateur(graine);
 

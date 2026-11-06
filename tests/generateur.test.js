@@ -379,6 +379,21 @@ const TESTS = [
     egal(famillesPresentes(typesDesAutresSalles(g, ids[0])), ['morts'], 'famille retrouvée');
     verifier(salleAUnContenu({ texte: 'Salle de 5 par 5 cases, sol en bois.', plan: analyser('Salle de 5 par 5 cases, sol en bois.').plan }), 'une description non vide compte comme du contenu');
   }],
+  ['apparence imposée : sol, ambiance, état, éclairage', () => {
+    const plan = analyser('Salle de 7 par 7 cases, sol en bois, froide, une porte au mur nord.').plan;
+    const apparence = { sol: 'marbre', ambiance: 'chaude', etat: 'ruine', eclairage: 'obscurite' };
+    for (const [quoi, nouvelleForme] of [['remplir', false], ['nouvelle forme', true]]) {
+      const r = genererSalle({ plan, reliee: false, nouvelleForme, apparence, graine: 5 });
+      verifier(r.ok, `${quoi} : un tirage`);
+      const p = analyser(r.texte).plan;
+      egal([p.sol, p.ambiance, p.etat, p.eclairage], ['marbre', 'chaude', 'ruine', 'obscurite'], `${quoi} : l'apparence demandée est dans le texte`);
+    }
+    const auto = analyser(genererSalle({ plan, reliee: true, graine: 5 }).texte).plan;
+    egal([auto.sol, auto.ambiance], ['bois', 'froide'], 'auto : l’aspect actuel est gardé');
+    const retour = analyser(genererSalle({ plan, reliee: true, apparence: { sol: 'pierre', ambiance: 'neutre' }, graine: 5 }).texte).plan;
+    egal([retour.sol ?? 'pierre', retour.ambiance ?? 'neutre'], ['pierre', 'neutre'], 'les valeurs par défaut s’imposent aussi');
+    egal(normaliserOptionsSalle({ apparence: { sol: 'lave', etat: 'ruine' } }).apparence, { sol: null, ambiance: null, etat: 'ruine', eclairage: null }, 'valeur inconnue : automatique');
+  }],
 ];
 
 export const executer = () => executerSuite('hasard : ', TESTS);

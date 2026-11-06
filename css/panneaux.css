@@ -274,6 +274,9 @@
 .hasard-salle-auto { flex: none; padding: 0 7px; min-height: 20px; font: inherit; font-size: 11.5px; font-weight: 600; color: var(--accent); background: var(--p-surface-1); border: 1px solid var(--p-filet-fort); border-radius: 999px; cursor: pointer; }
 .hasard-salle-auto:hover { border-color: var(--accent); }
 .hasard-salle-auto[hidden] { display: none; }
+.hasard-salle-apparence { display: grid; gap: var(--esp-2); }
+.hasard-salle-apparence > label.ligne { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: var(--esp-3); align-items: center; margin: 0; font-size: 13px; font-weight: 500; color: var(--p-texte-3); }
+.hasard-salle-apparence select { max-width: none; width: 100%; min-height: max(32px, var(--cible)); }
 .hasard-salle-champ select { width: 100%; max-width: none; min-height: max(32px, var(--cible)); }
 .p-section-corps > .rang-interrupteur:disabled { opacity: 0.5; cursor: default; }
 .p-section-corps > .rang-interrupteur:disabled:hover { background: var(--p-surface-1); }
