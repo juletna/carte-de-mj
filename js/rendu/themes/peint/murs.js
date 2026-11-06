@@ -200,7 +200,7 @@ function dessinerDessus(ctx, r, s, mur, t, e) {
   ctx.clip();
   for (let k = 0; k < nMousse; k++) {
     const [mx, my] = Q(r() * long, ep * (0.2 + r() * 0.6));
-    if (etat.details === 'riches') tacheMousseDessinee(ctx, mx, my, ep * (0.3 + r() * 0.3));
+    if (etat.details === 'riches') { const rr = ep * (0.3 + r() * 0.3); if (k % 3 === 0) tacheMousseDessinee(ctx, mx, my, rr); } // dessinée : moins de touffes, plus nettes
     else tacheMousse(ctx, mx, my, ep * (0.4 + r() * 0.5), usure === 2 ? 0.9 : 0.6);
   }
   ctx.restore();

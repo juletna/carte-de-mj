@@ -28,7 +28,7 @@ const TREMBLE = 0.3; // tremblement du trait
 const P_FISSURE = 0.1; // probabilité d'une fissure par pierre (plus une part par degré d'usure)
 const TROU = '#5a4636'; // le fond d'un bloc manquant ou d'un éclat : brun chaud, pas noir
 const HERBE = ['#6fae3c', '#9ad04f']; // touffes d'herbe au pied : foncé, clair
-const MOUSSE = ['#5e9a34', '#8cc84b']; // mousse : foncé, clair
+const MOUSSE = ['#4f7d33', '#79a64c']; // mousse : foncé, clair (sourde : elle pousse sur le dessus presque noir)
 const LIERRE = ['#3f7d2a', '#78b844', '#2c4f1c']; // lierre : feuille foncée, feuille claire, tige
 const TOUFFES_PAR_CASE = 0.35; // touffes d'herbe au pied, par case de mur (salle neuve ; plus pour une salle usée)
 
@@ -45,9 +45,16 @@ const polygone = (ctx, pts) => { ctx.beginPath(); pts.forEach(([x, y], i) => (i 
 
 /** Une tache de mousse dessinée : une flaque verte à deux tons, cernée d'encre. */
 export function tacheMousseDessinee(ctx, x, y, rr) {
-  ctx.beginPath(); ctx.ellipse(x, y, rr, rr * 0.7, 0, 0, 7);
+  // Une touffe de trois boules qui se chevauchent (orientée selon la position : pas deux pareilles), d'un vert sourd sur le dessus sombre.
+  const a0 = (x * 0.73 + y * 1.31) % 6.28;
+  ctx.beginPath();
+  for (let i = 0; i < 3; i++) {
+    const a = a0 + i * 2.1, d = rr * 0.42, rb = rr * (0.62 - i * 0.08);
+    ctx.moveTo(x + Math.cos(a) * d + rb, y + Math.sin(a) * d * 0.7);
+    ctx.arc(x + Math.cos(a) * d, y + Math.sin(a) * d * 0.7, rb, 0, 6.29);
+  }
   encre(ctx, MOUSSE[0], 0.8);
-  ctx.beginPath(); ctx.ellipse(x - rr * 0.2, y - rr * 0.2, rr * 0.5, rr * 0.3, 0, 0, 7);
+  ctx.beginPath(); ctx.arc(x + Math.cos(a0) * rr * 0.32 - rr * 0.12, y + Math.sin(a0) * rr * 0.22 - rr * 0.14, rr * 0.22, 0, 6.29);
   ctx.fillStyle = MOUSSE[1]; ctx.fill();
 }
 
