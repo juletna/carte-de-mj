@@ -29,7 +29,7 @@ export function creerCarteUnivers(parent, { onPoint, onVide, onDeplace } = {}) {
   svg.append(ombre, lumiere);
   const cadre = h('div', { className: 'univers-cadre' }, img, svg, couche, manque);
   parent.append(cadre);
-  let etat = { modifiable: false, arme: false };
+  let etat = { modifiable: false, arme: false, poser: false };
   let grilleAffichee = { grille: null, opacite: 0.4 };
   /** Dessine la grille mémorisée ; attend que l'image ait une taille. */
   function dessinerGrille() {
@@ -51,7 +51,7 @@ export function creerCarteUnivers(parent, { onPoint, onVide, onDeplace } = {}) {
     return r.width && r.height ? [borne((e.clientX - r.left) / r.width), borne((e.clientY - r.top) / r.height)] : [0.5, 0.5];
   };
   cadre.addEventListener('click', (e) => {
-    if (!etat.arme || e.target.closest('.univers-point')) return;
+    if (!(etat.arme || etat.poser) || e.target.closest('.univers-point')) return;
     const [x, y] = fraction(e);
     onVide?.(x, y);
   });
@@ -104,12 +104,14 @@ export function creerCarteUnivers(parent, { onPoint, onVide, onDeplace } = {}) {
     /**
      * @param {{url:string|null, alt?:string, absente?:string, points:{id:string,x:number,y:number,nom?:string,titre?:string,aria?:string,classes?:string[],selectionne?:boolean}[], modifiable?:boolean, arme?:boolean}} o
      * `grille` : { case, dx, dy } en pixels de l'image (js/univers-grille.js), tracée avec l'opacité `opacite` (0 à 1, le réglage « Cases »).
+     * `poser` : un clic dans une zone vide appelle `onVide` (l'outil « Point » de l'écran Monde) ; `arme` fait de même, avec un cadre en pointillés.
      * `url` null : l'image n'existe plus (ou la bibliothèque manque) ; `absente` dit pourquoi, les points restent posés.
      */
-    afficher({ url, alt = '', absente = 'Image introuvable.', points, modifiable = false, arme = false, grille = null, opacite = 0.4 }) {
-      etat = { modifiable, arme };
+    afficher({ url, alt = '', absente = 'Image introuvable.', points, modifiable = false, arme = false, poser = false, grille = null, opacite = 0.4 }) {
+      etat = { modifiable, arme, poser };
       grilleAffichee = { grille, opacite };
       cadre.classList.toggle('arme', arme);
+      cadre.classList.toggle('poser', poser && !arme);
       cadre.classList.toggle('sans-image', !url);
       if (url) { if (img.getAttribute('src') !== url) img.src = url; img.alt = alt; } else img.removeAttribute('src');
       dessinerGrille();

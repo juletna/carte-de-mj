@@ -1,5 +1,5 @@
 /**
- * Mode « Caler la grille » du Donjon, sur la carte image d'un lieu d'univers (F4, voir docs/conception-univers.md §6).
+ * Mode « Caler la grille » de l'écran Monde, sur la carte image d'un lieu d'univers (F4, voir docs/conception-univers.md §6).
  * La grille est superposée à l'image ; le MJ règle la taille de case et le décalage jusqu'à ce qu'elle tombe sur une porte ou un pilier :
  *  - curseurs et champs numériques (en pixels de l'image), boutons − et + ;
  *  - un geste : glisser sur la carte déplace la grille (souris ou doigt) ;
@@ -13,6 +13,7 @@
  *  - `surMarqueurs()` : les repères des deux clics ont changé, l'appelant redessine la carte avec `marqueurs()`.
  */
 import { $, h, bouton } from '../dom.js';
+import { aide } from './univers-menu.js';
 import * as g from '../univers-grille.js';
 
 const OPACITE_REGLAGE = 0.75; // pendant le calage, la grille se voit bien quel que soit le réglage « Cases » de la table
@@ -138,7 +139,8 @@ export function creerCalage({ carte, enregistrer, quitter, surMarqueurs }) {
     }[origine];
     panneau = h('section', { className: 'univers-calage', 'aria-label': 'Caler la grille' },
       h('h3', { textContent: 'Caler la grille' }),
-      h('p', { className: 'note', textContent: `${enonce} Règle la taille de case et le décalage jusqu’à ce que les lignes tombent sur une porte ou un pilier.` }),
+      h('p', { className: 'note', textContent: enonce }),
+      aide('Règle la taille de case et le décalage jusqu’à ce que les lignes tombent sur une porte ou un pilier.'),
       curseur('Taille de case', 'case', { min: g.CASE_MIN, max: g.caseMax(s.dims), step: 0.5, apres: reglerCase }),
       curseur('Décalage horizontal', 'dx', { min: 0, max: 100, step: 0.5, apres: dec('dx') }),
       curseur('Décalage vertical', 'dy', { min: 0, max: 100, step: 0.5, apres: dec('dy') }),
@@ -147,7 +149,7 @@ export function creerCalage({ carte, enregistrer, quitter, surMarqueurs }) {
         champs.glisser, champs.mesurer,
         h('label', { className: 'calage-n' }, 'sur ', champs.n, ' cases')),
       champs.etatMesure,
-      h('p', { className: 'note', textContent: 'Au clavier : sélectionne la carte, puis les flèches décalent d’un pixel (Maj : dix), + et − changent la case.' }),
+      aide('Au clavier : sélectionne la carte, puis les flèches décalent d’un pixel (Maj : dix), + et − changent la case. Les points du lieu restent visibles en transparence, sans pouvoir être touchés.'),
       h('div', { className: 'actions' },
         bouton('Enregistrer', () => enregistrer(s.courante, s.dims), 'principal'),
         bouton('Quitter sans enregistrer', () => quitter(), 'discret')),

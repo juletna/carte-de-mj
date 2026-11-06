@@ -6,7 +6,7 @@
 
 /** Niveau d'une carte (une seule valeur par carte) : l'échelle dans les poupées russes. */
 export const NIVEAUX = [
-  { id: 'monde', libelle: 'Monde' },
+  { id: 'monde', libelle: 'Continent' },
   { id: 'region', libelle: 'Région' },
   { id: 'zone', libelle: 'Zone' },
   { id: 'localite', libelle: 'Localité' },

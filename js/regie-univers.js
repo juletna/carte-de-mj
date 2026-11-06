@@ -37,7 +37,7 @@ export function creerRegieUnivers(ctx) {
   const carte = creerCarteUnivers(zoneCarte, { onPoint: (id) => { pointId = id; rendre(); } });
 
   function sauver() {
-    if (!stockage.enregistrerPartieUnivers(courant.partie)) ctx.annoncer('Impossible d’enregistrer la partie de l’univers dans ce navigateur (stockage plein ou bloqué) : elle continue, mais ne pourra pas être reprise.', 12000);
+    if (!stockage.enregistrerPartieUnivers(courant.partie)) ctx.annoncer('Impossible d’enregistrer la partie de ce monde dans ce navigateur (stockage plein ou bloqué) : elle continue, mais ne pourra pas être reprise.', 12000);
   }
   // La grille du lieu : celle que le MJ a calée, sinon celle du catalogue (relue une fois par image, puis gardée).
   const infosParImage = new Map();
@@ -102,7 +102,7 @@ export function creerRegieUnivers(ctx) {
       const infos = h('div', { className: 'infos' }, h('b', { textContent: u.nom }), h('span', { textContent: pluriel(n, 'lieu', 'lieux') }));
       if (partie) infos.append(h('br'), h('span', { className: 'en-cours', textContent: `En cours : ${partie.dans ? 'dans un donjon, ' : ''}${u.lieux[partie.lieuCourant]?.nom ?? 'lieu disparu'}` }));
       const boutons = h('div', { className: 'boutons' });
-      if (!n) infos.append(h('br'), h('span', { textContent: 'Aucune carte : prépare-la dans le Donjon, mode Univers.' }));
+      if (!n) infos.append(h('br'), h('span', { textContent: 'Aucune carte : prépare-la dans l’écran Monde du Donjon.' }));
       else if (partie) {
         const recommencer = h('button', { type: 'button', className: 'discret' });
         deuxTemps(recommencer, 'Recommencer', 'Effacer la partie ?', () => ouvrir(u, pu.creerPartieUnivers(u)));
@@ -129,7 +129,7 @@ export function creerRegieUnivers(ctx) {
     ctx.noterRetrait();
     ctx.quitterPleinIci();
     recentrerTable();
-    if (!partie.lieuCourant) { ctx.annoncer('Cet univers n’a plus aucune carte.', 8000); return; }
+    if (!partie.lieuCourant) { ctx.annoncer('Ce monde n’a plus aucune carte.', 8000); return; }
     sauver();
     if (partie.dans && reprise && donjons()[partie.dans.donjon]) { entrerDonjon(partie.dans); return; }
     afficherEcran();
@@ -279,7 +279,7 @@ export function creerRegieUnivers(ctx) {
       h('section', { 'aria-label': 'Point choisi' }, ...choisi),
       h('section', { 'aria-label': 'Points de ce lieu' }, h('h2', { textContent: `Points (${lieu.points.length})` }), lieu.points.length ? h('ul', { className: 'univers-liste' }, ...liste) : h('p', { className: 'note', textContent: 'Aucun point sur cette carte.' })),
       ...(lieu.notes ? [h('section', { 'aria-label': 'Notes du lieu' }, h('h2', { textContent: 'Notes du lieu' }), h('p', { className: 'univers-notes', textContent: lieu.notes }))] : []),
-      h('p', { className: 'note' }, bouton('← Liste des donjons et univers', () => { ecran.hidden = true; rendreLesReglages(); if (!ctx.commande.retrait) stockage.oublierPartieOuverte(); ctx.depart.afficher(); }, 'discret petit')),
+      h('p', { className: 'note' }, bouton('← Liste des donjons et des mondes', () => { ecran.hidden = true; rendreLesReglages(); if (!ctx.commande.retrait) stockage.oublierPartieOuverte(); ctx.depart.afficher(); }, 'discret petit')),
       ...(reperes.size ? blocs : []));
   }
   /** Rouvre la carte d'univers qui était ouverte avant un rechargement (la partie mémorisée sait où l'on en était). Vrai si c'est fait. */
