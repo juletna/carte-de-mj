@@ -29,6 +29,7 @@ import { lierReglagesRendu } from './reglages-rendu.js';
 import { creerCoquille } from './atelier/coquille.js';
 import { inscrireDonjon } from './atelier/inscrire-donjon.js';
 import { inscrireMonde } from './atelier/inscrire-monde.js';
+import { inscrireImport } from './atelier/importer.js';
 import { lireRoute } from './atelier-route.js';
 import { $, h } from './dom.js';
 import { icone } from './icones.js';
@@ -384,6 +385,7 @@ ctx.univers.surChangement(() => {
 });
 inscrireDonjon(ctx.coquille, ctx);
 inscrireMonde(ctx.coquille, ctx);
+inscrireImport(ctx.coquille, ctx);
 
 // --- Démarrage ----------------------------------------------------------------
 afficherSalleActive({ sansArbre: true }); // l'arbre n'y passe pas : `naviguer` pose la vraie position (une étape de plus dépliait des plis du MJ)

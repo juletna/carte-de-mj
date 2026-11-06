@@ -4,7 +4,7 @@
  *   const coquille = creerCoquille({ racine, mode: 'preparer'|'jouer', donnees, scene?, bouton?, surNavigation? });
  *
  *   donnees() → { univers: { id: univers }, donjons: { id: donjon }, donjonActif?: { donjon, salle? }, mondeActif?: id }  (lu à chaque rafraîchissement)
- *   coquille.arbre          { element, ajouterAction({ libelle, icone?, executer, danger? }), rafraichir() }  (« ⋯ » de l'en-tête de l'arbre)
+ *   coquille.arbre          { element, ajouterAction({ libelle, icone?, executer, groupe?, ordre?, aide?, danger? }), rafraichir() }  (menu « + Nouveau » de l'en-tête)
  *   coquille.scene          l'élément du centre (les cartes s'y posent)
  *   coquille.barreOutils    la barre d'outils de la scène : UNE seule ligne (vide et cachée tant que personne n'y met rien) ; le bouton de l'arbre
  *                           au début, les outils au milieu, puis `barreFin` (le bouton « Grille » et le seul bouton doré, « Jouer »)
@@ -69,22 +69,35 @@ export function creerCoquille({
   const fermer = h('button', { type: 'button', className: 'btn btn-icone btn-discret atelier-fermer-tiroir', 'aria-label': 'Fermer l’arbre', title: 'Fermer l’arbre' }, icone('fermer'));
   const menuCorps = h('div', { className: 'atelier-menu-corps' });
   const menu = h('details', { className: 'atelier-menu', hidden: true },
-    h('summary', { className: 'btn btn-icone btn-discret', 'aria-label': 'Plus d’actions', title: 'Plus d’actions sur l’arbre' }, icone('plus-d-actions')), menuCorps);
-  const tete = h('div', { className: 'atelier-arbre-tete' }, h('h2', { className: 'atelier-arbre-titre', textContent: mode === 'jouer' ? 'La table' : 'L’atelier' }), menu, replier, fermer);
+    h('summary', { className: 'btn btn-discret atelier-menu-bouton', title: 'Créer un monde ou un donjon, importer un fichier, coller un donjon' }, icone('plus'), 'Nouveau'), menuCorps);
+  const toutReplier = h('button', { type: 'button', className: 'btn btn-icone btn-discret atelier-tout-replier', 'aria-label': 'Tout replier', title: 'Tout replier : seules les têtes de l’arbre restent' }, icone('tout-replier'));
+  toutReplier.addEventListener('click', () => vue.toutReplier());
+  const tete = h('div', { className: 'atelier-arbre-tete' }, h('h2', { className: 'atelier-arbre-titre', textContent: mode === 'jouer' ? 'La table' : 'L’atelier' }), toutReplier, menu, replier, fermer);
   const colonneArbre = h('aside', { className: 'atelier-arbre', 'aria-label': 'Arbre : monde, lieux, donjons, salles' }, tete, vue.element);
   const voile = h('div', { className: 'atelier-voile', hidden: true });
 
+  // Le menu « + Nouveau » : des groupes titrés, dans l'ordre de l'arbre (le monde avant le donjon), quel que soit l'ordre d'inscription.
+  const GROUPES = [['creer', 'Créer'], ['apporter', 'Apporter'], ['signal', null]];
   function majMenu() {
     menu.hidden = actionsArbre.length === 0;
-    menuCorps.replaceChildren(...actionsArbre.map((a) => {
-      const b = h('button', { type: 'button', className: `btn ${a.danger ? 'btn-danger' : 'btn-discret'} atelier-menu-item` }, ...(a.icone ? [icone(a.icone)] : []), a.libelle);
-      b.addEventListener('click', () => { menu.open = false; a.executer(); });
-      return b;
-    }));
+    const blocs = GROUPES.map(([id, titre]) => {
+      const actions = actionsArbre.filter((a) => (a.groupe ?? 'creer') === id).sort((a, b) => (a.ordre ?? 0) - (b.ordre ?? 0));
+      if (!actions.length) return null;
+      return [...(titre ? [h('p', { className: 'atelier-menu-groupe', textContent: titre })] : []), ...actions.map((a) => {
+        const b = h('button', { type: 'button', className: `btn ${a.danger ? 'btn-danger' : 'btn-discret'} atelier-menu-item`, ...(a.aide ? { 'aria-label': a.aide, title: a.aide } : {}) }, ...(a.icone ? [icone(a.icone)] : []), a.libelle);
+        b.addEventListener('click', () => { menu.open = false; a.executer(); });
+        return b;
+      })];
+    }).filter(Boolean);
+    menuCorps.replaceChildren(...blocs.flatMap((bloc, i) => (i ? [h('hr', { className: 'atelier-menu-separateur' }), ...bloc] : bloc)));
   }
-  /** Une entrée dans le « ⋯ » de l'en-tête de l'arbre (nouveau donjon, importer, coller…). */
+  /**
+   * Une entrée du menu « + Nouveau » de l'en-tête de l'arbre. `groupe` : 'creer' (défaut), 'apporter' ou 'signal' (sans titre, en dernier) ;
+   * `ordre` range les entrées d'un groupe ; `aide` sert d'étiquette accessible quand le libellé seul est trop court (« Monde » sous « Créer »).
+   */
   function ajouterAction(a) { actionsArbre.push(a); majMenu(); }
-  ajouterAction({ libelle: 'Tout replier', icone: 'chevron-gauche', executer: () => vue.toutReplier() });
+  // Un clic ailleurs referme le menu ; Échap aussi (plus bas, avec le tiroir), et rend le focus au bouton.
+  document.addEventListener('click', (e) => { if (menu.open && !menu.contains(e.target)) menu.open = false; });
 
   // --- Colonne de droite : l'inspecteur ----------------------------------------------------------------------------
   const colonneInspecteur = h('aside', { className: `atelier-inspecteur${inspecteurGenerique ? '' : ' sans-generique'}`, 'aria-label': 'Inspecteur : la sélection', hidden: !inspecteurToujoursVisible });
@@ -299,6 +312,7 @@ export function creerCoquille({
   // Échap ferme le tiroir (puis le panneau bas) avant tout autre Échap de la page.
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape' || e.defaultPrevented) return;
+    if (menu.open) { e.preventDefault(); menu.open = false; menu.querySelector('summary').focus(); return; } // le menu « + Nouveau » d'abord, le tiroir ensuite
     if (tiroirOuvert()) { e.preventDefault(); fermerTiroir(); return; }
     if (telephone() && !colonneInspecteur.hidden && !colonneInspecteur.classList.contains('replie') && colonneInspecteur.contains(document.activeElement)) {
       e.preventDefault(); plier.click(); plier.focus();

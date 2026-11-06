@@ -4,6 +4,7 @@
 import * as u from '../js/univers.js';
 import { creerDonjon, ajouterSalle } from '../js/donjon.js';
 import { arbreAtelier, filtrerAtelier, noeudParCle, parcourir, etatJeu, trouverActif } from '../js/atelier-arbre.js';
+import { genreDuFichier } from '../js/atelier/importer.js';
 import { verifier, egal, executerSuite } from './mini-test.js';
 
 const IMG = (id = 'monde-01') => ({ source: 'bibliotheque', id });
@@ -132,6 +133,12 @@ const TESTS = [
     egal(etat(`s:${e.foret.id}:${e.crypte.id}:${sb}`), 'cache', 'salle jamais montrée');
     egal(etat(`l:${e.univ.id}:${e.foret.id}`), 'decouvert', 'le lieu n’est plus « table » dans un donjon');
     verifier(etatJeu(noeudParCle(a, `m:${e.univ.id}`), {}) === 'cache', 'sans partie');
+  }],
+  ['import unique : le format du fichier dit monde ou donjon', () => {
+    egal(genreDuFichier(JSON.parse(JSON.stringify(u.creerUnivers({ nom: 'Marches' })))), 'monde');
+    egal(genreDuFichier(JSON.parse(JSON.stringify(creerDonjon({ nom: 'Crypte' })))), 'donjon');
+    egal(genreDuFichier({ format: 'jdr-carte' }), 'donjon', 'ancien format : le donjon le relit');
+    for (const x of [null, [], 'carte-de-mj-univers', {}]) egal(genreDuFichier(x), 'donjon', 'le reste va au donjon, qui dit pourquoi il refuse');
   }],
 ];
 

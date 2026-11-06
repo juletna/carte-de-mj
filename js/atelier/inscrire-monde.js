@@ -4,7 +4,7 @@
  * Le Monde n'est plus un écran par-dessus la page : c'est une scène de l'atelier.
  *   - inspecteurs monde, lieu et point (js/atelier/inspecteurs-monde.js) ;
  *   - barre d'outils Sélection · Point · Calage (js/atelier/barre-lieu.js) ;
- *   - arbre : vignettes des lieux, et dans son « ⋯ » Nouveau monde, Importer un monde, Nouveau lieu ;
+ *   - arbre : vignettes des lieux, « Ajouter un lieu » en fin de branche de chaque monde, « Monde » dans son menu « + Nouveau » ;
  *   - « Jouer ce monde » (le seul bouton doré de l'écran) au bout de la ligne d'outils, à la place de « Jouer » du donjon ; pas d'en-tête « Monde · nom » ;
  *   - le point choisi est la sélection commune (type 'point') ; sur téléphone, l'inspecteur se déplie quand on choisit un point.
  */
@@ -53,24 +53,17 @@ export function inscrireMonde(coquille, ctx) {
   coquille.arbre.vue.definirVignette((n) => (n.type === 'lieu' ? vignetteLieu(U.donnees().univers[n.contexte?.monde]?.lieux[n.id]?.image, '') : null));
   coquille.arbre.vue.maj({ arbre: coquille.donneesArbre() });
 
-  const fichier = h('input', { type: 'file', id: 'monde-importer', accept: '.json,application/json', hidden: true, 'aria-label': 'Importer un monde (fichier JSON)' });
-  document.body.append(fichier);
-  fichier.addEventListener('change', async (e) => {
-    const u = await U.importerMonde(e);
-    fichier.value = '';
-    if (u) coquille.naviguer({ page: 'monde', monde: u.id });
-  });
-  coquille.arbre.ajouterAction({ libelle: 'Nouveau monde', icone: 'plus', executer: () => { U.creerMondeNeuf(); } });
-  coquille.arbre.ajouterAction({ libelle: 'Importer un monde…', icone: 'importer', executer: () => fichier.click() });
-  coquille.arbre.ajouterAction({
-    libelle: 'Nouveau lieu…', icone: 'monde',
+  // (Importer un monde : l'entrée commune « Importer un fichier… », js/atelier/importer.js.)
+  coquille.arbre.ajouterAction({ groupe: 'creer', ordre: 1, libelle: 'Monde', icone: 'monde', aide: 'Nouveau monde', executer: () => { U.creerMondeNeuf(); } });
+  // Un lieu appartient à un monde : on l'ajoute sous ce monde, par la dernière ligne de sa branche (choisit une carte dans la bibliothèque).
+  coquille.arbre.vue.definirAjout((n) => (n.type !== 'monde' ? null : {
+    libelle: 'Ajouter un lieu',
     executer: async () => {
-      const actif = U.donnees().actif;
-      if (!actif) { U.dire('Crée d’abord un monde : un lieu est une carte de ce monde.', { erreur: true }); return; }
-      if (!U.ouvert()) coquille.naviguer({ page: 'monde', monde: actif });
+      if (!U.ouvert() || U.donnees().actif !== n.id) coquille.naviguer({ page: 'monde', monde: n.id });
+      if (telephone()) coquille.fermerTiroir({ rendreFocus: false });
       await U.ajouterLieuLibre();
     },
-  });
+  }));
 
   // --- Le cartouche d'échelle : en bas à gauche de la carte du lieu (le fil d'Ariane tient le haut). Rien sans grille, ni pendant le calage ---------
   const cartouche = creerCartouche();

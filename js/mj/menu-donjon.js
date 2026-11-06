@@ -2,11 +2,12 @@
  * Ce que faisait le menu du donjon (barre du haut), réparti dans l'atelier : le nom, l'export, la copie et la suppression du donjon
  * sont dans l'inspecteur « donjon » (js/atelier/inspecteurs-donjon.js) ; un donjon neuf (vide, au hasard ou d'un modèle), l'import
  * (fichier ou texte collé) et les copies mises de côté sont dans la feuille « Ajouter un donjon » (`#feuille-donjons`), qu'ouvre le
- * « ⋯ » de l'arbre ; l'éditeur du plan JSON et « Copier pour signaler » sont dans l'inspecteur « salle » (bloc Avancé). Le choix du
+ * menu « + Nouveau » de l'arbre ; l'éditeur du plan JSON et « Copier pour signaler » sont dans l'inspecteur « salle » (bloc Avancé). Le choix du
  * donjon est l'arbre. Fabrique `creerMenu(ctx)` ; `ctx` est celui de main-mj.js (`etat`, `donjon`, `salle`, `rendre`, `modifierPlan`,
  * `annoncerCarte`, `historique`, `afficherSalleActive`, `sauvegarder`, `plan`, `coquille`), lu au moment de l'appel.
  * Renvoie `fermer` et `ouvert` (la feuille, pour Échap), `ouvrir(section)`, `majDonjons` (à rappeler quand on change de donjon ou de
- * salle), `messageFichier` (l'avertissement du démarrage), `exporter`, `copierDonjon`, `supprimerDonjon`, `annonceSuppression`, `nombreCopies`.
+ * salle), `messageFichier` (l'avertissement du démarrage), `exporter`, `copierDonjon`, `supprimerDonjon`, `annonceSuppression`, `nombreCopies`,
+ * `importerDonjonLu(brut)` (un donjon déjà lu en JSON : l'import unique de l'atelier, js/atelier/importer.js).
  */
 import { validerPlan } from '../schema.js';
 import { genererDonjon, BORNES, FAMILLES } from '../generateur.js';
@@ -306,6 +307,6 @@ export function creerMenu(ctx) {
 
   return {
     fermer: fermerMenu, ouvert: feuilleOuverte, ouvrir: ouvrirFeuille, majDonjons, messageFichier, exporter, copierDonjon,
-    supprimerDonjon, annonceSuppression, nombreCopies: () => stockage.misDeCote().length,
+    supprimerDonjon, annonceSuppression, nombreCopies: () => stockage.misDeCote().length, importerDonjonLu: ajouterDonjonLu,
   };
 }

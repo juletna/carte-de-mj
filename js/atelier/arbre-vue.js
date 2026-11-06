@@ -4,7 +4,7 @@
  * 'table' | 'decouvert' | 'cache').
  * Rôle `tree` : flèches haut/bas, droite/gauche (déplier/replier, changer de niveau), Début/Fin, Entrée ou Espace pour choisir.
  * Les branches se plient ; les salles d'un donjon replié ne sont pas rendues (gros donjons générés) avant son ouverture.
- * Renvoie `{ element, maj({ arbre, actifCle, filtre? }), focus(), ouvertes }`.
+ * Renvoie `{ element, maj({ arbre, actifCle, filtre? }), definirVignette(f), definirAjout(f), toutReplier(), focus(), filtre }`.
  */
 import { h } from '../dom.js';
 import { icone } from '../icones.js';
@@ -29,6 +29,7 @@ export function creerArbreVue({ mode = 'preparer', surChoix, pastille = null, ti
   let donnees = { arbre: null, actifCle: null };
   let filtreTexte = '';
   let vignette = null; // (noeud) → élément qui remplace l'icône du nœud (l'image d'un lieu), ou null : voir `definirVignette`
+  let ajoutDe = null;  // (noeud) → { libelle, executer } pour une ligne « + … » en fin de branche (mode 'preparer'), ou null : voir `definirAjout`
 
   const filtre = h('input', { type: 'search', className: 'atelier-arbre-filtre', placeholder: 'Filtrer…', 'aria-label': 'Filtrer l’arbre', spellcheck: false, hidden: true });
   const liste = h('ul', { className: 'atelier-arbre-liste', role: 'tree', 'aria-label': titre });
@@ -43,8 +44,23 @@ export function creerArbreVue({ mode = 'preparer', surChoix, pastille = null, ti
     return n.type !== 'donjon';
   };
 
+  /** La ligne discrète « + Ajouter un lieu » en fin de branche : un treeitem comme les autres (flèches, Entrée), qui agit au lieu d'aller quelque part. */
+  function ligneAjout(n, a, niveau) {
+    const li = h('li', { role: 'treeitem', className: 'atelier-noeud type-ajout' });
+    li.dataset.cle = `${n.cle}:ajout`;
+    li.tabIndex = -1;
+    li.setAttribute('aria-level', String(niveau));
+    const ligne = h('div', { className: 'atelier-ligne', title: `${a.libelle} à ${n.nom}` },
+      h('span', { className: 'atelier-bascule vide', 'aria-hidden': 'true' }), h('span', { className: 'atelier-icone', 'aria-hidden': 'true' }, icone('plus')),
+      h('span', { className: 'atelier-noeud-texte' }, h('span', { className: 'atelier-noeud-nom', textContent: a.libelle })));
+    ligne.addEventListener('click', () => { li.focus({ preventScroll: true }); a.executer(); });
+    li.append(ligne);
+    return li;
+  }
+
   function noeud(n, niveau, forcer, ancetres) {
-    const aEnfants = n.enfants.length > 0;
+    const ajout = mode === 'preparer' && !forcer ? ajoutDe?.(n) ?? null : null; // pas pendant un filtre : on cherche, on n'ajoute pas
+    const aEnfants = n.enfants.length > 0 || !!ajout;
     const ouvert = aEnfants && deplie(n, forcer, ancetres);
     const courant = n.cle === donnees.actifCle;
     const li = h('li', { role: 'treeitem', className: `atelier-noeud type-${n.type}${courant ? ' courant' : ''}` });
@@ -73,7 +89,7 @@ export function creerArbreVue({ mode = 'preparer', surChoix, pastille = null, ti
       if ((bascule.contains(e.target) || n.type === 'groupe') && aEnfants) basculer(n.cle, !ouvert); // `basculer(cle, ouvrir)`
       else if (n.type !== 'groupe') surChoix(n);
     });
-    if (ouvert) li.append(h('ul', { role: 'group' }, ...n.enfants.map((e) => noeud(e, niveau + 1, forcer, ancetres))));
+    if (ouvert) li.append(h('ul', { role: 'group' }, ...n.enfants.map((e) => noeud(e, niveau + 1, forcer, ancetres)), ...(ajout ? [ligneAjout(n, ajout, niveau + 1)] : [])));
     return li;
   }
 
@@ -155,6 +171,8 @@ export function creerArbreVue({ mode = 'preparer', surChoix, pastille = null, ti
 
   /** `f(noeud)` rend une vignette (un élément) à la place de l'icône d'un nœud, ou null pour garder l'icône ; à redessiner ensuite avec `maj`. */
   function definirVignette(f) { vignette = f; if (donnees.arbre) dessiner(); }
+  /** `f(noeud)` rend `{ libelle, executer }` pour finir la branche du nœud par une ligne d'ajout (« + Ajouter un lieu »), ou null ; mode 'preparer' seulement. */
+  function definirAjout(f) { ajoutDe = f; if (donnees.arbre) dessiner(); }
 
-  return { element, maj, definirVignette, toutReplier, focus: () => (liste.querySelector('.courant') ?? visibles()[0])?.focus({ preventScroll: true }), filtre };
+  return { element, maj, definirVignette, definirAjout, toutReplier, focus: () => (liste.querySelector('.courant') ?? visibles()[0])?.focus({ preventScroll: true }), filtre };
 }

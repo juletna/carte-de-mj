@@ -52,7 +52,7 @@ Un agent qui doit changer un contrat le dit dans son compte rendu au lieu de le 
 | Bulle d'un point (destination, liste à vignettes, retirer) | `univers-ui.js`, `js/mj/univers-liste.js` | **Inspecteur « point »**. |
 | Calage de grille | `js/mj/univers-calage.js`, `js/univers-grille.js` | Outil Grille de la barre ; réglages dans l'inspecteur « lieu ». |
 | Fil d'Ariane, notifications, annuler un retrait | `univers-ui.js`, `univers-menu.js` | Fil au-dessus de la scène ; notifications conservées. |
-| Images (bibliothèque, import) | `js/univers-images.js`, `js/bibliotheque/` | Inspecteur « lieu » (changer d'image) ; ajout d'un lieu via « ⋯ » de l'arbre. |
+| Images (bibliothèque, import) | `js/univers-images.js`, `js/bibliotheque/` | Inspecteur « lieu » (changer d'image) ; ajout d'un lieu par la ligne « + Ajouter un lieu » en fin de branche du monde, dans l'arbre. |
 
 ### Présentation (`presentation.html`, `js/regie.js`, 684 lignes)
 

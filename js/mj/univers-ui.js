@@ -15,7 +15,7 @@
  */
 import * as stockage from '../stockage.js';
 import * as modele from '../univers.js';
-import { lireUnivers } from '../univers-validation.js';
+import { lireUnivers, validerUnivers } from '../univers-validation.js';
 import { creerCarteUnivers } from '../univers-carte.js';
 import * as images from '../univers-images.js';
 import { creerCalage } from './univers-calage.js';
@@ -162,19 +162,27 @@ export function creerUniversUI(ctx) {
     if (!fichier) return null;
     try {
       if (fichier.size > TAILLE_MAX_FICHIER) throw new Error('fichier trop gros (5 Mo au plus)');
-      const { univers: u, avertissements } = lireUnivers(await fichier.text());
-      if (u.id in reserve.univers) u.id = idUnique('u', Object.keys(reserve.univers)); // un monde déjà là n'est jamais écrasé
-      reserve.univers[u.id] = u;
-      reserve.actif = u.id;
-      allerA(u.racine);
-      sauver();
-      rendre();
-      dire(`« ${u.nom} » importé${avertissements.length ? ` · ${avertissements.join(' · ')}` : ''}.`);
-      return u;
+      return accueillirMonde(lireUnivers(await fichier.text()));
     } catch (err) {
       dire(`Import impossible : ${err.message}`, { erreur: true });
       return null;
     }
+  }
+  /** Le monde déjà lu (objet JSON) : l'import unique de l'atelier (js/atelier/importer.js) a reconnu son format. Rend le monde importé, ou null. */
+  function importerMondeLu(brut) {
+    const v = validerUnivers(brut);
+    if (!v.univers) { dire(`Import impossible : ${v.erreurs.join(' · ')}`, { erreur: true }); return null; }
+    return accueillirMonde(v);
+  }
+  function accueillirMonde({ univers: u, avertissements }) {
+    if (u.id in reserve.univers) u.id = idUnique('u', Object.keys(reserve.univers)); // un monde déjà là n'est jamais écrasé
+    reserve.univers[u.id] = u;
+    reserve.actif = u.id;
+    allerA(u.racine);
+    sauver();
+    rendre();
+    dire(`« ${u.nom} » importé${avertissements.length ? ` · ${avertissements.join(' · ')}` : ''}.`);
+    return u;
   }
 
   // --- Lieux -----------------------------------------------------------------------------------------
@@ -438,7 +446,7 @@ export function creerUniversUI(ctx) {
       pointId = id;
       if (ouvertEcran) rendreCarte();
     },
-    creerMondeNeuf, renommerMonde, supprimerLeMonde, exporterMonde, importerMonde,
+    creerMondeNeuf, renommerMonde, supprimerLeMonde, exporterMonde, importerMonde, importerMondeLu,
     ajouterLieuLibre, renommerLieu, notesDuLieu, lieuDeDepart, supprimerLeLieu, changerImage,
     poserPoint, modifierPoint, changerDestination, destinationNouvelleCarte, supprimerPoint, entrerDansPoint,
     selectionnerPoint: (id) => { modeLocal = 'selection'; selectionner(id); rendre(); },

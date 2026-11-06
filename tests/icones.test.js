@@ -3,7 +3,7 @@ import { verifier, egal, executerSuite } from './mini-test.js';
 import { ICONES, NOMS_ICONES, iconeHtml } from '../js/icones.js';
 
 const REQUIS = ['monde', 'donjon', 'jouer', 'bibliotheque', 'fiche', 'sauvegarde', 'menu', 'plus', 'fermer', 'plus-d-actions', 'retour', 'remonter',
-  'micro', 'de', 'oeil', 'oeil-barre', 'copier', 'plein-ecran', 'exporter', 'importer', 'supprimer', 'crayon', 'grille', 'point', 'recentrer', 'fleches', 'aide', 'moins', 'alerte'];
+  'micro', 'de', 'oeil', 'oeil-barre', 'copier', 'plein-ecran', 'exporter', 'importer', 'supprimer', 'crayon', 'grille', 'point', 'recentrer', 'fleches', 'aide', 'moins', 'alerte', 'tout-replier'];
 
 export async function executer() {
   const TESTS = [
