@@ -23,6 +23,7 @@
 
 /* Inspecteur : en-tête */
 .atelier-inspecteur-tete { padding: 14px var(--esp-4) var(--esp-3); border-bottom-color: var(--p-filet-fort); }
+@media (max-width: 760px) { .atelier-inspecteur-tete { padding-right: 52px; } } /* place du chevron « replier le panneau » (atelier.css) */
 .atelier-inspecteur-type { font-size: 11px; font-weight: 600; letter-spacing: 0.09em; color: var(--accent); }
 .atelier-inspecteur .atelier-inspecteur-nom, .atelier-inspecteur .atelier-inspecteur-titre { font-size: 18px; font-weight: 650; color: var(--p-texte-1); }
 .atelier-inspecteur-nom::placeholder { color: var(--p-texte-4); }

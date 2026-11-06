@@ -143,7 +143,7 @@ Même grammaire dans le panneau bas. Replié, il ne montre que l'en-tête. Cible
 - [x] **2. Composant section** : `creerSection({ cle, titre, compte, aide, action, repliee, enfants })` dans `js/atelier/section.js` (fait, testé : `tests/section.test.js`), état replié en session. Adoptée par les inspecteurs Monde, Lieu, Point, Donjon, Salle.
 - [ ] **3. Listes** : `creerListe([...])` dans `js/atelier/liste.js` (fait, testé : `tests/liste.test.js`) ; adopté par les points d'un lieu. Restent les éléments de Jouer et les personnages.
 - [ ] **4. Jouer** : les onglets de la régie au même modèle (en-tête, sections), onglets soulignés. Fait en CSS seul (`css/panneaux.css`) ; reste la structure JS (en-tête par onglet, sections repliables, éléments regroupés « pilier × 4 ») une fois la refonte UI de la régie terminée.
-- [ ] **5. Téléphone** : vérifier le panneau bas avec la nouvelle grammaire.
+- [x] **5. Téléphone** : vérifié à 375 px (Donjons, Monde, Jouer) : bandeaux et rangées à 44 px, en-tête qui laisse la place au chevron « replier », pas de défilement horizontal.
 
 | Panneau | Code | Suit ce document |
 |---|---|---|
