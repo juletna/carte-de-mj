@@ -117,7 +117,7 @@ export const GROUPES_PALETTE = [
 /** Intertitres d'un groupe, dans l'ordre d'affichage : les créatures sont rangées par camp (`sousGroupe`). */
 export const SOUS_GROUPES = {
   creatures: [
-    { id: 'monstre', titre: 'Monstres' },
+    { id: 'monstre', titre: '' }, // le premier groupe, sans titre : comme Portes et Mobilier ; les suivants gardent le leur pour se distinguer
     { id: 'pnj', titre: 'Peuples' },
     { id: 'pj', titre: 'Personnage' },
   ],
