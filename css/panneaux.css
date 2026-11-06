@@ -267,6 +267,10 @@
 .hasard-salle-champs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--esp-2); }
 .hasard-salle-champ { display: flex; flex-direction: column; gap: 5px; min-width: 0; margin: 0; }
 .hasard-salle-etiquette { font-size: 12.5px; font-weight: 500; color: var(--p-texte-3); }
+.hasard-salle-entete { display: flex; align-items: center; justify-content: space-between; gap: 4px; min-height: 20px; }
+.hasard-salle-auto { flex: none; padding: 0 7px; min-height: 20px; font: inherit; font-size: 11.5px; font-weight: 600; color: var(--accent); background: var(--p-surface-1); border: 1px solid var(--p-filet-fort); border-radius: 999px; cursor: pointer; }
+.hasard-salle-auto:hover { border-color: var(--accent); }
+.hasard-salle-auto[hidden] { display: none; }
 .hasard-salle-champ select { width: 100%; max-width: none; min-height: max(32px, var(--cible)); }
 .p-section-corps > .rang-interrupteur:disabled { opacity: 0.5; cursor: default; }
 .p-section-corps > .rang-interrupteur:disabled:hover { background: var(--p-surface-1); }

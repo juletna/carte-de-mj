@@ -111,9 +111,16 @@ export function creerSectionAuHasard(ctx) {
     const champs = h('div', { className: 'hasard-salle-champs' }, ...CHAMPS.map(([cle, libelle]) => {
       const [, min, max] = BORNES_SALLE[cle];
       const entree = h('input', { type: 'number', inputMode: 'numeric', min: String(min), max: String(max), step: '1', placeholder: 'Auto', value: reglages[cle] === null ? '' : String(reglages[cle]), 'aria-label': `${libelle} (de ${min} à ${max}, vide : automatique)` });
-      // Vide = automatique ; un nombre est imposé (0 compris) ; vider le champ le remet en automatique.
-      entree.addEventListener('change', () => { reglages[cle] = normaliserOptionsSalle({ [cle]: entree.value })[cle]; entree.value = reglages[cle] === null ? '' : String(reglages[cle]); });
-      return h('label', { className: 'hasard-salle-champ', title: `Vide : automatique. Sinon de ${min} à ${max}` }, h('span', { className: 'hasard-salle-etiquette', textContent: libelle }), h('span', { className: 'champ-num' }, entree));
+      // Vide = automatique ; un nombre est imposé (0 compris) ; vider le champ, le bouton « Auto » ou ↓ sur le minimum le remet en automatique.
+      const auto = h('button', { type: 'button', className: 'hasard-salle-auto', textContent: 'Auto', title: `${libelle} : revenir en automatique`, 'aria-label': `${libelle} : revenir en automatique` });
+      const majAuto = () => { auto.hidden = entree.value === ''; };
+      const enAuto = () => { reglages[cle] = null; entree.value = ''; majAuto(); };
+      entree.addEventListener('input', majAuto);
+      entree.addEventListener('change', () => { reglages[cle] = normaliserOptionsSalle({ [cle]: entree.value })[cle]; entree.value = reglages[cle] === null ? '' : String(reglages[cle]); majAuto(); });
+      entree.addEventListener('keydown', (e) => { if (e.key === 'ArrowDown' && entree.value !== '' && Number(entree.value) <= min) { e.preventDefault(); enAuto(); } });
+      auto.addEventListener('click', () => { enAuto(); entree.focus(); });
+      majAuto();
+      return h('div', { className: 'hasard-salle-champ', title: `Vide : automatique. Sinon de ${min} à ${max}` }, h('span', { className: 'hasard-salle-entete' }, h('span', { className: 'hasard-salle-etiquette', textContent: libelle }), auto), h('span', { className: 'champ-num' }, entree));
     }));
 
     const forme = h('button', {
