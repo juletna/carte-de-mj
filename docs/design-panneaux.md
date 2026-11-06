@@ -4,7 +4,7 @@ Règles de composition des panneaux latéraux : l'arbre (gauche), l'inspecteur (
 
 Maquettes avant/après et diagnostic détaillé : [`docs/maquettes/panneaux.html`](maquettes/panneaux.html) (ouvrir dans le navigateur).
 
-Proposé le 6 novembre 2026. **État : à appliquer.** Les jetons `--p-*` ne sont pas encore dans `css/base.css` ; voir « Migration » en bas.
+Proposé le 6 novembre 2026. **État : en cours de migration** (voir « Migration » en bas). Les jetons `--p-*` sont dans `css/base.css` ; la typographie des panneaux est le dernier bloc de `css/atelier.css`.
 
 ## Pourquoi
 
@@ -23,7 +23,7 @@ Avant ces règles, les panneaux étaient difficiles à lire : trois rôles (type
 
 ## Jetons
 
-À ajouter dans `:root` de `css/base.css`. Les jetons existants (`--panneau`, `--bord`, `--champ`, `--accent`, `--esp-1` à `--esp-4`…) restent.
+Dans `:root` de `css/base.css`. Les jetons existants (`--panneau`, `--bord`, `--champ`, `--accent`, `--esp-1` à `--esp-4`…) restent.
 
 | Jeton | Valeur | Rôle | Contraste sur le panneau |
 |---|---|---|---|
@@ -139,7 +139,7 @@ Même grammaire dans le panneau bas. Replié, il ne montre que l'en-tête. Cible
 
 À faire dans l'ordre ; cocher ici à chaque étape livrée.
 
-- [ ] **1. Jetons et typographie** : ajouter les `--p-*` dans `css/base.css`, réécrire la typographie de `.atelier-inspecteur` et `.atelier-arbre` dans `css/atelier.css` (règles 1, 2, 4). CSS seul.
+- [x] **1. Jetons et typographie** : ajouter les `--p-*` dans `css/base.css`, réécrire la typographie de `.atelier-inspecteur` et `.atelier-arbre` dans `css/atelier.css` (règles 1, 2, 4). CSS seul.
 - [ ] **2. Composant section** : une fonction `section({ titre, compte, aide, action, repliee })` à côté de `js/atelier/inspecteur.js`, état replié en session. Adoptée par les inspecteurs Monde, Lieu, Point, Donjon, Salle.
 - [ ] **3. Listes** : composant rangée pour les points, les éléments de Jouer et les personnages.
 - [ ] **4. Jouer** : les onglets de la régie au même modèle (en-tête, sections), onglets soulignés.

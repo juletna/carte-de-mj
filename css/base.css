@@ -39,6 +39,18 @@
   --succes-texte: #7cc47c;  /* texte vert sur fond sombre */
   --arcane: #9ea3f0;
 
+  /* Panneaux latéraux (arbre, inspecteur, onglets de Jouer) : quatre niveaux de texte, deux surfaces, deux filets. Règles : docs/design-panneaux.md */
+  --p-texte-1: #ece8e0;   /* nom, titres de section, noms d'éléments, valeurs saisies */
+  --p-texte-2: #c3beb4;   /* texte courant */
+  --p-texte-3: #97928a;   /* étiquettes, notes, méta */
+  --p-texte-4: #67635d;   /* placeholders, groupes de l'arbre, chevrons : jamais seul porteur d'une information */
+  --p-surface-0: var(--panneau);
+  --p-surface-1: #26252c; /* listes en creux, pastilles */
+  --p-surface-survol: #2d2c34;
+  --p-filet: #2f2d35;
+  --p-filet-fort: #3d3a44;
+  --p-choisi: rgba(217, 169, 41, 0.13);
+
   /* Police du texte courant, la même partout : celle du système, sans chargement */
   --police: system-ui, -apple-system, "Segoe UI", sans-serif;
 
