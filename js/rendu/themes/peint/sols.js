@@ -15,9 +15,9 @@
 import { h2, vbp, fbmp, voroP, lisse } from './bruit.js';
 import { usureDe, teinterSol } from './ambiance.js';
 
-export const CASES_PAR_TUILE = 8;
-const VIRTUEL = 48; // pixels virtuels par case : les constantes des sols ont été réglées à cette échelle
-export const PERIODE = CASES_PAR_TUILE * VIRTUEL;
+import { CASES_PAR_TUILE, VIRTUEL, PERIODE } from './tuile.js';
+
+export { CASES_PAR_TUILE, PERIODE };
 /** Résolution réelle d'une tuile, en pixels par case : jamais plus que ce plafond (la tuile est ensuite agrandie par le motif). */
 export const RESOLUTION_MIN = 16;
 export const RESOLUTION_MAX = 64;
