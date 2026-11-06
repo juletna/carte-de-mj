@@ -99,6 +99,12 @@ p { margin: 0; }
 .zoom { position: absolute; right: 8px; bottom: 8px; display: flex; gap: 6px; align-items: center; padding: 2px 8px; background: rgba(31,30,36,.95); border: 1px solid var(--bord); border-radius: 6px; font-size: 11px; color: var(--t2); }
 .serie { margin-top: 12px; max-width: 760px; padding: 10px 14px; background: var(--choisi); border: 1px solid rgba(217,169,41,.4); border-radius: 8px; font-size: 14px; color: var(--t1); }
 .serie b { color: var(--accent); font-weight: 600; }
+.nav { flex: none; display: flex; border-bottom: 1px solid var(--filet-fort); background: var(--panneau); }
+.nav .it { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 7px 0 5px; border-bottom: 2px solid transparent; color: var(--t3); font-size: 10.5px; font-weight: 600; }
+.nav .it svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.nav .it.on { color: var(--t1); border-bottom-color: var(--accent); }
+.nav .it.on svg { color: var(--accent); }
+.panneau .cat.sans-puces { padding-top: 10px; }
 .note-fine { margin-top: 12px; max-width: 70ch; font-size: 13.5px; color: var(--t3); }
 
 /* Commun : ce qui est bon quel que soit l'emplacement */
@@ -116,7 +122,7 @@ p { margin: 0; }
   <header>
     <p class="sur">Maquette · atelier du Donjon</p>
     <h1>Où mettre le catalogue d'objets ?</h1>
-    <p class="chapeau">L'onglet « Ajouter » est trop discret. Trois façons de le placer, sans rail d'icônes ni colonne de plus. Les trois partagent les mêmes réglages du panneau de droite (en bas de page) : sections utiles ouvertes, aperçu sur les sections repliées, Liaisons masquée quand il n'y en a pas.</p>
+    <p class="chapeau">L'onglet « Ajouter » est trop discret. Quatre façons de le placer, sans rail d'icônes vertical ni colonne de plus. Les quatre partagent les mêmes réglages du panneau de droite (en bas de page) : sections utiles ouvertes, aperçu sur les sections repliées, Liaisons masquée quand il n'y en a pas.</p>
   </header>
 
   <!-- ===================== A ===================== -->
@@ -217,6 +223,34 @@ p { margin: 0; }
     </div>
   </section>
 
+
+  <!-- ===================== D ===================== -->
+  <section>
+    <p class="sur">Option D · proposée par Julien</p>
+    <h2>Quatre icônes de navigation en tête du panneau : Salle, Portes, Mobilier, Créatures</h2>
+    <p class="chapeau">On remplace les deux onglets « Salle / Ajouter » par quatre onglets-icônes, égaux : la salle et les trois catégories du catalogue. Chaque catégorie est à un clic, sans passer par « Ajouter », et la rangée « Portes · Mobilier · Créatures » du catalogue disparaît (la navigation la remplace). Les icônes sont celles qui existent déjà (js/rail.js) ; le libellé reste visible sous chaque icône.</p>
+    <div class="etats">
+      <div class="etat"><p class="etiquette">Onglet Salle</p>
+        <div class="atelier">
+          <div class="scene"><div class="barre"><span class="btn discret">+ Salle</span><span class="btn discret">Vue d'ensemble</span><span class="fin"><span class="btn discret">Grille ▾</span><span class="btn discret">Affichage</span></span></div><div class="carte"><span class="cartouche">12 × 12 m</span><span class="zoom">− 94 % +</span><div class="salle"><i style="left:20px;top:20px"></i><i style="left:120px;top:20px"></i></div></div></div>
+          <div class="panneau"><div class="nav" role="tablist"><span class="it on" role="tab"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="1.5"/><path d="M4 10h16M10 4v16"/></svg>Salle</span><span class="it" role="tab"><svg viewBox="0 0 24 24"><path d="M7 21V4.5a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1V21"/><path d="M4 21h16"/><circle cx="14.2" cy="12.5" r="0.9" fill="currentColor" stroke="none"/></svg>Portes</span><span class="it" role="tab"><svg viewBox="0 0 24 24"><path d="M3.5 10.5a8.5 5.5 0 0 1 17 0V19a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1z"/><path d="M3.5 14h17"/><rect x="10.5" y="12" width="3" height="4" rx="0.6"/></svg>Mobilier</span><span class="it" role="tab"><svg viewBox="0 0 24 24"><circle cx="12" cy="7.5" r="3.5"/><path d="M6.5 20.5c0-4.2 2.4-7 5.5-7s5.5 2.8 5.5 7z"/></svg>Créatures</span></div><div class="tete"><p class="type">▣ Salle</p><p class="nom">Salle 1</p><p class="meta">12 × 12 m · pierre</p></div><div data-sections></div></div>
+        </div>
+      </div>
+      <div class="etat"><p class="etiquette">Onglet Mobilier, un coffre armé</p>
+        <div class="atelier">
+          <div class="scene"><div class="barre"><span class="btn discret">+ Salle</span><span class="btn discret">Vue d'ensemble</span><span class="fin"><span class="btn discret">Grille ▾</span><span class="btn discret">Affichage</span></span></div><div class="carte"><span class="cartouche">12 × 12 m</span><span class="zoom">− 94 % +</span><span class="pastille-pose">Pose : Coffre ✕</span><div class="salle"><i style="left:20px;top:20px"></i><i style="left:120px;top:20px"></i></div></div></div>
+          <div class="panneau"><div class="nav" role="tablist"><span class="it" role="tab"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="1.5"/><path d="M4 10h16M10 4v16"/></svg>Salle</span><span class="it" role="tab"><svg viewBox="0 0 24 24"><path d="M7 21V4.5a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1V21"/><path d="M4 21h16"/><circle cx="14.2" cy="12.5" r="0.9" fill="currentColor" stroke="none"/></svg>Portes</span><span class="it on" role="tab"><svg viewBox="0 0 24 24"><path d="M3.5 10.5a8.5 5.5 0 0 1 17 0V19a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1z"/><path d="M3.5 14h17"/><rect x="10.5" y="12" width="3" height="4" rx="0.6"/></svg>Mobilier</span><span class="it" role="tab"><svg viewBox="0 0 24 24"><circle cx="12" cy="7.5" r="3.5"/><path d="M6.5 20.5c0-4.2 2.4-7 5.5-7s5.5 2.8 5.5 7z"/></svg>Créatures</span></div><div class="cat sans-puces"><div class="recherche">Rechercher dans le mobilier…</div><div class="grille" data-tuiles="mobilier"></div></div></div>
+        </div>
+      </div>
+    </div>
+    <p class="serie"><b>Pose en série :</b> l'objet armé reste armé quand on change d'onglet. On peut revenir sur « Salle » pour régler un détail, la pastille « Pose : Coffre ✕ » reste sur la carte, et chaque clic sur la carte pose un coffre jusqu'à Échap ou un autre choix. Cliquer un objet déjà posé sur la carte ramène sur « Salle » (comportement actuel).</p>
+    <div class="pour-contre">
+      <div class="pour"><h3>Pour</h3><ul><li>Plus d'onglet « Ajouter » à deviner : chaque catégorie est visible et à un clic.</li><li>On gagne une rangée dans le catalogue (plus de sous-choix en haut) : plus de vignettes visibles.</li><li>Rien ne couvre la carte, elle garde sa taille ; barre de la scène inchangée.</li><li>Très peu de code : c'est notre mécanisme d'onglets actuel avec quatre onglets au lieu de deux.</li></ul></div>
+      <div class="contre"><h3>Contre</h3><ul><li>Pas de bouton doré « + Ajouter » : l'action « poser » reste portée par trois onglets, pas par un geste unique.</li><li>Les icônes doivent rester lisibles (libellés sous les icônes pour ça).</li><li>L'onglet actif est soit la salle, soit une catégorie : on ne règle pas la salle en posant sans changer d'onglet (un clic).</li></ul></div>
+    </div>
+    <p class="serie"><b>Téléphone, tests, cartouche :</b> sous 760 px, pas de navigation : le « + Ajouter » du bas garde son tiroir. Les ids de <code>tests/rail.test.js</code> sont tous gardés. Le cartouche et le zoom ne bougent pas.</p>
+  </section>
+
   <!-- ===================== commun ===================== -->
   <section>
     <p class="sur">Valable pour les trois</p>
@@ -241,8 +275,9 @@ p { margin: 0; }
   <section>
     <h2>Mon avis</h2>
     <ul class="verdict">
-      <li><b>A</b> est la plus sûre : rien ne cache la carte, la pose en série marche comme aujourd'hui, et « Ajouter » devient évident. Son défaut : le panneau est soit la salle, soit le catalogue.</li>
+      <li><b>A</b> est sûre : rien ne cache la carte, la pose en série marche comme aujourd'hui, et « Ajouter » devient évident. Son défaut : le panneau est soit la salle, soit le catalogue.</li>
       <li><b>C</b> est la plus agréable à l'usage si les salles ne sont pas très hautes, car on voit tout en même temps. À tester sur une grande salle.</li>
+      <li><b>D</b> (les quatre icônes) est maintenant mon premier choix : visible, sans mode caché, elle réutilise notre mécanisme d'onglets et gagne de la place dans le catalogue. Elle garde le défaut de A (on ne règle pas la salle pendant qu'on regarde une catégorie), mais un clic suffit pour y revenir et l'objet reste armé.</li>
       <li><b>B</b> recouvre la carte pendant qu'on pose : je la déconseille, d'autant que le brief écartait ce modèle.</li>
     </ul>
   </section>
