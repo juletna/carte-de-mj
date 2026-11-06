@@ -147,14 +147,14 @@ function compte(cles, cle, extraire) {
 }
 const taille = (v) => (Array.isArray(v) ? v.length : v && typeof v === 'object' ? Object.keys(v).length : 0);
 
-/** Ce que contient une sauvegarde, en une phrase (« 3 donjons, 2 personnages, 1 univers… »). */
+/** Ce que contient une sauvegarde, en une phrase (« 3 donjons, 2 personnages, 1 monde… »). */
 export function resumeSauvegarde(manifeste) {
   const cles = manifeste.cles ?? {};
   const n = (cle, champ) => compte(cles, cle, (v) => taille(v?.[champ]));
   const morceaux = [
     [n('carte-de-mj:donjons-v1', 'donjons'), 'donjon', 'donjons'],
     [n('dd-fiche-personnages-v1', 'persos'), 'personnage', 'personnages'],
-    [n('carte-de-mj:univers-v1', 'univers'), 'univers', 'univers'],
+    [n('carte-de-mj:univers-v1', 'univers'), 'monde', 'mondes'],
     [n('carte-de-mj:modeles-v1', 'modeles'), 'modèle', 'modèles'],
     [n('carte-de-mj:presentations-v1', 'presentations'), 'partie en cours', 'parties en cours'],
     [Array.isArray(manifeste.images) ? manifeste.images.length : 0, 'image importée', 'images importées'],

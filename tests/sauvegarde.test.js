@@ -84,7 +84,7 @@ export async function executer() {
     }],
     ['résumé lisible', async () => {
       const { manifeste } = await contenuSauvegarde({ stock: stock({ ...initial(), 'carte-de-mj:donjons-v1': DONJONS, 'carte-de-mj:mauvais': '{' }), images: [image('a')], maintenant: MAINTENANT });
-      egal(resumeSauvegarde(manifeste), '2 donjons, 2 personnages, 1 univers, 1 image importée', 'résumé');
+      egal(resumeSauvegarde(manifeste), '2 donjons, 2 personnages, 1 monde, 1 image importée', 'résumé');
       egal(resumeSauvegarde({ cles: { 'carte-de-mj:donjons-v1': 'abîmé' }, images: [] }), '1 donnée (réglages)', 'abîmé');
     }],
     ['bibliothèque manquante', () => egal(bibliothequeManquante(['a', 'b', 'c'], new Set(['b'])), ['a', 'c'], 'manquantes')],

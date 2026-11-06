@@ -38,7 +38,7 @@ export function ouvrirSauvegarde() {
   if (!dialogue) {
     dialogue = h('dialog', { id: 'dialogue-sauvegarde', className: 'dialogue-sauvegarde', 'aria-labelledby': 'sauvegarde-titre' },
       h('h2', { id: 'sauvegarde-titre', textContent: 'Sauvegarde complète' }),
-      h('p', { className: 'note', textContent: 'Un seul fichier pour tout garder ou tout retrouver : donjons, personnages, univers, modèles, parties, réglages et images importées.' }),
+      h('p', { className: 'note', textContent: 'Un seul fichier pour tout garder ou tout retrouver : donjons, personnages, mondes, modèles, parties, réglages et images importées.' }),
       h('div', { className: 'actions' },
         h('button', { id: 'sauvegarder-tout', type: 'button', textContent: 'Tout sauvegarder', title: 'Télécharge un fichier .zip' }),
         h('label', { className: 'bouton', title: 'Remplace tout ce que ce navigateur garde par le contenu d\'une sauvegarde .zip' }, 'Tout restaurer… ',
@@ -85,7 +85,7 @@ function brancherSauvegarde() {
     } catch (err) { dire('', [`Restauration refusée : ${err.message}`]); return; }
     const quand = lue.manifeste.cree ? ` faite le ${lue.manifeste.cree.slice(0, 10)}` : '';
     dire('', lue.avertissements);
-    detail.textContent = `Cette sauvegarde${quand} contient : ${resumeSauvegarde(lue.manifeste)}. « Tout remplacer » efface ce que ce navigateur garde aujourd’hui (donjons, personnages, univers, modèles, parties, réglages, images importées) et le remplace par cela. Une sauvegarde de l’état actuel est téléchargée d’abord. Ferme avant les autres onglets de Carte de MJ (Présentation, Fiche) : ils pourraient réécrire leurs anciennes données.`;
+    detail.textContent = `Cette sauvegarde${quand} contient : ${resumeSauvegarde(lue.manifeste)}. « Tout remplacer » efface ce que ce navigateur garde aujourd’hui (donjons, personnages, mondes, modèles, parties, réglages, images importées) et le remplace par cela. Une sauvegarde de l’état actuel est téléchargée d’abord. Ferme avant les autres onglets de Carte de MJ (Présentation, Fiche) : ils pourraient réécrire leurs anciennes données.`;
     detail.hidden = false;
     confirmer.hidden = false;
   });

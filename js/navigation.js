@@ -21,7 +21,7 @@ const lien = (l, classe) => el('a', { class: classe, href: l.href, ...(l.titre ?
 function monter(conteneur) {
   const id = `menu-corps-${++compteur}`;
   const nav = el('nav', { 'aria-label': 'Navigation principale' }, ...LIENS.map((l) => lien(l, 'menu-lien')));
-  const sauvegarde = el('button', { type: 'button', class: 'menu-lien menu-sauvegarde', 'aria-haspopup': 'dialog', title: 'Tout sauvegarder ou tout restaurer : donjons, personnages, univers, images importées' }, 'Sauvegarde');
+  const sauvegarde = el('button', { type: 'button', class: 'menu-lien menu-sauvegarde', 'aria-haspopup': 'dialog', title: 'Tout sauvegarder ou tout restaurer : donjons, personnages, mondes, images importées' }, 'Sauvegarde');
   const droite = el('div', { class: 'menu-droite' }, lien(LIEN_FICHE, 'menu-lien'), sauvegarde);
   const corps = el('div', { class: 'menu-corps', id }, nav, droite);
   const burger = el('button', { type: 'button', class: 'menu-burger', 'aria-expanded': 'false', 'aria-controls': id, 'aria-label': 'Menu' }, '☰');
