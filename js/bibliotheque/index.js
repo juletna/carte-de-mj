@@ -1,7 +1,8 @@
 /**
  * Bibliothèque de cartes : choix d'une carte (catalogue local + images du navigateur + import).
  * Interface publique, utilisée par l'univers (docs/conception-univers.md, section 5) :
- *   choisirCarte(options)  → référence { source, id } choisie, ou null si annulé
+ *   choisirCarte(options)  → référence { source, id } choisie, ou null si annulé ; avec `options.sansImage`, le bouton « Sans image pour l'instant »
+ *                            ferme la fenêtre en rendant { sansImage: true } (créer un lieu « à illustrer » : le plan d'abord, les images ensuite)
  *   urlImage(ref)          → URL affichable, ou null si la carte n'existe plus
  *   infosImage(ref)        → métadonnées (titre, niveau, milieux, largeur, hauteur, grille, credit…), ou null
  * Une référence est { source: 'bibliotheque' | 'navigateur', id } : jamais une URL, qui ne survivrait pas au rechargement.
@@ -76,6 +77,8 @@ export function choisirCarte(options = {}) {
 
     const titre = h('h2', { id: 'bib-titre', textContent: 'Choisir une carte' });
     const fermer = btn('Annuler', () => dialogue.close(), { icone: 'fermer', classe: 'btn-discret' });
+    const sansImage = btn('Sans image pour l’instant', () => { resultat = { sansImage: true }; dialogue.close(); }, { icone: 'plus', classe: 'bib-sans-image-bouton' });
+    sansImage.title = 'Crée le lieu tout de suite, sur un fond neutre : tu poses ses points maintenant et son image plus tard';
     const bOnglets = [['bibliotheque', 'Bibliothèque'], ['navigateur', 'Mes images']].map(([id, libelle]) => {
       const b = h('button', { type: 'button', textContent: libelle, role: 'tab', id: `bib-onglet-${id}` });
       b.addEventListener('click', () => { onglet = id; choisi = null; formulaireOuvert = false; dessiner(); });
@@ -223,7 +226,7 @@ export function choisirCarte(options = {}) {
     });
 
     dialogue.append(h('div', { className: 'bib-cadre' },
-      h('div', { className: 'bib-tete' }, titre, fermer), barreOnglets, zoneFiltres, zoneMessage, zoneImport,
+      h('div', { className: 'bib-tete' }, titre, ...(options?.sansImage ? [sansImage] : []), fermer), barreOnglets, zoneFiltres, zoneMessage, zoneImport,
       h('div', { className: 'bib-corps' }, grille, detail)));
     dialogue.addEventListener('click', (e) => { if (e.target === dialogue) dialogue.close(); });
     dialogue.addEventListener('close', () => { dialogue.remove(); ancienFocus?.focus?.(); resolve(resultat); });

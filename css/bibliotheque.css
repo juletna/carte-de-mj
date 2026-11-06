@@ -11,6 +11,7 @@ dialog.bib::backdrop { background: rgb(0 0 0 / 0.65); }
 .bib-cadre { display: flex; flex-direction: column; gap: var(--esp-3); height: 100%; box-sizing: border-box; padding: var(--esp-4); }
 .bib-tete { display: flex; align-items: center; justify-content: space-between; gap: var(--esp-3); }
 .bib-tete h2 { margin: 0; font-size: 18px; }
+.bib-tete .bib-sans-image-bouton { margin-left: auto; }
 
 .bib-onglets { display: flex; gap: var(--esp-1); border-bottom: 1px solid var(--bord); }
 .bib-onglets button { background: transparent; color: var(--texte-doux); border: 0; border-bottom: 2px solid transparent; border-radius: 0; padding: var(--esp-2) var(--esp-3); min-height: var(--cible); cursor: pointer; font: inherit; }

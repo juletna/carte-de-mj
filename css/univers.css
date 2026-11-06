@@ -45,6 +45,8 @@ h3 .aide, h2 .aide { margin-left: var(--esp-1); font-weight: 400; }
 
 .univers-vignette { flex: none; box-sizing: border-box; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 4px; background: var(--scene); border: 1px solid var(--bord); font-size: 18px; line-height: 1; }
 .univers-vignette .icone { width: 55%; height: 55%; color: var(--texte-doux); }
+.univers-vignette.a-illustrer { background: #efe0b8; border: 1px dashed #c9ae72; } /* lieu sans image : la pastille parchemin du fond neutre */
+.univers-vignette.a-illustrer .icone { color: #8b7447; }
 .univers-vignette.petite { width: 32px; height: 32px; }
 .univers-vignette img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .doux { color: var(--texte-doux); font-size: 12px; }
@@ -62,6 +64,11 @@ h3 .aide, h2 .aide { margin-left: var(--esp-1); font-weight: 400; }
 .univers-cadre { position: relative; display: inline-block; line-height: 0; max-width: 100%; max-height: 100%; }
 .univers-image { display: block; max-width: 100%; max-height: calc(100vh - 150px); width: auto; height: auto; user-select: none; -webkit-user-drag: none; border-radius: var(--rayon); }
 .univers-cadre.sans-image { min-width: min(320px, 90vw); min-height: 240px; background: var(--champ); border: 1px dashed var(--bord); border-radius: var(--rayon); }
+/* Lieu à illustrer : le bouton « Choisir une image » flotte sous le nom, au centre du fond neutre (ce nom est dans l'image, voir js/univers-fond.js). */
+.univers-fond-action { position: absolute; left: 50%; top: 62%; transform: translateX(-50%); line-height: 1.2; z-index: 1; }
+.univers-fond-action[hidden] { display: none; }
+.univers-fond-action .btn { background: rgba(255, 250, 235, 0.92); color: #5a4a28; border-color: #c9ae72; }
+.univers-fond-action .btn:hover { background: #fffaf0; }
 .univers-manque { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; margin: 0; padding: var(--esp-4); text-align: center; line-height: 1.4; font-size: 14px; color: var(--texte-doux); }
 .univers-cadre.poser { cursor: crosshair; }
 .univers-cadre.arme { cursor: crosshair; outline: 2px dashed var(--accent); outline-offset: 2px; }

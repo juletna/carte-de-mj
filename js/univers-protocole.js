@@ -29,21 +29,23 @@ export const decalerDefilement = (d, dx, dy, pas = PAS_DEFILEMENT) => bornerDefi
 /** Position de défilement en pixels pour une fraction et une course (contenu moins fenêtre, jamais négative). */
 export const positionDefilement = (fraction, course) => Math.round(borner01(fraction) * Math.max(0, Number.isFinite(course) ? course : 0));
 
-/** @param {{image:object, nom?:string, points:object[]}} vue  le résultat de vueDeLaTable() ; `defilement` : voir CENTRE */
+/** @param {{image?:object, nom?:string, points:object[]}} vue  le résultat de vueDeLaTable() ; `defilement` : voir CENTRE */
 export const messageUnivers = (vue, affichage, defilement = CENTRE, ordre = 0) => ({ type: TYPE_UNIVERS, vue, affichage, defilement: { ...bornerDefilement(defilement), ordre } });
 /** `ordre` : compteur de la régie, qui change à chaque commande de défilement (même « recentrer » deux fois de suite) ; entier positif, sinon 0. */
 const entierOrdre = (v) => (Number.isSafeInteger(v) && v > 0 ? v : 0);
 
 /**
  * Côté table : relit un message `univers-etat`. Un point mal formé est écarté ; une image invalide fait refuser le message.
- * @returns {{defilement:{x:number,y:number,ordre:number}, vue:{image:{source:string,id:string}, nom?:string, grille?:{case:number,dx:number,dy:number}, points:{id:string,x:number,y:number,nom?:string}[]}, affichage:object}|null}
+ * @returns {{defilement:{x:number,y:number,ordre:number}, vue:{image?:{source:string,id:string}, nom?:string, grille?:{case:number,dx:number,dy:number}, points:{id:string,x:number,y:number,nom?:string}[]}, affichage:object}|null}
  */
 export function lireVueUnivers(m, affichageActuel) {
-  if (!estObjet(m) || m.type !== TYPE_UNIVERS || !estObjet(m.vue) || !imageValide(m.vue.image)) return null;
+  if (!estObjet(m) || m.type !== TYPE_UNIVERS || !estObjet(m.vue)) return null;
+  const sansImage = m.vue.image === undefined || m.vue.image === null; // lieu à illustrer : pas d'image, la table montre le fond neutre
+  if (!sansImage && !imageValide(m.vue.image)) return null;
   const points = (Array.isArray(m.vue.points) ? m.vue.points : []).slice(0, MAX_POINTS)
     .filter((p) => estObjet(p) && typeof p.id === 'string' && RE_ID.test(p.id) && fraction(p.x) && fraction(p.y))
     .map((p) => ({ id: p.id, x: p.x, y: p.y, ...(typeof p.nom === 'string' && p.nom ? { nom: p.nom.slice(0, LIMITES.nom) } : {}) }));
-  const vue = { image: { source: m.vue.image.source, id: m.vue.image.id }, points };
+  const vue = sansImage ? { points } : { image: { source: m.vue.image.source, id: m.vue.image.id }, points };
   const grille = normaliserGrille(m.vue.grille);
   if (grille) vue.grille = grille;
   if (typeof m.vue.nom === 'string' && m.vue.nom) vue.nom = m.vue.nom.slice(0, LIMITES.nom);

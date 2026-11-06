@@ -4,6 +4,7 @@
  */
 import * as u from '../js/univers.js';
 import { validerUnivers, lireUnivers } from '../js/univers-validation.js';
+import { svgFondNeutre, urlFondNeutre, lignesDuNom, FOND_LARGEUR, FOND_HAUTEUR } from '../js/univers-fond.js';
 import { creerDonjon } from '../js/donjon.js';
 import { verifier, egal, executerSuite } from './mini-test.js';
 
@@ -20,6 +21,51 @@ function exemple() {
 }
 
 const TESTS = [
+  ['fond neutre d’un lieu sans image : paysage 16:9, nom échappé et coupé', () => {
+    egal(FOND_LARGEUR / FOND_HAUTEUR, 16 / 9, 'format 16:9');
+    const svg = svgFondNeutre('<script>alert(1)</script> & "Île"');
+    verifier(!svg.includes('<script>') && svg.includes('&lt;script&gt;') && svg.includes('&amp;'), 'le nom vient d’un fichier : échappé');
+    egal(lignesDuNom('Le Repaire des gobelins de la forêt de Brume'), ['Le Repaire des', 'gobelins de la forêt de Brume'].map((l) => l.slice(0, 30)), 'deux lignes au plus');
+    egal(lignesDuNom('   '), [], 'nom vide : pas de texte');
+    verifier(urlFondNeutre('Île').startsWith('data:image/svg+xml'), 'URL de données');
+    verifier(svgFondNeutre('').includes('width="1600" height="900"'), 'dimensions naturelles');
+  }],
+  ['lieu sans image : créé tout de suite, points conservés quand l’image arrive, grille ignorée', () => {
+    const univ = u.creerUnivers({ nom: 'Archipel' });
+    const sans = u.ajouterLieu(univ, { nom: 'Île du Phare', grille: { case: 50, dx: 0, dy: 0 } });
+    verifier(!('image' in sans) && !('grille' in sans) && u.lieuSansImage(sans), 'ni image ni grille');
+    egal([univ.racine, sans.type], [sans.id, 'carte'], 'il peut être la carte du monde');
+    const autre = u.ajouterLieu(univ, { nom: 'Port', image: null });
+    verifier(u.lieuSansImage(autre), 'image null : sans image');
+    const p = u.ajouterPoint(univ, sans.id, { nom: 'Phare', x: 0.25, y: 0.75, vers: { lieu: autre.id } });
+    let erreur = '';
+    try { u.ajouterLieu(univ, { nom: 'x', image: { source: 'http', id: 'a' } }); } catch (e) { erreur = e.message; }
+    egal(erreur, 'image invalide', 'une image donnée mais mal formée reste refusée');
+    try { u.definirImageLieu(univ, sans.id, undefined); } catch (e) { erreur = e.message; }
+    egal(erreur, 'image invalide', 'pour retirer l’image il faut passer null');
+    u.definirImageLieu(univ, sans.id, IMG('ile-01'));
+    egal(sans.image, IMG('ile-01'), 'image posée après coup');
+    egal([p.x, p.y], [0.25, 0.75], 'les points gardent leur place relative');
+    u.definirGrilleLieu(univ, sans.id, { case: 64, dx: 0, dy: 0 });
+    u.definirImageLieu(univ, sans.id, null);
+    verifier(u.lieuSansImage(sans) && !('grille' in sans), 'image retirée : la grille calée sur elle s’en va');
+  }],
+  ['lieu sans image : export puis relecture, lieu valide gardé avec ses points', () => {
+    const univ = u.creerUnivers({ nom: 'Archipel' });
+    const sans = u.ajouterLieu(univ, { nom: 'Île' });
+    const avec = u.ajouterLieu(univ, { nom: 'Port', image: IMG() });
+    u.ajouterPoint(univ, sans.id, { nom: 'Quai', x: 0.1, y: 0.9, vers: { lieu: avec.id } });
+    const texte = u.texteUnivers(univ);
+    verifier(!texte.includes('"image":null') && !texte.includes('"image": null'), 'pas d’image nulle dans le fichier');
+    const v = lireUnivers(texte);
+    verifier(!v.avertissements.length, `relu sans avertissement : ${JSON.stringify(v.avertissements)}`);
+    egal(v.univers, univ, 'même univers');
+    const brut = JSON.parse(texte);
+    brut.lieux[sans.id].image = null; brut.lieux[sans.id].grille = { case: 40, dx: 0, dy: 0 };
+    const v2 = validerUnivers(brut);
+    verifier(v2.univers && u.lieuSansImage(v2.univers.lieux[sans.id]) && !('grille' in v2.univers.lieux[sans.id]), 'image null acceptée, grille ignorée');
+    egal(v2.univers.lieux[sans.id].points.length, 1, 'points gardés');
+  }],
   ['un univers neuf est vide ; le premier lieu devient la racine', () => {
     const univ = u.creerUnivers({ nom: '  Mon monde ' });
     egal([univ.format, univ.version, univ.nom, univ.racine, Object.keys(univ.lieux)], ['carte-de-mj-univers', 1, 'Mon monde', null, []], 'neuf');
@@ -202,13 +248,13 @@ const TESTS = [
   ['validation : un lieu ou un point abîmé est écarté en le disant, le reste est gardé', () => {
     const { univ, monde, foret } = exemple();
     const b = JSON.parse(JSON.stringify(univ));
-    b.lieux.mauvais = { id: 'mauvais', nom: 'Sans image', points: [] };
+    b.lieux.mauvais = { id: 'mauvais', nom: 'Image abîmée', image: { source: 'http', id: 'x' }, points: [] };
     b.lieux[monde.id].points.push({ id: 'p-a', nom: 'sans position' }, 'pas un objet', { id: 'p-b', x: 0.1, y: 0.2, vers: { n: 'importe quoi' } }, { id: 'p-c', nom: 'Hors', x: 1.5, y: 0.5, vers: { lieu: 'l-disparu' } });
     b.lieux[foret.id].notes = 'n'.repeat(20001);
     b.racine = 'inconnue';
     const v = validerUnivers(b);
     verifier(v.univers && !v.ok, 'relu mais avec des avertissements');
-    egal(Object.keys(v.univers.lieux).length, 3, 'le lieu sans image est écarté');
+    egal(Object.keys(v.univers.lieux).length, 3, 'le lieu à l’image abîmée est écarté');
     const pts = v.univers.lieux[monde.id].points;
     egal(pts.map((p) => p.id), [univ.lieux[monde.id].points[0].id, 'p-b', 'p-c'], 'points gardés');
     verifier(!('vers' in pts[1]), 'destination invalide effacée');
@@ -216,7 +262,7 @@ const TESTS = [
     egal(v.univers.lieux[foret.id].notes.length, 20000, 'notes coupées');
     egal(v.univers.racine, monde.id, 'racine remplacée par le premier lieu');
     const texte = v.avertissements.join(' | ');
-    for (const m of ['Sans image', 'sans position', 'pas un objet', 'destination du point', 'ramené', 'notes coupées', 'carte du monde']) verifier(texte.includes(m), `avertissement « ${m} » absent : ${texte}`);
+    for (const m of ['Image abîmée', 'sans position', 'pas un objet', 'destination du point', 'ramené', 'notes coupées', 'carte du monde']) verifier(texte.includes(m), `avertissement « ${m} » absent : ${texte}`);
     egal(u.orphelins(v.univers).map((o) => o.point), ['p-c'], 'l’orphelin reste signalé');
   }],
   ['validation : `depart` facultatif, relu s’il désigne un lieu, ignoré en le disant sinon', () => {

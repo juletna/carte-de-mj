@@ -104,12 +104,12 @@ export function pointsPourLaTable(partie, univers, idLieu = partie.lieuCourant) 
 
 /**
  * Ce que voit la table : la référence de l'image (jamais l'image) et les points visibles.
- * @returns {{image:object, nom?:string, points:object[]}|null} null si le lieu n'existe plus
+ * @returns {{image?:object, nom?:string, points:object[]}|null} null si le lieu n'existe plus ; `image` absente : lieu à illustrer (la table montre le fond neutre)
  */
 export function vueDeLaTable(partie, univers, grille = null) {
   const lieu = univers.lieux[partie.lieuCourant];
   if (!lieu) return null;
-  return { image: { source: lieu.image.source, id: lieu.image.id }, ...(partie.masquerNoms ? {} : { nom: lieu.nom }), ...(grille ? { grille: { case: grille.case, dx: grille.dx, dy: grille.dy } } : {}), points: pointsPourLaTable(partie, univers) };
+  return { ...(lieu.image ? { image: { source: lieu.image.source, id: lieu.image.id } } : {}), ...(partie.masquerNoms ? {} : { nom: lieu.nom }), ...(grille ? { grille: { case: grille.case, dx: grille.dx, dy: grille.dy } } : {}), points: pointsPourLaTable(partie, univers) };
 }
 
 /**

@@ -9,10 +9,10 @@ import * as images from '../univers-images.js';
 const cleImage = (ref) => `${ref?.source}:${ref?.id}`;
 const urlsVignettes = new Map(); // clé d'image → URL, pour que la vignette d'un lieu n'attende qu'une fois
 
-/** La vignette d'un lieu : l'icône du monde d'abord, puis l'image dès qu'elle est connue. `classe` : 'petite' (32 px) ou '' (40 px). */
+/** La vignette d'un lieu : l'icône du monde d'abord, puis l'image dès qu'elle est connue ; `ref` absente (lieu à illustrer) : une pastille neutre. `classe` : 'petite' (32 px) ou '' (40 px). */
 export function vignetteLieu(ref, classe = 'petite') {
-  const boite = h('span', { className: `univers-vignette ${classe}`.trim(), 'aria-hidden': 'true' }, icone('monde'));
-  if (!ref) return boite;
+  const boite = h('span', { className: `univers-vignette ${classe}${ref ? '' : ' a-illustrer'}`.trim(), 'aria-hidden': 'true' }, icone(ref ? 'monde' : 'bibliotheque'));
+  if (!ref) return boite; // lieu à illustrer : une pastille parchemin en pointillés, l'icône de la bibliothèque (où l'image viendra)
   const cle = cleImage(ref);
   const poser = (url) => { if (url) boite.replaceChildren(h('img', { src: url, alt: '', loading: 'lazy', decoding: 'async' })); };
   if (urlsVignettes.has(cle)) poser(urlsVignettes.get(cle));

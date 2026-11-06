@@ -166,7 +166,11 @@ par leur identifiant : un univers ne copie pas ses donjons.
   désigne un lieu disparu, le départ est la racine (`lieuDeDepart(u)` dans `js/univers.js` ; les mondes d'avant ce champ se comportent donc comme
   avant). Supprimer le lieu de départ retire `depart` ; l'annuler le rétablit. La validation ignore un `depart` sans lieu, avec un avertissement.
   Renommer le monde renomme aussi sa carte tant qu'elle porte le même nom que lui.
-- Un **lieu** est une carte image (`type: "carte"`). Un donjon n'est pas un lieu recopié : un point mène à un donjon par `vers.donjon`
+- Un **lieu** est une carte image (`type: "carte"`). L'`image` est **facultative** : un lieu sans image (clé absente ou `null` à la relecture) est « à illustrer ».
+  On conçoit d'abord le plan (lieux, points, liens, notes), et les images se posent plus tard (`definirImageLieu`, ou « Choisir une image »). Ses points
+  gardent leurs fractions : l'image qui arrive les trouve à la même place relative. Sans image, pas de grille (un `grille` donné est ignoré, et retirer
+  l'image l'oublie) : l'outil Calage est masqué. La scène, la régie et la table montrent un fond neutre en paysage 16:9 (parchemin doux, nom du lieu au
+  centre, `js/univers-fond.js`) ; le message de la table n'a alors pas d'`image`. Une image donnée mais mal formée reste une erreur (le lieu est écarté). Un donjon n'est pas un lieu recopié : un point mène à un donjon par `vers.donjon`
   (et une salle d'arrivée facultative).
 - `x`, `y` d'un point : **fractions de 0 à 1** de la largeur et de la hauteur de l'image, indépendantes de sa résolution.
 - `vers` : `{ "lieu": id }` ou `{ "donjon": id, "salle"?: id }`. Une destination absente (lieu supprimé, donjon supprimé) est signalée

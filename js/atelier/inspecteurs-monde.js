@@ -125,8 +125,8 @@ export function enregistrerInspecteursMonde(coquille, U) {
     resume: (sel, c) => {
       const l = mondeDe(sel, c)?.lieux?.[sel.id];
       if (!l || (U.calage.actif() && U.lieu() === sel.id)) return '';
-      const info = U.infosEnCache(l.image);
-      const taille = resumeTailleLieu(grilleEffective(l, info ?? null).grille, info?.largeur, info?.hauteur, chargerReglages().echelle);
+      const info = l.image ? U.infosEnCache(l.image) : null;
+      const taille = l.image ? resumeTailleLieu(grilleEffective(l, info ?? null).grille, info?.largeur, info?.hauteur, chargerReglages().echelle) : 'à illustrer';
       return [taille, l.points.length ? pluriel(l.points.length, 'point', 'points') : 'Aucun point', modele.lieuDeDepart(mondeDe(sel, c)) === l.id ? 'départ de la partie' : ''].filter(Boolean).join(' · ');
     },
     destructives: (sel, c) => {
@@ -160,20 +160,21 @@ export function enregistrerInspecteursMonde(coquille, U) {
     departCoche.addEventListener('change', () => { if (departCoche.checked) U.definirDepart(); else departCoche.checked = true; }); // on change de départ en le cochant ailleurs
     const depart = h('label', { className: 'univers-interrupteur', title: 'La partie commence sur ce lieu (par défaut, la carte du monde). Pour changer, coche un autre lieu.' }, departCoche, h('span', { className: 'univers-glissiere', 'aria-hidden': 'true' }),
       h('span', { textContent: 'Départ de la partie' }));
-    const info = U.infosEnCache(l.image);
+    const info = l.image ? U.infosEnCache(l.image) : null; // sans image : ni informations, ni grille
     if (info === undefined) U.infosDe(l.image).then(() => { if (U.lieu() === l.id && [l.id, u.id].includes(coquille.selection()?.id)) redessiner(); }); // le niveau de la carte arrive avec ses informations
     const eff = grilleEffective(l, info ?? null);
     const taille = String(eff.grille?.case).replace('.', ',');
     const etatGrille = { lieu: `Grille calée : cases de ${taille} px`, catalogue: `Grille du catalogue : cases de ${taille} px`, aucune: 'Pas de grille', ambiance: 'Carte d’ambiance, sans grille' }[eff.origine];
-    const peutCaler = !info || calagePossible(info.niveau);
+    const peutCaler = !!l.image && (!info || calagePossible(info.niveau));
     conteneur.append(
       ...(orph.length ? [h('p', { className: 'note erreur' }, icone('alerte'), ` ${pluriel(orph.length, 'point mène', 'points mènent')} vers une destination qui n’existe plus : ils sont signalés, rien n’a été retiré.`)] : []),
       listePoints(u, l),
       section('lieu-notes', 'Notes', [notes]),
       section('lieu-carte', 'Carte', [
         depart,
+        ...(!l.image ? [h('p', { className: 'note', textContent: 'Pas d’image pour l’instant : un fond neutre tient lieu de carte. Les points posés gardent leur place quand l’image arrive.' })] : []),
         ...(peutCaler ? [h('div', { className: 'ligne' }, h('span', { className: 'univers-etat-grille doux', textContent: etatGrille }), avecCle(btn('Caler la grille', () => U.definirMode('grille'), { icone: 'grille', classe: 'btn-discret' }), 'caler'))] : []),
-        h('div', { className: 'actions' }, btn('Changer l’image', () => U.changerImage(), { icone: 'bibliotheque', classe: 'btn-discret' }))]));
+        h('div', { className: 'actions' }, btn(l.image ? 'Changer l’image' : 'Choisir une image', () => U.changerImage(), { icone: 'bibliotheque', classe: 'btn-discret' }))]));
     retrouverFocus();
   }
 

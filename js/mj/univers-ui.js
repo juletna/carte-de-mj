@@ -68,6 +68,9 @@ export function creerUniversUI(ctx) {
   const scene = h('section', { className: 'univers-scene', id: 'scene-monde', 'aria-label': 'Carte du lieu', hidden: true }, filAriane, zoneCarte, vide, zoneNotifications);
   $('cadre-scene').append(scene);
 
+  // Lieu sans image : sur son fond neutre, un seul bouton pour y poser l'image (les points se posent et se relient comme sur n'importe quelle carte).
+  const fondAction = h('div', { className: 'univers-fond-action', hidden: true },
+    btn('Choisir une image', (e) => { e.stopPropagation(); changerImage(); }, { icone: 'bibliotheque', classe: 'btn-discret' }));
   const carte = creerCarteUnivers(zoneCarte, {
     onPoint: (id) => {
       if (calage.actif()) return;
@@ -80,6 +83,7 @@ export function creerUniversUI(ctx) {
     onVide: (x, y) => { if (!calage.actif()) poserPoint(x, y); }, // poser un point est le geste principal : un clic dans le vide, toujours (Échap lâche le point choisi)
     onDeplace: (id, x, y) => { modele.deplacerPoint(univ(), lieuId, id, x, y); selectionner(id); sauver(); rendre(); },
   });
+  carte.cadre.append(fondAction);
   zoneCarte.addEventListener('click', (e) => { if (e.target === zoneCarte && pointId) { selectionner(null); rendre(); } });
 
   // Le calage de la grille d'un lieu (js/mj/univers-calage.js) : l'outil Calage de la barre ; ses réglages sont dans l'inspecteur du lieu.
@@ -94,8 +98,9 @@ export function creerUniversUI(ctx) {
     },
   });
   const infosCache = new Map();
-  const cleImage = (ref) => `${ref.source}:${ref.id}`;
+  const cleImage = (ref) => `${ref?.source}:${ref?.id}`;
   async function infosDe(ref) {
+    if (!ref) return null; // lieu à illustrer
     if (!infosCache.has(cleImage(ref))) infosCache.set(cleImage(ref), await images.infosImage(ref));
     return infosCache.get(cleImage(ref));
   }
@@ -194,16 +199,22 @@ export function creerUniversUI(ctx) {
     lieuId = id; selectionner(null); calage.fermer();
   }
 
-  async function demanderImage() {
-    try { return await images.choisirCarte({}); } catch (err) { dire(err.message, { erreur: true }); return null; }
+  /** Ouvre le choix d'une carte. `sansImage` : la fenêtre propose aussi « Sans image pour l'instant » (rend alors `images.SANS_IMAGE`). Null si annulé. */
+  async function demanderImage({ sansImage = false } = {}) {
+    try { return await images.choisirCarte({ sansImage }); } catch (err) { dire(err.message, { erreur: true }); return null; }
   }
-  /** Crée un lieu à partir d'une image choisie, nommé `nomImpose` s'il est donné, sinon d'après l'image. Rend le lieu, ou null (annulé, ou limite atteinte). */
+  /**
+   * Crée un lieu : la fenêtre de choix de la carte propose « Sans image pour l'instant » (le plan d'abord, les images ensuite). Avec une image,
+   * le lieu est nommé `nomImpose` s'il est donné, sinon d'après l'image ; sans image, d'après `nomImpose` ou « Lieu N ».
+   * Rend le lieu, ou null (annulé, ou limite atteinte).
+   */
   async function creerLieu(nomImpose = '') {
-    const ref = await demanderImage();
+    const ref = await demanderImage({ sansImage: true });
     if (!ref) return null;
-    const infos = await images.infosImage(ref);
+    const sans = images.estSansImage(ref);
+    const infos = sans ? null : await images.infosImage(ref);
     try {
-      return modele.ajouterLieu(univ(), { nom: nomDuNouveauLieu(nomImpose, infos?.titre), image: ref });
+      return modele.ajouterLieu(univ(), { nom: nomDuNouveauLieu(nomImpose, infos?.titre), ...(sans ? {} : { image: ref }) });
     } catch (err) { dire(err.message, { erreur: true }); return null; }
   }
   async function ajouterLieuLibre() {
@@ -212,10 +223,11 @@ export function creerUniversUI(ctx) {
     const l = await creerLieu(premier ? univ().nom : '');
     if (!l) return null;
     entrerDansLieu(l.id); fil = [l.id];
+    if (!l.image && !premier) saisie.cle = 'lieu-nom'; // sans image, rien ne le nomme : le nom est la première chose à saisir
     sauver(); rendre();
     // Le panneau montre le lieu neuf ; la première carte, elle, est celle du monde : son panneau est celui du monde.
     if (!premier) ctx.coquille?.naviguer({ page: 'monde', monde: univ().id, lieu: l.id });
-    dire(`${premier ? 'Carte du monde choisie' : `Lieu « ${l.nom} » ajouté`}. Clique sur la carte pour poser un point, tape son nom, Entrée.`);
+    dire(`${premier ? 'Carte du monde choisie' : `Lieu « ${l.nom} » ajouté`}${l.image ? '' : ' sans image : un fond neutre en attendant'}. Clique sur la carte pour poser un point, tape son nom, Entrée.`);
     return l;
   }
   function renommerLieu(nomLieu) { modele.renommerLieu(univ(), lieuId, nomLieu); sauver(); rendre({ inspecteur: false }); }
@@ -240,7 +252,7 @@ export function creerUniversUI(ctx) {
   }
   async function changerImage() {
     const ref = await demanderImage();
-    if (!ref) return;
+    if (!ref || images.estSansImage(ref)) return;
     modele.definirImageLieu(univ(), lieuId, ref);
     sauver(); rendre();
   }
@@ -278,10 +290,10 @@ export function creerUniversUI(ctx) {
     if (!p) return;
     const l = await creerLieu(p.nom);
     if (l && lieu()?.id === lid && point()?.id === pid) {
-      modele.modifierPoint(univ(), lid, pid, { vers: { lieu: l.id }, ...(point().nom ? {} : { nom: l.nom }) });
+      modele.modifierPoint(univ(), lid, pid, { vers: { lieu: l.id }, ...(point().nom || !l.image ? {} : { nom: l.nom }) }); // sans image, le lieu n'a que son nom par défaut : le point n'en prend pas
       saisie.choixGenre = null;
       sauver();
-      dire(`Lieu « ${l.nom} » ajouté et relié à ce point.`);
+      dire(`Lieu « ${l.nom} » ajouté${l.image ? '' : ' sans image'} et relié à ce point.`);
     }
     rendre();
   }
@@ -351,6 +363,7 @@ export function creerUniversUI(ctx) {
     const pointsCarte = enCalage ? [...pointsLieu, ...calage.marqueurs()] : pointsLieu;
     const infos = await infosDe(l.image);
     if (moi !== sequence) return;
+    fondAction.hidden = !!l.image || enCalage;
     const aff = enCalage ? calage.grilleAffichee() : { grille: grilleEffective(l, infos).grille, opacite: casesDeReglages(stockage.chargerReglages() ?? {}) / 100 };
     const enCours = !enCalage && nomSurCarte && l.points.find((p) => p.id === nomSurCarte);
     const nomEnCours = enCours ? {
@@ -360,9 +373,9 @@ export function creerUniversUI(ctx) {
       surFin: (comment) => finNomSurCarte(enCours.id, comment),
     } : null;
     const options = { points: pointsCarte, modifiable: !enCalage, poser: !enCalage, alt: `Carte : ${l.nom}`, nomEnCours, ...aff };
-    const cle = cleImage(l.image);
+    const cle = l.image ? cleImage(l.image) : `fond:${l.nom}`;
     if (imageAffichee !== cle) carte.afficher({ ...options, url: null, absente: 'Chargement de l’image…' });
-    const url = await images.urlImage(l.image);
+    const url = await images.urlLieu(l);
     if (moi !== sequence) return;
     imageAffichee = url ? cle : null;
     carte.afficher({ ...options, url, absente: 'Image introuvable : la carte n’est plus dans la bibliothèque ou dans ce navigateur (ou la bibliothèque n’est pas disponible). Les points restent posés ; choisis une autre image.' });
@@ -384,6 +397,7 @@ export function creerUniversUI(ctx) {
   async function ouvrirCalage() {
     const l = lieu();
     if (!l) return false;
+    if (!l.image) { dire('Un lieu sans image n’a pas de grille à caler : choisis d’abord une image.'); return false; }
     const dims = carte.dimensions();
     if (!dims) { dire('La carte n’est pas encore chargée (ou introuvable) : on ne peut pas y caler une grille.', { erreur: true }); return false; }
     selectionner(null);
@@ -398,6 +412,7 @@ export function creerUniversUI(ctx) {
   async function grillePossible() {
     const l = lieu();
     if (!l) return false;
+    if (!l.image) return false; // pas d'image, pas de calage
     return calagePossible((await infosDe(l.image))?.niveau);
   }
   /** Change d'outil : 'grille' ouvre le calage ; tout autre mode le ferme sans rien enregistrer (la carte pose et choisit les points d'elle-même). */

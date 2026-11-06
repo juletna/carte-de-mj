@@ -32,6 +32,15 @@ function exemple() {
 }
 
 const TESTS = [
+  ['un lieu sans image figure dans l’arbre comme un autre', () => {
+    const univ = u.creerUnivers({ nom: 'Archipel' });
+    const carte = u.ajouterLieu(univ, { nom: 'Archipel' });
+    const ile = u.ajouterLieu(univ, { nom: 'Île' });
+    u.ajouterPoint(univ, carte.id, { vers: { lieu: ile.id } });
+    const m = arbreAtelier({ univers: { [univ.id]: univ }, donjons: {} }).mondes[0];
+    egal([m.racine, m.enfants.map((e) => [e.type, e.nom])], [carte.id, [['lieu', 'Île']]], 'monde + lieu relié');
+    egal(filtrerAtelier(arbreAtelier({ univers: { [univ.id]: univ }, donjons: {} }), 'île').mondes.length, 1, 'la recherche le trouve');
+  }],
   ['monde avec lieux imbriqués, donjon et salles dans l’ordre', () => {
     const e = exemple();
     const a = arbreAtelier({ univers: e.univ, donjons: e.donjons });

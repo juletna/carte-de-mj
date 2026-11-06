@@ -8,6 +8,7 @@
  */
 import { creerCarteUnivers } from './univers-carte.js';
 import * as images from './univers-images.js';
+import { urlFondNeutre } from './univers-fond.js';
 import { dimensionsTable } from './univers-grille.js';
 import { CENTRE, positionDefilement } from './univers-protocole.js';
 import { casesDeReglages, TAILLE_PAR_DEFAUT } from './affichage.js';
@@ -57,12 +58,12 @@ export function creerTableUnivers() {
       $('orientation-table').classList.add('avec-univers');
       titre.hidden = !nom;
       titre.textContent = nom ?? '';
-      const cle = `${image.source}:${image.id}:${affichage.mode}:${grille ? `${grille.case}/${grille.dx}/${grille.dy}` : ''}:${affichage.taille}`;
+      const refCle = image ? `${image.source}:${image.id}` : `fond:${nom ?? ''}`; // sans image (lieu à illustrer) : le fond neutre, nommé d'après le lieu
+      const cle = `${refCle}:${affichage.mode}:${grille ? `${grille.case}/${grille.dx}/${grille.dy}` : ''}:${affichage.taille}`;
       if (cle !== courante?.cle || demande.x !== defilement.x || demande.y !== defilement.y || demande.ordre !== defilement.ordre) aPlacer = true; // sinon le doigt d'un joueur qui a fait défiler la carte n'est pas contredit
       defilement = { x: demande.x, y: demande.y, ordre: demande.ordre };
       courante = { vue: { image, nom, points, grille }, affichage, cle };
       const donnees = { grille: grille ?? null, opacite: casesDeReglages(affichage) / 100, points: points.map((p) => ({ id: p.id, x: p.x, y: p.y, nom: p.nom ?? '' })), alt: nom ? `Carte : ${nom}` : 'Carte' };
-      const refCle = `${image.source}:${image.id}`;
       if (connue?.ref === refCle && connue.url) { // même carte : on ne la recharge pas à chaque point révélé
         carte.afficher({ ...donnees, url: connue.url, absente: '' });
         dimensionner();
@@ -70,7 +71,7 @@ export function creerTableUnivers() {
       }
       carte.afficher({ ...donnees, url: null, absente: '' });
       carte.image.style.width = ''; carte.image.style.height = '';
-      const url = await images.urlImage(image);
+      const url = image ? await images.urlImage(image) : urlFondNeutre(nom ?? '');
       if (moi !== sequence) return;
       connue = { ref: refCle, url };
       carte.afficher({ ...donnees, url, absente: 'La carte n’a pas pu être chargée sur cet écran (elle n’est pas dans la bibliothèque de ce navigateur).' });

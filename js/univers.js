@@ -46,13 +46,18 @@ export const carteDuMonde = (u) => (typeof u.racine === 'string' && u.racine in 
  */
 export const lieuDeDepart = (u) => (typeof u.depart === 'string' && u.depart in u.lieux ? u.depart : carteDuMonde(u));
 
-/** Ajoute un lieu (carte image). Le premier devient la racine. Lève une Error en français si la limite est atteinte. */
+/**
+ * Ajoute un lieu (carte image). Le premier devient la racine. Lève une Error en français si la limite est atteinte.
+ * `image` est facultative (absente ou `null` : le lieu est « à illustrer », on conçoit le plan d'abord et on pose l'image plus tard avec `definirImageLieu`) ;
+ * donnée mais mal formée, elle est refusée. Une grille ne se cale que sur une image : sans image, `grille` est ignorée.
+ */
 export function ajouterLieu(u, { nom, image, notes = '', grille } = {}) {
   if (Object.keys(u.lieux).length >= MAX_LIEUX) throw new Error(`un univers compte ${MAX_LIEUX} lieux au plus`);
-  if (!imageValide(image)) throw new Error('image invalide');
+  if (image != null && !imageValide(image)) throw new Error('image invalide');
   const id = idUnique('l', Object.keys(u.lieux));
-  const lieu = { id, nom: coupe(nom, LIMITES.nom).trim() || `Lieu ${Object.keys(u.lieux).length + 1}`, type: 'carte', image: { source: image.source, id: image.id }, notes: coupe(notes, LIMITES.notes), points: [] };
-  const g = normaliserGrille(grille);
+  const lieu = { id, nom: coupe(nom, LIMITES.nom).trim() || `Lieu ${Object.keys(u.lieux).length + 1}`, type: 'carte', notes: coupe(notes, LIMITES.notes), points: [] };
+  if (image != null) lieu.image = { source: image.source, id: image.id };
+  const g = image != null ? normaliserGrille(grille) : null;
   if (g) lieu.grille = g;
   u.lieux[id] = lieu;
   if (!u.racine || !(u.racine in u.lieux)) u.racine = id;
@@ -72,11 +77,18 @@ export function renommerUnivers(u, nom) {
 }
 export function renommerLieu(u, id, nom) { const l = lieuOu(u, id); l.nom = coupe(nom, LIMITES.nom).trim() || l.nom; return l; }
 export function definirNotesLieu(u, id, notes) { const l = lieuOu(u, id); l.notes = coupe(notes, LIMITES.notes); return l; }
-/** Change l'image d'un lieu ; ses points gardent leurs fractions. */
+/**
+ * Pose ou change l'image d'un lieu ; ses points gardent leurs fractions (x, y de 0 à 1), donc la même place relative sur la nouvelle image.
+ * `null` retire l'image : le lieu redevient « à illustrer » (sa grille calée, qui ne valait que sur cette image, est oubliée).
+ */
 export function definirImageLieu(u, id, image) {
-  if (!imageValide(image)) throw new Error('image invalide');
-  const l = lieuOu(u, id); l.image = { source: image.source, id: image.id }; return l;
+  if (image !== null && !imageValide(image)) throw new Error('image invalide');
+  const l = lieuOu(u, id);
+  if (image === null) { delete l.image; delete l.grille; } else l.image = { source: image.source, id: image.id };
+  return l;
 }
+/** Un lieu sans image (à illustrer) : la scène montre un fond neutre, sans grille. */
+export const lieuSansImage = (lieu) => !imageValide(lieu?.image);
 /**
  * Cale la grille d'un lieu (F4, js/univers-grille.js) : un objet `{ case, dx, dy }` (ramené dans les bornes), `null` pour « pas de grille »
  * même si le catalogue en propose une, `undefined` pour revenir à la grille du catalogue (la clé disparaît). Lève une Error si la grille est inexploitable.

@@ -46,8 +46,8 @@ export function creerRegieUnivers(ctx) {
   }
   // La grille du lieu : celle que le MJ a calée, sinon celle du catalogue (relue une fois par image, puis gardée).
   const infosParImage = new Map();
-  const cleImage = (ref) => `${ref.source}:${ref.id}`;
-  const grilleDuLieu = (lieu) => grilleEffective(lieu, infosParImage.get(cleImage(lieu.image))).grille;
+  const cleImage = (ref) => `${ref?.source}:${ref?.id}`;
+  const grilleDuLieu = (lieu) => (lieu.image ? grilleEffective(lieu, infosParImage.get(cleImage(lieu.image))).grille : null); // sans image, pas de grille
   const opacite = () => casesDeReglages(ctx.r) / 100;
   const vue = () => { const lieu = courant.univers.lieux[courant.partie.lieuCourant]; return pu.vueDeLaTable(courant.partie, courant.univers, lieu ? grilleDuLieu(lieu) : null); };
 
@@ -260,13 +260,13 @@ export function creerRegieUnivers(ctx) {
     const moi = ++sequence;
     const options = { points, alt: `Carte : ${lieu.nom}`, grille: grilleDuLieu(lieu), opacite: opacite() };
     carte.afficher({ ...options, url: null, absente: 'Chargement de l’image…' });
-    if (lieu.grille === undefined && !infosParImage.has(cleImage(lieu.image))) {
+    if (lieu.image && lieu.grille === undefined && !infosParImage.has(cleImage(lieu.image))) {
       images.infosImage(lieu.image).then((infos) => {
         infosParImage.set(cleImage(lieu.image), infos);
         if (moi === sequence && grilleDuLieu(lieu)) { carte.majGrille(grilleDuLieu(lieu), opacite()); diffuser(); }
       });
     }
-    images.urlImage(lieu.image).then((url) => { if (moi === sequence) carte.afficher({ ...options, url, absente: 'Image introuvable : la carte n’est plus dans la bibliothèque ou dans ce navigateur. Les points restent utilisables dans la liste.' }); });
+    images.urlLieu(lieu).then((url) => { if (moi === sequence) carte.afficher({ ...options, url, absente: 'Image introuvable : la carte n’est plus dans la bibliothèque ou dans ce navigateur. Les points restent utilisables dans la liste.' }); });
     rendrePanneau(lieu, dons);
     majCartouche(lieu, moi);
     diffuser();
@@ -276,6 +276,7 @@ export function creerRegieUnivers(ctx) {
   /** Le cartouche d'échelle du lieu : sa taille en cases et en mètres, d'après sa grille ; rien sans grille. Les dimensions de l'image se lisent une fois. */
   const dimensions = new Map();
   async function majCartouche(lieu, moi) {
+    if (!lieu.image) { ctx.jouer?.cartouche.definir(null); return; } // lieu à illustrer : pas d'échelle
     const cle = cleImage(lieu.image);
     let infos = infosParImage.get(cle) ?? dimensions.get(cle);
     if (!infos) {

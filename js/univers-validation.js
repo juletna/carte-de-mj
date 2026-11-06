@@ -29,13 +29,15 @@ function validerPoint(brut, etiquette, avertissements) {
 function validerLieu(brut, id, avertissements) {
   if (!estObjet(brut)) return { erreur: `lieu « ${id} » : ce n’est pas un objet` };
   const etiquette = `lieu « ${coupe(brut.nom || id, 40)} »`;
-  if (!imageValide(brut.image)) return { erreur: `${etiquette} : image invalide` };
+  const sansImage = brut.image === undefined || brut.image === null; // un lieu « à illustrer » est valide ; une image mal formée, non
+  if (!sansImage && !imageValide(brut.image)) return { erreur: `${etiquette} : image invalide` };
   if (typeof brut.notes === 'string' && brut.notes.length > LIMITES.notes) avertissements.push(`${etiquette} : notes coupées à ${LIMITES.notes} caractères`);
   const lieu = {
-    id, nom: coupe(brut.nom, LIMITES.nom).trim() || id, type: 'carte', image: { source: brut.image.source, id: brut.image.id },
+    id, nom: coupe(brut.nom, LIMITES.nom).trim() || id, type: 'carte',
     notes: typeof brut.notes === 'string' ? coupe(brut.notes, LIMITES.notes) : '', points: [],
   };
-  if (brut.grille === null) lieu.grille = null; // « pas de grille », même si le catalogue en propose une
+  if (!sansImage) lieu.image = { source: brut.image.source, id: brut.image.id };
+  if (sansImage) { /* une grille ne se cale que sur une image : celle-ci est ignorée */ } else if (brut.grille === null) lieu.grille = null; // « pas de grille », même si le catalogue en propose une
   else if (brut.grille !== undefined) {
     const g = normaliserGrille(brut.grille);
     if (g) lieu.grille = g;

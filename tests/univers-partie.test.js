@@ -137,6 +137,18 @@ const TESTS = [
     const bonne = { univers: 'u1', lieuCourant: 'l1', chemin: [], decouverts: ['l1'], reveles: {}, dans: { donjon: 'd1', salle: 's1', depuis: 'pt-1' } };
     egal(p.validerPartieUnivers(bonne).partie, bonne, 'une bonne partie ne change pas');
   }],
+  ['message de table : un lieu sans image part sans image, la table relit le même lieu', () => {
+    const univ = u.creerUnivers({ nom: 'Archipel' });
+    const sans = u.ajouterLieu(univ, { nom: 'Île' });
+    u.ajouterPoint(univ, sans.id, { nom: 'Phare', x: 0.3, y: 0.6 });
+    const vue = p.vueDeLaTable(p.creerPartieUnivers(univ), univ);
+    verifier(!('image' in vue), 'aucune image dans la vue');
+    const lu = lireVueUnivers(JSON.parse(JSON.stringify(messageUnivers(vue, { ...AFFICHAGE_PAR_DEFAUT }))), AFFICHAGE_PAR_DEFAUT);
+    egal(lu.vue.nom, 'Île', 'nom relu');
+    egal(lu.vue.points.map((q) => [q.x, q.y, q.nom]), [[0.3, 0.6, 'Phare']], 'point relu');
+    verifier(!('image' in lu.vue), 'toujours sans image');
+    egal(lireVueUnivers({ type: TYPE_UNIVERS, vue: { image: null, points: [] } }, AFFICHAGE_PAR_DEFAUT).vue.points, [], 'image null acceptée');
+  }],
   ['message de table : référence d’image, points visibles, aucun secret ; relu champ par champ', () => {
     const { univ, m, pc, pr } = monde();
     u.modifierPoint(univ, m.id, pr.id, { nom: 'Forêt' });
