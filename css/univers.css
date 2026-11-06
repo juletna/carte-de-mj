@@ -224,7 +224,8 @@ h3 .aide, h2 .aide { margin-left: var(--esp-1); font-weight: 400; }
 .univers-calage .calage-nom { display: block; font-size: 13px; margin-bottom: 2px; }
 .univers-calage .calage-ligne { display: flex; align-items: center; gap: 6px; }
 .univers-calage input[type="range"] { flex: 1 1 auto; min-width: 0; min-height: 44px; }
-.univers-calage input[type="number"] { width: 76px; box-sizing: border-box; min-height: 44px; }
+.univers-calage .calage-ligne .doux { white-space: nowrap; }
+.univers-calage input[type="number"] { width: 68px; box-sizing: border-box; min-height: 44px; }
 .univers-calage .calage-ligne .btn-icone { width: max(var(--cible), 36px); }
 .univers-calage .calage-geste { display: flex; flex-wrap: wrap; align-items: center; gap: var(--esp-2); margin: var(--esp-2) 0; }
 .univers-calage .calage-n { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; }
