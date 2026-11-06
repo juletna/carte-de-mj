@@ -27,9 +27,10 @@ body.atelier-avec-inspecteur { --largeur-inspecteur: 330px; }
 .atelier-noeud.courant > .atelier-ligne { background: var(--champ); border-color: var(--accent); color: var(--accent); }
 .atelier-noeud.type-groupe > .atelier-ligne { color: var(--texte-doux); font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; }
 .atelier-noeud.type-monde > .atelier-ligne { font-weight: 600; }
-/* « + Ajouter un lieu » : la dernière ligne de la branche d'un monde, discrète tant qu'on ne la survole pas. */
-.atelier-noeud.type-ajout > .atelier-ligne { color: var(--texte-doux); }
-.atelier-noeud.type-ajout > .atelier-ligne:hover, .atelier-noeud.type-ajout:focus-visible > .atelier-ligne { color: var(--texte); }
+/* « + Ajouter un lieu » : la dernière ligne de la branche d'un monde. Une action, pas un lieu : contour en pointillés et de l'air autour. */
+.atelier-noeud.type-ajout { margin: var(--esp-2) var(--esp-1) var(--esp-2) var(--esp-2); }
+.atelier-noeud.type-ajout > .atelier-ligne { color: var(--texte-doux); border: 1px dashed var(--bord); background: transparent; }
+.atelier-noeud.type-ajout > .atelier-ligne:hover, .atelier-noeud.type-ajout:focus-visible > .atelier-ligne { color: var(--texte); background: var(--champ); border-color: var(--texte-doux); }
 .atelier-bascule { flex: none; width: 16px; align-self: stretch; display: flex; align-items: center; justify-content: center; color: var(--texte-doux); }
 .atelier-chevron { width: 6px; height: 6px; border-right: 1.75px solid currentColor; border-bottom: 1.75px solid currentColor; transform: translateY(-2px) rotate(45deg); transition: transform .12s; }
 .atelier-bascule.replie .atelier-chevron { transform: rotate(-45deg); }
