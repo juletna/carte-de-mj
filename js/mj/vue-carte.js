@@ -170,7 +170,7 @@ export function creerVueCarte(ctx) {
   function majZoom(plan) {
     const t = tailleAffichee(plan || salle().plan);
     $('zoom-pct').textContent = `${Math.round((t / r.taille) * 100)} %`;
-    for (const id of ['zoom-moins', 'zoom-plus', 'zoom-ajuster', 'zoom-reel']) $(id).disabled = false;
+    for (const id of ['zoom-moins', 'zoom-plus', 'zoom-ajuster']) $(id).disabled = false;
     $('zoom').title = '';
     $('zoom-ajuster').setAttribute('aria-pressed', String(!etat.zoom));
   }

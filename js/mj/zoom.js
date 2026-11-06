@@ -1,5 +1,5 @@
 /**
- * Le zoom de la scène : boutons « − », « + », « Ajuster », « Taille réelle » et Ctrl ou Cmd + molette (ou pincement), appliqués à la
+ * Le zoom de la scène : boutons « − », « + », « Ajuster » et Ctrl ou Cmd + molette (ou pincement), appliqués à la
  * vue affichée, la carte de la salle ou le plan du donjon. Un seul calcul pour les deux : chaque vue donne sa « cible de zoom »
  * (`cibleZoom`) ; le zoom ne connaît ni leurs bornes ni leur dessin.
  *
@@ -16,7 +16,6 @@ import { $ } from '../dom.js';
 
 export function creerZoom(ctx) {
   const { etat } = ctx;
-  const r = etat.reglages;
   const cible = () => (etat.plan ? ctx.plan.cibleZoom : ctx.carte.cibleZoom);
 
   /**
@@ -46,7 +45,6 @@ export function creerZoom(ctx) {
   $('zoom-plus').addEventListener('click', () => pasZoom(1));
   $('zoom-moins').addEventListener('click', () => pasZoom(-1));
   $('zoom-ajuster').addEventListener('click', () => zoomer(null));
-  $('zoom-reel').addEventListener('click', () => zoomer(r.taille));
   // Ctrl ou Cmd + molette (et le pincement du pavé tactile) : zoom sous le curseur ; la molette seule fait défiler.
   $('scene').addEventListener('wheel', (e) => {
     if (!e.ctrlKey && !e.metaKey) return;

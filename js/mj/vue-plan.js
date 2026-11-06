@@ -87,7 +87,6 @@ export function creerVuePlan(ctx) {
     $('support').hidden = ouvert;
     $('plan-donjon').hidden = !ouvert;
     $('plan-salles').hidden = !ouvert;
-    $('zoom-reel').hidden = ouvert; // « Taille réelle » n'a pas de sens pour un plan entier
     interactif.retirerSurvol();
     interactif.oublierListe();
     if (ouvert) {
