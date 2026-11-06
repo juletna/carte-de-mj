@@ -40,6 +40,7 @@ import { lierPanneau } from './regie-panneau.js';
 import { poserIcones, iconeEtTexte, deuxTempsIcone } from './regie-icones.js';
 import * as pu from './univers-partie.js';
 import { creerJouer } from './atelier/jouer.js';
+import { cartoucheSalle } from './atelier/cartouche.js';
 
 export function demarrerRegie() {
   // L'écran de table local (« Plein écran ici ») : créé le premier, comme ses écouteurs l'étaient à l'import.
@@ -329,6 +330,7 @@ export function demarrerRegie() {
     oublierCaseSiResolue();
     const s = salleConsultee();
     dessinerRegie(s.plan);
+    ctx.jouer?.cartouche.definir(cartoucheSalle(s.plan.largeur, s.plan.longueur, r.echelle));
     majRetrait();
     majProjection();
     if (etat.message) { annoncer(etat.message); etat.message = ''; } // hors du flux : la carte ne bouge jamais

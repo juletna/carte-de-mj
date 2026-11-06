@@ -20,21 +20,10 @@ import { calagePossible, genreDestination } from '../univers-vue.js';
 import { pluriel } from '../format.js';
 import { resumeTailleLieu } from './dimensions.js';
 import { chargerReglages } from '../stockage.js';
+import { vignetteLieu } from './vignette-lieu.js';
 
 const NOUVELLE_CARTE = '__nouvelle-carte__';
-const cleImage = (ref) => `${ref?.source}:${ref?.id}`;
-const urlsVignettes = new Map(); // clé d'image → URL, pour que la vignette d'un lieu n'attende qu'une fois
-
-/** La vignette d'un lieu : l'icône du monde d'abord, puis l'image dès qu'elle est connue. `classe` : 'petite' (32 px) ou '' (40 px). */
-export function vignetteLieu(ref, classe = 'petite') {
-  const boite = h('span', { className: `univers-vignette ${classe}`.trim(), 'aria-hidden': 'true' }, icone('monde'));
-  if (!ref) return boite;
-  const cle = cleImage(ref);
-  const poser = (url) => { if (url) boite.replaceChildren(h('img', { src: url, alt: '', loading: 'lazy', decoding: 'async' })); };
-  if (urlsVignettes.has(cle)) poser(urlsVignettes.get(cle));
-  else images.urlImage(ref).then((url) => { if (url) { urlsVignettes.set(cle, url); poser(url); } });
-  return boite;
-}
+export { vignetteLieu };
 
 /**
  * Enregistre les trois types. `coquille` : js/atelier/coquille.js ; `U` : `ctx.univers` de main-mj.js (js/mj/univers-ui.js).

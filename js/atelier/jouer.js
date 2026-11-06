@@ -11,10 +11,12 @@
  *   jouer.mode('donjon'|'monde')  quelle composition : les onglets Salle et Joueurs, ou l'onglet Lieu
  *   jouer.synchroniser(position?)  { donjon, salle } ou { monde, lieu } : l'arbre, les pastilles et l'onglet suivent
  */
-import { $ } from '../dom.js';
+import { $, h } from '../dom.js';
 import { telephone } from '../telephone.js';
 import { creerCoquille } from './coquille.js';
 import { etatJeu } from '../atelier-arbre.js';
+import { creerCartouche } from './cartouche.js';
+import { vignetteLieu } from './vignette-lieu.js';
 
 const ONGLETS = {
   donjon: ['salle', 'joueurs', 'table'],
@@ -36,6 +38,15 @@ export function creerJouer({ racine, donnees, partie, surChoix, grille }) {
       synchroniser();
     },
   });
+
+  // Les lieux de l'arbre montrent leur carte en vignette (comme dans le Monde), pas le globe.
+  coquille.arbre.vue.definirVignette((n) => (n.type === 'lieu' ? vignetteLieu(donnees().univers?.[n.contexte?.monde]?.lieux?.[n.id]?.image, '') : null));
+
+  // Le cartouche d'échelle (js/atelier/cartouche.js) : en haut à gauche de la carte, sous le bandeau d'état. Une ancre sans hauteur, posée juste avant la scène
+  // du donjon (et donc avant la carte du monde, qui la remplace), porte le cartouche sans rien décaler. regie.js et regie-univers.js le renseignent.
+  const cartouche = creerCartouche();
+  cartouche.element.classList.add('cartouche-regie');
+  $('scene').before(h('div', { className: 'cartouche-ancre' }, cartouche.element));
 
   const defs = [['salle', 'Salle'], ['joueurs', 'Joueurs'], ['lieu', 'Lieu'], ['table', 'Table']];
   for (const [id, libelle] of defs) coquille.onglets.ajouter({ id, libelle, contenu: $(`onglet-${id}`) });
@@ -82,5 +93,5 @@ export function creerJouer({ racine, donnees, partie, surChoix, grille }) {
   /** Sous 760 px : replie le panneau bas (la carte et la bulle de sélection reprennent la place). */
   function replier() { if (telephone() && !colonne.classList.contains('replie')) plier.click(); }
 
-  return { coquille, mode, replier, synchroniser, choisirOnglet: (id) => coquille.onglets.choisir(id), position: () => derniere };
+  return { coquille, cartouche, mode, replier, synchroniser, choisirOnglet: (id) => coquille.onglets.choisir(id), position: () => derniere };
 }

@@ -20,6 +20,8 @@ import { btn } from './univers-boutons.js';
 import { icone } from './icones.js';
 import { aide } from './mj/univers-menu.js';
 import { pluriel } from './format.js';
+import { creerFilCompact } from './atelier/fil-compact.js';
+import { cartoucheLieu } from './atelier/cartouche.js';
 
 export function creerRegieUnivers(ctx) {
   const { etat } = ctx;
@@ -180,11 +182,21 @@ export function creerRegieUnivers(ctx) {
   function remplirFil(conteneur, partie, univers, dernier) {
     const noms = pu.filDAriane(partie, univers);
     const items = [...noms.map((n, i) => ({ ...n, index: i })), ...(dernier ? [{ nom: dernier }] : [])];
-    conteneur.replaceChildren(...items.flatMap((it, i) => {
+    // Deux versions dans la page, dont css/presentation.css n'affiche qu'une : le fil complet (ordinateur) et le fil compact d'une ligne (sous 760 px).
+    const complet = h('span', { className: 'fil-complet' }, ...items.flatMap((it, i) => {
       const sep = i ? [h('span', { className: 'univers-sep', textContent: '›', 'aria-hidden': 'true' })] : [];
       if (i === items.length - 1) return [...sep, h('strong', { textContent: it.nom, 'aria-current': 'location' })];
       return [...sep, btn(it.nom, () => versLe(it.index), { classe: 'btn-discret' })];
-    }), ...(items.length > 1 ? [btn('Remonter', () => remonter(), { icone: 'remonter', classe: 'btn-discret univers-remonter' })] : []));
+    }));
+    const noeuds = [complet, creerFilCompact(items, { aller: versLe })];
+    if (items.length > 1) {
+      // Sous 760 px le libellé s'efface : Remonter est alors une icône (cible de 44 px).
+      const haut = h('button', { type: 'button', className: 'btn btn-discret univers-remonter', 'aria-label': 'Remonter d’un niveau', title: 'Remonter d’un niveau' },
+        icone('remonter'), h('span', { className: 'libelle', textContent: 'Remonter' }));
+      haut.addEventListener('click', () => remonter());
+      noeuds.push(haut);
+    }
+    conteneur.replaceChildren(...noeuds);
   }
   /** Le monde et la partie d'où l'on est entré dans le donjon joué, ou null (donjon joué seul, ou carte de monde affichée). */
   function mondeDuDonjon() {
@@ -256,8 +268,23 @@ export function creerRegieUnivers(ctx) {
     }
     images.urlImage(lieu.image).then((url) => { if (moi === sequence) carte.afficher({ ...options, url, absente: 'Image introuvable : la carte n’est plus dans la bibliothèque ou dans ce navigateur. Les points restent utilisables dans la liste.' }); });
     rendrePanneau(lieu, dons);
+    majCartouche(lieu, moi);
     diffuser();
     ctx.jouer?.synchroniser({ monde: univers.id, lieu: partie.lieuCourant });
+  }
+
+  /** Le cartouche d'échelle du lieu : sa taille en cases et en mètres, d'après sa grille ; rien sans grille. Les dimensions de l'image se lisent une fois. */
+  const dimensions = new Map();
+  async function majCartouche(lieu, moi) {
+    const cle = cleImage(lieu.image);
+    let infos = infosParImage.get(cle) ?? dimensions.get(cle);
+    if (!infos) {
+      ctx.jouer?.cartouche.definir(null);
+      infos = await images.infosImage(lieu.image);
+      dimensions.set(cle, infos);
+    }
+    if (moi !== sequence) return;
+    ctx.jouer?.cartouche.definir(cartoucheLieu(grilleEffective(lieu, infos ?? null).grille, infos?.largeur, infos?.hauteur, ctx.r.echelle));
   }
 
   /** Le bandeau d'état, le même que celui de la régie de donjon : ce que voit la table, ou la régie en retrait. */

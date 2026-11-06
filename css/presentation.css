@@ -261,3 +261,31 @@ details.bloc > .aide, .defilement > .aide { display: block; margin-bottom: 6px; 
   #selection { left: 0; right: 0; bottom: 64px; width: auto; max-height: min(32vh, 260px); border-width: 1px 0 0; border-radius: var(--rayon) var(--rayon) 0 0; z-index: 36; }
   #toast { bottom: 76px; left: 8px; width: calc(100vw - 16px); }
 }
+
+/* --- Fil d'Ariane de la régie (js/regie-univers.js, js/atelier/fil-compact.js) : complet sur ordinateur, d'une seule ligne sous 760 px --- */
+#fil-univers .fil-complet { display: contents; }
+#fil-univers .fil-compact { display: none; }
+@media (max-width: 760px) {
+  .etat-haut #fil-univers { flex: 1 1 100%; display: flex; flex-wrap: nowrap; align-items: center; gap: var(--esp-1); margin: 0; }
+  #fil-univers > .doux { display: none; }
+  #fil-univers .fil-complet { display: none; }
+  #fil-univers .fil-compact { display: flex; align-items: center; gap: var(--esp-1); flex: 1 1 auto; min-width: 0; position: relative; }
+  #fil-univers .fil-compact > .univers-sep { flex: none; }
+  #fil-univers .fil-nom { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #fil-univers .fil-premier { flex: 0 1 auto; min-width: 0; max-width: 42%; padding-inline: var(--esp-2); }
+  #fil-univers .fil-courant { flex: 1 1 0; }
+  #fil-univers .fil-ellipse { flex: none; font-weight: 700; letter-spacing: 0.04em; }
+  #fil-univers .fil-liste { position: absolute; left: 0; top: calc(100% + 4px); z-index: 60; width: min(320px, calc(100vw - 2 * var(--esp-2))); max-height: 60vh; overflow-y: auto; margin: 0; padding: 4px; list-style: none;
+    background: var(--panneau); border: 1px solid var(--bord); border-radius: var(--rayon); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5); }
+  #fil-univers .fil-liste[hidden] { display: none; }
+  #fil-univers .fil-liste .btn { width: 100%; justify-content: flex-start; text-align: left; }
+  #fil-univers .fil-liste-courant { display: flex; align-items: center; min-height: var(--cible); padding: 0 var(--esp-3); color: var(--accent); }
+  /* Remonter n'est plus qu'une icône carrée. */
+  #fil-univers .univers-remonter { flex: none; margin-left: 0; width: var(--cible); padding: 0; justify-content: center; }
+  #fil-univers .univers-remonter .libelle { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+}
+
+/* Cartouche d'échelle de la régie (js/atelier/cartouche.js) : une ancre sans hauteur avant la scène porte l'encart, en haut à gauche de la carte. */
+.cartouche-ancre { position: relative; flex: none; height: 0; z-index: 24; }
+.cartouche-regie { left: var(--esp-3); top: var(--esp-2); }
+@media (max-width: 760px) { .cartouche-regie { left: var(--esp-2); top: var(--esp-1); } }
