@@ -19,7 +19,7 @@
 import { $, h } from '../dom.js';
 import { NOMS_SOLS, NOMS_AMBIANCES, NOMS_ETATS_SALLE, NOMS_ECLAIRAGES } from '../schema.js';
 import { pluriel } from '../format.js';
-import { resumeTaille, tailleEnMetres } from './dimensions.js';
+import { tailleEnMetres } from './dimensions.js';
 import { creerSection } from './section.js';
 import { creerListe } from './liste.js';
 import { creerSectionAuHasard } from './au-hasard-salle.js';
@@ -166,10 +166,7 @@ export function enregistrerInspecteursDonjon(coquille, ctx) {
   inspecteur.enregistrer('salle', {
     titre: (sel) => donjonDe(sel).salles[sel.id]?.nom ?? 'Salle',
     renommer: renommerVia('salle-nom'),
-    resume: (sel) => {
-      const p = donjonDe(sel).salles[sel.id]?.plan;
-      return p ? `${tailleEnMetres(p.largeur, p.longueur, etat.reglages.echelle) || resumeTaille(p.largeur, p.longueur, etat.reglages.echelle)} · ${(NOMS_SOLS[p.sol] ?? 'Pierre').toLowerCase()}` : '';
-    },
+    etiquette: () => '', // l'onglet « Salle » au-dessus porte déjà l'icône et le mot ; la taille et le sol sont dans les sections Taille et Apparence
     rendre: (conteneur, sel) => {
       if (avanceDemande !== sel.id) avanceDemande = null;
       const salle = donjonDe(sel).salles[sel.id];

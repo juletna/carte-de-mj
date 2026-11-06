@@ -165,7 +165,8 @@ export function creerInspecteur({ racine, ctx = () => ({}), parDefaut = () => nu
     const nomType = def.etiquette?.(sel, c) ?? LIBELLES_TYPE[sel.type] ?? '';
     const iconeType = ICONES_TYPE[sel.type];
     etiquette.textContent = nomType;
-    if (iconeType) etiquette.append(icone(iconeType)); // passe devant le mot (CSS : order)
+    etiquette.hidden = !nomType; // un type sans mot (la salle : son onglet le dit) ne laisse pas de ligne vide
+    if (iconeType && nomType) etiquette.append(icone(iconeType)); // passe devant le mot (CSS : order)
     renommerCourant = def.renommer ? ((valeur) => def.renommer(sel, valeur, c)) : null;
     poserNom(def.titre(sel, c) ?? '', def);
     const texteResume = def.resume?.(sel, c) ?? '';
