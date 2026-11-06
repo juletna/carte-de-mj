@@ -150,6 +150,6 @@ Même grammaire dans le panneau bas. Replié, il ne montre que l'en-tête. Cible
 | Arbre | `js/atelier/arbre-vue.js` | oui (CSS) |
 | Inspecteur Monde, Lieu, Point | `js/atelier/inspecteurs-monde.js` | typographie, sections (listes : non) |
 | Inspecteur Calage | univers (calage) | non |
-| Inspecteur Donjon, Salle | `js/atelier/inspecteurs-donjon.js`, `js/mj/salle-forme.js` | non |
+| Inspecteur Donjon, Salle | `js/atelier/inspecteurs-donjon.js`, `js/mj/salle-forme.js` | typographie, sections (propriétés, « Compris » en pastilles : non) |
 | Porte, Objet, Créature | `js/mj/bulle.js` | non |
 | Jouer · Salle, Joueurs, Table | régie (`js/main-presentation.js` et voisins) | non |

@@ -19,6 +19,7 @@ import { $ } from '../dom.js';
 import { NOMS_SOLS } from '../schema.js';
 import { pluriel } from '../format.js';
 import { resumeTaille } from './dimensions.js';
+import { creerSection } from './section.js';
 
 const BLOCS_SALLE = ['bloc-description', 'bloc-orphelines', 'bloc-forme', 'bloc-notes', 'bloc-exemples'];
 const BLOCS_DONJON = ['bloc-personnages', 'bloc-reglages'];
@@ -33,7 +34,18 @@ export function enregistrerInspecteursDonjon(coquille, ctx) {
 
   // Avant chaque effacement du corps de l'inspecteur, les blocs retournent dans la réserve (hors écran, mais dans la page).
   inspecteur.surEffacement(() => { for (const b of blocs) if (b.parentElement !== reserve) reserve.append(b); });
-  const poser = (conteneur, ids) => conteneur.append(...ids.map((id) => $(id)));
+  /**
+   * Les blocs de la réserve, rangés en sections (js/atelier/section.js, docs/design-panneaux.md) : la section porte le titre et le pli ;
+   * un bloc qui était un <details> est gardé ouvert (son résumé est masqué en CSS), un titre interne fait doublon et est masqué de même.
+   */
+  const section = (cle, titre, ids, options = {}) => {
+    const blocsSection = ids.map((id) => $(id));
+    for (const b of blocsSection) {
+      if (b.tagName === 'DETAILS') b.open = true;
+      for (const d of b.querySelectorAll(':scope > details')) d.open = true;
+    }
+    return creerSection({ cle: `donjon:${cle}`, titre, enfants: blocsSection, ...options }).element;
+  };
 
   const donjonDe = (sel) => etat.donjons[sel.contexte?.donjon ?? sel.id] ?? ctx.donjon();
   /** Le nom de l'en-tête écrit dans le champ historique (dont les écouteurs enregistrent, nettoient et sauvegardent). */
@@ -61,7 +73,14 @@ export function enregistrerInspecteursDonjon(coquille, ctx) {
     },
     rendre: (conteneur, sel) => {
       if (avanceDemande !== sel.id) avanceDemande = null;
-      poser(conteneur, avanceDemande ? [...BLOCS_SALLE, 'bloc-avance'] : BLOCS_SALLE);
+      conteneur.append(
+        section('salle-description', 'Description', ['bloc-description', 'bloc-orphelines']),
+        section('salle-notes', 'Notes du MJ', ['bloc-notes']),
+        section('salle-forme', 'Forme et ambiance', ['bloc-forme']),
+        section('salle-exemples', 'Exemples', ['bloc-exemples'], { repliee: true }),
+        ...(avanceDemande ? [section('salle-avance', 'Avancé', ['bloc-avance'])] : []));
+      // Demandé par le menu « ⋯ » : la section s'ouvre même si le MJ l'avait repliée.
+      if (avanceDemande) conteneur.querySelector('[data-cle="donjon:salle-avance"] .p-section-bascule[aria-expanded="false"]')?.click();
     },
     menu: (sel) => [
       { libelle: 'Plan JSON…', icone: 'copier', titre: 'Affiche le plan de la salle en JSON, modifiable', executer: () => ouvrirAvance(sel, () => { $('bloc-avance').scrollIntoView?.({ block: 'nearest' }); $('json').focus(); }) },
@@ -82,7 +101,9 @@ export function enregistrerInspecteursDonjon(coquille, ctx) {
       const salles = Object.keys(d.salles).length, persos = (d.personnages || []).length;
       return `${pluriel(salles, 'salle', 'salles')} · ${persos ? pluriel(persos, 'personnage', 'personnages') : 'aucun personnage'}`;
     },
-    rendre: (conteneur) => poser(conteneur, BLOCS_DONJON),
+    rendre: (conteneur) => conteneur.append(
+      section('donjon-personnages', 'Personnages', ['bloc-personnages'], { compte: $('personnages-compte') }),
+      section('donjon-affichage', 'Affichage', ['bloc-reglages'], { repliee: true })),
     menu: () => [
       { libelle: 'Exporter', icone: 'exporter', titre: 'Enregistre le donjon entier (salles, notes, liaisons, éléments cachés)', executer: () => ctx.menu.exporter() },
       { libelle: 'Imprimer', icone: 'fiche', titre: 'Plans de ce donjon à l’échelle des figurines, version MJ ou joueurs', executer: () => { ctx.sauvegarder(); location.href = 'impression.html'; } },
