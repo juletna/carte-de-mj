@@ -20,7 +20,7 @@
  *
  * Les fonctions de lecture/écriture acceptent un `stock` (par défaut localStorage) pour être testées sous Node.
  */
-import { donjonDepuisAncien, creerDonjon, FORMAT, VERSION, FORMAT_ANCIEN } from './donjon.js';
+import { donjonDepuisAncien, creerDonjon, donjonVierge, FORMAT, VERSION, FORMAT_ANCIEN } from './donjon.js';
 import { validerDonjon } from './donjon-validation.js';
 import { validerPresentation } from './partie.js';
 import { fichesDuNavigateur } from './personnages.js';
@@ -180,8 +180,19 @@ function lireDonjons(stock) {
 
 /** Donjons sauvegardés, validés un à un : { actif, donjons } ou null si la clé manque. Ne modifie rien. */
 export const chargerDonjons = (stock = stockParDefaut()) => lireDonjons(stock).etat;
-/** Enregistre les donjons. Faux (rien n'est écrit) si la copie de ce qui ne se relisait pas a échoué au démarrage : voir chargerTout. */
-export const sauverDonjons = (etat, stock = stockParDefaut()) => !verrouillee(stock, CLE_DONJONS) && ecrireJson(stock, CLE_DONJONS, { actif: etat.actif, donjons: etat.donjons });
+/** Un univers ou une partie enregistrés citent-ils cet identifiant de donjon ? (lecture du texte brut : au moindre doute, oui) */
+const donjonCite = (stock, id) => [CLE_UNIVERS, CLE_UNIVERS_PARTIES, CLE_PRESENTATIONS].some((cle) => (lireBrut(stock, cle).texte ?? '').includes(id));
+/**
+ * Enregistre les donjons. Faux (rien n'est écrit) si la copie de ce qui ne se relisait pas a échoué au démarrage : voir chargerTout.
+ * Un donjon vierge (donjonVierge : le donjon provisoire, jamais retouché) n'est pas écrit, sauf si un monde ou une partie le cite.
+ * S'il ne reste rien à écrire et que la clé n'existe pas, rien n'est créé ; si elle existe, elle est réécrite sans lui (un donjon supprimé ne revient pas).
+ */
+export function sauverDonjons(etat, stock = stockParDefaut()) {
+  if (verrouillee(stock, CLE_DONJONS)) return false;
+  const donjons = Object.fromEntries(Object.entries(etat.donjons).filter(([id, d]) => !donjonVierge(d) || donjonCite(stock, id)));
+  if (!Object.keys(donjons).length && lireBrut(stock, CLE_DONJONS).texte === null) return true;
+  return ecrireJson(stock, CLE_DONJONS, { actif: etat.actif in donjons ? etat.actif : Object.keys(donjons)[0] ?? null, donjons });
+}
 
 /**
  * Relit CLE_PRESENTATIONS sans rien écrire : les parties relues, rangées par identifiant de donjon, et `ecartes` : tout ce qui ne
@@ -354,7 +365,7 @@ export const partieDuRetrait = (retrait, presentations) => (retrait?.partie && O
  * Point d'entrée au démarrage : donjons et réglages à utiliser.
  *  1. clés actuelles si elles existent ;
  *  2. sinon, migration de `jdr-carte:v1` en un donjon d'une salle (l'ancienne clé reste intacte) ;
- *  3. sinon, un donjon neuf avec `texteInitial`.
+ *  3. sinon, un donjon neuf avec `texteInitial` : provisoire (donjonVierge), il n'est ni écrit ni montré tant qu'on n'y a pas touché.
  * Avant tout, ce qui est enregistré et ne se relit pas est mis de côté (voir plus haut) : le premier enregistrement qui suit
  * réécrit la clé des donjons, il ne doit rien y détruire. Si la copie échoue, cette clé n'est plus écrite de la session.
  * @returns {{actif:string, donjons:object, reglages:object, migre:boolean, miseDeCote:{nombre:number, ok:boolean}|null}}
@@ -373,7 +384,10 @@ export function chargerTout({ texteInitial, stock = stockParDefaut() } = {}) {
   const ancien = lireJson(stock, CLE_ANCIENNE);
   const reglagesAbsents = !lireJson(stock, CLE_REGLAGES);
   let reglages = chargerReglages(stock);
-  if (!etat && ancien && typeof ancien === 'object') {
+  // Une liste de donjons enregistrée vide (tous supprimés) n'est pas « rien d'enregistré » : l'ancienne clé ne ressuscite pas.
+  const brutDonjons = lireBrut(stock, CLE_DONJONS).brut;
+  const tousSupprimes = estObjet(brutDonjons) && estObjet(brutDonjons.donjons) && !Object.keys(brutDonjons.donjons).length;
+  if (!etat && !tousSupprimes && ancien && typeof ancien === 'object') {
     const d = donjonDepuisAncien(ancien);
     etat = { actif: d.id, donjons: { [d.id]: d } };
     migre = true;

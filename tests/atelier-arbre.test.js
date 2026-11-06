@@ -32,6 +32,15 @@ function exemple() {
 }
 
 const TESTS = [
+  ['un donjon vierge (le provisoire) n’est listé hors monde que s’il est ouvert', () => {
+    const vierge = creerDonjon(), travaille = creerDonjon({ nom: 'Crypte' });
+    const donjons = dico(vierge, travaille);
+    egal(noms(arbreAtelier({ univers: null, donjons }).horsMonde), ['Crypte'], 'omis');
+    const a = arbreAtelier({ univers: null, donjons, actif: { donjon: vierge.id } });
+    egal(noms(a.horsMonde), ['Donjon', 'Crypte'], 'listé tant qu’il est ouvert');
+    egal(a.actif.cle, `d:${vierge.id}`, 'et choisissable');
+    egal(noms(arbreAtelier({ univers: null, donjons, actif: { donjon: travaille.id } }).horsMonde), ['Crypte'], 'un autre est ouvert : omis');
+  }],
   ['un lieu sans image figure dans l’arbre comme un autre', () => {
     const univ = u.creerUnivers({ nom: 'Archipel' });
     const carte = u.ajouterLieu(univ, { nom: 'Archipel' });

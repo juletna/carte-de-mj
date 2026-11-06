@@ -206,6 +206,8 @@ Une salle reste un rectangle (largeur × longueur) auquel on retire des cases : 
 
 « Donjon… », sous *Créer* dans le menu « + Nouveau » de l'arbre (feuille « Ajouter un donjon »), laisse le choix : partir d'un donjon vide, au hasard, ou d'un modèle.
 
+**Donjon provisoire** : l'atelier a toujours un donjon ouvert. Au premier lancement, et après la suppression du dernier donjon, c'est un donjon « Donjon » d'une salle, *provisoire* : tant qu'il est vierge (`donjonVierge`, `js/donjon.js` : nom d'origine, une salle, aucune liaison, note, personnage ni élément caché, description d'origine) il n'est **pas enregistré** et l'arbre ne le liste (« Donjons hors monde ») que s'il est ouvert. Dès qu'on y touche, il s'enregistre comme les autres ; il revient aussi vierge au rechargement tant qu'aucun donjon n'est enregistré. Au moindre doute, un donjon n'est pas pris pour vierge ; un donjon cité par un monde ou une partie est toujours enregistré. Les pages Jouer et Imprimer ne le voient pas (« Aucun donjon enregistré » s'il n'y en a pas d'autre).
+
 **Modèles** (`js/modeles.js`) : quelques départs fournis par l'outil (église en croix, petite crypte, cloître, repaire gobelin), et ceux que tu gardes toi-même avec « Garder le donjon affiché comme modèle » : une copie dans ce navigateur (`carte-de-mj:modeles-v1`), notes et éléments cachés compris. Partir d'un modèle crée un donjon neuf, le modèle ne change jamais. Les modèles gardés ne partent pas avec « Exporter », qui ne concerne que le donjon affiché.
 
 **Au hasard** : nombre de salles, de monstres, de coffres, de pièges cachés, de portes secrètes, de chemins en plus, types de monstres, boss, formes de salles (`js/generateur.js`, pur).

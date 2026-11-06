@@ -12,9 +12,11 @@
  *   - un lieu porte `depart` (la partie y commence ; jamais sur la carte du monde, c'est le cas par défaut), `aussiDepuis`, `nonRelie` ; un donjon porte `aussiDepuis` (les autres lieux d'où l'on y va) et `salleVisee`
  *     (la salle d'arrivée du point, s'il en a une).
  * Un donjon n'apparaît qu'une fois dans tout l'arbre : sous le premier lieu qui y mène (dans l'ordre des mondes), les autres lieux
- * sont cités dans `aussiDepuis`. Un donjon qu'aucun point ne mène à lui va dans `horsMonde`.
+ * sont cités dans `aussiDepuis`. Un donjon qu'aucun point ne mène à lui va dans `horsMonde`, sauf s'il est vierge (le donjon provisoire,
+ * `donjonVierge` de js/donjon.js) et n'est pas le donjon ouvert (`actif.donjon`) : il n'y est alors pas listé.
  */
 import { arbreLieux } from './univers-vue.js';
+import { donjonVierge } from './donjon.js';
 
 const nettoyer = (t) => String(t ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
 
@@ -71,7 +73,7 @@ export function arbreAtelier({ univers, donjons = {}, actif = {} } = {}) {
   });
   const horsMonde = {
     cle: 'hors-monde', type: 'groupe', id: 'hors-monde', nom: 'Donjons hors monde', contexte: {},
-    enfants: Object.values(donjons).filter((d) => d && !places.has(d.id)).map((d) => completerDonjon(
+    enfants: Object.values(donjons).filter((d) => d && !places.has(d.id) && (d.id === actif.donjon || !donjonVierge(d))).map((d) => completerDonjon(
       { cle: `d:${d.id}`, type: 'donjon', id: d.id, nom: d.nom ?? d.id, aussiDepuis: [], enfants: [] }, d, { donjon: d.id })),
   };
   const arbre = { mondes, horsMonde };

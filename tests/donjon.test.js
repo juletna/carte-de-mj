@@ -327,13 +327,62 @@ const TESTS = [
     sauverDonjons({ actif: a.id, donjons: { [a.id]: a, [b.id]: b } }, stock);
     stock.donnees['carte-de-mj:presentations-v1'] = JSON.stringify({ presentations: { [a.id]: { donjon: a } } });
     stock.donnees['carte-de-mj:atelier-derniere-route'] = `#donjon=${a.id}`;
-    // Le MJ supprime tout : le dernier est remplacé par un donjon vide, qui est écrit tout de suite.
+    // Le MJ supprime tout : le dernier est remplacé par un donjon vide provisoire, qui n'est pas écrit (la clé est réécrite sans donjon).
     const vide = m.creerDonjon({ nom: 'Donjon' });
     sauverDonjons({ actif: vide.id, donjons: { [vide.id]: vide } }, stock);
+    egal(JSON.parse(stock.donnees[CLE_DONJONS]).donjons, {}, 'plus aucun donjon enregistré');
     const relu = chargerTout({ stock });
-    egal(Object.keys(relu.donjons), [vide.id], 'un seul donjon, le vide');
+    const ids = Object.keys(relu.donjons);
+    verifier(ids.length === 1 && m.donjonVierge(relu.donjons[ids[0]]), 'un seul donjon, un provisoire neuf');
     verifier(!(a.id in relu.donjons) && !(b.id in relu.donjons) && relu.migre === false, 'ni les supprimés, ni la migration de l’ancienne clé');
     egal(hrefPreparer((cle) => stock.donnees[cle] ?? null).startsWith('donjon.html#donjon='), true, 'la route périmée est seulement une adresse : l’atelier retombe sur le donjon actif');
+  }],
+  ['donjonVierge : vrai pour un donjon neuf ou celui de l’exemple initial, faux dès qu’on y touche', () => {
+    egal(m.donjonVierge(m.creerDonjon()), true, 'donjon neuf');
+    egal(m.donjonVierge(m.creerDonjon({ texte: m.TEXTE_EXEMPLE_INITIAL })), true, 'exemple initial');
+    egal(m.donjonVierge(JSON.parse(JSON.stringify(m.creerDonjon()))), true, 'après un aller-retour JSON');
+    const touche = (f) => { const d = m.creerDonjon(); f(d); return m.donjonVierge(d); };
+    const salle = (d) => Object.values(d.salles)[0];
+    egal(touche((d) => { d.nom = 'Crypte'; }), false, 'renommé');
+    egal(touche((d) => { d.nom = 'Donjon 2'; }), false, 'nom du menu « Nouveau »');
+    egal(touche((d) => m.ajouterSalle(d)), false, 'deuxième salle');
+    egal(touche((d) => { salle(d).texte = 'Salle de 5 par 5 cases.'; }), false, 'texte modifié');
+    egal(touche((d) => { salle(d).notes = 'Le piège est au nord.'; }), false, 'note');
+    egal(touche((d) => { salle(d).nom = 'Entrée'; }), false, 'salle renommée');
+    egal(touche((d) => { d.liaisons.push({ id: 'l1', a: {}, b: {} }); }), false, 'liaison');
+    egal(touche((d) => { d.personnages = [{ id: 'p' }]; }), false, 'personnage rattaché');
+    egal(touche((d) => { d.inconnu = 1; }), false, 'champ inconnu');
+    egal(touche((d) => { salle(d).plan.objets.push({ id: 'o1', type: 'coffre', x: 1, y: 1, cache: true }); }), false, 'élément caché');
+    egal([m.donjonVierge(null), m.donjonVierge({}), m.donjonVierge('x')], [false, false, false], 'ce qui n’est pas un donjon');
+  }],
+  ['sauverDonjons : un donjon vierge n’est pas écrit, un donjon retouché l’est, ce qui existe reste intact', () => {
+    const vierge = m.creerDonjon();
+    const stock = fauxStock();
+    egal([sauverDonjons({ actif: vierge.id, donjons: { [vierge.id]: vierge } }, stock), CLE_DONJONS in stock.donnees], [true, false], 'rien à écrire : aucune clé créée');
+    const r = chargerTout({ texteInitial: m.TEXTE_EXEMPLE_INITIAL, stock });
+    verifier(m.donjonVierge(r.donjons[r.actif]), 'au rechargement, un donjon provisoire est recréé');
+    r.donjons[r.actif].nom = 'Crypte';
+    sauverDonjons(r, stock);
+    egal(chargerDonjons(stock).donjons[r.actif].nom, 'Crypte', 'retouché : écrit normalement');
+    // Un donjon enregistré et un provisoire : seul le premier est écrit, l’autre est ignoré.
+    const autre = m.creerDonjon();
+    sauverDonjons({ actif: autre.id, donjons: { [r.actif]: r.donjons[r.actif], [autre.id]: autre } }, stock);
+    egal(Object.keys(chargerDonjons(stock).donjons), [r.actif], 'le vierge n’est pas écrit');
+    egal(chargerDonjons(stock).actif, r.actif, 'l’actif écrit est un donjon écrit');
+    // Un donjon vierge cité par un monde est écrit (le point mène à lui).
+    stock.donnees['carte-de-mj:univers-v1'] = JSON.stringify({ univers: { u: { points: [{ vers: { donjon: autre.id } }] } } });
+    sauverDonjons({ actif: autre.id, donjons: { [r.actif]: r.donjons[r.actif], [autre.id]: autre } }, stock);
+    egal(Object.keys(chargerDonjons(stock).donjons).sort(), [r.actif, autre.id].sort(), 'cité : écrit');
+  }],
+  ['sauverDonjons : tous les donjons enregistrés supprimés laissent une liste vide, relue comme « rien d’enregistré »', () => {
+    const a = m.creerDonjon({ nom: 'Crypte', texte: 'Salle de 6 par 6' });
+    const stock = fauxStock();
+    sauverDonjons({ actif: a.id, donjons: { [a.id]: a } }, stock);
+    const vide = m.creerDonjon();
+    sauverDonjons({ actif: vide.id, donjons: { [vide.id]: vide } }, stock);
+    egal(chargerDonjons(stock), null, 'aucun donjon relu');
+    const r = chargerTout({ stock });
+    verifier(Object.keys(r.donjons).length === 1 && m.donjonVierge(r.donjons[r.actif]) && r.miseDeCote === null, 'un provisoire, rien mis de côté');
   }],
   ['estDebutant : vrai tant qu’aucun donjon n’a de liaison ni plus d’une salle', () => {
     const un = m.creerDonjon({ texte: 'Salle de 6 par 6' });

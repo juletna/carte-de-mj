@@ -47,6 +47,8 @@ export const FORMAT = 'carte-de-mj-donjon';
 export const FORMAT_ANCIEN = 'jdr-carte';
 export const VERSION = 1;
 export const TEXTE_SALLE_VIDE = 'Salle de 8 par 8 cases.';
+/** La description de la salle du donjon provisoire au premier lancement (le premier exemple de l'atelier). */
+export const TEXTE_EXEMPLE_INITIAL = 'Grande salle de 4 m par 12, quatre piliers, deux coffres au fond de la salle, une statue immobile devant une porte';
 export const COTE_NOUVELLE_SALLE = 6;
 
 export const MAX_SALLES = 200;
@@ -210,6 +212,29 @@ export function supprimerSalle(d, id, { echelle } = {}) {
 }
 
 export const listerSalles = (d) => Object.values(d.salles);
+
+const CLES_DONJON_VIERGE = ['format', 'version', 'id', 'nom', 'salleActive', 'salles', 'liaisons'];
+const CLES_SALLE_VIERGE = ['id', 'nom', 'texte', 'plan', 'notes'];
+
+/**
+ * Le donjon n'a jamais été retouché : c'est le donjon provisoire que l'atelier garde en mémoire (il en faut toujours un d'actif),
+ * sans l'enregistrer ni le montrer tant qu'il est ainsi. Vrai seulement pour le donjon « Donjon » d'une seule salle « Salle 1 », sans
+ * liaison, sans note, sans personnage, sans élément caché, sans aucun champ inconnu, dont la description est vide, celle d'une salle
+ * neuve (`TEXTE_SALLE_VIDE`) ou celle de l'exemple initial. Le plan se déduit de la description (elle seule est modifiée par une retouche) :
+ * on ne vérifie que l'absence d'élément caché. Au moindre doute : faux (jamais de donjon retouché pris pour un vierge).
+ */
+export function donjonVierge(d) {
+  if (!d || typeof d !== 'object' || !d.salles || !Array.isArray(d.liaisons)) return false;
+  if (Object.keys(d).some((k) => !CLES_DONJON_VIERGE.includes(k))) return false;
+  if (d.nom !== 'Donjon' || d.liaisons.length) return false;
+  const salles = Object.values(d.salles);
+  if (salles.length !== 1) return false;
+  const [s] = salles;
+  if (!s || typeof s !== 'object' || Object.keys(s).some((k) => !CLES_SALLE_VIERGE.includes(k))) return false;
+  if (s.nom !== 'Salle 1' || s.notes !== '' || s.id !== d.salleActive) return false;
+  if (![TEXTE_SALLE_VIDE, TEXTE_EXEMPLE_INITIAL, ''].includes(s.texte)) return false;
+  return Object.values(LISTES).every((liste) => (s.plan?.[liste] || []).every((e) => !e?.cache));
+}
 
 /** Un MJ qui débute : aucun de ses donjons n'a de liaison ni plus d'une salle. Le Donjon lui souffle alors comment créer la salle suivante. */
 export const estDebutant = (donjons) => Object.values(donjons).every((d) => d.liaisons.length === 0 && Object.keys(d.salles).length < 2);

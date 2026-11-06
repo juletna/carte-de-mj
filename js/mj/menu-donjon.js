@@ -161,7 +161,7 @@ export function creerMenu(ctx) {
     return `Supprimer « ${d.nom} » et ${n > 1 ? `ses ${n} salles` : 'sa salle'} ?`
       + (partie ? ' Sa partie en cours reste dans la Présentation.' : '');
   }
-  /** Supprime le donjon affiché (le dernier est remplacé par un donjon vide) ; un autre s'affiche. L'inspecteur demande la confirmation. */
+  /** Supprime le donjon affiché (le dernier est remplacé par un donjon vide provisoire : vierge, il n'est pas enregistré, voir sauverDonjons) ; un autre s'affiche. L'inspecteur demande la confirmation. */
   function supprimerDonjon() {
     ctx.historique.oublierDonjon(etat.actif);
     delete etat.donjons[etat.actif];

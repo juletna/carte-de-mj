@@ -34,9 +34,14 @@ function lireDonjons() {
   } catch {
     return { erreur: 'Le stockage du navigateur est indisponible (navigation privée, ou données de site bloquées) : impossible de lire tes donjons. Autorise le stockage pour ce site, ou imprime depuis un navigateur normal.' };
   }
-  if (!brut) return { erreur: 'Aucun donjon enregistré dans ce navigateur. Prépare-en un dans Préparer, puis reviens ici.' };
+  const aucun = { erreur: 'Aucun donjon enregistré dans ce navigateur. Prépare-en un dans Préparer, puis reviens ici.' };
+  if (!brut) return aucun;
   const etat = chargerDonjons();
-  if (!etat) return { erreur: 'Les donjons enregistrés dans ce navigateur sont illisibles ou vides : rien à imprimer. Rien n’a été modifié.' };
+  if (!etat) { // la clé existe : liste vide (tous les donjons supprimés, ou le donjon provisoire jamais retouché) ou rien de lisible
+    let vide = false;
+    try { const d = JSON.parse(brut)?.donjons; vide = !!d && typeof d === 'object' && !Object.keys(d).length; } catch { /* illisible */ }
+    return vide ? aucun : { erreur: 'Les donjons enregistrés dans ce navigateur sont illisibles ou vides : rien à imprimer. Rien n’a été modifié.' };
+  }
   return etat;
 }
 
