@@ -14,6 +14,7 @@ import { graineDePlan, idPublic } from '../js/rendu/graine.js';
 import { themeParNom, THEMES } from '../js/rendu/themes/index.js';
 import { dessiner, ordonnerObjets } from '../js/rendu/moteur.js';
 import { objets as objetsPeints, ordonner, face } from '../js/rendu/themes/peint/objets.js';
+import { RICHES } from '../js/rendu/themes/peint/objets-dessines.js';
 import { pion as pionPeint } from '../js/rendu/themes/peint/pions.js';
 import { etat } from '../js/rendu/themes/peint/etat.js';
 import { dessinerDetails } from '../js/rendu/themes/peint/details.js';
@@ -21,7 +22,7 @@ import { casesDeReglages, themeDeReglages, detailsDeReglages, reliefDeReglages, 
 import { chargerReglages, CLE_REGLAGES } from '../js/stockage.js';
 import { planPublic } from '../js/vue-publique.js';
 import { casesRetirees, nombreCases } from '../js/formes.js';
-import { OBJETS, CREATURES, coucheDe } from '../js/catalogue.js';
+import { OBJETS, CREATURES, coucheDe, variantesDe } from '../js/catalogue.js';
 import { verifier, egal, fauxStock, executerSuite, avecEcranSimule } from './mini-test.js';
 
 const rect = (largeur, longueur, plus = {}) => ({ id: 's1', largeur, longueur, sol: 'pierre', portes: [], objets: [], creatures: [], ...plus });
@@ -53,6 +54,79 @@ function ctxJournal() {
   return { ctx, lignes };
 }
 const canvasSimule =() => ({ width: 0, height: 0, style: {}, getContext: () => ctxPermissif() });
+
+/** Empreinte (FNV-1a) d'une suite de lignes de dessin. */
+const empreinte = (lignes) => { let h = 2166136261; const s = lignes.join('|'); for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0).toString(16); };
+/** Les objets du catalogue sans version « riches » : le garde de objets.js les laisse alors au dessin d'avant. Vide à la fin du chantier (le test le vérifie dans les deux sens). */
+const RICHES_A_FAIRE = ['torche', 'debris', 'puits', 'fontaine', 'sarcophage', 'brasero', 'bougies', 'tapis', 'banniere', 'feudecamp', 'flaque', 'rocher', 'champignons', 'toile', 'ossements'];
+/** Chaque objet du catalogue, avec chacune de ses variantes (null : sans variante). */
+const OBJETS_ET_VARIANTES = OBJETS.flatMap(({ type }) => (variantesDe(type).length ? variantesDe(type).map((v) => [type, v.id]) : [[type, null]]));
+/** Le dessin « sobres » de chaque objet tel qu'il était avant les objets riches (empreinte de 8 rendus : relief ou non × 4 rotations). */
+const SOBRES_DE_REFERENCE = {
+  'pilier': 'a8075b8b',
+  'colonne': '54dc6d5b',
+  'coffre': 'e73353d3',
+  'statue': '6fc812e7',
+  'table': 'aefd5fdb',
+  'chaise': '75d09fab',
+  'autel': '29767c67',
+  'trone': 'de5b540b',
+  'tonneau': '742c26b3',
+  'caisse': 'c1cbb29f',
+  'escalier': '50766173',
+  'fosse': '5e7143bb',
+  'lit': 'e378430d',
+  'bibliotheque': '2828353',
+  'torche/normale': 'a84eceb3',
+  'torche/eteinte': 'd8ae70ab',
+  'torche/bleue': '94b39c23',
+  'torche/verte': '1ce36d53',
+  'torche/violette': 'bacbf57',
+  'torche/argentee': '23ce530b',
+  'torche/infernale': 'ac49ef3f',
+  'debris': '45ec83bf',
+  'puits': 'c3344c13',
+  'fontaine': '7a53d2b3',
+  'sarcophage': '37bf0b6b',
+  'brasero/normale': '3ddb4c9b',
+  'brasero/eteinte': 'bd2e38bf',
+  'brasero/bleue': '1b256093',
+  'brasero/verte': '59279fbb',
+  'brasero/violette': 'a057a423',
+  'brasero/argentee': '9d909c8b',
+  'brasero/infernale': '9b3a19e3',
+  'bougies/normale': '1b90ec83',
+  'bougies/eteinte': 'a2b3b223',
+  'bougies/bleue': 'cc474c3f',
+  'bougies/verte': 'b9c9f36b',
+  'bougies/violette': '8e2d1f93',
+  'bougies/argentee': 'b821555b',
+  'bougies/infernale': '9d683dc7',
+  'tapis': 'f5a39a9b',
+  'banniere': '12f99e03',
+  'feudecamp/normale': '88dc8dbb',
+  'feudecamp/eteinte': 'a720fa23',
+  'feudecamp/bleue': '2739fbeb',
+  'feudecamp/verte': 'cbd6e80f',
+  'feudecamp/violette': '7f7a970b',
+  'feudecamp/argentee': '1ffa6e5f',
+  'feudecamp/infernale': '2bb77c33',
+  'flaque': '242a70c3',
+  'rocher': '3de31f2b',
+  'champignons': '9d1209b3',
+  'toile': 'ef41b59b',
+  'ossements': '6210c4a3',
+};
+/** Dessine un objet dans la salle d'essai (9 × 7, 48 px) : toutes les rotations d'un coup, tracé journalisé. */
+function dessinerObjetEssai(type, variante, relief, rotations, details) {
+  const { ctx, lignes } = ctxJournal();
+  for (const rotation of rotations) {
+    THEMES.peint.preparer(ctx, rect(9, 7, { id: 'essai' }), 48, { relief, details });
+    const quart = rotation === 90 || rotation === 270, l = type === 'table' ? 2 : 1, h = type === 'lit' ? 2 : 1;
+    THEMES.peint.objets[type](ctx, (quart ? h : l) * 48, (quart ? l : h) * 48, 48, { type, x: 2, y: 3, l, h, rotation, ...(variante ? { variante } : {}) });
+  }
+  return lignes;
+}
 
 const TESTS = [
   // --- Perspective et KP ---------------------------------------------------------------------------------
@@ -496,6 +570,35 @@ const TESTS = [
         }
       }
     }
+  }],
+  ['objets dessinés : chaque objet (et chaque variante) se dessine en riches comme en sobres, aux 4 rotations, avec et sans relief, déterministe ; sobres ne passe jamais par le code riche et garde le rendu d’avant', () => {
+    const appels = [];
+    const vrais = {};
+    for (const type of Object.keys(RICHES)) { vrais[type] = RICHES[type]; RICHES[type] = (...a) => { appels.push(type); return vrais[type](...a); }; }
+    try {
+      for (const [type, variante] of OBJETS_ET_VARIANTES) {
+        const nom = variante ? `${type}/${variante}` : type;
+        for (const relief of [true, false]) for (const rotation of [0, 90, 180, 270]) {
+          const quoi = `${nom} · relief ${relief} · ${rotation}°`;
+          appels.length = 0;
+          const sobres = dessinerObjetEssai(type, variante, relief, [rotation], 'sobres');
+          verifier(appels.length === 0, `${quoi} : sobres ne doit pas appeler le code riche`);
+          verifier(sobres.every((l) => !/NaN|undefined|Infinity/.test(l)), `${quoi} : valeur invalide en sobres`);
+          appels.length = 0;
+          const riches = dessinerObjetEssai(type, variante, relief, [rotation], 'riches'), nbRiches = appels.length;
+          verifier(riches.some((l) => l.startsWith('fill(') || l.startsWith('stroke(')), `${quoi} : riches ne trace rien`);
+          verifier(riches.every((l) => !/NaN|undefined|Infinity/.test(l)), `${quoi} : valeur invalide en riches : ${riches.find((l) => /NaN|undefined|Infinity/.test(l))}`);
+          egal(riches, dessinerObjetEssai(type, variante, relief, [rotation], 'riches'), `${quoi} : riches déterministe`);
+          egal(sobres, dessinerObjetEssai(type, variante, relief, [rotation], 'sobres'), `${quoi} : sobres déterministe`);
+          if (RICHES_A_FAIRE.includes(type)) { verifier(nbRiches === 0, `${quoi} : sans version riche, le dessin d’avant`); egal(riches, sobres, `${quoi} : pas encore de version riche`); }
+          else { verifier(nbRiches === 1, `${quoi} : riches appelle sa version dessinée`); verifier(riches.join('|') !== sobres.join('|'), `${quoi} : riches et sobres diffèrent`); }
+        }
+        egal(empreinte(['true', 'false'].flatMap((rel) => dessinerObjetEssai(type, variante, rel === 'true', [0, 90, 180, 270], 'sobres'))), SOBRES_DE_REFERENCE[nom], `${nom} : le dessin sobres n’a pas changé`);
+      }
+    } finally { Object.assign(RICHES, vrais); }
+    // La liste des objets à faire ne ment pas : tout objet hors liste a sa version riche, aucun objet de la liste n'en a une.
+    for (const { type } of OBJETS) verifier((type in RICHES) === !RICHES_A_FAIRE.includes(type), `${type} : RICHES_A_FAIRE et RICHES ne concordent pas`);
+    verifier(Object.keys(RICHES).every((type) => OBJETS.some((o) => o.type === type)), 'RICHES : un type inconnu du catalogue');
   }],
   ['peint : le même objet, à une autre place de la salle, ne se dessine pas pareil (les aléas viennent de sa place) ; la salle change la graine', () => {
     const tracer = (id, x) => { const { ctx, lignes } = ctxJournal(); THEMES.peint.preparer(ctx, rect(9, 7, { id }), 48, { relief: true }); objetsPeints.debris(ctx, 48, 48, 48, { type: 'debris', x, y: 1 }); return lignes.join('|'); };

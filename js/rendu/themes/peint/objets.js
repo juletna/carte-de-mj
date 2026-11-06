@@ -23,6 +23,7 @@ import { chemin, cercle, encre, trait, dl, dr, ton, centre, rectPts, arrondi, EN
 import { sensDuCoin } from '../commun.js';
 import { DESSINS as DETAILS } from './details.js';
 import * as vectoriel from '../vectoriel.js';
+import { RICHES } from './objets-dessines.js';
 import { teinteFlamme, RAYON_MAGIQUE, fumee, cendres } from '../../feu.js';
 
 const PIERRE = [40, 6, 60], PIERRE_SOMBRE = [40, 5, 46], MARBRE = [40, 8, 74];
@@ -38,9 +39,9 @@ export function preparerObjet(ctx, o, surMur = false) {
   return { V, r };
 }
 
-const poly = (ctx, pts) => { ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.closePath(); };
-const milieu = (a, b, u = 0.5) => [a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u];
-const distCentre = (V, x, y) => Math.hypot(x - V.vue.cx, y - V.vue.cy);
+export const poly = (ctx, pts) => { ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.closePath(); };
+export const milieu = (a, b, u = 0.5) => [a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u];
+export const distCentre = (V, x, y) => Math.hypot(x - V.vue.cx, y - V.vue.cy);
 
 /** Les pièces `{ x, y, dessiner }` d'un objet, jouées du plus loin au plus proche du centre de la salle ((x, y) : le milieu de la pièce). */
 export function ordonner(V, pieces) {
@@ -58,7 +59,7 @@ export function face(V, x, y, l, h, cote) {
   }[cote];
   return { n, visible: faceVisible(V.vue, a, b, n), P: (u, v) => V.haut(a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u, v) };
 }
-const COTES = ['nord', 'sud', 'ouest', 'est'];
+export const COTES = ['nord', 'sud', 'ouest', 'est'];
 const quad = (F, u0, u1, v0, v1) => [F.P(u0, v0), F.P(u1, v0), F.P(u1, v1), F.P(u0, v1)];
 
 /** Une bande pleine sur une face visible. */
@@ -121,7 +122,7 @@ export function rocher(ctx, V, r, cx, cy, R, h = 0.14, c = [35, 6, 50]) {
 }
 
 /** Un creux dont `d` murs de profondeur : la paroi du côté opposé au centre se laisse voir (entre le bord et le fond, qui se rapproche du centre). */
-function paroi(ctx, V, a, b, n, da, db, c, sombre = 0.6) {
+export function paroi(ctx, V, a, b, n, da, db, c, sombre = 0.6) {
   if (!faceVisible(V.vue, a, b, n)) return;
   const A0 = V.haut(a[0], a[1], 0), B0 = V.haut(b[0], b[1], 0), A1 = V.haut(a[0], a[1], -da), B1 = V.haut(b[0], b[1], -db);
   const k = (0.8 + 0.3 * eclairage(V.vue, n[0], n[1])) * sombre;
@@ -148,7 +149,7 @@ function escalierQuiMonte(ctx, w, h, t, o) {
 
 // --- Les objets -------------------------------------------------------------------------------------------------
 
-export const objets = {
+const sobres = {
   pilier(ctx, w, h, t, o) {
     const { V, r } = preparerObjet(ctx, o), s = Math.min(w, h), a = s * 0.46, f = s * 0.31, ch = s * 0.41;
     V.prisme(ctx, r, rectPts(-a, -a, a * 2, a * 2), 0, 0.07, PIERRE_SOMBRE, () => {
@@ -690,3 +691,13 @@ export const objets = {
 
   inconnu: vectoriel.objets.inconnu,
 };
+
+/**
+ * Les dessins d'objets du thème. Le réglage « Détails des sols » ('riches' par défaut, `etat.details`) choisit le style : 'riches' passe par
+ * `RICHES[type]` (objets-dessines.js) quand l'objet en a une version ; sinon, et toujours en 'sobres', c'est le dessin historique ci-dessus,
+ * appelé tel quel (aucun tirage de plus). La table `RICHES` est lue à chaque appel (import circulaire : objets-dessines.js réutilise les briques de ce fichier).
+ */
+export const objets = Object.fromEntries(Object.keys(sobres).map((type) => [type, (ctx, w, h, t, o, plan) => {
+  const riche = etat.details === 'riches' ? RICHES[type] : undefined;
+  return riche ? riche(ctx, w, h, t, o, plan) : sobres[type](ctx, w, h, t, o, plan);
+}]));
