@@ -106,8 +106,8 @@ export function creerRegieUnivers(ctx) {
       else if (partie) {
         const recommencer = h('button', { type: 'button', className: 'discret' });
         deuxTemps(recommencer, 'Recommencer', 'Effacer la partie ?', () => ouvrir(u, pu.creerPartieUnivers(u)));
-        boutons.append(bouton('Reprendre', () => ouvrir(u, partie, { reprise: true })), recommencer);
-      } else boutons.append(bouton('Présenter', () => ouvrir(u, pu.creerPartieUnivers(u))));
+        boutons.append(recommencer); // « Reprendre » est dans « Parties en cours » (js/regie-depart.js)
+      } else boutons.append(bouton('Jouer', () => ouvrir(u, pu.creerPartieUnivers(u))));
       return h('li', {}, infos, boutons);
     }));
   }
@@ -116,7 +116,7 @@ export function creerRegieUnivers(ctx) {
   function afficherEcran() {
     for (const id of ['depart', 'choix-joueurs', 'regie']) $(id).hidden = true;
     ecran.hidden = false;
-    document.title = `${courant.univers.nom} · Présentation · Carte de MJ`;
+    document.title = `${courant.univers.nom} · Jouer · Carte de MJ`;
   }
   function ouvrir(univers, partie, { reprise = false } = {}) {
     const notes = pu.reconcilier(partie, univers, donjons());
@@ -292,5 +292,15 @@ export function creerRegieUnivers(ctx) {
     return !ecran.hidden || !!etat.p;
   }
 
-  return { listerDepart, diffuser, majFil, reprendre, defiler, redessiner: () => { if (courant && !ecran.hidden) rendre(); }, actif: () => !ecran.hidden };
+  /** Ouvre le monde `id` (`presentation.html?univers=<id>`) : reprend sa partie, ou en commence une. Faux s'il n'existe plus ou n'a aucune carte. */
+  function ouvrirParId(id) {
+    const u = universEnregistres()[id];
+    if (!u || !Object.keys(u.lieux).length) return false;
+    let partie = stockage.chargerPartiesUnivers()[id];
+    if (!partie) { partie = pu.creerPartieUnivers(u); stockage.enregistrerPartieUnivers(partie); }
+    ouvrir(u, partie, { reprise: true });
+    return !ecran.hidden || !!etat.p;
+  }
+
+  return { listerDepart, diffuser, majFil, reprendre, ouvrirParId, defiler, redessiner: () => { if (courant && !ecran.hidden) rendre(); }, actif: () => !ecran.hidden };
 }

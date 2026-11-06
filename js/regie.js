@@ -642,13 +642,7 @@ export function demarrerRegie() {
   // L'adresse perd sa demande : recharger la page rouvre la régie ouverte, pas une demande de départ.
   if (parametres.has('donjon') || parametres.has('univers')) history.replaceState(null, '', location.pathname.split('/').pop() || 'presentation.html');
   /** Ouvre (ou commence) la partie de ce monde : la carte d'univers s'affiche. Faux si le monde n'existe plus ou n'a aucune carte. */
-  function ouvrirMonde(id) {
-    const monde = stockage.chargerUnivers().etat?.univers?.[id];
-    if (!monde || !Object.keys(monde.lieux).length) return false;
-    if (!stockage.chargerPartiesUnivers()[id]) stockage.enregistrerPartieUnivers(pu.creerPartieUnivers(monde));
-    stockage.memoriserPartieOuverte(pu.cleOuverteUnivers(id));
-    return univers.reprendre();
-  }
+  function ouvrirMonde(id) { return univers.ouvrirParId(id); }
   ctx.ouvrirMonde = ouvrirMonde;
   function ouvrirDemande() {
     if (ouverture.genre === 'donjon') {
