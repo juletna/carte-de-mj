@@ -5,6 +5,7 @@
 import * as m from '../js/donjon.js';
 import { validerDonjon } from '../js/donjon-validation.js';
 import { genererDonjon, normaliserOptions, BORNES, FAMILLES, genererSalle, famillesPresentes, normaliserOptionsSalle, estNomParDefaut, salleAUnContenu, BORNES_SALLE, salleReliee, typesDesAutresSalles } from '../js/generateur.js';
+import { SOLS, AMBIANCES, ETATS_SALLE, ECLAIRAGES } from '../js/schema.js';
 import { analyser } from '../js/parseur/index.js';
 import { nomAffiche } from '../js/parseur/lexique.js';
 import { CREATURES } from '../js/catalogue.js';
@@ -16,7 +17,7 @@ import { verifier, egal, executerSuite } from './mini-test.js';
 /** Une salle de départ avec ses portes (la première secrète) et un escalier, à relire comme le fait l'outil. */
 const SALLE_PORTES = 'Salle de 12 par 10 cases, sol en bois, une porte au mur sud en C, une porte secrète au mur nord en B, une arche au mur est en 3, un escalier qui monte en A1, 2 tonneaux, 3 rats.';
 const vide = (plan) => ({ ...plan, objets: [], creatures: [] });
-const ancres = (plan) => JSON.stringify([plan.forme, plan.largeur, plan.longueur, plan.sol,
+const ancres = (plan) => JSON.stringify([plan.forme, plan.largeur, plan.longueur,
   plan.portes.map((q) => [q.mur, q.position, q.type, !!q.cache]).sort(), plan.objets.filter((o) => o.type === 'escalier').map((o) => [o.x, o.y, o.rotation, o.sens]).sort()]);
 
 /** Une porte débouche-t-elle sur du sol ? (elle s'enfonce de `retraitPorte` cases dans une forme découpée) */
@@ -267,11 +268,11 @@ const TESTS = [
     const libre = analyser('Salle de 8 par 8 cases, sol en marbre, une porte au mur sud en C, une arche au mur nord en B, une porte secrète au mur est en 3.').plan;
     let formes = 0, dimensions = 0;
     for (let graine = 1; graine <= 60; graine++) {
-      const r = genererSalle({ plan: libre, reliee: false, monstres: 2, coffres: 1, pieges: 1, graine });
+      const r = genererSalle({ plan: libre, reliee: false, monstres: 2, coffres: 1, pieges: 1, apparence: { sol: 'marbre' }, graine });
       egal(r.mode, 'nouvelle', `salle libre : nouvelle forme (graine ${graine})`);
       const relu = analyser(r.texte).plan;
       egal(relu.portes.map((q) => [q.mur, q.position, q.type, !!q.cache]).sort(), libre.portes.map((q) => [q.mur, q.position, q.type, !!q.cache]).sort(), `les portes gardent mur, position, type et secret (graine ${graine})`);
-      egal(relu.sol, 'marbre', 'le sol est gardé');
+      egal(relu.sol, 'marbre', 'le sol imposé est gardé');
       egal([relu.creatures.length, relu.objets.filter((o) => o.type === 'coffre').length], [r.resume.monstres, r.resume.coffres], `contenu relu de la graine ${graine}`);
       for (const e of [...relu.objets, ...relu.creatures]) verifier(surLeSol(relu, e.x, e.y, e.taille ?? e.l, e.taille ?? e.h), 'sur le sol');
       if (relu.forme !== 'rectangle') formes++;
@@ -453,11 +454,17 @@ const TESTS = [
       const p = analyser(r.texte).plan;
       egal([p.sol, p.ambiance, p.etat, p.eclairage], ['marbre', 'chaude', 'ruine', 'obscurite'], `${quoi} : l'apparence demandée est dans le texte`);
     }
-    const auto = analyser(genererSalle({ forme: 'actuelle', plan, reliee: true, graine: 5 }).texte).plan;
-    egal([auto.sol, auto.ambiance], ['bois', 'froide'], 'auto : l’aspect actuel est gardé');
+    // Non imposée, l'apparence est tirée : reproductible à graine égale, variable d'une graine à l'autre, toujours une valeur permise.
+    const tire = (graine, forme = 'actuelle') => { const p = analyser(genererSalle({ forme, plan, reliee: true, graine }).texte).plan; return [p.sol ?? 'pierre', p.ambiance ?? 'neutre', p.etat ?? 'neuve', p.eclairage ?? 'penombre']; };
+    egal(tire(5), tire(5), 'aléatoire : même graine, même apparence');
+    const vues = new Set(Array.from({ length: 40 }, (_, i) => tire(i + 1).join('/')));
+    verifier(vues.size > 5, 'aléatoire : l’apparence varie d’un tirage à l’autre');
+    verifier(Array.from({ length: 40 }, (_, i) => tire(i + 1, null)).every(([sol, amb, etat, ecl]) => SOLS.includes(sol) && AMBIANCES.includes(amb) && ETATS_SALLE.includes(etat) && ECLAIRAGES.includes(ecl)), 'aléatoire : toujours des valeurs permises, aussi en nouvelle forme');
+    const mixte = analyser(genererSalle({ forme: 'actuelle', plan, reliee: true, apparence: { sol: 'glace' }, graine: 9 }).texte).plan;
+    egal(mixte.sol, 'glace', 'une valeur imposée reste imposée, les autres sont tirées');
     const retour = analyser(genererSalle({ forme: 'actuelle', plan, reliee: true, apparence: { sol: 'pierre', ambiance: 'neutre' }, graine: 5 }).texte).plan;
     egal([retour.sol ?? 'pierre', retour.ambiance ?? 'neutre'], ['pierre', 'neutre'], 'les valeurs par défaut s’imposent aussi');
-    egal(normaliserOptionsSalle({ apparence: { sol: 'lave', etat: 'ruine' } }).apparence, { sol: null, ambiance: null, etat: 'ruine', eclairage: null }, 'valeur inconnue : automatique');
+    egal(normaliserOptionsSalle({ apparence: { sol: 'lave', etat: 'ruine' } }).apparence, { sol: null, ambiance: null, etat: 'ruine', eclairage: null }, 'valeur inconnue : aléatoire');
   }],
 ];
 

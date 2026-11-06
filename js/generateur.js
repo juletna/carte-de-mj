@@ -367,7 +367,7 @@ export function normaliserOptionsSalle(brut = {}) {
   };
   return {
     ...Object.fromEntries(Object.keys(BORNES_SALLE).map((cle) => [cle, nombre(cle)])),
-    // Apparence imposée (sol, ambiance, état, éclairage) : une valeur permise est gardée, tout le reste est null (automatique : l'aspect actuel de la salle).
+    // Apparence imposée (sol, ambiance, état, éclairage) : une valeur permise est gardée, tout le reste est null (aléatoire : le tirage choisit).
     apparence: Object.fromEntries([['sol', SOLS], ...Object.entries(CHAMPS_AMBIANCE)].map(([c, permis]) => [c, permis.includes(brut.apparence?.[c]) ? brut.apparence[c] : null])),
     familles: (Array.isArray(brut.familles) ? brut.familles : []).filter((f) => f in FAMILLES),
     typesPresents: (Array.isArray(brut.typesPresents) ? brut.typesPresents : []).filter((t) => typeof t === 'string'),
@@ -379,8 +379,16 @@ export function normaliserOptionsSalle(brut = {}) {
   };
 }
 
+/** Les valeurs que le tirage choisit quand l'apparence n'est pas imposée (répétées : les plus courantes tombent plus souvent). */
+const TIRAGE_APPARENCE = {
+  sol: ['pierre', 'pierre', 'pierre', 'terre', 'bois', 'marbre'],
+  ambiance: ['neutre', 'neutre', 'froide', 'chaude', 'nuit'],
+  etat: ['neuve', 'usee', 'usee', 'ruine'],
+  eclairage: ['penombre', 'penombre', 'eclairee', 'obscurite'],
+};
+
 const escaliersDe = (plan) => (plan.objets || []).filter((o) => o.type === 'escalier');
-/** Ce qui ne doit jamais bouger en remplissant : forme, dimensions, sol, ambiance, portes et escaliers (avec leur place et leur sens). */
+/** Ce qui ne doit jamais bouger en remplissant : forme, dimensions, portes et escaliers (avec leur place et leur sens). */
 function ancresDe(plan) {
   return JSON.stringify({
     forme: [plan.forme ?? 'rectangle', plan.largeur, plan.longueur, plan.bras ?? null, plan.position ?? null],
@@ -403,7 +411,7 @@ const nombreMonstres = (spec) => Object.values(spec.monstres).reduce((a, b) => a
  * Même ingrédients que `genererDonjon` (rôles, familles, placement, relecture par le parseur), sans règle d'entrée ni de boss.
  *
  * Deux modes, pour qu'une porte reliée à une autre salle ne disparaisse jamais :
- *  - « remplir » (`forme: 'actuelle'`) : forme, dimensions, sol, ambiance, TOUTES les portes et TOUS les escaliers restent où ils sont ; seul le
+ *  - « remplir » (`forme: 'actuelle'`) : forme, dimensions, TOUTES les portes et TOUS les escaliers restent où ils sont ; seul le
  *    contenu change. La salle n'est pas agrandie : si tout ne tient pas, le contenu est réduit (`resume.reduit`) ;
  *  - « nouvelle » (`forme` absente ou null : automatique ; ou l'identifiant d'une forme imposée, rectangle compris, aux dimensions
  *    tirées assez grandes pour elle) : nouvelle forme et nouvelles dimensions, appliquées au plan comme le fait la saisie à la main
@@ -420,8 +428,6 @@ const nombreMonstres = (spec) => Object.values(spec.monstres).reduce((a, b) => a
  */
 export function genererSalle(brut = {}) {
   const o = normaliserOptionsSalle(brut);
-  // Un réglage d'apparence imposé s'applique au plan avant tout : « remplir » le décrit tel quel, « nouvelle forme » le reprend.
-  const plan = brut.plan ? { ...brut.plan, ...Object.fromEntries(Object.entries(o.apparence).filter(([, v]) => v !== null).map(([c, v]) => [c, v === (c === 'sol' ? SOLS : CHAMPS_AMBIANCE[c])[0] ? undefined : v])) } : null; // la valeur par défaut est l'absence du champ
   const graine = o.graine ?? nouvelleGraine();
   const alea = generateur(graine);
 
@@ -429,6 +435,11 @@ export function genererSalle(brut = {}) {
   const familles = o.familles.length ? o.familles : presentes.length ? presentes : melanger(Object.keys(FAMILLES), alea).slice(0, 2);
   const troupe = familles.flatMap((f) => FAMILLES[f].troupe);
   const role = melanger(ROLES, alea)[0];
+  // L'apparence : une valeur imposée est gardée, sinon elle est tirée (le sol du rôle, quand il en a un). Tirée à part (`graine` décalée) : les autres
+  // tirages d'un même numéro ne changent pas. Elle s'applique au plan avant tout : « remplir » le décrit tel quel, « nouvelle forme » le reprend.
+  const aleaAspect = generateur(graine + 104729);
+  const apparence = Object.fromEntries(Object.entries(TIRAGE_APPARENCE).map(([c, pool]) => [c, o.apparence[c] ?? (c === 'sol' && role.sol ? role.sol : pool[Math.floor(aleaAspect() * pool.length)])]));
+  const plan = brut.plan ? { ...brut.plan, ...Object.fromEntries(Object.entries(apparence).map(([c, v]) => [c, v === (c === 'sol' ? SOLS : CHAMPS_AMBIANCE[c])[0] ? undefined : v])) } : null; // la valeur par défaut est l'absence du champ
   // Les quantités : imposées, ou tirées selon la place (`quantitesAuto`) une fois la salle connue ; `spec` est refait à chaque salle envisagée.
   let demande = { monstres: 0, coffres: 0, pieges: 0 }, spec = null;
   const preparer = (cases) => {
@@ -529,7 +540,7 @@ function formeNeuve(plan, role, formes, alea, imposee = null) {
   };
   if (!neuf.portes.every(surLeSolDuMur)) return null;
   if (!escaliers.every((e) => neuf.objets.some((n) => n.id === e.id && n.x === e.x && n.y === e.y))) return null;
-  return (plan.sol && plan.sol !== 'pierre') || !role.sol ? neuf : { ...neuf, sol: role.sol }; // le rôle ne change que le sol resté « pierre »
+  return neuf;
 }
 
 /** Une porte ou un escalier de cette salle est-il relié à une autre salle ? (alors sa forme et ses dimensions ne doivent pas changer) */

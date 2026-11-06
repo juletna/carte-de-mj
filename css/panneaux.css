@@ -271,6 +271,8 @@
 
 /* === Inspecteur de la salle : section « Au hasard » (js/atelier/au-hasard-salle.js) : étiquette T3 au-dessus du champ, trois nombres sur une rangée === */
 .hasard-salle-champs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--esp-2); }
+.hasard-salle-champs input { appearance: textfield; -moz-appearance: textfield; } /* pas de flèches : le mot « Aléatoire » du champ vide doit tenir (le clavier ↑↓ marche toujours) */
+.hasard-salle-champs input::-webkit-inner-spin-button, .hasard-salle-champs input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 .hasard-salle-champ { display: flex; flex-direction: column; gap: 5px; min-width: 0; margin: 0; }
 .hasard-salle-etiquette { font-size: 12.5px; font-weight: 500; color: var(--p-texte-3); }
 .hasard-salle-entete { display: flex; align-items: center; justify-content: space-between; gap: 4px; min-height: 20px; }
