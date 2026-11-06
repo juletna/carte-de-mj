@@ -636,7 +636,8 @@ export function creerUniversUI(ctx) {
   racine.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape' || e.defaultPrevented) return;
     e.preventDefault();
-    if (calage.actif()) { calage.fermer(); rendre(); } else if (pointId) { selectionner(null); rendre(); } else fermerEcran();
+    if (arbre.ouvert()) arbre.fermer(); // le tiroir des lieux (téléphone) d'abord
+    else if (calage.actif()) { calage.fermer(); rendre(); } else if (pointId) { selectionner(null); rendre(); } else fermerEcran();
   });
   window.addEventListener('hashchange', () => {
     const cible = analyserHash(location.hash);

@@ -197,7 +197,7 @@ textarea{min-height:84px;resize:vertical}
 .tests button.pr,.sk button.pr{border-color:var(--texte)}
 .tests button.pr span::after,.sk button.pr span::after{content:" ●";color:var(--accent)}
 .sk button.ex span::after{content:" ◆";color:var(--accent)}
-.sk{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.sk{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
 .sk button small{color:var(--texte-doux);font-weight:400;font-size:.7rem;margin-left:4px}
 .hist{display:flex;flex-direction:column;gap:4px;font-size:.88rem;font-variant-numeric:tabular-nums}
 .hist div{display:flex;justify-content:space-between;gap:8px;color:var(--texte-doux)}
@@ -244,7 +244,7 @@ textarea{min-height:84px;resize:vertical}
 
 nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:7;background:var(--panneau);border-top:1px solid var(--bord);
   padding:6px max(8px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-left,0px));
-  display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
+  display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}
 nav.tabs button{background:transparent;border-color:transparent;font-size:.82rem;min-height:48px;color:var(--texte-doux);padding:0 2px}
 nav.tabs button.on{color:var(--accent-texte);background:var(--accent)}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(150px + env(safe-area-inset-bottom,0px));background:var(--panneau);color:var(--texte);box-shadow:inset 0 0 0 1px var(--accent),0 6px 20px rgba(0,0,0,.5);
