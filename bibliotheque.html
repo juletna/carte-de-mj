@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bibliothèque de cartes · Carte de MJ</title>
+  <meta name="description" content="Essai du choix d'une carte : catalogue local, images importées.">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/bibliotheque.css">
+  <style>
+    body { margin: 0; background: var(--fond); color: var(--texte); font-family: var(--police); }
+    main { max-width: 760px; margin: 0 auto; padding: var(--esp-4); display: flex; flex-direction: column; gap: var(--esp-3); }
+    #apercu img { max-width: 100%; max-height: 60vh; border-radius: var(--rayon); background: var(--scene); }
+    #infos { white-space: pre-wrap; background: var(--panneau); border: 1px solid var(--bord); border-radius: var(--rayon); padding: var(--esp-3); font-size: 13px; overflow-wrap: anywhere; }
+    select { background: var(--champ); color: var(--texte); border: 1px solid var(--bord); border-radius: var(--rayon); padding: var(--esp-2); min-height: var(--cible); }
+  </style>
+</head>
+<body>
+  <header class="menu-site">
+    <div class="menu-int">
+      <a class="menu-nom" href="index.html">Carte de MJ</a>
+      <nav aria-label="Navigation principale">
+        <a class="menu-lien" href="fiche.html">Fiche</a>
+        <a class="menu-lien" href="donjon.html">Donjon</a>
+        <a class="menu-lien" href="presentation.html">Présentation</a>
+      </nav>
+    </div>
+  </header>
+  <main>
+    <h1>Bibliothèque de cartes</h1>
+    <p>Page d'essai du sélecteur <code>choisirCarte</code> (l'univers l'appellera ensuite).</p>
+    <div>
+      <label for="niveau">Niveau proposé au départ&nbsp;: </label>
+      <select id="niveau"><option value="">aucun</option></select>
+    </div>
+    <div><button id="choisir" type="button">Choisir une carte…</button></div>
+    <div id="apercu" aria-live="polite"></div>
+    <pre id="infos" hidden></pre>
+  </main>
+  <script type="module">
+    import { $, h } from './js/dom.js';
+    import { choisirCarte, urlImage, infosImage } from './js/bibliotheque/index.js';
+    import { NIVEAUX } from './js/bibliotheque/vocabulaire.js';
+
+    $('niveau').append(...NIVEAUX.map((n) => h('option', { value: n.id, textContent: n.libelle })));
+    $('choisir').addEventListener('click', async () => {
+      const ref = await choisirCarte({ niveau: $('niveau').value || undefined });
+      if (!ref) { $('apercu').textContent = 'Choix annulé.'; return; }
+      const [url, infos] = await Promise.all([urlImage(ref), infosImage(ref)]);
+      $('apercu').replaceChildren(url ? h('img', { src: url, alt: infos?.titre ?? '' }) : h('p', { textContent: 'Cette image n’existe plus.' }));
+      $('infos').hidden = false;
+      $('infos').textContent = JSON.stringify({ ref, infos }, null, 2);
+    });
+  </script>
+</body>
+</html>

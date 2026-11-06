@@ -1,0 +1,75 @@
+/* Bibliothèque de cartes : fenêtre de choix (js/bibliotheque/index.js). Couleurs, rayons et espacements viennent de css/base.css. */
+
+dialog.bib {
+  width: min(960px, calc(100vw - 2 * var(--esp-4)));
+  height: min(720px, calc(100vh - 2 * var(--esp-4)));
+  max-width: none; max-height: none;
+  padding: 0; border: 1px solid var(--bord); border-radius: var(--rayon);
+  background: var(--panneau); color: var(--texte); font-family: var(--police);
+}
+dialog.bib::backdrop { background: rgb(0 0 0 / 0.65); }
+.bib-cadre { display: flex; flex-direction: column; gap: var(--esp-3); height: 100%; box-sizing: border-box; padding: var(--esp-4); }
+.bib-tete { display: flex; align-items: center; justify-content: space-between; gap: var(--esp-3); }
+.bib-tete h2 { margin: 0; font-size: 18px; }
+
+.bib-onglets { display: flex; gap: var(--esp-1); border-bottom: 1px solid var(--bord); }
+.bib-onglets button { background: transparent; color: var(--texte-doux); border: 0; border-bottom: 2px solid transparent; border-radius: 0; padding: var(--esp-2) var(--esp-3); min-height: var(--cible); cursor: pointer; font: inherit; }
+.bib-onglets button[aria-selected="true"] { color: var(--texte); border-bottom-color: var(--accent); }
+
+.bib-filtres { display: flex; flex-direction: column; gap: var(--esp-2); }
+.bib-ligne { display: flex; gap: var(--esp-2); flex-wrap: wrap; }
+.bib-recherche { flex: 1 1 220px; }
+.bib-ligne input, .bib-ligne select, .bib-formulaire input[type="text"], .bib-formulaire select {
+  background: var(--champ); color: var(--texte); border: 1px solid var(--bord); border-radius: var(--rayon);
+  padding: var(--esp-2) var(--esp-3); min-height: var(--cible); font: inherit; box-sizing: border-box;
+}
+.bib-puces { display: flex; flex-wrap: wrap; gap: var(--esp-1); }
+.bib-puce { background: transparent; color: var(--texte-doux); border: 1px solid var(--bord); border-radius: 999px; padding: 4px 12px; min-height: max(var(--cible), var(--cible-petit)); cursor: pointer; font: inherit; font-size: 13px; }
+.bib-puce[aria-pressed="true"] { background: var(--accent); color: var(--accent-texte); border-color: var(--accent); }
+
+.bib-message p { margin: 0 0 var(--esp-2); color: var(--texte-doux); font-size: 14px; }
+.bib-message:empty { display: none; }
+.bib-import[hidden] { display: none; }
+
+.bib-corps { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: var(--esp-4); }
+.bib-grille { overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: var(--esp-3); align-content: start; padding: 2px; }
+.bib-tuile { display: flex; flex-direction: column; gap: 2px; text-align: left; padding: var(--esp-2); background: var(--champ); color: var(--texte); border: 1px solid var(--bord); border-radius: var(--rayon); cursor: pointer; font: inherit; }
+.bib-tuile[aria-pressed="true"] { border-color: var(--accent); outline: 1px solid var(--accent); }
+.bib-vignette { display: block; aspect-ratio: 2 / 3; background: var(--scene); border-radius: 4px; overflow: hidden; }
+.bib-vignette img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.bib-sans-image { display: grid; place-items: center; height: 100%; color: var(--texte-doux); font-size: 12px; }
+.bib-nom { font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
+.bib-sous, .bib-doux, .bib-aide { color: var(--texte-doux); font-size: 12px; }
+
+.bib-detail { overflow-y: auto; display: flex; flex-direction: column; gap: var(--esp-3); border-left: 1px solid var(--bord); padding-left: var(--esp-4); }
+.bib-apercu { background: var(--scene); border-radius: var(--rayon); }
+.bib-apercu img { display: block; width: 100%; max-height: 300px; object-fit: contain; }
+.bib-fiche { display: flex; flex-direction: column; gap: var(--esp-2); font-size: 14px; }
+.bib-credit { color: var(--accent); }
+.bib-actions { display: flex; flex-wrap: wrap; gap: var(--esp-2); margin-top: var(--esp-2); }
+.bib-principal { background: var(--accent); color: var(--accent-texte); border: 1px solid var(--accent); border-radius: var(--rayon); padding: var(--esp-2) var(--esp-3); min-height: var(--cible); cursor: pointer; font: inherit; font-weight: 600; }
+.bib-principal:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.bib-formulaire { display: flex; flex-direction: column; gap: var(--esp-2); padding: var(--esp-3); border: 1px solid var(--bord); border-radius: var(--rayon); max-width: 520px; }
+.bib-formulaire fieldset { border: 1px solid var(--bord); border-radius: var(--rayon); margin: 0; padding: var(--esp-2); }
+.bib-cases { display: flex; flex-wrap: wrap; gap: var(--esp-2) var(--esp-3); }
+.bib-case { display: inline-flex; align-items: center; gap: 4px; min-height: var(--cible); }
+.bib-erreur { color: var(--erreur); margin: 0; }
+.bib-erreur:empty { display: none; }
+
+dialog.bib :focus-visible { outline: var(--focus); outline-offset: var(--focus-decalage); }
+
+@media (max-width: 760px) {
+  dialog.bib { width: 100vw; height: 100dvh; border-radius: 0; border: 0; }
+  .bib-corps { grid-template-columns: 1fr; grid-template-rows: minmax(0, 1fr) auto; }
+  .bib-detail { border-left: 0; border-top: 1px solid var(--bord); padding: var(--esp-3) 0 0; max-height: 40vh; flex-direction: row; flex-wrap: wrap; }
+  .bib-apercu { width: 100px; flex: none; }
+  .bib-apercu img { max-height: 150px; }
+  .bib-fiche { flex: 1 1 160px; }
+  .bib-grille { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); }
+}
+
+/* Boutons de la fenêtre : la feuille commune (style.css) n'est pas chargée partout, on pose ici ce qu'il faut. */
+dialog.bib button.discret { background: transparent; color: var(--texte); border: 1px solid var(--bord); border-radius: var(--rayon); padding: var(--esp-2) var(--esp-3); min-height: var(--cible); cursor: pointer; font: inherit; }
+dialog.bib button.discret:hover { filter: brightness(1.15); }
+dialog.bib button.danger { background: var(--erreur); color: #fff; border-color: var(--erreur); }

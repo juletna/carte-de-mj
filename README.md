@@ -392,6 +392,14 @@ L'impression ne s'ouvre que depuis un donjon : le bouton **Imprimer ce donjon**,
 - **Rendu** : fond blanc, noir et blanc, sobre en encre (thème `js/rendu/themes/papier.js` : fosse hachurée, pas d'aplat sombre). Chaque page est dessinée sur un canvas d'environ 254 ppp puis exportée en image PNG de taille CSS en mm ; repères, titres et règle sont du texte et du SVG. Les noms et notes ne sont insérés qu'avec `textContent`.
 - **Limites** : un objet ou un pion qui chevauche une limite de page est coupé avec ses cases (la case, elle, ne l'est jamais) ; l'orientation par page (`@page paysage`) demande un navigateur récent (Chrome, Edge ; non vérifié dans Firefox ni Safari).
 
+## Bibliothèque de cartes
+
+Choisir une carte image (monde, région, zone, localité, bâtiment, souterrain) parmi celles du dossier local `bibliotheque/` (ignoré par git, rempli par le skill `generer-carte`) ou parmi les images importées dans le navigateur (IndexedDB, elles restent après rechargement). Fenêtre de choix : vignettes, filtre par niveau et par milieux, recherche sans accents ni casse (titre, tags, description, milieux), crédit affiché quand il existe, utilisable au clavier et sur téléphone.
+
+- Essai : `node outils/demo-bibliotheque.mjs` (7 cartes SVG de démonstration, sans rien écraser), puis `python3 outils/serveur.py` et `bibliotheque.html`.
+- Sans `bibliotheque/catalogue.json` (ou sur le site publié), la bibliothèque est vide avec un message ; l'import reste possible.
+- Interface pour les autres modules : `js/bibliotheque/index.js` (`choisirCarte`, `urlImage`, `infosImage`). Une carte se désigne par `{ source: 'bibliotheque' | 'navigateur', id }`, jamais par une URL. Format du catalogue : `docs/conception-univers.md`.
+
 ## Arborescence
 
 ```
@@ -409,6 +417,7 @@ css/donjon.css      mise en page du Donjon : barre, rail d'outils, panneau, band
 css/presentation.css  écran de départ, régie et vue table
 css/impression.css  pages A4 et réglages de l'impression (mesures reprises de js/impression.js par des variables CSS ; `@page` écrit en dur, comparé par un test)
 js/dom.js           outils DOM communs aux pages : `$`, `h`, bouton, confirmation en deux temps, choix d'un fichier à importer
+js/bibliotheque/    bibliothèque de cartes : vocabulaire et catalogue (purs), images importées (IndexedDB), fenêtre de choix ; css/bibliotheque.css ; bibliotheque.html (page d'essai)
 js/format.js        pluriel, virgule française, sans accents, objet JSON, libellés communs « Fermer » et micro (pur, sans DOM)
 js/main-mj.js       racine de composition du Donjon : état, historique, rendu, navigation entre salles ; câble les modules ci-dessous par un contexte `ctx`
 js/mj/personnages-ui.js  Donjon : outil Personnages (fiches associées, tirage au hasard)
