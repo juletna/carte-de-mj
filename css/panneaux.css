@@ -176,3 +176,10 @@
 #regie .liste-portes .p-rang[aria-pressed="true"] .p-rang-nom { color: var(--accent); font-weight: 600; }
 #regie .liste-portes .p-rang.cachee .p-rang-nom { font-style: italic; color: var(--p-texte-3); }
 #regie .cette-salle > p.note:has(+ .liste-portes:empty) { display: none; } /* « Portes de la salle : » sans porte */
+
+/* Jouer, onglet Lieu (js/regie-univers.js) : le point choisi en tête de sa section, les notes du lieu en citation. */
+#regie .univers-regie-panneau { display: flex; flex-direction: column; }
+#regie .univers-point-choisi { margin: 0; font-size: 15px; font-weight: 600; color: var(--p-texte-1); }
+#regie .univers-point-choisi.vide { font-style: italic; font-weight: 400; color: var(--p-texte-3); }
+#regie .univers-regie-panneau .actions { margin: 0; }
+#regie .univers-notes { margin: 0; padding: var(--esp-2) var(--esp-3); border-left: 2px solid var(--p-filet-fort); color: var(--p-texte-2); font-size: 13.5px; }

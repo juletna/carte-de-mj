@@ -18,10 +18,11 @@ import { grilleEffective } from './univers-grille.js';
 import { $, h, deuxTemps } from './dom.js';
 import { btn } from './univers-boutons.js';
 import { icone } from './icones.js';
-import { aide } from './mj/univers-menu.js';
 import { pluriel } from './format.js';
 import { creerFilCompact } from './atelier/fil-compact.js';
 import { cartoucheLieu } from './atelier/cartouche.js';
+import { creerSection } from './atelier/section.js';
+import { creerListe } from './atelier/liste.js';
 
 export function creerRegieUnivers(ctx) {
   const { etat } = ctx;
@@ -308,7 +309,7 @@ export function creerRegieUnivers(ctx) {
     if (p) {
       const orph = modele.raisonOrpheline(univers, p.vers, dons);
       const visible = pu.pointRevele(partie, lieu.id, p);
-      choisi.push(h('h3', { textContent: p.nom || 'Point sans nom' }),
+      choisi.push(h('p', { className: `univers-point-choisi${p.nom ? '' : ' vide'}`, textContent: p.nom || 'Point sans nom' }),
         h('p', { className: 'note' }, `Mène à : ${modele.nomDestination(univers, p.vers, dons)}`, ...(orph ? [' ', icone('alerte'), ` ${orph}`] : [])));
       if (p.cache) choisi.push(h('p', { className: 'note', textContent: visible ? 'Révélé : la table le voit.' : 'Caché : la table ne le voit pas.' }));
       const actions = h('div', { className: 'actions' });
@@ -321,28 +322,32 @@ export function creerRegieUnivers(ctx) {
       choisi.push(actions);
     } else choisi.push(h('p', { className: 'note', textContent: 'Touche un point de la carte, ou choisis-le dans la liste.' }));
 
-    const liste = lieu.points.map((q) => {
+    // Les points en rangées (js/atelier/liste.js) : œil barré tant qu'il est caché, œil une fois révélé, triangle s'il mène à une destination perdue.
+    const liste = creerListe(lieu.points.map((q) => {
       const orph = modele.raisonOrpheline(univers, q.vers, dons);
-      const b = btn(q.nom || 'Point sans nom', () => { pointId = q.id; rendre(); }, { classe: `btn-discret${q.id === pointId ? ' choisi' : ''}` });
-      if (q.cache) {
-        const revele = pu.pointRevele(partie, lieu.id, q);
-        b.prepend(icone(revele ? 'oeil' : 'oeil-barre'));
-        b.title = revele ? 'Révélé à la table' : 'Caché à la table';
-      }
-      if (orph) { b.prepend(icone('alerte')); b.title = orph; }
-      if (q.id === pointId) b.setAttribute('aria-current', 'true');
-      return h('li', {}, b);
-    });
+      const revele = q.cache && pu.pointRevele(partie, lieu.id, q);
+      return {
+        nom: q.nom, vide: 'Point sans nom', choisie: q.id === pointId, alerte: !!orph,
+        icone: orph ? 'alerte' : q.cache ? (revele ? 'oeil' : 'oeil-barre') : 'point',
+        detail: orph || (q.cache ? (revele ? 'révélé à la table' : 'caché à la table') : `vers ${modele.nomDestination(univers, q.vers, dons)}`),
+        surChoix: () => { pointId = q.id; rendre(); },
+      };
+    }));
     const masquer = h('input', { type: 'checkbox', checked: !!partie.masquerNoms });
     masquer.addEventListener('change', () => { if (masquer.checked) partie.masquerNoms = true; else delete partie.masquerNoms; sauver(); rendre(); });
     const nbCaches = lieu.points.filter((q) => q.cache && !pu.pointRevele(partie, lieu.id, q)).length;
+    // Sections du panneau (js/atelier/section.js, docs/design-panneaux.md) ; le pli est gardé pour la session.
+    const section = (cle, titre, enfants, options = {}) => creerSection({ cle: `regie-lieu:${cle}`, titre, enfants, ...options }).element;
     panneau.replaceChildren(
-      h('section', { 'aria-label': 'Carte à la table' }, h('h2', { textContent: 'Carte à la table' }),
+      section('table', 'Carte à la table', [
         h('p', { className: 'note', textContent: ctx.commande.main ? `La table voit cette carte${nbCaches ? ` sans ${pluriel(nbCaches, 'point caché', 'points cachés')}` : ''}.` : 'Cette régie est en retrait : la table ne voit pas ce que tu fais ici.' }),
-        h('label', { className: 'ligne case' }, masquer, ' Masquer les noms à la table')),
-      h('section', { 'aria-label': 'Point choisi' }, ...choisi),
-      h('section', { 'aria-label': 'Points de ce lieu' }, h('h2', {}, `Points (${lieu.points.length}) `, aide('Touche un point sur la carte, ou choisis-le dans la liste. Un point caché (œil barré) n’apparaît à la table qu’une fois révélé ; un point marqué d’un triangle mène à une destination qui n’existe plus, rien n’a été retiré.')), lieu.points.length ? h('ul', { className: 'univers-liste' }, ...liste) : h('p', { className: 'note', textContent: 'Aucun point sur cette carte.' })),
-      ...(lieu.notes ? [h('section', { 'aria-label': 'Notes du lieu' }, h('h2', { textContent: 'Notes du lieu' }), h('p', { className: 'univers-notes', textContent: lieu.notes }))] : []),
+        h('label', { className: 'ligne case' }, masquer, ' Masquer les noms à la table')]),
+      section('point', 'Point choisi', choisi),
+      section('points', 'Points', [lieu.points.length ? liste : h('p', { className: 'note', textContent: 'Aucun point sur cette carte.' })], {
+        compte: lieu.points.length || null,
+        aide: 'Touche un point sur la carte, ou choisis-le dans la liste. Un point caché (œil barré) n’apparaît à la table qu’une fois révélé ; un point marqué d’un triangle mène à une destination qui n’existe plus, rien n’a été retiré.',
+      }),
+      ...(lieu.notes ? [section('notes', 'Notes du lieu', [h('p', { className: 'univers-notes', textContent: lieu.notes })])] : []),
     );
   }
   /** Rouvre la carte d'univers qui était ouverte avant un rechargement (la partie mémorisée sait où l'on en était). Vrai si c'est fait. */
