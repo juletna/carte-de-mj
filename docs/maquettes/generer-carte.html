@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Générer une carte · maquette</title>
+<style>
+/* Maquette de la page Bibliothèque, volet « Générer une carte ». Les jetons reprennent css/base.css ;
+   le volet suit docs/design-panneaux.md (sections-accordéon, étiquettes T3, un seul primaire doré). */
+:root {
+  color-scheme: dark;
+  --fond: #16151a; --panneau: #1f1e24; --bord: #34323b; --texte: #e8e4dc; --texte-doux: #a29d94;
+  --accent: #d9a929; --accent-texte: #1a1508; --champ: #121116; --scene: #0c0b0e;
+  --succes-texte: #7cc47c;
+  --p-texte-1: #ece8e0; --p-texte-2: #c3beb4; --p-texte-3: #97928a; --p-texte-4: #67635d;
+  --p-surface-1: #26252c; --p-surface-survol: #2d2c34; --p-filet: #2f2d35; --p-filet-fort: #3d3a44;
+  --p-choisi: rgba(217, 169, 41, 0.13);
+  --police: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, monospace;
+  --rayon: 6px;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--fond); color: var(--texte); font: 15px/1.5 var(--police); padding: 40px max(16px, env(safe-area-inset-right)) 80px max(16px, env(safe-area-inset-left)); }
+.page { max-width: 1100px; margin: 0 auto; display: flex; flex-direction: column; gap: 56px; }
+h1, h2, h3, p { margin: 0; text-wrap: balance; }
+h1 { font-size: 32px; line-height: 1.15; }
+h2 { font-size: 22px; }
+.sur { font-size: 12px; text-transform: uppercase; letter-spacing: .1em; color: var(--accent); font-weight: 600; margin-bottom: 8px; }
+.chapeau, .intro { max-width: 66ch; color: var(--p-texte-2); }
+.bloc { display: flex; flex-direction: column; gap: 18px; }
+.legende { font-size: 13px; color: var(--p-texte-3); max-width: 70ch; }
+.constats { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.constat { background: var(--panneau); border: 1px solid var(--bord); border-radius: 8px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; font-size: 14px; color: var(--p-texte-2); }
+.constat strong { color: var(--p-texte-1); font-size: 14px; }
+.constat b { color: var(--accent); font-variant-numeric: tabular-nums; }
+
+/* ---------- Cadre d'écran ---------- */
+.ecran { border: 1px solid var(--bord); border-radius: 10px; background: var(--fond); overflow: hidden; position: relative; }
+.ecran-barre { height: 28px; background: #101014; border-bottom: 1px solid var(--bord); display: flex; align-items: center; gap: 6px; padding: 0 12px; }
+.ecran-barre i { width: 9px; height: 9px; border-radius: 50%; background: #34323b; }
+.ecran-barre span { margin-left: 10px; font-size: 11px; color: var(--p-texte-4); }
+.ecran-corps { padding: 16px 20px 20px; display: flex; flex-direction: column; gap: 12px; }
+.ecran h4 { margin: 0; font-size: 20px; }
+.sous { color: var(--p-texte-3); font-size: 13px; }
+
+/* ---------- Boutons, champs ---------- */
+.btn { font: inherit; font-size: 13.5px; font-weight: 500; color: var(--p-texte-1); background: transparent; border: 1px solid var(--p-filet-fort); border-radius: var(--rayon); height: 34px; padding: 0 12px; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+.btn:hover { background: var(--p-surface-survol); }
+.btn.primaire { background: var(--accent); color: var(--accent-texte); border-color: var(--accent); font-weight: 650; }
+.btn.primaire:hover { filter: brightness(1.08); }
+.btn[disabled] { opacity: .4; cursor: default; }
+.btn.lien { border: 0; padding: 0; height: auto; color: var(--p-texte-3); font-size: 12.5px; text-decoration: underline; text-underline-offset: 3px; background: none; }
+.rangee { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.champ { display: flex; flex-direction: column; gap: 5px; min-width: 0; flex: 1; }
+.champ label { font-size: 12.5px; color: var(--p-texte-3); }
+.champ select, .champ textarea, .champ input { font: inherit; font-size: 14px; background: var(--champ); color: var(--p-texte-1); border: 1px solid var(--p-filet-fort); border-radius: var(--rayon); padding: 7px 10px; width: 100%; min-height: 34px; }
+.champ textarea { resize: vertical; line-height: 1.45; }
+.note { font-size: 12.5px; color: var(--p-texte-3); }
+
+/* ---------- Bibliothèque (arrière-plan) ---------- */
+.bib { display: grid; grid-template-columns: minmax(0, 1fr) 420px; gap: 16px; align-items: start; }
+.bib.sans-volet { grid-template-columns: minmax(0, 1fr) 300px; }
+.filtres { display: flex; gap: 8px; flex-wrap: wrap; }
+.filtres .fake { background: var(--champ); border: 1px solid var(--p-filet-fort); border-radius: var(--rayon); height: 34px; padding: 0 10px; display: flex; align-items: center; color: var(--p-texte-4); font-size: 13.5px; }
+.puce { border: 1px solid var(--p-filet-fort); border-radius: 99px; padding: 3px 11px; font-size: 12.5px; color: var(--p-texte-2); }
+.grille { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 10px; }
+.tuile { display: flex; flex-direction: column; gap: 4px; padding: 6px; border-radius: 8px; border: 1px solid transparent; font-size: 12.5px; }
+.tuile.choisie { background: var(--p-choisi); border-color: rgba(217, 169, 41, .5); }
+.tuile .v { aspect-ratio: 16/10; border-radius: 6px; }
+.tuile .n { color: var(--p-texte-1); font-size: 13px; font-weight: 500; }
+.tuile .s { color: var(--p-texte-3); }
+.v1 { background: linear-gradient(135deg, #3d5a34, #7a9a52 55%, #c7a95c); }
+.v2 { background: linear-gradient(160deg, #2b4a5e, #5f8ca3 60%, #d8cfa0); }
+.v3 { background: linear-gradient(120deg, #4a3a2c, #8a6a45 55%, #b99a63); }
+.v4 { background: linear-gradient(150deg, #2f3a2a, #55704a 50%, #8fa35e); }
+.v5 { background: linear-gradient(130deg, #44424a, #77747e 60%, #a8a4a0); }
+.v6 { background: linear-gradient(140deg, #5a3a3a, #a06a52 55%, #d2a76c); }
+.apercu-vide { border: 1px dashed var(--p-filet-fort); border-radius: 8px; padding: 18px; color: var(--p-texte-3); font-size: 13px; text-align: center; }
+
+/* ---------- Volet (le composant proposé) ---------- */
+.volet { background: var(--panneau); border: 1px solid var(--p-filet-fort); border-radius: 8px; display: flex; flex-direction: column; overflow: hidden; }
+.volet-tete { display: flex; align-items: flex-start; gap: 8px; padding: 14px 16px 12px; border-bottom: 1px solid var(--p-filet-fort); }
+.volet-tete > div { flex: 1; min-width: 0; }
+.type { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .09em; color: var(--accent); }
+.volet-tete .nom { font-size: 18px; font-weight: 650; color: var(--p-texte-1); line-height: 1.25; }
+.volet-tete .meta { font-size: 12.5px; color: var(--p-texte-3); margin-top: 2px; }
+.x { width: 32px; height: 32px; border-radius: 6px; border: 0; background: none; color: var(--p-texte-3); font-size: 18px; cursor: pointer; }
+.x:hover { background: var(--p-surface-survol); color: var(--p-texte-1); }
+.sec { border-bottom: 1px solid var(--p-filet); }
+.sec:last-child { border-bottom: 0; }
+.sec-bandeau { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 40px; padding: 0 12px 0 12px; background: none; border: 0; color: var(--p-texte-2); font: inherit; font-size: 13px; font-weight: 650; cursor: pointer; text-align: left; }
+.sec.ouverte .sec-bandeau { color: var(--p-texte-1); }
+.sec-bandeau:hover { background: var(--p-surface-survol); }
+.chev { color: var(--p-texte-4); width: 14px; transition: transform .18s; font-size: 11px; text-align: center; }
+.sec.ouverte .chev { transform: rotate(90deg); }
+.etape { width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--p-filet-fort); font-size: 11.5px; display: grid; place-items: center; color: var(--p-texte-3); font-weight: 600; flex: none; }
+.sec.ouverte .etape { border-color: var(--accent); color: var(--accent); }
+.sec.faite:not(.ouverte) .etape { font-size: 0; }
+.sec.faite:not(.ouverte) .etape::before { content: "✓"; font-size: 12px; }
+.sec.faite .etape { background: var(--p-surface-1); color: var(--succes-texte); border-color: var(--p-filet-fort); }
+.pastille { margin-left: auto; font-size: 11.5px; font-weight: 500; color: var(--p-texte-3); background: var(--p-surface-1); border-radius: 99px; padding: 1px 8px; font-variant-numeric: tabular-nums; }
+.aide { font-size: 12px; width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--p-filet-fort); color: var(--p-texte-3); display: grid; place-items: center; flex: none; margin-left: 4px; }
+.sec-corps { display: none; padding: 4px 16px 16px; flex-direction: column; gap: 12px; }
+.sec.ouverte .sec-corps { display: flex; }
+.trois { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+.trois .champ select { padding-left: 8px; padding-right: 4px; }
+.puces-format { display: flex; gap: 6px; }
+.etiquette { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--p-texte-3); background: var(--p-surface-1); border-radius: 6px; padding: 5px 9px; width: fit-content; max-width: 100%; }
+.prompt { font-family: var(--mono); font-size: 12px; line-height: 1.5; color: var(--p-texte-2); background: var(--champ); border: 1px solid var(--p-filet-fort); border-radius: var(--rayon); padding: 9px 11px; max-height: 6.2em; overflow: hidden; position: relative; }
+.prompt::after { content: ""; position: absolute; inset: auto 0 0 0; height: 2em; background: linear-gradient(transparent, var(--champ)); }
+.prompt.vide { color: var(--p-texte-4); font-family: var(--police); font-size: 13.5px; max-height: none; }
+.prompt.vide::after { display: none; }
+.depot { border: 1.5px dashed var(--p-filet-fort); border-radius: 8px; padding: 22px 14px; display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; color: var(--p-texte-2); font-size: 14px; cursor: pointer; }
+.depot:hover { border-color: var(--accent); background: var(--p-choisi); }
+.depot small { color: var(--p-texte-3); font-size: 12.5px; }
+.ligne-copie { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.mini-form { background: var(--p-surface-1); border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+.mini-form strong { font-size: 13px; color: var(--p-texte-1); }
+.mini-form .vign { width: 64px; aspect-ratio: 16/9; border-radius: 4px; flex: none; }
+.mini-ligne { display: flex; gap: 10px; align-items: center; }
+
+/* ---------- Avant ---------- */
+.avant-bloc { border: 1px solid var(--bord); border-radius: 8px; background: var(--panneau); padding: 12px 16px; color: var(--p-texte-3); font-size: 13px; }
+.avant-bloc.haut { padding-block: 22px; }
+.avant-bloc b { display: block; color: var(--p-texte-1); font-size: 14px; margin-bottom: 4px; }
+.coupure { text-align: center; color: var(--accent); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; padding: 8px 0; border-top: 2px dashed var(--accent); margin-top: 4px; }
+
+/* ---------- Téléphone ---------- */
+.tel-ligne { display: flex; gap: 28px; flex-wrap: wrap; align-items: flex-start; }
+.tel { width: 320px; height: 620px; border: 1px solid var(--p-filet-fort); border-radius: 26px; background: var(--fond); position: relative; overflow: hidden; flex: none; }
+.tel-corps { padding: 18px 14px; display: flex; flex-direction: column; gap: 10px; }
+.tel .grille { grid-template-columns: repeat(2, 1fr); }
+.tiroir { position: absolute; left: 0; right: 0; bottom: 0; top: 70px; background: var(--panneau); border-top: 1px solid var(--p-filet-fort); border-radius: 18px 18px 0 0; box-shadow: 0 -12px 30px rgba(0, 0, 0, .5); display: flex; flex-direction: column; overflow: hidden; }
+.poignee { width: 38px; height: 4px; border-radius: 2px; background: var(--p-filet-fort); margin: 8px auto 0; flex: none; }
+.tiroir .sec-bandeau { min-height: 44px; }
+.tiroir .btn { height: 44px; }
+.tiroir .champ select, .tiroir .champ textarea { min-height: 44px; }
+.tiroir-defile { overflow: auto; flex: 1; }
+.fond-assombri { position: absolute; inset: 0 0 auto 0; height: 70px; background: rgba(0, 0, 0, .55); }
+
+.choix { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+.choix .constat { gap: 8px; }
+.choix ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+.reco { color: var(--accent); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; }
+.commutateur { display: flex; gap: 8px; flex-wrap: wrap; }
+.commutateur button { font: inherit; font-size: 13px; color: var(--p-texte-2); background: transparent; border: 1px solid var(--p-filet-fort); border-radius: 99px; padding: 5px 14px; cursor: pointer; }
+.commutateur button[aria-pressed="true"] { background: var(--p-choisi); border-color: var(--accent); color: var(--accent); }
+@media (max-width: 860px) { .bib, .bib.sans-volet { grid-template-columns: 1fr; } .trois { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="page">
+
+<header>
+  <p class="sur">Maquette · 6 novembre 2026</p>
+  <h1>Bibliothèque : générer une carte</h1>
+  <p class="chapeau">Aujourd’hui, « Générer une carte… » déroule trois cartes empilées <em>au-dessus</em> de la bibliothèque et la repousse hors de l’écran. La proposition : un volet latéral qui prend la place de l’aperçu, avec les trois étapes en sections repliables, comme les inspecteurs de Monde et de Donjons.</p>
+</header>
+
+<!-- ============ Diagnostic ============ -->
+<section class="bloc">
+  <h2>1 · Ce qui se passe aujourd’hui</h2>
+  <div class="ecran" style="max-width:760px">
+    <div class="ecran-barre"><i></i><i></i><i></i><span>Bibliothèque</span></div>
+    <div class="ecran-corps">
+      <h4>Bibliothèque</h4>
+      <div class="rangee"><span class="btn primaire">Importer une image…</span><span class="btn">+ Générer une carte…</span></div>
+      <div class="avant-bloc haut"><b>1. Décrire la carte</b>Niveau · Style · Format · Scène (4 lignes) · note de 3 lignes</div>
+      <div class="avant-bloc haut"><b>2. Copier le prompt</b>Zone de prompt de 10 lignes (vide tant que la scène l’est) · note</div>
+      <div class="avant-bloc haut"><b>3. Importer l’image</b>Note · « Importer l’image obtenue… » (un 2<sup>e</sup> bouton d’import)</div>
+      <div class="coupure">≈ 800 px plus bas : le bas de l’écran</div>
+      <div class="avant-bloc" style="opacity:.55">Filtres · grille des cartes · aperçu (invisibles, sous la ligne de flottaison)</div>
+    </div>
+  </div>
+  <div class="constats">
+    <div class="constat"><strong>La bibliothèque disparaît</strong><span>Le panneau fait <b>≈ 800 px</b> et s’insère avant la grille. Tout descend, y compris le focus.</span></div>
+    <div class="constat"><strong>Trois cartes de même poids</strong><span>Rien n’indique où l’on en est, ni ce qu’il reste à faire après ChatGPT.</span></div>
+    <div class="constat"><strong>Deux boutons d’import</strong><span>Celui du haut, et « Importer l’image obtenue… » en bas. Le formulaire s’ouvre loin de ce dernier.</span></div>
+    <div class="constat"><strong>Du vide et du texte permanents</strong><span>Un prompt de 10 lignes vide, et 4 notes grises toujours visibles.</span></div>
+  </div>
+</section>
+
+<!-- ============ Proposition bureau ============ -->
+<section class="bloc">
+  <h2>2 · Proposition : un volet à droite, la grille ne bouge pas</h2>
+  <p class="intro">Le volet prend la colonne de l’aperçu (420 px au lieu de 300). Les étapes sont des sections-accordéon : une seule ouverte, les autres gardent leur titre, leur pastille de résumé et leur coche. Cliquer les bandeaux, taper dans la scène ou sur les boutons ci-dessous le fait vivre.</p>
+  <div class="commutateur" role="group" aria-label="État du volet">
+    <button type="button" data-etat="debut" aria-pressed="true">Au début (scène vide)</button>
+    <button type="button" data-etat="scene" aria-pressed="false">Scène écrite</button>
+    <button type="button" data-etat="copie" aria-pressed="false">Prompt copié, retour de ChatGPT</button>
+    <button type="button" data-etat="import" aria-pressed="false">Image déposée</button>
+  </div>
+
+  <div class="ecran">
+    <div class="ecran-barre"><i></i><i></i><i></i><span>Bibliothèque</span></div>
+    <div class="ecran-corps">
+      <h4>Bibliothèque</h4>
+      <p class="sous">Tes cartes illustrées, importées ou générées.</p>
+      <div class="rangee"><span class="btn">Importer une image…</span><span class="btn primaire" aria-pressed="true">+ Générer une carte…</span></div>
+      <div class="bib" id="bib">
+        <div style="display:flex;flex-direction:column;gap:12px;min-width:0">
+          <div class="filtres"><span class="fake" style="flex:1;min-width:150px">Rechercher (titre, tag, milieu…)</span><span class="fake">Tous les niveaux</span></div>
+          <div class="rangee"><span class="puce">Forêt</span><span class="puce">Village</span><span class="puce">Souterrain</span><span class="puce">Montagne</span></div>
+          <div class="grille" id="grille">
+            <div class="tuile"><div class="v v1"></div><span class="n">Clairière aux chênes</span><span class="s">Zone</span></div>
+            <div class="tuile"><div class="v v2"></div><span class="n">Port de Ventebrume</span><span class="s">Village</span></div>
+            <div class="tuile"><div class="v v3"></div><span class="n">Mine abandonnée</span><span class="s">Souterrain</span></div>
+            <div class="tuile"><div class="v v4"></div><span class="n">Marais de Brume</span><span class="s">Région</span></div>
+            <div class="tuile"><div class="v v5"></div><span class="n">Forteresse naine</span><span class="s">Bâtiment</span></div>
+            <div class="tuile"><div class="v v6"></div><span class="n">Désert des Os</span><span class="s">Région</span></div>
+            <div class="tuile" id="nouvelle" hidden><div class="v v1" style="filter:hue-rotate(40deg)"></div><span class="n">Clairière du sanctuaire</span><span class="s">Zone · nouvelle</span></div>
+          </div>
+        </div>
+
+        <aside class="volet" aria-label="Générer une carte">
+          <div class="volet-tete">
+            <div><div class="type">Génération</div><div class="nom">Nouvelle carte</div><div class="meta" id="meta">Brouillon enregistré dans ce navigateur</div></div>
+            <button class="x" type="button" aria-label="Fermer">×</button>
+          </div>
+
+          <section class="sec ouverte" data-sec="1">
+            <button class="sec-bandeau" type="button"><span class="chev">▸</span><span class="etape">1</span>Décrire la carte<span class="pastille" id="p1">Zone · Dessin animé · 16:9</span></button>
+            <div class="sec-corps">
+              <div class="champ"><label for="scene">Scène</label>
+                <textarea id="scene" rows="4" placeholder="Une clairière dans une forêt de chênes, avec un petit sanctuaire en ruine de 6 cases à l’est et un chemin de 2 cases qui la traverse du nord au sud."></textarea></div>
+              <div class="trois">
+                <div class="champ"><label>Niveau</label><select><option>Zone</option></select></div>
+                <div class="champ"><label>Style</label><select><option>Dessin animé</option></select></div>
+                <div class="champ"><label>Format</label><select><option>Paysage 16:9</option></select></div>
+              </div>
+              <span class="etiquette">1536 × 864 px · grille 24 × 14 cases posée à l’import</span>
+              <p class="note">Une porte fait 1 case, un arbre 2 à 3, un chemin 2.</p>
+            </div>
+          </section>
+
+          <section class="sec" data-sec="2">
+            <button class="sec-bandeau" type="button"><span class="chev">▸</span><span class="etape">2</span>Copier le prompt<span class="pastille" id="p2">en attente de la scène</span><span class="aide" title="Colle-le dans ChatGPT. Joins une de tes cartes réussies pour garder le style.">?</span></button>
+            <div class="sec-corps">
+              <div class="prompt vide" id="prompt">Décris la carte à l’étape 1 pour voir le prompt.</div>
+              <div class="ligne-copie"><button class="btn primaire" type="button" id="copier" disabled>Copier le prompt</button><button class="btn lien" type="button">Agrandir</button></div>
+              <p class="note">Colle-le dans ChatGPT, avec une de tes cartes réussies en référence pour garder le style.</p>
+            </div>
+          </section>
+
+          <section class="sec" data-sec="3">
+            <button class="sec-bandeau" type="button"><span class="chev">▸</span><span class="etape">3</span>Importer l’image<span class="pastille" id="p3">pas encore</span></button>
+            <div class="sec-corps">
+              <div class="depot" id="depot"><strong style="color:var(--p-texte-1);font-weight:600">Dépose l’image ici</strong><small>ou clique pour la choisir · webp, png, jpg</small></div>
+              <p class="note">Recadrée au centre si les proportions diffèrent. Niveau, description et grille sont déjà remplis.</p>
+              <div class="mini-form" id="miniform" hidden>
+                <div class="mini-ligne"><div class="v v1 vign" style="filter:hue-rotate(40deg)"></div><div><strong>carte-sanctuaire.png</strong><div class="note">1792 × 1024 → recadrée en 1536 × 864</div></div></div>
+                <div class="champ"><label>Titre</label><input value="Clairière du sanctuaire"></div>
+                <div class="rangee"><button class="btn primaire" type="button" id="ajouter">Ajouter à la bibliothèque</button><button class="btn lien" type="button">Annuler</button></div>
+              </div>
+            </div>
+          </section>
+        </aside>
+      </div>
+    </div>
+  </div>
+  <p class="legende">À l’ouverture : « Générer » se met en surbrillance, le focus va dans le champ Scène, la grille reste où elle est. Au clic sur « Ajouter », le volet se ferme et la nouvelle carte est sélectionnée dans la grille (son aperçu reprend la colonne). Le brouillon (scène, niveau, style, format) est mémorisé dans le navigateur : si le MJ quitte la page pour ChatGPT, il retrouve le volet ouvert sur l’étape 3.</p>
+</section>
+
+<!-- ============ Téléphone ============ -->
+<section class="bloc">
+  <h2>3 · Sur téléphone : un tiroir qui monte du bas</h2>
+  <p class="intro">Même contenu, même accordéon, cibles de 44 px. Le tiroir couvre 85 % de l’écran ; la bibliothèque reste visible et assombrie derrière. On le ferme par « × », en touchant le fond ou en le glissant vers le bas.</p>
+  <div class="tel-ligne">
+    <div>
+      <div class="tel">
+        <div class="tel-corps">
+          <h4 style="font-size:18px">Bibliothèque</h4>
+          <div class="rangee"><span class="btn">Importer…</span><span class="btn primaire">+ Générer</span></div>
+          <div class="grille"><div class="tuile"><div class="v v1"></div><span class="n">Clairière</span></div><div class="tuile"><div class="v v2"></div><span class="n">Port</span></div></div>
+        </div>
+        <div class="fond-assombri"></div>
+        <div class="tiroir">
+          <div class="poignee"></div>
+          <div class="volet-tete" style="padding-top:8px"><div><div class="type">Génération</div><div class="nom">Nouvelle carte</div></div><button class="x" type="button">×</button></div>
+          <div class="tiroir-defile">
+            <section class="sec ouverte"><button class="sec-bandeau" type="button"><span class="chev">▸</span><span class="etape">1</span>Décrire la carte</button>
+              <div class="sec-corps">
+                <div class="champ"><label>Scène</label><textarea rows="4" placeholder="Une clairière dans une forêt de chênes…"></textarea></div>
+                <div class="champ"><label>Niveau</label><select><option>Zone</option></select></div>
+                <div class="champ"><label>Style</label><select><option>Dessin animé</option></select></div>
+                <div class="champ"><label>Format</label><select><option>Paysage 16:9</option></select></div>
+                <span class="etiquette">1536 × 864 px · grille 24 × 14</span>
+              </div></section>
+            <section class="sec"><button class="sec-bandeau" type="button"><span class="chev">▸</span><span class="etape">2</span>Copier le prompt<span class="pastille">en attente</span></button></section>
+            <section class="sec"><button class="sec-bandeau" type="button"><span class="chev">▸</span><span class="etape">3</span>Importer l’image<span class="pastille">pas encore</span></button></section>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="flex:1;min-width:260px;display:flex;flex-direction:column;gap:12px">
+      <div class="constat"><strong>Plus de saut de page</strong><span>Le tiroir est au premier plan et défile dans lui-même ; la page dessous ne bouge pas.</span></div>
+      <div class="constat"><strong>Une étape à la fois</strong><span>Sur un petit écran, l’accordéon vaut mieux que tout empiler : on passe à l’étape 2 au clavier « Suivant » ou en touchant son bandeau.</span></div>
+      <div class="constat"><strong>Reprise après ChatGPT</strong><span>Au retour dans l’onglet, le tiroir s’ouvre sur l’étape 3 grâce au brouillon mémorisé.</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ Choix ============ -->
+<section class="bloc">
+  <h2>4 · Ce que change la proposition</h2>
+  <div class="choix">
+    <div class="constat">
+      <span class="reco">Volet latéral (recommandé)</span>
+      <ul>
+        <li>La bibliothèque reste visible : le MJ peut regarder ses cartes réussies pendant qu’il décrit la scène.</li>
+        <li>Même grammaire que les inspecteurs (sections, filets, T1 à T3) : rien de nouveau à apprendre.</li>
+        <li>Un seul point d’entrée pour l’image, un seul formulaire d’import, dans le volet.</li>
+      </ul>
+    </div>
+    <div class="constat">
+      <span class="reco" style="color:var(--p-texte-3)">Variante : dialogue centré</span>
+      <ul>
+        <li>Plus rapide à faire : le même contenu dans un <code style="font-size:12px">&lt;dialog&gt;</code>.</li>
+        <li>Masque la bibliothèque tant qu’il est ouvert.</li>
+        <li>Moins naturel pour la reprise après ChatGPT (on ferme, on rouvre).</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+</div>
+
+<script>
+(function () {
+  const ex = document.getElementById('scene');
+  const secs = [...document.querySelectorAll('.ecran .volet:not(.x) [data-sec]')];
+  const prompt = document.getElementById('prompt'), copier = document.getElementById('copier');
+  const p = { 1: document.getElementById('p1'), 2: document.getElementById('p2'), 3: document.getElementById('p3') };
+  const depot = document.getElementById('depot'), mini = document.getElementById('miniform');
+  const nouvelle = document.getElementById('nouvelle'), bib = document.getElementById('bib');
+  const TEXTE = 'Une clairière dans une forêt de chênes, avec un petit sanctuaire en ruine de 6 cases à l’est et un chemin de 2 cases qui la traverse du nord au sud.';
+
+  function ouvrir(n) { secs.forEach((s) => s.classList.toggle('ouverte', s.dataset.sec === String(n))); }
+  secs.forEach((s) => s.querySelector('.sec-bandeau').addEventListener('click', () => ouvrir(s.dataset.sec)));
+
+  function etat(nom) {
+    document.querySelectorAll('.commutateur button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.etat === nom)));
+    const aScene = nom !== 'debut';
+    ex.value = aScene ? TEXTE : '';
+    prompt.classList.toggle('vide', !aScene);
+    prompt.textContent = aScene
+      ? 'Top-down illustrated battle map of a forest clearing in a cheerful hand-drawn cartoon style, vivid colours, 24 x 14 grid squares (one square = 5 ft), a small ruined shrine of 6 squares on the east side, a dirt path 2 squares wide running north to south…'
+      : 'Décris la carte à l’étape 1 pour voir le prompt.';
+    copier.disabled = !aScene;
+    secs.forEach((s) => s.classList.remove('faite'));
+    p[2].textContent = aScene ? 'prêt' : 'en attente de la scène';
+    p[3].textContent = 'pas encore';
+    mini.hidden = true; depot.hidden = false; nouvelle.hidden = true; copier.textContent = 'Copier le prompt';
+    if (nom === 'scene') { secs[0].classList.add('faite'); ouvrir(2); }
+    if (nom === 'copie') { secs[0].classList.add('faite', ); secs[1].classList.add('faite'); p[2].textContent = 'copié'; copier.textContent = 'Copié ✓'; ouvrir(3); }
+    if (nom === 'import') { secs[0].classList.add('faite'); secs[1].classList.add('faite'); p[2].textContent = 'copié'; p[3].textContent = 'à valider'; mini.hidden = false; depot.hidden = true; ouvrir(3); }
+    if (nom === 'debut') ouvrir(1);
+  }
+  document.querySelectorAll('.commutateur button').forEach((b) => b.addEventListener('click', () => etat(b.dataset.etat)));
+  ex.addEventListener('input', () => { if (ex.value.trim()) { prompt.classList.remove('vide'); copier.disabled = false; p[2].textContent = 'prêt'; secs[0].classList.add('faite'); } });
+  copier.addEventListener('click', () => { copier.textContent = 'Copié ✓'; p[2].textContent = 'copié'; secs[1].classList.add('faite'); ouvrir(3); });
+  depot.addEventListener('click', () => etat('import'));
+  document.getElementById('ajouter').addEventListener('click', () => {
+    nouvelle.hidden = false; nouvelle.classList.add('choisie'); p[3].textContent = 'ajoutée ✓'; mini.hidden = true;
+  });
+  etat('debut');
+})();
+</script>
+</body>
+</html>
