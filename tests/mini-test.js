@@ -82,11 +82,39 @@ export function fauxStock(initial = {}) {
   return { donnees, getItem: (k) => (k in donnees ? donnees[k] : null), setItem: (k, v) => { donnees[k] = String(v); }, removeItem: (k) => { delete donnees[k]; } };
 }
 
-/** Joue une suite de [nom, test] ; chaque résultat a la forme des autres suites : { phrase, ecarts, resultat }. */
-export function executerSuite(prefixe, tests) {
+/** Un contexte 2D qui accepte tout (et rend des dégradés vides) : de quoi faire tourner le moteur de rendu sans écran. */
+export function ctxPermissif() {
+  const degrade = () => ({ addColorStop() {} });
+  return new Proxy({}, {
+    get: (_, nom) => (typeof nom === 'symbol' ? undefined : nom === 'createRadialGradient' || nom === 'createLinearGradient' ? degrade : nom === 'measureText' ? (s) => ({ width: String(s).length * 6 }) : nom === 'createImageData' || nom === 'getImageData' ? (...a) => ({ data: new Uint8ClampedArray(Math.max(1, a[0] * a[1] * 4)) }) : () => {}),
+    set: () => true,
+  });
+}
+
+/**
+ * Joue `f` dans un « écran simulé » identique sous Node et dans le navigateur : un OffscreenCanvas factice (le moteur en demande pour garder le décor ou
+ * cuire une couche ; le vrai refuserait de recevoir les canevas simulés des tests) et une densité d'écran donnée (`window` est créé sous Node,
+ * `devicePixelRatio` est redéfini dans le navigateur). Tout est remis comme avant ensuite.
+ */
+export function avecEcranSimule(f, dpr = 1) {
+  const g = globalThis, offscreen = g.OffscreenCanvas, aFenetre = typeof g.window !== 'undefined';
+  g.OffscreenCanvas = class { constructor(w, h) { this.width = w; this.height = h; this.ctx = ctxPermissif(); } getContext() { return this.ctx; } };
+  let restaurer = () => {};
+  if (!aFenetre) { g.window = { devicePixelRatio: dpr }; restaurer = () => { delete g.window; }; } else {
+    const avant = Object.getOwnPropertyDescriptor(g.window, 'devicePixelRatio');
+    try { Object.defineProperty(g.window, 'devicePixelRatio', { value: dpr, configurable: true, writable: true }); restaurer = () => { if (avant) Object.defineProperty(g.window, 'devicePixelRatio', avant); else delete g.window.devicePixelRatio; }; } catch { /* densité réelle */ }
+  }
+  try { return f(); } finally {
+    restaurer();
+    if (offscreen === undefined) delete g.OffscreenCanvas; else g.OffscreenCanvas = offscreen;
+  }
+}
+
+/** Joue une suite de [nom, test] ; chaque résultat a la forme des autres suites : { phrase, ecarts, resultat }. `enveloppe(f)` entoure chaque test (ex. avecEcranSimule). */
+export function executerSuite(prefixe, tests, enveloppe = (f) => f()) {
   return tests.map(([nom, test]) => {
     try {
-      test();
+      enveloppe(test);
       return { phrase: `${prefixe}${nom}`, ecarts: [], resultat: null };
     } catch (err) {
       return { phrase: `${prefixe}${nom}`, ecarts: [err.message], resultat: null };

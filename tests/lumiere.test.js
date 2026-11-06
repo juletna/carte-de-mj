@@ -13,27 +13,16 @@ import { THEMES } from '../js/rendu/themes/index.js';
 import { dessiner } from '../js/rendu/moteur.js';
 import { MARGE } from '../js/rendu/geometrie.js';
 import { creerAnimation } from '../js/animation-carte.js';
-import { verifier, egal, fauxStock, executerSuite } from './mini-test.js';
+import { verifier, egal, fauxStock, executerSuite, avecEcranSimule, ctxPermissif } from './mini-test.js';
 
 const rect = (largeur, longueur, plus = {}) => ({ id: 'l1', largeur, longueur, sol: 'pierre', portes: [], objets: [], creatures: [], ...plus });
 const proche = (a, b, quoi, eps = 1e-9) => verifier(Math.abs(a - b) <= eps, `${quoi} : ${a} ≠ ${b}`);
 const reglagesDe = (brut) => chargerReglages(fauxStock({ [CLE_REGLAGES]: JSON.stringify(brut) }));
 
-function ctxPermissif() {
-  const degrade = () => ({ addColorStop() {} });
-  return new Proxy({}, {
-    get: (_, nom) => (typeof nom === 'symbol' ? undefined : nom === 'createRadialGradient' || nom === 'createLinearGradient' ? degrade : nom === 'measureText' ? (s) => ({ width: String(s).length * 6 }) : () => {}),
-    set: () => true,
-  });
-}
 const canvasSimule = () => ({ width: 0, height: 0, style: {}, getContext: () => ctxPermissif() });
 
-/** Un OffscreenCanvas simulé le temps de `f` (le moteur en demande un pour garder le décor quand il anime). */
-function avecToiles(f) {
-  const avant = globalThis.OffscreenCanvas;
-  globalThis.OffscreenCanvas = class { constructor(w, h) { this.width = w; this.height = h; this.ctx = ctxPermissif(); } getContext() { return this.ctx; } };
-  try { return f(); } finally { if (avant === undefined) delete globalThis.OffscreenCanvas; else globalThis.OffscreenCanvas = avant; }
-}
+/** Les toiles simulées sont fournies par `avecEcranSimule` (mini-test.js) autour de chaque test. */
+const avecToiles = (f) => f();
 
 /** Un thème peint dont on note le passage dans la lumière et les pions, pour vérifier l'enchaînement. */
 function themeEspion(journal) {
@@ -222,8 +211,7 @@ const TESTS = [
     const matrices = [];
     const theme = { ...THEMES.peint, eclairer: (ctx, couche, p) => matrices.push(p.salle) };
     const canvas = canvasSimule();
-    globalThis.window = { devicePixelRatio: 2 };
-    try { dessiner(canvas, rect(6, 6), { taille: 40, theme }); } finally { delete globalThis.window; }
+    avecEcranSimule(() => dessiner(canvas, rect(6, 6), { taille: 40, theme }), 2);
     egal(matrices[0], [2, 0, 0, 2, MARGE * 40 * 2, MARGE * 40 * 2], 'dpr 2, origine au coin nord-ouest de la salle');
   }],
 
@@ -268,11 +256,11 @@ const TESTS = [
     egal(c.attendus.size, 0, 'une scène suivie dans un onglet caché ne lance rien');
   }],
   ['animation : sans navigateur (pas de requestAnimationFrame), rien ne plante ni ne tourne', () => {
-    const a = creerAnimation(null, { raf: null, annuler: null, cache: () => false });
+    const a = creerAnimation(null, { raf: null, annuler: null, cache: () => false }); // raf null = pas de navigateur, même dans un navigateur
     a.suivre({ anime: true, image() { throw new Error('ne doit pas jouer'); } });
     egal(a.tourne(), false, 'pas de boucle');
     a.arreter();
   }],
 ];
 
-export const executer = () => executerSuite('lumière : ', TESTS);
+export const executer = () => executerSuite('lumière : ', TESTS, avecEcranSimule);

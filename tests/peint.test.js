@@ -20,7 +20,7 @@ import { chargerReglages, CLE_REGLAGES } from '../js/stockage.js';
 import { planPublic } from '../js/vue-publique.js';
 import { casesRetirees, nombreCases } from '../js/formes.js';
 import { OBJETS, CREATURES, coucheDe } from '../js/catalogue.js';
-import { verifier, egal, fauxStock, executerSuite } from './mini-test.js';
+import { verifier, egal, fauxStock, executerSuite, avecEcranSimule } from './mini-test.js';
 
 const rect = (largeur, longueur, plus = {}) => ({ id: 's1', largeur, longueur, sol: 'pierre', portes: [], objets: [], creatures: [], ...plus });
 const proche = (a, b, quoi, eps = 1e-9) => verifier(Math.abs(a - b) <= eps, `${quoi} : ${a} ≠ ${b}`);
@@ -413,4 +413,4 @@ const TESTS = [
   }],
 ];
 
-export const executer = () => executerSuite('thème peint : ', TESTS);
+export const executer = () => executerSuite('thème peint : ', TESTS, avecEcranSimule);

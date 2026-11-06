@@ -14,7 +14,7 @@ import { sensDuCoin } from '../js/rendu/themes/commun.js';
 import { objets as objetsPeints } from '../js/rendu/themes/peint/objets.js';
 import { etat } from '../js/rendu/themes/peint/etat.js';
 import { dessiner } from '../js/rendu/moteur.js';
-import { verifier, egal, executerSuite } from './mini-test.js';
+import { verifier, egal, executerSuite, avecEcranSimule } from './mini-test.js';
 
 const THEMES = { ...THEMES_ECRAN, papier };
 const NOUVEAUX = ['brasero', 'bougies', 'tapis', 'banniere', 'feudecamp', 'flaque', 'rocher', 'champignons', 'toile', 'ossements'];
@@ -146,9 +146,7 @@ const TESTS = [
     let recu = null;
     const theme = { ...THEMES.vectoriel, objets: { ...THEMES.vectoriel.objets, toile: (ctx, w, h, t, o, p) => { recu = p; } } };
     const canvas = { width: 0, height: 0, style: {}, getContext: () => ctxPermissif() };
-    const sansFenetre = typeof window === 'undefined'; // sous Node : le moteur lit la densité de l'écran, on lui en prête une
-    if (sansFenetre) globalThis.window = { devicePixelRatio: 1 };
-    try { dessiner(canvas, plan, { taille: 32, theme }); } finally { if (sansFenetre) delete globalThis.window; }
+    avecEcranSimule(() => dessiner(canvas, plan, { taille: 32, theme })); // le moteur lit la densité de l'écran
     verifier(recu === plan, 'le plan est passé au dessin');
   }],
   ['dans chaque thème, chaque nouvel objet se dessine à plat comme en volume sans valeur invalide, à toutes les rotations', () => {
@@ -179,4 +177,4 @@ const TESTS = [
   }],
 ];
 
-export const executer = () => executerSuite('objets du lot 5 : ', TESTS);
+export const executer = () => executerSuite('objets du lot 5 : ', TESTS, avecEcranSimule);

@@ -20,8 +20,8 @@ export function mouvementReduit() {
  * @returns {{suivre:(scene:{anime:boolean, image:(ms:number)=>void}|null)=>void, arreter:()=>void, tourne:()=>boolean, visible:(v:boolean)=>void}}
  */
 export function creerAnimation(canvas, env = {}) {
-  const raf = env.raf || globalThis.requestAnimationFrame?.bind(globalThis);
-  const annuler = env.annuler || globalThis.cancelAnimationFrame?.bind(globalThis);
+  const raf = 'raf' in env ? env.raf : globalThis.requestAnimationFrame?.bind(globalThis);
+  const annuler = 'annuler' in env ? env.annuler : globalThis.cancelAnimationFrame?.bind(globalThis);
   const cache = env.cache || (() => !!globalThis.document?.hidden);
   const ecart = 1000 / IMAGES_PAR_SECONDE;
   let scene = null, boucle = 0, derniere = -Infinity, affiche = true;

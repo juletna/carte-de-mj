@@ -15,7 +15,7 @@ import { calculerTuile, cleTuile, couleurSol, PERIODE, SOLS_PEINTS, masqueVert, 
 import { opaciteVoile, couleurAmbiance, COULEURS_AMBIANCE } from '../js/rendu/lumiere.js';
 import { dessiner } from '../js/rendu/moteur.js';
 import { THEMES } from '../js/rendu/themes/index.js';
-import { verifier, egal, executerSuite } from './mini-test.js';
+import { verifier, egal, executerSuite, avecEcranSimule } from './mini-test.js';
 
 const rect = (largeur, longueur, plus = {}) => ({ id: 's1', largeur, longueur, sol: 'pierre', portes: [], objets: [], creatures: [], ...plus });
 const lire = (texte) => analyser(texte, { echelle: 1.5 });
@@ -35,9 +35,8 @@ function ctxJournal() {
   return { ctx, lignes };
 }
 const dessinDe = (plan, theme, options = {}) => {
-  const { ctx, lignes } = ctxJournal(), avant = globalThis.window;
-  globalThis.window = { devicePixelRatio: 1 }; // le moteur lit la densité de l'écran (une autre suite peut avoir retiré `window`)
-  try { dessiner({ width: 0, height: 0, style: {}, getContext: () => ctx }, plan, { theme, taille: 24, ...options }); } finally { if (avant === undefined) delete globalThis.window; else globalThis.window = avant; }
+  const { ctx, lignes } = ctxJournal();
+  avecEcranSimule(() => dessiner({ width: 0, height: 0, style: {}, getContext: () => ctx }, plan, { theme, taille: 24, ...options })); // densité d'écran et toiles simulées
   return lignes.join('\n');
 };
 
