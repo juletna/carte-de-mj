@@ -63,7 +63,7 @@
 .atelier-inspecteur-corps:has(.p-section) .univers-insp > :not(.p-section) { margin: var(--esp-3) var(--esp-4) 0; }
 .p-section { border-bottom: 1px solid var(--p-filet); }
 .p-section:last-child { border-bottom: 0; }
-.p-section-tete { display: flex; align-items: center; gap: var(--esp-1); min-height: max(40px, var(--cible)); padding: 0 var(--esp-2) 0 var(--esp-2); }
+.p-section-tete { display: flex; align-items: center; gap: var(--esp-1); min-height: max(40px, var(--cible)); padding: 4px var(--esp-2); } /* 4 px en haut et en bas : le survol du bandeau ne touche pas les filets */
 .p-section-bascule { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: var(--esp-2); align-self: stretch; padding: 0 var(--esp-1); background: none; border: 0; border-radius: var(--rayon); color: var(--p-texte-1); font: inherit; font-size: 13px; font-weight: 650; text-align: left; cursor: pointer; }
 .p-section-bascule:hover { background: var(--p-surface-survol); }
 .p-section-bascule:focus-visible { outline: var(--focus); outline-offset: -2px; }
