@@ -21,9 +21,8 @@ export function inscrireDonjon(coquille, ctx) {
 
   enregistrerInspecteursDonjon(coquille, ctx);
   ctx.barre = creerBarreSalle(coquille, ctx);
-  // Une seule ligne en haut de la scène : le bouton de l'arbre au début, « Jouer » (le seul doré) au bout, après « Affichage ».
+  // Une seule ligne en haut de la scène : le bouton de l'arbre au début, puis les outils et « Affichage ». Pas de bouton « Jouer » : on joue par l'onglet « Jouer » de la barre de navigation (le lien #presenter reste caché dans la page, son adresse est tenue à jour par menu-donjon.js).
   coquille.barreOutils.prepend($('arbre-bouton'));
-  coquille.barreFin.append($('presenter'));
 
   // --- L'arbre : ce que faisait le menu du donjon (le choix du donjon, lui, est l'arbre) -------------------------
   // Sous 760 px la feuille s'ouvre par-dessus la carte : le tiroir de l'arbre se referme d'abord.
