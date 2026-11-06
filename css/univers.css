@@ -9,17 +9,12 @@ body.univers-ouvert .menu-donjon, body.univers-ouvert #presenter, body.univers-o
 body.univers-ouvert[data-onglet] #cadre-scene { display: flex; flex-direction: column; }
 .atelier-barre > .barre-lieu { display: flex; flex-wrap: wrap; align-items: center; gap: var(--esp-2); }
 .atelier-barre > .barre-lieu[hidden] { display: none; }
-body.univers-ouvert .atelier-barre > :not(.barre-lieu), body:not(.univers-ouvert) .atelier-barre > .barre-lieu { display: none; }
-.atelier-barre:not(:has(> :not([hidden]))) { display: none; }
+body.univers-ouvert .atelier-barre > .barre-donjon, body:not(.univers-ouvert) .atelier-barre > .barre-lieu { display: none; }
+.atelier-barre:not(:has(> :not([hidden]):not(:empty))) { display: none; }
+.atelier-barre > .barre-lieu { flex: 1 1 auto; min-width: 0; flex-wrap: nowrap; }
 .barre-lieu .btn[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); background: rgba(217, 169, 41, 0.16); font-weight: 600; }
 .barre-lieu .btn[hidden] { display: none; }
-.barre-lieu-aide { flex: 1 1 200px; min-width: 0; }
-/* La barre du haut en mode Monde : « Monde · nom » et « Jouer ce monde » (le seul doré de l'écran). */
-.barre-monde { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: var(--esp-3); }
-.barre-monde[hidden] { display: none; }
-.barre-monde-titre { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: var(--esp-2); font-weight: 600; }
-.barre-monde-titre .icone { flex: none; color: var(--texte-doux); }
-.barre-monde-nom { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* « Jouer ce monde » : au bout de la ligne d'outils (js/atelier/inscrire-monde.js), le seul doré de l'écran. */
 .barre-monde-jouer { flex: none; }
 
 /* Aide repliable : .aide de css/base.css ; ici seulement son placement */
@@ -129,7 +124,6 @@ h3 .aide, h2 .aide { margin-left: var(--esp-1); font-weight: 400; }
   /* La carte tient dans ce qui reste : la scène, moins le fil d'Ariane et la barre d'outils (une trentaine de px chacun en plus de leurs marges). */
   .univers-image { max-height: calc(100vh - var(--haut-monde) - var(--bas-monde) - 128px); max-height: calc(100dvh - var(--haut-monde) - var(--bas-monde) - 128px); min-height: 120px; }
   .univers-notifications { left: 8px; right: 8px; width: auto; transform: none; max-width: none; }
-  .barre-monde-titre .doux, .barre-lieu-aide { display: none; } /* la place va au nom du monde, à « Jouer ce monde » et aux trois outils */
   .univers-pastille { width: 26px; height: 26px; }
   .univers-vignette { width: 44px; height: 44px; }
   .univers-vignette.petite { width: 32px; height: 32px; }

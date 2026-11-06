@@ -6,7 +6,9 @@
  *   donnees() → { univers: { id: univers }, donjons: { id: donjon }, donjonActif?: { donjon, salle? }, mondeActif?: id }  (lu à chaque rafraîchissement)
  *   coquille.arbre          { element, ajouterAction({ libelle, icone?, executer, danger? }), rafraichir() }  (« ⋯ » de l'en-tête de l'arbre)
  *   coquille.scene          l'élément du centre (les cartes s'y posent)
- *   coquille.barreOutils    la barre d'outils de la scène (vide et cachée tant que personne n'y met rien)
+ *   coquille.barreOutils    la barre d'outils de la scène : UNE seule ligne (vide et cachée tant que personne n'y met rien) ; le bouton de l'arbre
+ *                           au début, les outils au milieu, puis `barreFin` (le bouton « Grille » et le seul bouton doré, « Jouer »)
+ *   coquille.barreFin       le groupe de droite de cette ligne (caché tant qu'il est vide)
  *   coquille.inspecteur     { enregistrer(type, définition), afficher(sel), rafraichir(), a(type) } (js/atelier/inspecteur.js)
  *   coquille.selectionner(sel) / selection()   la sélection commune (js/atelier-selection.js) ; jamais en double ailleurs
  *   coquille.naviguer(route, { ecrireHash? })   va à un nœud ({ page: 'monde'|'donjon', monde?, lieu?, donjon?, salle? }), écrit l'adresse et prévient
@@ -112,7 +114,10 @@ export function creerCoquille({
   sceneEl.prepend(barreOutils);
   // Le bouton « Grille » : la préférence d'affichage commune (js/atelier/grille-affichage.js). `grille: { lire, surChangement }` ; absent, pas de bouton.
   const grilleAffichage = grille ? creerGrilleAffichage(grille) : null;
-  if (grilleAffichage) barreOutils.append(h('div', { className: 'atelier-barre-grille' }, grilleAffichage.element));
+  // Le bout droit de la ligne : « Grille », puis ce que la page y range (le bouton doré « Jouer »).
+  const barreFin = h('div', { className: 'atelier-barre-fin' });
+  barreOutils.append(barreFin);
+  if (grilleAffichage) barreFin.append(grilleAffichage.element);
 
   racine.prepend(colonneArbre, voile);
   racine.append(colonneInspecteur);
@@ -308,7 +313,7 @@ export function creerCoquille({
   });
 
   const coquille = {
-    arbre: { element: colonneArbre, ajouterAction, rafraichir, vue }, scene: sceneEl, barreOutils, inspecteur, onglets,
+    arbre: { element: colonneArbre, ajouterAction, rafraichir, vue }, scene: sceneEl, barreOutils, barreFin, inspecteur, onglets,
     selectionner, selection: () => sel, naviguer, positionner, position: () => ({ ...pos }), rafraichir,
     surSelection: (f) => { ecouteursSelection.push(f); },
     ouvrirTiroir, fermerTiroir, tiroirOuvert, mode, grille: grilleAffichage,

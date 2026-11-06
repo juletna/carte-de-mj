@@ -54,7 +54,36 @@ body.atelier-avec-inspecteur { --largeur-inspecteur: 330px; }
 .atelier-barre { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: var(--esp-2); padding: var(--esp-1) var(--esp-3); background: var(--panneau); border-bottom: 1px solid var(--bord); }
 .atelier-barre:empty { display: none; }
 /* Le bouton « Grille » (js/atelier/grille-affichage.js) : toujours au bout de la barre, son popover s'ouvre dessous. */
-.atelier-barre-grille { order: 99; margin-left: auto; }
+/* UNE seule ligne : le bouton de l'arbre (replié ou écran étroit), les outils, puis au bout « Grille » et le seul bouton doré (« Jouer ») : js/atelier/coquille.js. */
+.atelier-barre { flex-wrap: nowrap; }
+.atelier-barre > .atelier-arbre-bouton { order: -1; }
+.atelier-barre-fin { order: 99; margin-left: auto; flex: none; display: flex; align-items: center; gap: var(--esp-2); }
+.atelier-barre-fin:empty { display: none; }
+.atelier-barre-fin > a[hidden] { display: none; }
+.atelier-barre-fin > .btn-primaire, .atelier-barre-fin > .btn-discret[href] { font-size: 13px; }
+.barre-lieu-etat { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; padding: 2px 10px; border: 1px solid var(--accent); border-radius: 999px; color: var(--accent); font-size: 13px; white-space: nowrap; }
+.barre-lieu-etat[hidden] { display: none; }
+.atelier-barre { position: relative; column-gap: var(--esp-1); container-type: inline-size; }
+.atelier-barre-fin { gap: var(--esp-1); }
+.atelier-barre .barre-donjon { column-gap: var(--esp-1); }
+/* Scène étroite (colonnes d'arbre et d'inspecteur ouvertes sur un petit écran) : les deux boutons de salle gardent leur icône, pas leur mot. */
+@container (max-width: 620px) {
+  #plan-bouton .libelle, #annuler-carte .libelle, #salle-ajouter .libelle { display: none; }
+  #plan-bouton, #annuler-carte, #salle-ajouter { padding: 0; width: 44px; }
+}
+@media (max-width: 760px) {
+  /* Même ligne, compacte : arbre, outils en icônes seules, Grille, puis « Jouer » (icône + mot). Aucune cible sous 44 px, aucun débordement. */
+  .atelier-barre { gap: var(--esp-1); padding: var(--esp-1) var(--esp-2); }
+  .atelier-barre .btn { min-width: 44px; min-height: 44px; }
+  .outil-lieu .libelle, .barre-monde-jouer .suite, .atelier-barre .bouton-ajouter .libelle { display: none; }
+  .atelier-barre .bouton-ajouter { padding: 0; width: 44px; justify-content: center; }
+  .atelier-barre .barre-donjon, .atelier-barre .barre-groupe { flex-wrap: nowrap; gap: var(--esp-1); }
+  .atelier-barre .barre-donjon .btn:not(.pose-pastille) { padding: 0; width: 44px; justify-content: center; }
+  .outil-lieu { padding: 0; }
+  .atelier-barre-fin { gap: var(--esp-1); }
+  /* La consigne d'une action armée se pose sur la carte, sous la barre : la ligne d'outils reste à une seule rangée. */
+  .barre-lieu-etat { position: absolute; z-index: 28; top: calc(100% + var(--esp-2)); left: var(--esp-2); background: var(--panneau); box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45); }
+}
 .atelier-grille { position: relative; }
 .atelier-grille-panneau { position: absolute; right: 0; top: calc(100% + 4px); z-index: 45; width: 260px; display: flex; flex-direction: column; gap: var(--esp-2); padding: var(--esp-3); background: var(--panneau); border: 1px solid var(--bord); border-radius: var(--rayon); box-shadow: 0 8px 24px rgba(0, 0, 0, .55); }
 .atelier-grille-panneau[hidden] { display: none; }

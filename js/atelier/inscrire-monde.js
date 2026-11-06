@@ -5,7 +5,7 @@
  *   - inspecteurs monde, lieu et point (js/atelier/inspecteurs-monde.js) ;
  *   - barre d'outils Sélection · Point · Calage (js/atelier/barre-lieu.js) ;
  *   - arbre : vignettes des lieux, et dans son « ⋯ » Nouveau monde, Importer un monde, Nouveau lieu ;
- *   - barre du haut : « Monde · nom » et « Jouer ce monde » (le seul bouton doré de l'écran) à la place des commandes du donjon ;
+ *   - « Jouer ce monde » (le seul bouton doré de l'écran) au bout de la ligne d'outils, à la place de « Jouer » du donjon ; pas d'en-tête « Monde · nom » ;
  *   - le point choisi est la sélection commune (type 'point') ; sur téléphone, l'inspecteur se déplie quand on choisit un point.
  */
 import { $, h } from '../dom.js';
@@ -88,16 +88,17 @@ export function inscrireMonde(coquille, ctx) {
   U.surChangement(majCartouche);
   majCartouche();
 
-  // --- Barre du haut : le monde et « Jouer ce monde » ---------------------------------------------------------------------
-  const nom = h('span', { className: 'barre-monde-nom' });
+  // --- « Jouer ce monde » : le seul bouton doré, au bout de la ligne d'outils (après « Grille »), à la place du « Jouer » du donjon ---------------
+  // Plus d'en-tête « Monde · nom » : le nom est déjà dans l'arbre (nœud surligné) et dans l'en-tête de l'inspecteur.
   const jouer = lienBtn('Jouer ce monde', null, { icone: 'jouer', classe: 'btn-primaire barre-monde-jouer', titre: 'Ouvre la Présentation sur ce monde, pour le jouer à la table' });
-  const entete = h('div', { className: 'barre-monde', hidden: true }, h('span', { className: 'barre-monde-titre' }, icone('monde'), h('span', { className: 'doux', textContent: 'Monde' }), nom), jouer);
-  $('barre').insertBefore(entete, $('presenter'));
+  jouer.replaceChildren(icone('jouer'), h('span', { className: 'libelle' }, 'Jouer', h('span', { className: 'suite', textContent: ' ce monde' }))); // sous 760 px : « Jouer » seul
+  jouer.setAttribute('aria-label', 'Jouer ce monde');
+  jouer.hidden = true;
+  coquille.barreFin.append(jouer);
   function majEntete() {
     const u = U.monde();
-    entete.hidden = !U.ouvert() || !u;
+    jouer.hidden = !U.ouvert() || !u;
     if (!u) return;
-    nom.textContent = u.nom;
     jouer.href = lienJouer(u.id);
     const calage = U.mode() === 'grille'; // pendant le calage, « Enregistrer » est l'unique bouton doré
     jouer.classList.toggle('btn-primaire', !calage);

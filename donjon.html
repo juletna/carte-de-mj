@@ -15,14 +15,15 @@
   <link rel="stylesheet" href="css/panneaux.css">
 </head>
 <body>
-  <!-- Barre de navigation commune (js/navigation.js), puis la barre du donjon : le bouton de l'arbre et « Jouer ». -->
+  <!-- Barre de navigation commune (js/navigation.js). Il n'y a plus de deuxième barre en haut : le bouton de l'arbre et « Jouer » attendent ici,
+       js/atelier/inscrire-donjon.js les range dans la barre d'outils de la scène (une seule ligne : l'arbre, les outils, « Grille », « Jouer »). -->
   <header class="menu-site" data-navigation></header>
-  <header id="barre">
-    <h1 class="cache-visuel">Donjon</h1>
+  <h1 class="cache-visuel">Donjon</h1>
+  <div id="barre-hote" hidden>
     <!-- Arbre de l'atelier (js/atelier/coquille.js) : tiroir sous 760 px ; sur ordinateur, rouvre l'arbre quand il est replié. -->
     <button id="arbre-bouton" type="button" class="btn btn-icone btn-discret atelier-arbre-bouton" aria-label="Arbre" title="L'arbre : monde, lieux, donjons, salles"><span data-icone="menu"></span></button>
-    <a id="presenter" class="btn btn-primaire" href="presentation.html" title="Présente ce donjon : reprend sa partie en cours s'il en a une, sinon en commence une"><span data-icone="jouer"></span>Jouer</a>
-  </header>
+    <a id="presenter" class="btn btn-primaire" href="presentation.html" title="Présente ce donjon : reprend sa partie en cours s'il en a une, sinon en commence une"><span data-icone="jouer"></span><span class="libelle">Jouer</span></a>
+  </div>
 
   <!-- L'atelier (js/atelier/coquille.js) : la coquille ajoute la colonne de l'arbre au début et celle de l'inspecteur à la fin ;
        au centre, la scène sous sa barre d'outils (js/atelier/barre-salle.js, qui y range #barre-donjon). -->
@@ -31,7 +32,7 @@
       <!-- La barre d'outils de la scène : js/atelier/barre-salle.js la range dans coquille.barreOutils. Écran étroit : « + Ajouter » ouvre le tiroir du catalogue. -->
       <div id="barre-donjon" class="barre-donjon">
         <div class="barre-groupe" id="barre-catalogue" role="group" aria-label="Ajouter à la carte">
-          <button id="ajouter" type="button" class="btn bouton-ajouter" aria-haspopup="dialog" aria-expanded="false" aria-controls="palette"><span data-icone="plus"></span>Ajouter</button>
+          <button id="ajouter" type="button" class="btn bouton-ajouter" aria-label="Ajouter à la carte" title="Ajouter à la carte : portes, mobilier, créatures" aria-haspopup="dialog" aria-expanded="false" aria-controls="palette"><span data-icone="plus"></span><span class="libelle">Ajouter</span></button>
         </div>
         <button id="pose-pastille" type="button" class="btn pose-pastille" hidden></button>
         <div class="barre-groupe" role="group" aria-label="Salles">
