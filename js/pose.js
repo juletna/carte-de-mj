@@ -87,6 +87,15 @@ export function evaluerPose(plan, genre, el, x, y, ignorer = null) {
   const pion = creatures.find((k) => seChevauchent(cible, k));
   if (pion) return { ok: false, raison: 'gene', gene: { genre: 'creature', element: pion } };
   const rotation = regardAdosse(plan, el, x, y);
+  if (rotation === null && largeurDe(el) !== hauteurDe(el) && el.taille === undefined) {
+    // Un objet allongé posé contre un mur dans le mauvais sens (une bibliothèque debout contre le mur du haut) : il se couche le long du mur, si la place le permet.
+    const tourne = { ...el, l: el.h, h: el.l };
+    const libre = surLeSol(plan, x, y, tourne.l, tourne.h)
+      && !plan.objets.some((o) => o !== ignorer && definition(o.type).bloquant !== false && seChevauchent({ ...tourne, x, y }, o))
+      && !creatures.some((k) => seChevauchent({ ...tourne, x, y }, k));
+    const r = libre ? regardAdosse(plan, tourne, x, y) : null;
+    if (r !== null) return { ok: true, modifs: { x, y, l: tourne.l, h: tourne.h, rotation: r } };
+  }
   return { ok: true, modifs: rotation === null ? { x, y } : { x, y, rotation } };
 }
 

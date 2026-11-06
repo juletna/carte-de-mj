@@ -355,6 +355,13 @@ const TESTS = [
     egal(analyser('Salle de 6 par 6 cases, un coffre en F3').plan.objets[0].rotation, 270, 'parseur : un coffre en F3 s’adosse au mur est');
     egal(analyser('Salle de 6 par 6 cases, un coffre en F3 tourné vers le sud').plan.objets[0].rotation, 180, 'une orientation dite reste la sienne');
   }],
+  ['un meuble allongé déposé contre un mur se couche le long de ce mur', () => {
+    const plan = analyser('Salle de 8 par 8 cases, une bibliotheque au mur est.').plan;
+    const etagere = plan.objets[0]; // debout (1 × 2) contre le mur est
+    egal(evaluerPose(plan, 'objet', etagere, 5, 0, etagere).modifs, { x: 5, y: 0, l: 2, h: 1, rotation: 180 }, 'au mur du haut : couchée le long du mur');
+    egal(evaluerPose(plan, 'objet', etagere, 7, 5, etagere).modifs, { x: 7, y: 5, rotation: 270 }, 'au mur est : elle reste debout');
+    egal(evaluerPose(plan, 'objet', etagere, 4, 3, etagere).modifs, { x: 4, y: 3 }, 'au milieu : rien ne change');
+  }],
 ];
 
 export const executer = () => executerSuite('pose : ', TESTS);
