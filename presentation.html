@@ -8,8 +8,9 @@
   <meta name="description" content="Ouvre un donjon préparé et montre-le à la table : régie du MJ et carte en grand pour les joueurs.">
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/style.css">
-  <link rel="stylesheet" href="css/presentation.css">
   <link rel="stylesheet" href="css/univers.css">
+  <link rel="stylesheet" href="css/atelier.css">
+  <link rel="stylesheet" href="css/presentation.css">
 </head>
 <body class="presentation">
   <header class="menu-site" data-navigation></header>
@@ -50,11 +51,6 @@
     </section>
   </main>
 
-  <!-- Une carte d'univers (js/regie-univers.js) : la régie navigue de carte en carte, révèle des points, entre dans un donjon. -->
-  <main id="univers-regie" class="univers-regie" hidden>
-    <div class="univers-regie-corps"></div>
-  </main>
-
   <!-- Au lancement d'une partie : qui joue ? Des fiches du donjon, ou un simple nombre de joueurs. -->
   <main id="choix-joueurs" hidden>
     <header>
@@ -86,51 +82,71 @@
     </form>
   </main>
 
-  <!-- Régie : l'écran du MJ -->
-  <div id="regie" hidden>
-    <!-- Écran étroit seulement (js/telephone.js, CSS sous 760 px) : la carte ou les actions, jamais les deux empilées. Masqué ailleurs. -->
-    <div class="onglets" role="group" aria-label="Afficher">
-      <button type="button" data-onglet="carte" aria-pressed="true">Carte</button>
-      <button type="button" data-onglet="actions" aria-pressed="false">Actions</button>
-    </div>
-    <aside id="panneau">
-      <header>
-        <h1>Régie</h1>
-        <p class="sous-titre"><span id="nom-donjon"></span></p>
-        <div id="fil-univers" class="univers-fil" hidden></div>
-        <p id="alerte-stockage" class="note erreur" role="alert" hidden></p>
-        <div id="alerte-retrait" role="alert" hidden>
-          <p id="texte-retrait" class="note erreur"></p>
-          <button id="reprendre-main" type="button" class="btn">Reprendre la main</button>
+  <!-- Régie : l'écran du MJ, sur la coquille de l'atelier (js/atelier/coquille.js, mode « jouer »).
+       La coquille ajoute l'arbre de lecture avant #principal et l'inspecteur après ; les contenus #onglet-* y sont déplacés (js/atelier/jouer.js). -->
+  <div id="regie" class="regie-atelier" data-regie="donjon" hidden>
+    <main id="principal">
+      <!-- Un seul bandeau d'état : où l'on est (fil du monde), ce que voit la table, et l'action utile (Afficher à la table, Reprendre la main). -->
+      <div id="etat-table">
+        <div class="etat-haut">
+          <button id="arbre-bouton" type="button" class="btn btn-icone btn-discret atelier-arbre-bouton" aria-label="Arbre" title="L'arbre : monde, lieux, donjons, salles"><span data-icone="menu"></span></button>
+          <button id="quitter" type="button" class="btn btn-discret" data-icone="retour">Liste des parties</button>
+          <span id="nom-donjon" class="doux"></span>
+          <div id="fil-univers" class="univers-fil" hidden></div>
         </div>
-        <p class="note"><button id="quitter" type="button" class="btn btn-discret" data-icone="retour">Liste des parties</button></p>
-      </header>
+        <p id="alerte-stockage" class="note erreur" role="alert" hidden></p>
+        <div id="bandeau" role="status"></div>
+      </div>
 
-      <section class="commande" aria-label="Commande rapide">
-        <h2>Commande rapide</h2>
+      <!-- Commande rapide : barre fixe au-dessus de la carte (régie de donjon seulement). -->
+      <section class="commande" id="barre-commande" aria-label="Commande rapide">
         <form id="form-commande" autocomplete="off">
-          <label for="commande">Faire évoluer la salle regardée <span id="nom-salle-commande" class="doux"></span></label>
-          <input id="commande" type="text" spellcheck="false" placeholder="ajoute trois gobelins">
-          <div class="actions">
-            <button id="executer-commande" type="submit" class="btn">Exécuter</button>
-            <button id="micro-commande" type="button" class="btn btn-discret" title="Dicter la commande, puis la valider avec Exécuter" data-icone="micro">Dicter</button>
-          </div>
+          <label for="commande" class="commande-etiquette">Commande <span id="nom-salle-commande" class="doux"></span></label>
+          <input id="commande" type="text" spellcheck="false" placeholder="ajoute trois gobelins" aria-describedby="message-commande">
+          <button id="executer-commande" type="submit" class="btn">Exécuter</button>
+          <button id="micro-commande" type="button" class="btn btn-discret" title="Dicter la commande, puis la valider avec Exécuter" data-icone="micro">Dicter</button>
+          <details class="exemples-commandes">
+            <summary class="btn btn-icone btn-discret" aria-label="Exemples de commandes" title="Exemples de commandes">?</summary>
+            <div class="exemples-corps">
+              <ul>
+                <li>ajoute trois gobelins</li>
+                <li>ajoute un coffre en C4</li>
+                <li>ajoute un gobelin caché</li>
+                <li>supprime le coffre</li>
+                <li>supprime le gobelin 2</li>
+                <li>déplace la statue à gauche</li>
+                <li>déplace le gobelin 2 en C4</li>
+              </ul>
+              <p class="note">Une commande floue ne change rien : le message dit quoi préciser. Ce qui est ajouté « caché » reste invisible à la table jusqu'à sa révélation.</p>
+            </div>
+          </details>
         </form>
         <p id="message-commande" class="note" role="status" aria-live="polite" hidden></p>
-        <details class="exemples-commandes">
-          <summary>Exemples de commandes</summary>
-          <ul>
-            <li>ajoute trois gobelins</li>
-            <li>ajoute un coffre en C4</li>
-            <li>ajoute un gobelin caché</li>
-            <li>supprime le coffre</li>
-            <li>supprime le gobelin 2</li>
-            <li>déplace la statue à gauche</li>
-            <li>déplace le gobelin 2 en C4</li>
-          </ul>
-          <p class="note">Une commande floue ne change rien : le message dit quoi préciser. Ce qui est ajouté « caché » reste invisible à la table jusqu'à sa révélation.</p>
-        </details>
       </section>
+
+      <div id="scene">
+        <div id="support">
+          <canvas id="carte" aria-label="Carte de la salle consultée"></canvas>
+        </div>
+      </div>
+
+      <!-- Une carte d'univers (js/regie-univers.js) à la place de la salle : la régie navigue de carte en carte, révèle des points, entre dans un donjon. -->
+      <div id="univers-regie" class="univers-regie" hidden>
+        <div class="univers-regie-corps"></div>
+      </div>
+
+      <!-- Retour d'action : transitoire, hors du flux (ne décale jamais la carte), annoncé aux lecteurs d'écran. -->
+      <div id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
+    </main>
+
+    <!-- Contenus des onglets de l'inspecteur : la coquille les range à droite (sous 760 px : barre du bas). -->
+    <div id="onglet-salle" class="onglet-contenu" hidden>
+      <!-- Ce que la table montre de la salle regardée. La carte de la régie, elle, montre toujours tout. -->
+      <div id="projection" role="group" aria-labelledby="projection-titre">
+        <span id="projection-titre"></span>
+        <button id="montrer-monstres" type="button" class="btn" data-categorie="monstres"></button>
+        <button id="montrer-objets" type="button" class="btn" data-categorie="objets"></button>
+      </div>
 
       <section class="cette-salle" aria-label="Cette salle">
         <h2>Cette salle</h2>
@@ -145,8 +161,18 @@
         </details>
       </section>
 
-      <details class="bloc" data-memo="personnages" open>
-        <summary><h2>Personnages</h2></summary>
+      <section class="bloc-notes" aria-label="Notes de la salle">
+        <h2>Notes de la salle</h2>
+        <p class="note">Préparation (lecture seule) :</p>
+        <div id="notes" class="notes-lecture" tabindex="0" role="region" aria-label="Notes de préparation du MJ pour cette salle (lecture seule)"></div>
+        <label for="notes-partie" class="note etiquette-notes">Notes de partie, prises en jouant (enregistrées avec la partie, jamais envoyées à la table) :</label>
+        <textarea id="notes-partie" rows="5" placeholder="Ce qui se passe dans cette salle…"></textarea>
+      </section>
+    </div>
+
+    <div id="onglet-joueurs" class="onglet-contenu" hidden>
+      <section aria-label="Personnages">
+        <h2>Personnages</h2>
         <ul id="personnages-liste" class="fiches"></ul>
         <p id="personnages-vide" class="note" hidden>Aucun personnage : ajoute des fiches dans le Donjon, outil « Personnages », et elles apparaîtront ici. Les joueurs sans fiche s’indiquent en lançant la partie, ou ci-dessous une fois la partie commencée.</p>
         <details class="ajout-joueur">
@@ -162,28 +188,21 @@
             <p class="note">Sans fiche : rien n’est obligatoire. Son pion est posé dans la salle que tu regardes.</p>
           </form>
         </details>
-      </details>
+      </section>
+    </div>
 
-      <details class="bloc" data-memo="salles" open>
-        <summary><h2>Salles</h2></summary>
-        <details class="aide">
-          <summary class="btn btn-icone btn-discret" aria-label="Aide : lire le plan des salles" title="Lire le plan des salles">?</summary>
-          <div class="aide-texte">Salle assombrie : non découverte. Cadre vert : salle à la table. Cadre doré : salle que tu regardes. Trait rouge : porte pas encore ouverte.
-            Cliquer une salle la consulte seulement ; elle n'est montrée aux joueurs qu'avec « Afficher à la table ».</div>
-        </details>
-        <div id="minicarte" class="minicarte" role="region" aria-label="Plan du donjon"></div>
-      </details>
+    <!-- Régie de monde : le lieu, ses points, la révélation et l'entrée (js/regie-univers.js remplit #panneau-lieu). -->
+    <div id="onglet-lieu" class="onglet-contenu" hidden>
+      <div id="panneau-lieu" class="univers-regie-panneau"></div>
+    </div>
 
-      <details class="bloc" data-memo="notes">
-        <summary><h2>Notes de la salle</h2></summary>
-        <p class="note">Préparation (lecture seule) :</p>
-        <div id="notes" class="notes-lecture" tabindex="0" role="region" aria-label="Notes de préparation du MJ pour cette salle (lecture seule)"></div>
-        <label for="notes-partie" class="note etiquette-notes">Notes de partie, prises en jouant (enregistrées avec la partie, jamais envoyées à la table) :</label>
-        <textarea id="notes-partie" rows="5" placeholder="Ce qui se passe dans cette salle…"></textarea>
-      </details>
-
-      <details class="bloc bloc-table" data-memo="table">
-        <summary><h2>Table</h2></summary>
+    <div id="onglet-table" class="onglet-contenu" hidden>
+      <div id="alerte-retrait" role="alert" hidden>
+        <p id="texte-retrait" class="note erreur"></p>
+        <button id="reprendre-main" type="button" class="btn">Reprendre la main</button>
+      </div>
+      <section class="bloc-table" aria-label="Table">
+        <h2>Table</h2>
         <div class="actions">
           <button id="ouvrir-table" type="button" class="btn btn-primaire" data-icone="plein-ecran" title="Ouvre presentation.html?vue=table dans une nouvelle fenêtre, à glisser sur l'écran de la table">Ouvrir la fenêtre table</button>
           <button id="plein-ici" type="button" class="btn" title="Montre la vue table en plein écran sur cet écran" data-icone="plein-ecran">Plein écran ici</button>
@@ -240,7 +259,7 @@
             <button type="button" class="btn btn-icone btn-discret fleche-inverse" data-defiler="0,1" aria-label="Vers le bas" data-icone="remonter"></button>
           </div>
         </details>
-      </details>
+      </section>
 
       <details class="bloc reglages" data-memo="reglages">
         <summary><h2>Réglages</h2></summary>
@@ -269,32 +288,11 @@
         <label class="ligne case"><input id="reperes" type="checkbox" checked> Afficher les repères (A, B… et 1, 2…)</label>
         <label class="ligne case"><input id="ajuster" type="checkbox" checked> Adapter la carte de la régie à la fenêtre</label>
       </details>
-
-      <footer class="note">Projet libre (MIT) · fonctionne hors ligne</footer>
-    </aside>
-
-    <main id="principal">
-      <div id="bandeau" role="status"></div>
-      <!-- Ce que la table montre de la salle regardée. La carte de la régie, elle, montre toujours tout. -->
-      <div id="projection" role="group" aria-labelledby="projection-titre">
-        <span id="projection-titre"></span>
-        <button id="montrer-monstres" type="button" class="btn" data-categorie="monstres"></button>
-        <button id="montrer-objets" type="button" class="btn" data-categorie="objets"></button>
-      </div>
-      <div id="scene">
-        <div id="support">
-          <canvas id="carte" aria-label="Carte de la salle consultée"></canvas>
-        </div>
-      </div>
-      <!-- Retour d'action : transitoire, hors du flux (ne décale jamais la carte), annoncé aux lecteurs d'écran. -->
-      <div id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
-    </main>
+      <p class="note">Projet libre (MIT) · fonctionne hors ligne</p>
+    </div>
 
     <!-- Sélection : panneau superposé en bas à droite de la fenêtre, hors du flux (n'écarte jamais la commande rapide). -->
     <section id="selection" class="selection" role="region" aria-label="Sélection" tabindex="-1" hidden></section>
-
-    <!-- Écran étroit, onglet Carte : la zone réservée à la sélection, quand rien n'est sélectionné. -->
-    <p id="aide-carte" class="aide-carte">Touche une porte, un pion ou un élément caché : ses actions apparaissent ici.</p>
   </div>
 
   <!-- Vue table : uniquement la carte. Fenêtre ?vue=table, ou « Plein écran ici » depuis la régie. -->

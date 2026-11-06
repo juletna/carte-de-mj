@@ -33,10 +33,9 @@ export function creerRegieUnivers(ctx) {
 
   const ecran = $('univers-regie');
   const titre = h('h1', { id: 'titre-univers-regie', tabIndex: -1 });
-  const fil = h('nav', { className: 'univers-fil', 'aria-label': 'Fil d’Ariane' });
   const zoneCarte = h('div', { className: 'univers-zone-carte' });
-  const panneau = h('div', { className: 'univers-regie-panneau' });
-  ecran.querySelector('.univers-regie-corps').replaceChildren(h('header', {}, titre, fil), h('div', { className: 'univers-regie-grille' }, zoneCarte, panneau));
+  const panneau = $('panneau-lieu'); // l'onglet « Lieu » de l'inspecteur (js/atelier/jouer.js)
+  ecran.querySelector('.univers-regie-corps').replaceChildren(titre, zoneCarte);
   const carte = creerCarteUnivers(zoneCarte, { onPoint: (id) => { pointId = id; rendre(); } });
 
   function sauver() {
@@ -62,25 +61,13 @@ export function creerRegieUnivers(ctx) {
   }
 
   // --- Réglages et défilement de la table ---------------------------------------------------------------------------
-  // Le panneau de réglages de la régie de donjon (taille de case, cases, mode de la table, rotation, miroir…) est le même : ses blocs sont
-  // déplacés ici tant qu'une carte d'univers est affichée, puis rendus à la régie de donjon. Leurs écouteurs restent attachés.
-  const blocs = [document.querySelector('#regie .bloc-table'), document.querySelector('#regie details.reglages')].filter(Boolean);
-  const reperes = new Map();
+  // L'onglet Table est le même pour un donjon et pour une carte de monde ; pour une carte, on masque ce qui ne concerne que les salles.
   function prendreLesReglages() {
-    for (const bloc of blocs) {
-      if (reperes.has(bloc)) continue;
-      const repere = document.createComment('reglages'); // où le bloc retournera
-      bloc.before(repere);
-      reperes.set(bloc, repere);
-      panneau.append(bloc);
-    }
     $('plein-ici').hidden = true; // « Plein écran ici » ne montre que les salles
     $('mini-active').closest('label').hidden = true; // pas de mini-carte pour une carte d'univers
     $('calibrer-table').hidden = true; // le calibrage dessine une carte bancaire sur la salle : mesure-le depuis une salle (Donjon ou donjon d'un univers)
   }
   function rendreLesReglages() {
-    for (const [bloc, repere] of reperes) { repere.replaceWith(bloc); }
-    reperes.clear();
     $('plein-ici').hidden = false;
     $('mini-active').closest('label').hidden = false;
     $('calibrer-table').hidden = etat.calibrage === true;
@@ -117,8 +104,11 @@ export function creerRegieUnivers(ctx) {
 
   // --- Ouvrir un univers et naviguer ---------------------------------------------------------------------------
   function afficherEcran() {
-    for (const id of ['depart', 'choix-joueurs', 'regie']) $(id).hidden = true;
+    for (const id of ['depart', 'choix-joueurs']) $(id).hidden = true;
+    $('regie').hidden = false;
     ecran.hidden = false;
+    $('nom-donjon').textContent = '';
+    ctx.jouer?.mode('monde');
     document.title = `${courant.univers.nom} · Jouer · Carte de MJ`;
   }
   function ouvrir(univers, partie, { reprise = false } = {}) {
@@ -147,6 +137,7 @@ export function creerRegieUnivers(ctx) {
     if (!d) return;
     ecran.hidden = true;
     rendreLesReglages();
+    ctx.jouer?.mode('donjon');
     const existante = stockage.chargerPresentations()[d.id];
     if (existante) {
       ctx.entrer(existante, { reprise: true });
@@ -171,8 +162,6 @@ export function creerRegieUnivers(ctx) {
     etat.p = null; etat.consultee = null;
     ctx.noterRetrait();
     ctx.quitterPleinIci();
-    $('regie').hidden = true;
-    $('fil-univers').hidden = true;
     afficherEcran();
     prendreLesReglages();
   }
@@ -197,23 +186,43 @@ export function creerRegieUnivers(ctx) {
       return [...sep, btn(it.nom, () => versLe(it.index), { classe: 'btn-discret' })];
     }), ...(items.length > 1 ? [btn('Remonter', () => remonter(), { icone: 'remonter', classe: 'btn-discret univers-remonter' })] : []));
   }
+  /** Le monde et la partie d'où l'on est entré dans le donjon joué, ou null (donjon joué seul, ou carte de monde affichée). */
+  function mondeDuDonjon() {
+    const idDonjon = etat.p?.donjon.id;
+    if (!idDonjon || !ecran.hidden) return null;
+    const univers = universEnregistres();
+    for (const partie of Object.values(stockage.chargerPartiesUnivers())) {
+      if (partie.dans?.donjon === idDonjon && univers[partie.univers]) return { univers: univers[partie.univers], partie };
+    }
+    return null;
+  }
+  /** Le monde de la partie en cours (carte affichée ou donjon d'un monde), pour l'arbre de lecture et ses pastilles. */
+  function monde() { return !ecran.hidden ? courant : mondeDuDonjon(); }
+  /** Un lieu du fil d'Ariane choisi dans l'arbre : on y remonte (vrai). Faux si ce lieu n'est pas sur le chemin. */
+  function versLeLieu(id) {
+    const m = monde();
+    if (!m) return false;
+    const chemin = [...m.partie.chemin, m.partie.lieuCourant];
+    const index = chemin.indexOf(id);
+    if (index < 0) return false;
+    if (index === chemin.length - 1 && !m.partie.dans) return true; // déjà ici
+    courant = m;
+    versLe(index);
+    return true;
+  }
+  /** La liste des parties est demandée : la carte de monde n'est plus affichée. */
+  function fermer() { ecran.hidden = true; rendreLesReglages(); }
   /** Dans la régie de donjon : le fil de l'univers d'où l'on vient, avec « Remonter ». Appelée à chaque rendu de la régie. */
   function majFil() {
     const zone = $('fil-univers');
     if (!zone) return;
-    const idDonjon = etat.p?.donjon.id;
-    let trouve = null;
-    if (idDonjon && ecran.hidden) {
-      const univers = universEnregistres();
-      for (const partie of Object.values(stockage.chargerPartiesUnivers())) {
-        if (partie.dans?.donjon === idDonjon && univers[partie.univers]) { trouve = { univers: univers[partie.univers], partie }; break; }
-      }
-    }
+    const trouve = mondeDuDonjon();
     zone.hidden = !trouve;
     if (!trouve) return;
     courant = trouve;
     remplirFil(zone, trouve.partie, trouve.univers, etat.p.donjon.nom);
     zone.prepend(h('span', { className: 'doux', textContent: `${trouve.univers.nom} · ` }));
+    $('nom-donjon').textContent = '';
   }
 
   // --- Rendu de la carte ----------------------------------------------------------------------------------------
@@ -221,7 +230,10 @@ export function creerRegieUnivers(ctx) {
     const { univers, partie } = courant;
     const lieu = univers.lieux[partie.lieuCourant];
     titre.textContent = univers.nom;
+    const fil = $('fil-univers');
+    fil.hidden = false;
     remplirFil(fil, partie, univers);
+    majBandeauMonde(lieu);
     const dons = donjons();
     const points = lieu.points.map((p) => {
       const orph = modele.raisonOrpheline(univers, p.vers, dons);
@@ -245,6 +257,21 @@ export function creerRegieUnivers(ctx) {
     images.urlImage(lieu.image).then((url) => { if (moi === sequence) carte.afficher({ ...options, url, absente: 'Image introuvable : la carte n’est plus dans la bibliothèque ou dans ce navigateur. Les points restent utilisables dans la liste.' }); });
     rendrePanneau(lieu, dons);
     diffuser();
+    ctx.jouer?.synchroniser({ monde: univers.id, lieu: partie.lieuCourant });
+  }
+
+  /** Le bandeau d'état, le même que celui de la régie de donjon : ce que voit la table, ou la régie en retrait. */
+  function majBandeauMonde(lieu) {
+    const bandeau = $('bandeau');
+    const retrait = ctx.commande.retrait;
+    bandeau.className = retrait ? 'retrait' : 'sur-table';
+    const texte = h('div', { className: 'texte' });
+    if (retrait) texte.append(h('span', { className: 'pastille', textContent: 'En retrait' }), 'Une autre régie commande la table : les joueurs ne voient pas ce que tu fais ici.');
+    else texte.append(h('span', { className: 'pastille', textContent: 'À la table' }), 'Les joueurs voient la carte : ', h('strong', { textContent: lieu.nom }), '.');
+    texte.title = texte.textContent;
+    const actions = h('div', { className: 'actions' });
+    if (retrait) actions.append(btn('Reprendre la main', () => { ctx.prendreLaMain(); if (courant) stockage.memoriserPartieOuverte(pu.cleOuverteUnivers(courant.univers.id)); rendre(); }, { icone: 'oeil' }));
+    bandeau.replaceChildren(texte, actions);
   }
 
   function rendrePanneau(lieu, dons) {
@@ -289,8 +316,7 @@ export function creerRegieUnivers(ctx) {
       h('section', { 'aria-label': 'Point choisi' }, ...choisi),
       h('section', { 'aria-label': 'Points de ce lieu' }, h('h2', {}, `Points (${lieu.points.length}) `, aide('Touche un point sur la carte, ou choisis-le dans la liste. Un point caché (œil barré) n’apparaît à la table qu’une fois révélé ; un point marqué d’un triangle mène à une destination qui n’existe plus, rien n’a été retiré.')), lieu.points.length ? h('ul', { className: 'univers-liste' }, ...liste) : h('p', { className: 'note', textContent: 'Aucun point sur cette carte.' })),
       ...(lieu.notes ? [h('section', { 'aria-label': 'Notes du lieu' }, h('h2', { textContent: 'Notes du lieu' }), h('p', { className: 'univers-notes', textContent: lieu.notes }))] : []),
-      h('p', { className: 'note' }, btn('Liste des parties', () => { ecran.hidden = true; rendreLesReglages(); if (!ctx.commande.retrait) stockage.oublierPartieOuverte(); ctx.depart.afficher(); }, { icone: 'retour', classe: 'btn-discret' })),
-      ...(reperes.size ? blocs : []));
+    );
   }
   /** Rouvre la carte d'univers qui était ouverte avant un rechargement (la partie mémorisée sait où l'on en était). Vrai si c'est fait. */
   function reprendre() {
@@ -312,5 +338,5 @@ export function creerRegieUnivers(ctx) {
     return !ecran.hidden || !!etat.p;
   }
 
-  return { listerDepart, diffuser, majFil, reprendre, ouvrirParId, defiler, redessiner: () => { if (courant && !ecran.hidden) rendre(); }, actif: () => !ecran.hidden };
+  return { listerDepart, diffuser, majFil, monde, versLeLieu, fermer, reprendre, ouvrirParId, defiler, redessiner: () => { if (courant && !ecran.hidden) rendre(); }, actif: () => !ecran.hidden };
 }

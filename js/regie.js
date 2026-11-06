@@ -20,14 +20,13 @@ import { dessiner } from './rendu/moteur.js';
 import { themeParNom } from './rendu/themes/index.js';
 import { disposerPlan, cleDisposition } from './plan-donjon.js';
 import { activerDeplacement } from './deplacement.js';
-import { creerMiniPlan } from './miniplan.js';
 import { carteFiche, carteJoueur } from './carte-personnage.js';
 import { nomCase, libelleDePorte } from './coordonnees.js';
 import { nomAffiche } from './parseur/lexique.js';
 import { nomVariante } from './catalogue.js';
 import { creerMicro } from './voix.js';
 import { affichageDeReglages, optionsRendu } from './affichage.js';
-import { telephone, activerOnglets, marquerDefilement, tailleQuiTient } from './telephone.js';
+import { telephone, marquerDefilement, tailleQuiTient } from './telephone.js';
 import { $, h, bouton } from './dom.js';
 import { icone } from './icones.js';
 import { pluriel } from './format.js';
@@ -40,6 +39,7 @@ import { creerRegieUnivers } from './regie-univers.js';
 import { lierPanneau } from './regie-panneau.js';
 import { poserIcones, iconeEtTexte, deuxTempsIcone } from './regie-icones.js';
 import * as pu from './univers-partie.js';
+import { creerJouer } from './atelier/jouer.js';
 
 export function demarrerRegie() {
   // L'écran de table local (« Plein écran ici ») : créé le premier, comme ses écouteurs l'étaient à l'import.
@@ -244,6 +244,7 @@ export function demarrerRegie() {
     $('depart').hidden = true;
     $('choix-joueurs').hidden = true;
     $('regie').hidden = false;
+    ctx.jouer?.mode('donjon');
     $('nom-donjon').textContent = p.donjon.nom;
     document.title = `${p.donjon.nom} · Jouer · Carte de MJ`;
     if (!reprise) sauvegarder();
@@ -252,7 +253,45 @@ export function demarrerRegie() {
     rendre();
   }
   // En retrait, la partie ouverte mémorisée est celle de l'autre régie : on n'y touche pas.
-  $('quitter').addEventListener('click', () => { if (!commande.retrait) stockage.oublierPartieOuverte(); depart.afficher(); });
+  $('quitter').addEventListener('click', () => { univers.fermer(); if (!commande.retrait) stockage.oublierPartieOuverte(); depart.afficher(); });
+
+
+  // --- Arbre de lecture (js/atelier/jouer.js) -------------------------------------------------------------------
+  /** Le monde dont la partie est en cours (carte affichée, ou donjon d'un monde), ou null pour un donjon joué seul. */
+  const mondeEnCours = () => univers.monde();
+  /** Ce que l'arbre montre : le monde de la partie et ses donjons, ou le seul donjon joué. */
+  function donneesJeu() {
+    const m = mondeEnCours();
+    const prepares = stockage.chargerDonjons()?.donjons ?? {};
+    if (m) {
+      const ids = new Set(Object.values(m.univers.lieux).flatMap((l) => l.points.map((q) => q.vers?.donjon)).filter(Boolean));
+      const donjons = {};
+      for (const id of ids) if (prepares[id]) donjons[id] = prepares[id];
+      if (etat.p && ids.has(etat.p.donjon.id)) donjons[etat.p.donjon.id] = etat.p.donjon;
+      return { univers: { [m.univers.id]: m.univers }, donjons, mondeActif: m.univers.id };
+    }
+    return { univers: {}, donjons: etat.p ? { [etat.p.donjon.id]: etat.p.donjon } : {}, donjonActif: etat.p ? { donjon: etat.p.donjon.id, salle: etat.consultee } : null };
+  }
+  /** Les pastilles : ce qui est à la table, déjà découvert, pas encore montré. */
+  function partieJeu() {
+    const m = mondeEnCours();
+    return { univers: m?.partie ?? null, presentations: etat.p ? { ...etat.presentations, [etat.p.donjon.id]: etat.p } : etat.presentations };
+  }
+  /** Où l'on est, pour l'arbre : la salle regardée, ou le lieu de la carte. */
+  function positionJeu() {
+    if (etat.p) return { donjon: etat.p.donjon.id, salle: etat.consultee };
+    const m = mondeEnCours();
+    return m ? { monde: m.univers.id, lieu: m.partie.lieuCourant } : null;
+  }
+  function majArbre() { const pos = positionJeu(); if (pos) ctx.jouer?.synchroniser(pos); }
+  /** Un nœud de l'arbre choisi : consulter une salle du donjon en cours, remonter à un lieu du chemin ; ailleurs, on explique comment y aller. */
+  function choisirDansArbre(noeud) {
+    if (noeud.type === 'salle' && etat.p && noeud.contexte.donjon === etat.p.donjon.id) { consulter(noeud.id); return; }
+    if (noeud.type === 'lieu' && univers.versLeLieu(noeud.id)) return;
+    if (noeud.type === 'donjon' && etat.p && noeud.id === etat.p.donjon.id) return;
+    if (noeud.type === 'monde') return;
+    annoncer('Pour aller là, passe par la carte : l’arbre montre où en est la partie, il ne déplace pas la table.', 6000);
+  }
 
   // --- Rendu de la régie ---------------------------------------------------------------------------
   /** Côté de case de la régie : réduit pour que la salle tienne dans la zone (réglage `r.taille` jamais modifié). Sous 760 px, marge plus étroite. */
@@ -296,10 +335,10 @@ export function demarrerRegie() {
     selection.maj();
     majSalle();
     majCommande();
-    majMiniCarte();
     majPersonnages();
     montrerIci();
     diffuser();
+    majArbre();
   }
   /** Après un changement de la partie : on enregistre, puis on redessine. */
   function modifie() { sauvegarder(); rendre(); }
@@ -343,10 +382,10 @@ export function demarrerRegie() {
     }
     const actions = h('div', { className: 'actions' });
     if (!meme) {
-      // Seul bouton doré de l'écran Carte, dans la zone à part du bandeau (la régie n'a pas d'autre action principale à cet endroit).
-      const afficher = h('button', { type: 'button', id: 'afficher-table', className: 'btn btn-primaire' }, icone('oeil'), ' Afficher à la table');
+      // Pas de doré ici : l'action principale de la régie est « Ouvrir la fenêtre table » (onglet Table).
+      const afficher = h('button', { type: 'button', id: 'afficher-table', className: 'btn btn-fort' }, icone('oeil'), ' Afficher à la table');
       afficher.addEventListener('click', afficherConsulteeATable);
-      const retour = h('button', { type: 'button', className: 'btn', textContent: 'Revenir à la salle de la table' });
+      const retour = h('button', { type: 'button', className: 'btn', textContent: 'Retour à la table' });
       retour.addEventListener('click', () => consulter(courante.id));
       actions.append(afficher, retour);
     }
@@ -455,14 +494,6 @@ export function demarrerRegie() {
     modifie();
   });
 
-  const majMiniPlan = creerMiniPlan($('minicarte'), {
-    onChoisir: (id) => consulter(id),
-    libelle: (s) => {
-      const p = etat.p;
-      const statut = s.id === p.salleCourante ? ' (à la table)' : pres.estDecouverte(p, s.id) ? '' : ' (non découverte)';
-      return `Consulter la salle ${s.nom}${statut}`;
-    },
-  });
   /** Dégâts et soins d'un personnage à fiche : un champ pour le nombre de PV, et un bouton par sens. */
   function reglagePV(perso, enJeu) {
     const champ = h('input', { type: 'number', min: '1', step: '1', inputMode: 'numeric', placeholder: 'PV', 'aria-label': `PV à retirer ou à rendre à ${perso.fiche.nom}` });
@@ -521,15 +552,6 @@ export function demarrerRegie() {
     modifie();
     champs[0].focus({ preventScroll: true });
   });
-
-  function majMiniCarte() {
-    const p = etat.p;
-    majMiniPlan({
-      donjon: p.donjon, disposition: dispositionDePartie(), actif: etat.consultee, courante: p.salleCourante,
-      inconnues: Object.keys(p.donjon.salles).filter((id) => !pres.estDecouverte(p, id)),
-      portesFermees: pres.portesNonOuvertes(p, dispositionDePartie()),
-    });
-  }
 
   // --- Carte : déplacer les pions, cliquer le reste -----------------------------------------------
   // Les objets et les portes ne bougent jamais ici (option `deplacables`) ; ils restent cliquables.
@@ -627,10 +649,11 @@ export function demarrerRegie() {
   ctx.univers = univers;
   const selection = creerSelection(ctx);
   const reglages = creerReglages(ctx);
+  // La coquille de l'atelier : arbre de lecture, onglets Salle · Joueurs · Table. Créée en dernier : elle lit `univers` et `etat`.
+  const jouer = creerJouer({ racine: $('regie'), donnees: donneesJeu, partie: partieJeu, surChoix: choisirDansArbre });
+  ctx.jouer = jouer;
   let minuterie;
   window.addEventListener('resize', () => { clearTimeout(minuterie); minuterie = setTimeout(() => { if (etat.p) rendre(); }, 150); });
-  // Écran étroit : onglets Carte / Actions ; la carte est redessinée à la taille qui tient quand on l'affiche.
-  activerOnglets(document.querySelector('#regie .onglets'), { defaut: 'carte', onChange: (nom) => { if (nom === 'carte' && etat.p) rendre(); } });
 
   // Démarrage (voir pres.ouvertureDemandee) : l'adresse peut demander un donjon (`?donjon=`, le bouton « Jouer » du Donjon) ou un monde
   // (`?univers=`) ; un rechargement (F5) rouvre la régie qui était ouverte, telle quelle (rien n'est relancé ni écrasé) ; arriver par un lien

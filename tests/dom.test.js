@@ -138,8 +138,8 @@ const TESTS = (pages) => [
     const html = pages['presentation.html'];
     verifier(!/[\u{1F300}-\u{1FAFF}\u2190-\u21FF\u2300-\u23FF\u2715\u22EF\u2B1A]/u.test(html.replace(/<!--[\s\S]*?-->/g, '')), 'aucun emoji ni flèche-caractère');
     verifier(!/aide-bouton/.test(html), 'plus de « ? » maison');
-    egal((html.match(/<details class="aide">/g) || []).length, 3, 'trois aides repliables');
-    const ecrans = { depart: /<main id="depart"[\s\S]*?<\/main>/, choix: /<main id="choix-joueurs"[\s\S]*?<\/main>/, regie: /<div id="regie"[\s\S]*?<\/aside>/ };
+    egal((html.match(/<details class="aide">/g) || []).length, 2, 'deux aides repliables (le plan des salles est devenu l’arbre de lecture)');
+    const ecrans = { depart: /<main id="depart"[\s\S]*?<\/main>/, choix: /<main id="choix-joueurs"[\s\S]*?<\/main>/, regie: /<div id="regie"[\s\S]*?<div id="ecran-table"/ };
     egal(Object.fromEntries(Object.entries(ecrans).map(([nom, re]) => [nom, (html.match(re)?.[0].match(/btn-primaire/g) || []).length])), { depart: 0, choix: 1, regie: 1 }, 'dorés statiques');
   }],
   ['fichierChoisi : rend le premier fichier et vide le champ (même fichier rechoisi = nouvel événement)', () => {
