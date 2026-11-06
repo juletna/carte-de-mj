@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Où mettre le catalogue ?</title>
+<style>
+/* Maquette statique : trois façons de placer le catalogue d'objets (Portes, Mobilier, Créatures) dans l'atelier du Donjon.
+   Les jetons reprennent css/base.css et docs/design-panneaux.md. Rien n'est branché. */
+:root {
+  color-scheme: dark;
+  --fond: #16151a; --panneau: #1f1e24; --bord: #34323b; --champ: #121116; --accent: #d9a929; --accent-texte: #1a1508; --erreur: #e06c5a;
+  --t1: #ece8e0; --t2: #c3beb4; --t3: #97928a; --t4: #67635d; --s1: #26252c; --survol: #2d2c34; --filet: #2f2d35; --filet-fort: #3d3a44;
+  --choisi: rgba(217, 169, 41, .13);
+  --police: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+* { box-sizing: border-box; }
+body { margin: 0; padding: 40px max(16px, env(safe-area-inset-left)) 80px; background: var(--fond); color: var(--t1); font: 15px/1.5 var(--police); }
+.page { max-width: 1040px; margin: 0 auto; display: flex; flex-direction: column; gap: 56px; }
+h1, h2, h3 { margin: 0; text-wrap: balance; }
+h1 { font-size: 32px; line-height: 1.15; }
+h2 { font-size: 22px; }
+p { margin: 0; }
+.chapeau { max-width: 66ch; margin-top: 10px; color: var(--t2); }
+.sur { margin-bottom: 8px; font-size: 12px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); }
+.pour-contre { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; max-width: 760px; }
+.pour-contre > div { padding: 12px 14px; background: var(--panneau); border: 1px solid var(--bord); border-radius: 8px; font-size: 14px; color: var(--t2); }
+.pour-contre h3 { margin-bottom: 6px; font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+.pour h3 { color: #7cc47c; } .contre h3 { color: var(--erreur); }
+.pour-contre ul { margin: 0; padding-left: 18px; }
+@media (max-width: 640px) { .pour-contre { grid-template-columns: 1fr; } }
+
+/* --- Un mini-atelier : scène (barre + carte) et panneau de droite --- */
+.etats { display: flex; flex-wrap: wrap; gap: 20px; margin-top: 18px; }
+.etat > .etiquette { margin-bottom: 8px; font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--t3); }
+.atelier { display: grid; grid-template-columns: minmax(0, 1fr) 240px; width: 740px; max-width: 100%; height: 430px; background: var(--fond); border: 1px solid var(--bord); border-radius: 8px; overflow: hidden; position: relative; font-size: 12.5px; }
+.scene { position: relative; display: flex; flex-direction: column; min-width: 0; background: #0c0b0e; }
+.barre { flex: none; overflow: hidden; display: flex; align-items: center; gap: 6px; height: 36px; padding: 0 8px; background: var(--panneau); border-bottom: 1px solid var(--bord); position: relative; z-index: 3; }
+.btn { display: inline-flex; align-items: center; gap: 5px; min-height: 24px; padding: 0 9px; background: var(--s1); color: var(--t1); border: 1px solid var(--filet-fort); border-radius: 6px; font: 500 12px var(--police); white-space: nowrap; }
+.btn.discret { background: none; border-color: transparent; color: var(--t2); }
+.btn.actif { border-color: var(--accent); color: var(--accent); background: var(--choisi); font-weight: 600; }
+.btn.or { background: var(--accent); border-color: var(--accent); color: var(--accent-texte); font-weight: 650; }
+.barre .fin { margin-left: auto; display: flex; gap: 6px; }
+.carte { position: relative; flex: 1; min-height: 0; display: grid; place-items: center; }
+.salle { width: 170px; height: 250px; border: 6px solid #55525c; border-radius: 3px; background:
+  linear-gradient(rgba(0,0,0,.35) 1px, transparent 1px) 0 0 / 28px 28px, linear-gradient(90deg, rgba(0,0,0,.35) 1px, transparent 1px) 0 0 / 28px 28px, #6a6a72; position: relative; }
+.salle i { position: absolute; width: 22px; height: 22px; border-radius: 4px; background: #8a6a3a; border: 1px solid #b08a4a; }
+.pastille-pose { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); padding: 3px 10px; background: var(--panneau); color: var(--accent); border: 1px solid var(--accent); border-radius: 999px; font-size: 11.5px; box-shadow: 0 4px 14px rgba(0,0,0,.45); }
+.cartouche { position: absolute; left: 8px; top: 8px; padding: 1px 8px; background: var(--panneau); border: 1px solid var(--bord); border-radius: 6px; font-size: 11px; color: var(--t2); }
+
+/* Panneau de droite */
+.panneau { display: flex; flex-direction: column; min-height: 0; overflow: hidden; background: var(--panneau); border-left: 1px solid var(--bord); color: var(--t2); }
+.tete { flex: none; padding: 10px 12px 8px; border-bottom: 1px solid var(--filet-fort); }
+.type { display: flex; align-items: center; gap: 5px; font-size: 10px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--accent); }
+.nom { margin: 1px 0 0; font-size: 15px; font-weight: 650; color: var(--t1); }
+.meta { font-size: 11px; color: var(--t3); }
+.sec { border-bottom: 1px solid var(--filet); }
+.bandeau { display: flex; align-items: center; gap: 6px; min-height: 30px; padding: 0 12px; font-size: 12px; font-weight: 650; color: var(--t1); }
+.bandeau .chev { color: var(--t4); font-size: 9px; width: 9px; }
+.bandeau .apercu { margin-left: 4px; font-weight: 400; color: var(--t3); font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bandeau .plus { margin-left: auto; color: var(--t3); font-size: 15px; }
+.sec.repliee .bandeau { color: var(--t2); }
+.corps { padding: 0 12px 10px; font-size: 12px; }
+.corps .texte { padding: 6px 8px; background: var(--champ); border: 1px solid var(--bord); border-radius: 6px; color: var(--t1); line-height: 1.4; }
+.rangs { display: flex; flex-direction: column; gap: 3px; }
+.rang { display: grid; grid-template-columns: 16px 1fr auto; gap: 7px; align-items: center; padding: 5px 7px; background: var(--s1); border-radius: 6px; color: var(--t1); }
+.rang b { font-weight: 500; } .rang small { color: var(--t4); font-size: 10.5px; }
+.rang i { width: 14px; height: 14px; border-radius: 3px; background: #8a6a3a; }
+
+/* Catalogue (commun aux trois maquettes) */
+.cat { display: flex; flex-direction: column; gap: 7px; min-height: 0; }
+.puces { display: flex; gap: 4px; }
+.puces .btn { flex: 1; justify-content: center; }
+.recherche { padding: 5px 8px; background: var(--champ); border: 1px solid var(--bord); border-radius: 6px; color: var(--t4); font-size: 12px; }
+.grille { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+.tuile { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 5px 2px 4px; background: var(--s1); border: 1px solid var(--bord); border-radius: 6px; font-size: 10.5px; color: var(--t2); }
+.tuile i { width: 34px; height: 34px; border-radius: 5px; background: #3a3128; border: 1px solid #5a4a36; }
+.tuile.on { border-color: var(--accent); background: var(--choisi); color: var(--accent); }
+.tuile.on i { border-color: var(--accent); }
+
+/* Variante 1 : bouton doré en tête du panneau */
+.cta { margin: 10px 12px 0; justify-content: center; min-height: 30px; font-size: 12.5px; }
+.retour { display: flex; align-items: center; gap: 6px; padding: 8px 12px; border-bottom: 1px solid var(--filet-fort); color: var(--t2); font-size: 12px; }
+.retour b { color: var(--t1); font-weight: 600; }
+.panneau .cat { padding: 10px 12px; overflow: hidden; }
+
+/* Variante 2 : fenêtre flottante */
+.fenetre { position: absolute; z-index: 5; left: 8px; top: 40px; width: 300px; padding: 10px; background: #2a2930; border: 1px solid var(--filet-fort); border-radius: 8px; box-shadow: 0 12px 30px rgba(0,0,0,.6); }
+.fenetre .grille { grid-template-columns: repeat(4, 1fr); }
+.fenetre .tuile i { width: 28px; height: 28px; }
+.cache-carte { position: absolute; inset: 0; }
+
+/* Variante 3 : bandeau bas */
+.dock { flex: none; display: grid; grid-template-columns: 150px 1fr; gap: 10px; align-items: center; padding: 8px 10px; background: var(--panneau); border-top: 1px solid var(--bord); }
+.dock .cat { gap: 5px; }
+.dock .defile { display: flex; gap: 5px; overflow: hidden; mask-image: linear-gradient(90deg, #000 85%, transparent); }
+.dock .tuile { flex: none; width: 58px; }
+.dock .tuile i { width: 30px; height: 30px; }
+.note-fine { margin-top: 12px; max-width: 70ch; font-size: 13.5px; color: var(--t3); }
+
+/* Commun : ce qui est bon quel que soit l'emplacement */
+.commun { padding: 14px 16px; background: var(--panneau); border: 1px solid var(--bord); border-radius: 8px; max-width: 760px; color: var(--t2); font-size: 14px; }
+.commun h3 { margin-bottom: 6px; font-size: 15px; color: var(--t1); }
+.commun ul { margin: 6px 0 0; padding-left: 18px; }
+.commun li { margin-bottom: 3px; }
+.verdict { max-width: 760px; color: var(--t2); }
+.verdict li { margin-bottom: 6px; }
+.verdict b { color: var(--accent); font-weight: 600; }
+</style>
+</head>
+<body>
+<main class="page">
+  <header>
+    <p class="sur">Maquette · atelier du Donjon</p>
+    <h1>Où mettre le catalogue d'objets ?</h1>
+    <p class="chapeau">L'onglet « Ajouter » est trop discret. Trois façons de le placer, sans rail d'icônes ni colonne de plus. Les trois partagent les mêmes réglages du panneau de droite (en bas de page) : sections utiles ouvertes, aperçu sur les sections repliées, Liaisons masquée quand il n'y en a pas.</p>
+  </header>
+
+  <!-- ===================== A ===================== -->
+  <section>
+    <p class="sur">Option A</p>
+    <h2>Un bouton doré « + Ajouter » en tête du panneau, sans onglets</h2>
+    <p class="chapeau">Le geste le plus fréquent du Donjon devient un vrai bouton, au même endroit que l'inspecteur. Un clic remplace le contenu du panneau par le catalogue ; « ← Salle 1 » revient. L'objet posé est armé : on clique la carte autant de fois qu'on veut, le catalogue reste ouvert.</p>
+    <div class="etats">
+      <div class="etat"><p class="etiquette">Au repos</p>
+        <div class="atelier">
+          <div class="scene"><div class="barre"><span class="btn discret">+ Salle</span><span class="btn discret">Vue d'ensemble</span><span class="fin"><span class="btn discret">Grille ▾</span><span class="btn discret">Affichage</span></span></div>
+            <div class="carte"><span class="cartouche">12 × 12 m</span><div class="salle"><i style="left:20px;top:20px"></i><i style="left:120px;top:20px"></i></div></div></div>
+          <div class="panneau">
+            <span class="btn or cta">＋ Ajouter à la carte</span>
+            <div class="tete"><p class="type">▣ Salle</p><p class="nom">Salle 1</p><p class="meta">12 × 12 m · pierre</p></div>
+            <div data-sections></div>
+          </div>
+        </div>
+      </div>
+      <div class="etat"><p class="etiquette">Catalogue ouvert, un coffre armé</p>
+        <div class="atelier">
+          <div class="scene"><div class="barre"><span class="btn discret">+ Salle</span><span class="btn discret">Vue d'ensemble</span><span class="fin"><span class="btn discret">Grille ▾</span><span class="btn discret">Affichage</span></span></div>
+            <div class="carte"><span class="pastille-pose">Pose : Coffre ✕</span><div class="salle"><i style="left:20px;top:20px"></i><i style="left:120px;top:20px"></i></div></div></div>
+          <div class="panneau">
+            <div class="retour">← <b>Salle 1</b></div>
+            <div class="cat"><div class="puces"><span class="btn actif">Portes</span><span class="btn">Mobilier</span><span class="btn">Créatures</span></div>
+              <div class="recherche">Rechercher…</div><div class="grille" data-tuiles="mobilier"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="pour-contre">
+      <div class="pour"><h3>Pour</h3><ul><li>Bouton visible, doré : c'est l'action principale (règle « un seul doré »).</li><li>Rien ne couvre la carte, elle garde sa taille ; pose en série inchangée.</li><li>Même emplacement qu'aujourd'hui : peu de code à changer.</li></ul></div>
+      <div class="contre"><h3>Contre</h3><ul><li>Le panneau est soit la salle, soit le catalogue : on ne règle pas un objet en posant.</li><li>Le bouton et le panneau sont loin de la barre de la scène.</li></ul></div>
+    </div>
+  </section>
+
+  <!-- ===================== B ===================== -->
+  <section>
+    <p class="sur">Option B</p>
+    <h2>Une fenêtre flottante sous « + Ajouter » (proposition de l'autre session)</h2>
+    <p class="chapeau">Un bouton « + Ajouter » dans la barre de la scène ouvre une fenêtre de 360 px sur la carte, avec les trois sous-choix, la recherche et les vignettes. Le panneau de droite ne montre plus que la salle, sans onglets. La variante « reste ouverte tant qu'on pose » évite de la rouvrir à chaque objet.</p>
+    <div class="etats">
+      <div class="etat"><p class="etiquette">Fenêtre ouverte</p>
+        <div class="atelier">
+          <div class="scene"><div class="barre"><span class="btn actif">＋ Ajouter</span><span class="btn discret">+ Salle</span><span class="btn discret">Vue d'ensemble</span><span class="fin"><span class="btn discret">Grille ▾</span><span class="btn discret">Affichage</span></span></div>
+            <div class="carte"><div class="salle"><i style="left:20px;top:20px"></i><i style="left:120px;top:20px"></i></div></div>
+            <div class="fenetre"><div class="cat"><div class="puces"><span class="btn actif">Portes</span><span class="btn">Mobilier</span><span class="btn">Créatures</span></div>
+              <div class="recherche">Rechercher…</div><div class="grille" data-tuiles="mobilier"></div></div></div></div>
+          <div class="panneau"><div class="tete"><p class="type">▣ Salle</p><p class="nom">Salle 1</p><p class="meta">12 × 12 m · pierre</p></div><div data-sections></div></div>
+        </div>
+      </div>
+      <div class="etat"><p class="etiquette">Après un choix : la fenêtre se ferme, l'objet est armé</p>
+        <div class="atelier">
+          <div class="scene"><div class="barre"><span class="btn discret">＋ Ajouter</span><span class="btn discret">+ Salle</span><span class="btn discret">Vue d'ensemble</span><span class="fin"><span class="btn discret">Grille ▾</span><span class="btn discret">Affichage</span></span></div>
+            <div class="carte"><span class="pastille-pose">Pose : Coffre ✕</span><div class="salle"><i style="left:20px;top:20px"></i><i style="left:120px;top:20px"></i></div></div></div>
+          <div class="panneau"><div class="tete"><p class="type">▣ Salle</p><p class="nom">Salle 1</p><p class="meta">12 × 12 m · pierre</p></div><div data-sections></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="pour-contre">
+      <div class="pour"><h3>Pour</h3><ul><li>Le bouton est dans la barre de la scène, à côté de « + Salle ».</li><li>Le panneau de droite redevient simple, sans onglets.</li><li>La carte ne se rétrécit pas.</li></ul></div>
+      <div class="contre"><h3>Contre</h3><ul><li>C'est la « palette flottante » écartée au départ : elle recouvre une partie de la carte.</li><li>Fermée au choix : rouvrir pour chaque objet différent. Ouverte en permanence : elle gêne la pose.</li><li>Sur téléphone, c'est déjà le tiroir du bas : deux mécanismes différents.</li></ul></div>
+    </div>
+  </section>
+
+  <!-- ===================== C ===================== -->
+  <section>
+    <p class="sur">Option C</p>
+    <h2>Un bandeau-catalogue sous la carte</h2>
+    <p class="chapeau">Comme la barre d'objets d'un jeu : sous la carte, les catégories à gauche et des vignettes qui défilent à l'horizontale. « + Ajouter » dans la barre l'affiche ou la masque. Ni colonne de plus, ni fenêtre sur la carte, et le panneau de droite reste celui de la salle.</p>
+    <div class="etats">
+      <div class="etat"><p class="etiquette">Bandeau ouvert, un coffre armé</p>
+        <div class="atelier">
+          <div class="scene"><div class="barre"><span class="btn actif">＋ Ajouter</span><span class="btn discret">+ Salle</span><span class="btn discret">Vue d'ensemble</span><span class="fin"><span class="btn discret">Grille ▾</span><span class="btn discret">Affichage</span></span></div>
+            <div class="carte"><span class="pastille-pose">Pose : Coffre ✕</span><div class="salle" style="height:190px;width:150px"><i style="left:20px;top:20px"></i><i style="left:100px;top:20px"></i></div></div>
+            <div class="dock"><div class="cat"><div class="puces"><span class="btn actif">Portes</span><span class="btn">Mobilier</span></div><div class="puces"><span class="btn">Créatures</span><span class="recherche" style="flex:1">Rechercher…</span></div></div>
+              <div class="defile" data-tuiles-ligne></div></div>
+          </div>
+          <div class="panneau"><div class="tete"><p class="type">▣ Salle</p><p class="nom">Salle 1</p><p class="meta">12 × 12 m · pierre</p></div><div data-sections></div></div>
+        </div>
+      </div>
+      <div class="etat"><p class="etiquette">Bandeau masqué</p>
+        <div class="atelier">
+          <div class="scene"><div class="barre"><span class="btn discret">＋ Ajouter</span><span class="btn discret">+ Salle</span><span class="btn discret">Vue d'ensemble</span><span class="fin"><span class="btn discret">Grille ▾</span><span class="btn discret">Affichage</span></span></div>
+            <div class="carte"><div class="salle"><i style="left:20px;top:20px"></i><i style="left:120px;top:20px"></i></div></div></div>
+          <div class="panneau"><div class="tete"><p class="type">▣ Salle</p><p class="nom">Salle 1</p><p class="meta">12 × 12 m · pierre</p></div><div data-sections></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="pour-contre">
+      <div class="pour"><h3>Pour</h3><ul><li>Reste ouvert pendant la pose en série, sans rien cacher de la carte.</li><li>On voit la salle ET le catalogue ET les réglages en même temps.</li><li>Idée de jeu vidéo connue : lisible tout de suite.</li></ul></div>
+      <div class="contre"><h3>Contre</h3><ul><li>La carte perd environ 110 px de hauteur ; sur une salle haute, elle se réduit.</li><li>Peu de vignettes visibles à la fois (défilement horizontal) : plus pénible pour parcourir tout le mobilier.</li><li>Sur téléphone, le tiroir du bas reste un cas à part.</li></ul></div>
+    </div>
+  </section>
+
+  <!-- ===================== commun ===================== -->
+  <section>
+    <p class="sur">Valable pour les trois</p>
+    <h2>Le panneau de droite : moins « planqué »</h2>
+    <div class="commun"><h3>Ce qui change dans la salle</h3>
+      <ul><li><b>Description et Éléments</b> ouvertes par défaut : ce qu'on utilise vraiment.</li>
+        <li><b>Un aperçu sur chaque section repliée</b> : « Taille · 12 × 12 m », « Apparence · pierre, neutre », « Notes du MJ · vide » (ou ses premiers mots).</li>
+        <li><b>Liaisons</b> disparaît quand il n'y en a aucune, au lieu d'un « 0 ».</li>
+        <li>Le cadre doré autour de l'onglet « Salle » était l'anneau de focus clavier ; il disparaît avec les onglets (A, B, C) ou se corrige.</li></ul></div>
+  </section>
+
+  <section>
+    <h2>Mon avis</h2>
+    <ul class="verdict">
+      <li><b>A</b> est la plus sûre : rien ne cache la carte, la pose en série marche comme aujourd'hui, et « Ajouter » devient évident. Son défaut : le panneau est soit la salle, soit le catalogue.</li>
+      <li><b>C</b> est la plus agréable à l'usage si les salles ne sont pas très hautes, car on voit tout en même temps. À tester sur une grande salle.</li>
+      <li><b>B</b> recouvre la carte pendant qu'on pose : je la déconseille, d'autant que le brief écartait ce modèle.</li>
+    </ul>
+  </section>
+</main>
+<script>
+/* Données de maquette : le contenu commun du panneau et les vignettes. */
+const SECTIONS = `
+<div class="sec repliee"><div class="bandeau"><span class="chev">▸</span>Taille<span class="apercu">· 12 × 12 m</span></div></div>
+<div class="sec repliee"><div class="bandeau"><span class="chev">▸</span>Apparence<span class="apercu">· pierre, neutre</span></div></div>
+<div class="sec"><div class="bandeau"><span class="chev">▾</span>Description</div><div class="corps"><div class="texte">Grande salle de 4 m par 12, quatre piliers, deux coffres au fond de la salle.</div></div></div>
+<div class="sec repliee"><div class="bandeau"><span class="chev">▸</span>Notes du MJ<span class="apercu">· vide</span></div></div>
+<div class="sec"><div class="bandeau"><span class="chev">▾</span>Éléments<span class="plus">＋</span></div><div class="corps"><div class="rangs"><div class="rang"><i></i><b>Coffre</b><small>A1</small></div><div class="rang"><i></i><b>Coffre</b><small>C1</small></div></div></div></div>
+<div class="sec repliee"><div class="bandeau"><span class="chev">▸</span>Exemples</div></div>`;
+const MOBILIER = ['Pilier', 'Colonne', 'Coffre', 'Statue', 'Table', 'Chaise', 'Autel', 'Trône', 'Tonneau'];
+const tuile = (n, on) => `<div class="tuile${on ? ' on' : ''}"><i></i>${n}</div>`;
+document.querySelectorAll('[data-sections]').forEach((e) => { e.outerHTML = SECTIONS; });
+document.querySelectorAll('[data-tuiles]').forEach((e) => { e.innerHTML = MOBILIER.map((n) => tuile(n, n === 'Coffre')).join(''); });
+document.querySelectorAll('[data-tuiles-ligne]').forEach((e) => { e.innerHTML = [...MOBILIER, 'Fosse', 'Lit', 'Torche'].map((n) => tuile(n, n === 'Coffre')).join(''); });
+</script>
+</body>
+</html>
