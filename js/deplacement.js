@@ -14,10 +14,11 @@
  * déplacent ; les autres restent cliquables (signalés à `cliquer`) mais ne bougent jamais.
  * Sans cette option, tout se déplace (comportement de donjon.html).
  *
- * Option `portesLarges` (Présentation et Donjon) : la zone de clic d'une porte s'élargit de BANDE_PORTE case
- * vers l'intérieur de la salle (le mur seul fait environ 8 px). Règle unique dans cette bande : un CLIC y est toujours
- * pour la porte, même si un pion s'y trouve ; un GLISSEMENT commencé sur un pion déplace ce pion (la porte ne bouge
- * jamais par ce biais). Sans l'option, rien ne change.
+ * Option `portesLarges` (Préparer et régie) : la zone de clic d'une porte ou d'un escalier s'élargit (règle pure dans
+ * zone-passage.js : toute la case du mur plus une marge, au moins 44 px au doigt). Dans le noyau, un CLIC est toujours pour la
+ * porte, même si un pion s'y trouve ; dans la marge, seulement si rien d'autre n'est sous le pointeur. Un GLISSEMENT commencé
+ * sur un pion déplace ce pion (la porte ne bouge jamais par ce biais). Au survol à la souris : curseur main et surlignage.
+ * Sans l'option, rien ne change.
  *
  * Ce module ne modifie rien : il propose un nouveau plan à `deposer`.
  */
@@ -27,6 +28,7 @@ import { retraitPorte } from './formes.js';
 import { estHorizontal } from './murs.js';
 import { coucheDe, COUCHE_PAR_DEFAUT } from './catalogue.js';
 import { LISTES } from './schema.js';
+import { passageVise, rectangleSurligne, estTactile } from './zone-passage.js';
 
 const SEUIL_GLISSEMENT_CARTE = 4; // px : en dessous, c'est un clic (le seuil de la palette, SEUIL_GLISSEMENT_PALETTE, est un autre réglage)
 export const BANDE_PORTE = 0.5; // cases : profondeur ajoutée à la zone de clic d'une porte (option `portesLarges`)
@@ -65,6 +67,24 @@ export function activerDeplacement(canvas, { plan, taille, apercu, deposer, cliq
   const peutBouger = (genre) => !deplacables || deplacables.includes(genre);
   let prise = null; // { genre, element, depart, glisse, decalX, decalY, x, y } ou, pour une porte, { mur, position }
   let image = 0;
+
+  /** Surlignage au survol (souris) : un cadre HTML posé sur le canvas, sans toucher au dessin. */
+  const surlignage = (() => {
+    let div = null;
+    return {
+      montrer(vise) {
+        const parent = canvas.parentElement;
+        if (!parent || typeof document === 'undefined') return;
+        if (!div) { div = document.createElement('div'); div.className = 'surlignage-passage'; div.setAttribute('aria-hidden', 'true'); }
+        if (div.parentElement !== parent) parent.append(div);
+        const t = taille(), r = rectangleSurligne(plan(), vise);
+        Object.assign(div.style, { left: `${canvas.offsetLeft + (r.x0 + MARGE) * t}px`, top: `${canvas.offsetTop + (r.y0 + MARGE) * t}px`,
+          width: `${(r.x1 - r.x0) * t}px`, height: `${(r.y1 - r.y0) * t}px`, display: 'block' });
+      },
+      cacher() { if (div) div.style.display = 'none'; },
+    };
+  })();
+  canvas.addEventListener('pointerleave', () => surlignage.cacher());
 
   function enCases(e) {
     const t = taille();
@@ -108,11 +128,12 @@ export function activerDeplacement(canvas, { plan, taille, apercu, deposer, cliq
     let trouve = elementSous(cx, cy);
     // Bande de la porte : un clic y est pour la porte ; un pion attrapé là reste déplaçable (voir l'en-tête).
     let auClic = null;
-    const large = portesLarges ? porteSous(cx, cy, plan(), BANDE_PORTE) : null;
-    if (large && trouve?.element !== large) {
-      if (trouve?.genre === 'creature' && peutBouger('creature')) auClic = { genre: 'porte', element: large };
-      else trouve = { genre: 'porte', element: large };
+    const large = portesLarges ? passageVise(cx, cy, plan(), { taille: taille(), tactile: estTactile(e), occupant: trouve && trouve.genre !== 'porte' ? trouve.element : null }) : null;
+    if (large && trouve?.element !== large.element) {
+      if (trouve?.genre === 'creature' && peutBouger('creature')) auClic = { genre: large.genre, element: large.element };
+      else trouve = { genre: large.genre, element: large.element };
     }
+    surlignage.cacher();
     if (!trouve) { cliquer?.(null, [Math.floor(cx), Math.floor(cy)]); return; }
     const { genre, element } = trouve;
     if (!peutBouger(genre) && !cliquer) return; // ni déplaçable ni cliquable : on ignore
@@ -129,8 +150,12 @@ export function activerDeplacement(canvas, { plan, taille, apercu, deposer, cliq
     if (!prise && !filtre(e)) return;
     const [cx, cy] = enCases(e);
     if (!prise) {
-      const sous = elementSous(cx, cy);
-      canvas.style.cursor = sous ? (peutBouger(sous.genre) ? 'grab' : 'pointer') : '';
+      let sous = elementSous(cx, cy);
+      const passage = portesLarges ? passageVise(cx, cy, plan(), { taille: taille(), tactile: estTactile(e), occupant: sous && sous.genre !== 'porte' ? sous.element : null }) : null;
+      if (passage && sous?.element !== passage.element && sous?.genre !== 'creature') sous = passage;
+      const surPassage = !!passage && sous?.element === passage.element;
+      canvas.style.cursor = surPassage ? 'pointer' : sous ? (peutBouger(sous.genre) ? 'grab' : 'pointer') : '';
+      if (surPassage && e.pointerType !== 'touch') surlignage.montrer(passage); else surlignage.cacher();
       return;
     }
     if (prise.fixe) return; // cet élément ne bouge pas : seul le clic compte

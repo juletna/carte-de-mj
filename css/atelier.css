@@ -249,7 +249,8 @@ body.atelier-avec-inspecteur { --largeur-inspecteur: 330px; }
   .atelier-cartouche { font-size: 11px; padding: 2px 7px; max-width: min(calc(50% - 56px), 150px); }
   .atelier-cartouche .atelier-cartouche-long, .atelier-cartouche .atelier-cartouche-moyen { display: none; }
   .atelier-cartouche .atelier-cartouche-court { display: inline; }
-  .cartouche-donjon, #palette.tiroir-ouvert ~ .cartouche-donjon { left: var(--esp-2); top: var(--esp-2); }
+  /* Donjon : en bas à droite, dans la rangée du zoom sous la carte (--h-zoom), à droite de la barre de zoom : en haut à gauche il recouvrait un coin du plan. */
+  .cartouche-donjon, #palette.tiroir-ouvert ~ .cartouche-donjon { left: auto; top: auto; right: var(--esp-2); bottom: calc(var(--esp-2) - var(--h-zoom, 60px)); max-width: max(72px, calc(100% - 252px)); }
   .cartouche-monde { left: var(--esp-2); bottom: var(--esp-2); }
 }
 

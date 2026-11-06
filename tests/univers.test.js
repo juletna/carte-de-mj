@@ -75,6 +75,17 @@ const TESTS = [
     egal(univ.racine, null, 'plus de lieu, plus de racine');
     verifier(zone.id, 'zone');
   }],
+  ['annuler la suppression du lieu de départ lui rend son statut de départ ; un autre lieu ne le prend pas', () => {
+    const { univ, monde, foret } = exemple();
+    egal(univ.racine, monde.id, 'le monde est le lieu de départ');
+    const retire = u.supprimerLieu(univ, monde.id);
+    verifier(univ.racine !== monde.id, 'la racine est passée à un autre lieu');
+    u.retablirLieu(univ, retire, { racine: true });
+    egal(univ.racine, monde.id, 'rétabli : de nouveau le lieu de départ');
+    const f = u.supprimerLieu(univ, foret.id);
+    u.retablirLieu(univ, f, { racine: false });
+    egal(univ.racine, monde.id, 'un lieu qui n’était pas le départ ne le devient pas');
+  }],
   ['les destinations vers un donjon sont vérifiées dans les donjons du navigateur', () => {
     const { univ, monde } = exemple();
     const d = creerDonjon({ nom: 'Crypte' });

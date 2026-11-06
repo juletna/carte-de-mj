@@ -100,6 +100,8 @@ output { min-width: 52px; text-align: right; font-variant-numeric: tabular-nums;
 #support { position: relative; margin: 24px; }
 /* touch-action: none : au doigt, glisser déplace un pion au lieu de faire défiler. */
 #carte { display: block; touch-action: none; }
+/* Survol d'une porte ou d'un escalier à la souris (js/deplacement.js) : un cadre posé sur la case, jamais dans le canevas. */
+.surlignage-passage { position: absolute; display: none; pointer-events: none; box-sizing: border-box; z-index: 2; border-radius: 4px; background: rgba(255, 214, 90, .28); outline: 2px solid rgba(255, 190, 40, .9); outline-offset: -1px; }
 
 /* Plein écran : rien d'autre que la carte. */
 #scene:fullscreen { background: #000; }

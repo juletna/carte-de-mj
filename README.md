@@ -314,9 +314,7 @@ ni de la Fiche ni d'un réseau, et n'exige de décrire quoi que ce soit : elle o
   seule, miniature du plan : salles non découvertes assombries, salle à la table en vert, salle regardée en doré.
   - *Pions* : se déplacent à la souris ou au doigt. Objets et portes ne bougent pas (option `deplacables` de `deplacement.js` ; le
     Donjon ne l'utilise pas et garde son comportement).
-  - *Porte et pion voisins* (option `portesLarges`, régie seule) : la zone de clic d'une porte s'étend d'une demi-case vers l'intérieur
-    de la salle. Règle unique dans cette bande : un **clic** est toujours pour la porte, même si un pion s'y trouve ; un **glissement**
-    commencé sur le pion déplace le pion. Le reste de la case du pion répond au pion. Le Donjon n'active pas l'option.
+  - *Portes et escaliers faciles à viser* (option `portesLarges`, Préparer et régie ; règle pure dans `js/zone-passage.js`) : le **noyau** d'une porte est toute la case du mur (0,6 case dehors, 0,5 dedans) : un **clic** y est toujours pour la porte, même sur un pion ou un objet. La zone **étendue** (0,35 case sur les côtés, 1 case de chaque côté du mur ; un escalier : une demi-case autour) ne donne la porte que si rien d'autre n'est sous le pointeur. Au doigt ou sous 760 px, la zone fait au moins 44 px. Un **glissement** commencé sur un pion déplace le pion. Au survol à la souris : curseur main et cadre jaune (`.surlignage-passage`).
   - *Sélection* : un panneau superposé en bas à droite de la fenêtre (jamais dans le flux de la colonne : il reste visible quelle que soit
     sa position de défilement et ne décale pas la commande rapide). « ✕ Fermer » ou Échap le ferme (Échap sert déjà à quitter le plein
     écran et dans un champ de saisie : il ne désélectionne pas alors). Les éléments se choisissent aussi au clavier dans le bloc

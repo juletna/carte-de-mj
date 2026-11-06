@@ -87,10 +87,10 @@ export function supprimerLieu(u, id) {
   if (u.racine === id) u.racine = Object.keys(u.lieux)[0] ?? null;
   return l;
 }
-/** Remet un lieu retiré (annulation). Sa racine n'est reprise que s'il n'y en a plus. */
-export function retablirLieu(u, lieu) {
+/** Remet un lieu retiré (annulation). Il redevient le lieu de départ s'il l'était (`racine`) ou s'il n'y en a plus. */
+export function retablirLieu(u, lieu, { racine = false } = {}) {
   u.lieux[lieu.id] = lieu;
-  if (!u.racine || !(u.racine in u.lieux)) u.racine = lieu.id;
+  if (racine || !u.racine || !(u.racine in u.lieux)) u.racine = lieu.id;
   return lieu;
 }
 

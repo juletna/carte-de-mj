@@ -4,6 +4,7 @@
  * Chaque test lève une Error au premier écart ; executer() renvoie la même forme que les autres.
  */
 import { activerDeplacement, porteSous, BANDE_PORTE } from '../js/deplacement.js';
+import { passageVise } from '../js/zone-passage.js';
 import { egal, executerSuite } from './mini-test.js';
 
 const TESTS = [
@@ -63,6 +64,45 @@ const TESTS = [
     } finally {
       globalThis.requestAnimationFrame = raf;
     }
+  }],
+
+  ['passage : zone de clic élargie (case du mur + marges, 44 px au doigt), la porte gagne près d’un objet ou d’un pion', () => {
+    const plan = {
+      largeur: 10, longueur: 8,
+      portes: [{ id: 'pn', mur: 'nord', position: 4, type: 'porte' }, { id: 'pe', mur: 'est', position: 3, type: 'porte' }],
+      objets: [{ id: 'esc', type: 'escalier', x: 7, y: 5, l: 1, h: 1, rotation: 0 }, { id: 'coffre', type: 'coffre', x: 1, y: 1, l: 1, h: 1, rotation: 0 }],
+      creatures: [],
+    };
+    const id = (r) => r && r.element.id;
+    // Noyau : toute la case du mur, de 0,6 case dehors à 0,5 dedans.
+    egal(id(passageVise(4.5, -0.5, plan)), 'pn', 'noyau : à l’extérieur du mur');
+    egal(id(passageVise(4.5, 0.4, plan)), 'pn', 'noyau : à l’intérieur');
+    egal(passageVise(4.5, 0.4, plan).noyau, true, 'noyau signalé');
+    // Étendue : une case vers l’intérieur ou l’extérieur, 0,35 case sur les côtés ; rien au-delà.
+    egal(id(passageVise(4.5, 0.9, plan)), 'pn', 'étendue : 0,9 case à l’intérieur (à 1 case du bord de l’ouverture)');
+    egal(id(passageVise(4.5, -0.95, plan)), 'pn', 'étendue : presque une case dehors');
+    egal(id(passageVise(3.7, 0.3, plan)), 'pn', 'étendue : sur le côté, le long du mur');
+    egal(passageVise(3.5, 0.3, plan), null, 'au-delà de la marge latérale : rien');
+    egal(passageVise(4.5, 1.3, plan), null, 'trop loin à l’intérieur : rien');
+    egal(id(passageVise(9.4, 3.5, plan)), 'pe', 'mur est : noyau (retrait 0, mur à x = 10)');
+    egal(id(passageVise(9.1, 3.5, plan)), 'pe', 'mur est : étendue vers l’intérieur');
+    // Priorité : dans l’étendue, un pion ou un objet déjà sous le pointeur garde son clic ; dans le noyau, la porte gagne.
+    const pion = { id: 'k' };
+    egal(passageVise(4.5, 0.9, plan, { occupant: pion }), null, 'étendue : un pion dessous garde son clic');
+    egal(id(passageVise(4.5, 0.4, plan, { occupant: pion })), 'pn', 'noyau : la porte gagne malgré le pion');
+    // Escalier : sa case, plus une demi-case autour.
+    egal(id(passageVise(7.5, 5.5, plan)), 'esc', 'escalier : sa case');
+    egal(id(passageVise(8.3, 5.5, plan)), 'esc', 'escalier : demi-case autour');
+    egal(passageVise(8.7, 5.5, plan), null, 'escalier : au-delà de la demi-case');
+    egal(id(passageVise(8.55, 5.5, plan, { taille: 20, tactile: true })), 'esc', 'escalier au doigt : 44 px minimum (2,2 cases à 20 px)');
+    // Au doigt : zone d’au moins 44 px dans chaque sens, même quand les cases sont petites.
+    egal(passageVise(4.5, 1.05, plan, { taille: 20, tactile: false }), null, 'souris : 1,05 case dedans, hors zone');
+    egal(id(passageVise(4.5, 1.05, plan, { taille: 20, tactile: true })), 'pn', 'doigt, cases de 20 px : zone de 44 px (2,2 cases) au moins');
+    egal(id(passageVise(3.45, 0.3, plan, { taille: 20, tactile: true })), 'pn', 'doigt, cases de 20 px : élargie le long du mur aussi');
+    // Deux portes voisines : la plus proche l’emporte.
+    const deux = { ...plan, portes: [{ id: 'a', mur: 'nord', position: 4, type: 'porte' }, { id: 'b', mur: 'nord', position: 5, type: 'porte' }], objets: [] };
+    egal([id(passageVise(4.95, 0.3, deux)), id(passageVise(5.05, 0.3, deux))], ['a', 'b'], 'noyaux voisins : la case sous le pointeur');
+    egal(id(passageVise(5.2, 0.8, deux)), 'b', 'étendues qui se chevauchent : la plus proche');
   }],
 
   ['porte / pion : zone de clic élargie vers l’intérieur ; clic = porte, glissement = pion ; sans option, rien ne change', () => {

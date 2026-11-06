@@ -224,15 +224,16 @@ export function creerUniversUI(ctx) {
   function supprimerLeLieu() {
     const l = lieu();
     const entrees = modele.pointsVers(univ(), l.id).length;
+    const etaitDepart = univ().racine === l.id;
     const retire = modele.supprimerLieu(univ(), l.id);
-    retraits = [{ univers: univ().id, lieu: retire }];
+    retraits = [{ univers: univ().id, lieu: retire, racine: etaitDepart }];
     fil = fil.filter((id) => id !== l.id);
     allerA(fil.at(-1) ?? univ().racine, { nouveauFil: !fil.length });
     sauver(); rendre();
     dire(`« ${l.nom} » est retiré${entrees ? ` ; ${pluriel(entrees, 'point y menait', 'points y menaient')} et reste${entrees > 1 ? 'nt' : ''} signalé${entrees > 1 ? 's' : ''} comme orphelin${entrees > 1 ? 's' : ''}` : ''}.`, {
       action: { libelle: 'Annuler', faire: () => {
         const r = retraits.pop();
-        if (r && reserve.univers[r.univers]) { modele.retablirLieu(reserve.univers[r.univers], r.lieu); allerA(r.lieu.id); sauver(); rendre(); dire('Lieu rétabli.'); }
+        if (r && reserve.univers[r.univers]) { modele.retablirLieu(reserve.univers[r.univers], r.lieu, { racine: r.racine }); allerA(r.lieu.id); sauver(); rendre(); dire('Lieu rétabli.'); }
       } },
     });
   }
