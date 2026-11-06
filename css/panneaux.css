@@ -148,3 +148,26 @@
 #regie .liste-portes button[aria-pressed="true"] { background: var(--p-choisi); color: var(--accent); font-weight: 600; }
 /* Un bouton discret du corps reste sur le bord gauche. */
 #regie .onglet-contenu .actions .btn-discret:not(.btn-icone) { padding-inline: 0; }
+
+/* Les actions visibles de l'inspecteur (en tête du corps) gardent leur marge quand le corps est fait de sections. */
+.atelier-inspecteur-corps:has(.p-section) > .atelier-inspecteur-actions { padding: var(--esp-3) var(--esp-4); border-bottom: 1px solid var(--p-filet); }
+.atelier-inspecteur-corps:has(.p-section) > p.note { margin: var(--esp-3) var(--esp-4) 0; }
+.p-section-corps .ligne-relier { margin: 0; }
+
+/* Propriétés : étiquette à gauche (92 px, T3), valeur à droite ; plusieurs réglages courts alignés. */
+.p-props { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: var(--esp-2) var(--esp-3); align-items: center; }
+.p-props > label, .p-props > .p-props-etiquette { font-size: 13px; font-weight: 500; color: var(--p-texte-3); }
+.p-props select, .p-props input:not([type="checkbox"]):not([type="radio"]) { width: 100%; min-width: 0; box-sizing: border-box; }
+.p-section-corps .forme-salle > label.ligne, .p-section-corps .forme-reglages > label.ligne { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: var(--esp-3); align-items: center; margin: 0; font-size: 13px; font-weight: 500; color: var(--p-texte-3); }
+.p-section-corps .forme-salle > label.ligne select, .p-section-corps .forme-reglages select { max-width: none; width: 100%; }
+
+/* Personnages (Donjon et onglet Joueurs) : les fiches gardent leur contenu (PV, détails, poser le pion) mais se rangent comme une liste :
+   un bloc en creux, une fiche par rangée séparée d'un filet, nom en T1, identité en T3, chiffres en T2. */
+.atelier-inspecteur .fiches:not(:empty) { margin: 0; padding: var(--esp-1); gap: 0; background: var(--p-surface-1); border-radius: 8px; }
+.atelier-inspecteur .fiches > .fiche-carte { padding: var(--esp-2) var(--esp-3); background: none; border: 0; border-radius: var(--rayon); }
+.atelier-inspecteur .fiches > .fiche-carte + .fiche-carte { border-top: 1px solid var(--p-filet-fort); border-radius: 0; }
+.atelier-inspecteur .fiche-carte .fiche-nom { font-size: 14px; font-weight: 600; color: var(--p-texte-1); }
+.atelier-inspecteur .fiche-carte .note { font-size: 12.5px; color: var(--p-texte-3); }
+.atelier-inspecteur .fiche-carte .fiche-chiffres { font-size: 13px; color: var(--p-texte-2); font-variant-numeric: tabular-nums; }
+.atelier-inspecteur .fiche-carte details > summary { font-size: 12.5px; color: var(--p-texte-3); cursor: pointer; }
+.atelier-inspecteur .fiche-carte .actions { margin-top: var(--esp-2); }

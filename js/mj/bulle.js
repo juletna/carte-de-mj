@@ -17,6 +17,7 @@ import { $, h } from '../dom.js';
 import { OPPOSE } from '../murs.js';
 import { variantesDe, varianteDe, varianteParDefaut, nomVariante } from '../catalogue.js';
 import { selection as creerSelection, selectionElement, meme, TYPES_ELEMENT } from '../atelier-selection.js';
+import { creerSection } from '../atelier/section.js';
 
 export function creerBulle(ctx) {
   const { etat } = ctx;
@@ -149,12 +150,13 @@ export function creerBulle(ctx) {
     const { el, escalier, reliable, lien, depuis, autre, trouve } = dec;
     const s = salle(), d = donjon();
     const contenu = [];
+    const liaison = [];
 
     if (reliable) {
       if (lien) {
-        if (escalier) contenu.push(h('p', { className: 'note', textContent: `Mène au ${modele.nomNiveau(modele.niveaux(d)[autre.id]).toLowerCase()}.` }));
+        if (escalier) liaison.push(h('p', { className: 'note', textContent: `Mène au ${modele.nomNiveau(modele.niveaux(d)[autre.id]).toLowerCase()}.` }));
         if (modele.liaisonsOrphelines(d).some((o) => o.liaison === lien.liaison && o.cote !== lien.cote)) {
-          contenu.push(h('p', { className: 'note erreur', textContent: `${escalier ? 'L’escalier' : 'La porte'} de retour a disparu dans cette salle : la liaison est orpheline là-bas.` }));
+          liaison.push(h('p', { className: 'note erreur', textContent: `${escalier ? 'L’escalier' : 'La porte'} de retour a disparu dans cette salle : la liaison est orpheline là-bas.` }));
         }
       } else {
         const autres = modele.listerSalles(d).filter((x) => x.id !== s.id);
@@ -166,11 +168,13 @@ export function creerBulle(ctx) {
           relier.title = escalier
             ? 'Relier cet escalier à une salle existante (un escalier de retour y est ajouté)'
             : 'Relier cette porte à une salle existante (une porte est ajoutée sur son mur opposé)';
-          contenu.push(h('div', { className: 'ligne-relier' }, choix, relier));
+          liaison.push(h('p', { className: 'note', textContent: 'Ou la relier à une salle existante :' }), h('div', { className: 'ligne-relier' }, choix, relier));
         }
       }
     }
 
+    // Sections du panneau (docs/design-panneaux.md) : la liaison d'une porte ou d'un escalier, l'aspect d'un objet.
+    if (liaison.length) contenu.push(creerSection({ cle: `element:liaison-${escalier ? 'escalier' : 'porte'}`, titre: 'Liaison', enfants: liaison }).element);
     // Une variante (torche éteinte, flamme bleue…) : une liste de l'aspect de l'objet, annulable comme tout changement du plan.
     const variantes = trouve.genre === 'objet' ? variantesDe(el.type) : [];
     if (variantes.length > 1) {
@@ -180,7 +184,7 @@ export function creerBulle(ctx) {
         const { variante: _, ...sans } = o;
         return choix.value === varianteParDefaut(o.type) ? sans : { ...sans, variante: choix.value };
       }));
-      contenu.push(h('div', { className: 'ligne-relier' }, h('label', { htmlFor: 'variante-choix', textContent: 'Aspect' }), choix));
+      contenu.push(creerSection({ cle: 'element:aspect', titre: 'Aspect', enfants: [choix] }).element); // le menu porte son aria-label : le titre de la section suffit à l'œil
     }
 
     if (etat.message) contenu.push(h('p', { className: 'note', role: 'status', textContent: etat.message }));
