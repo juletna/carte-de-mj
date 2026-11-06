@@ -170,6 +170,13 @@ body.vue-plan #palette { display: none; }
   .bord-salle[data-cote="ouest"], .bord-salle[data-cote="est"] { width: var(--cible); }
   .bord-salle .btn { width: var(--cible); height: var(--cible); }
 
+  /* Le panneau bas (css/atelier.css) a une hauteur fixe, et la page lui réserve la même place : rien ne bouge quand on touche un élément. Replié : une ligne. */
+  :root { --h-inspecteur-tel: clamp(180px, 34vh, 300px); }
+  .atelier-inspecteur { height: var(--h-inspecteur-tel); max-height: none; }
+  .atelier-inspecteur.replie { height: 64px; max-height: 64px; }
+  html body.atelier-avec-inspecteur { padding-bottom: var(--h-inspecteur-tel); } /* html : passe devant css/atelier.css, chargée après */
+  html body.atelier-avec-inspecteur:has(.atelier-inspecteur.replie) { padding-bottom: 64px; }
+
   /* La feuille « Ajouter un donjon » : feuille du bas. */
   .feuille { align-items: flex-end; padding: 0; }
   .feuille-corps { width: 100%; max-height: 88vh; max-height: 88dvh; border-radius: 12px 12px 0 0; padding-bottom: max(var(--esp-3), env(safe-area-inset-bottom)); }

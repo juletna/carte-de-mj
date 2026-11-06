@@ -92,17 +92,15 @@ body.atelier-avec-inspecteur { --largeur-inspecteur: 330px; }
   .atelier-voile { position: fixed; inset: 0; z-index: 89; background: rgba(0, 0, 0, .5); }
   .atelier-voile:not([hidden]) { display: block; }
   @media (prefers-reduced-motion: reduce) { .atelier-arbre, .atelier-arbre.ouvert { transition: none; } }
-  .atelier-inspecteur { position: fixed; left: 0; right: 0; bottom: 0; z-index: 35; height: var(--h-inspecteur-tel); padding: var(--esp-3) var(--esp-4) max(var(--esp-3), env(safe-area-inset-bottom)); border-left: 0; border-top: 1px solid var(--accent); border-radius: 12px 12px 0 0; box-shadow: 0 -8px 28px rgba(0, 0, 0, .6); }
+  .atelier-inspecteur { position: fixed; left: 0; right: 0; bottom: 0; z-index: 35; max-height: 45vh; max-height: 45dvh; padding: var(--esp-3) var(--esp-4) max(var(--esp-3), env(safe-area-inset-bottom)); border-left: 0; border-top: 1px solid var(--accent); border-radius: 12px 12px 0 0; box-shadow: 0 -8px 28px rgba(0, 0, 0, .6); }
   .atelier-inspecteur-plier { display: inline-flex; position: absolute; top: var(--esp-1); right: var(--esp-1); z-index: 1; }
   .atelier-inspecteur-titre { padding-right: 52px; }
-  .atelier-inspecteur.replie { overflow: hidden; height: 64px; max-height: 64px; }
+  .atelier-inspecteur.replie { overflow: hidden; max-height: 64px; }
   .atelier-inspecteur.replie > :not(.atelier-inspecteur-plier):not(.atelier-inspecteur-tete) { display: none; }
   .atelier-inspecteur.replie .atelier-inspecteur-actions, .atelier-inspecteur.replie .atelier-inspecteur-plus { display: none; }
   .atelier-inspecteur.replie .atelier-inspecteur-plier .icone { transform: rotate(180deg); }
-  /* Le panneau bas ne cache pas le bas de la page : de la place en dessous, toujours la même (rien ne bouge quand on touche un élément). */
-  :root { --h-inspecteur-tel: clamp(180px, 34vh, 300px); }
-  body.atelier-avec-inspecteur { padding-bottom: var(--h-inspecteur-tel); }
-  body.atelier-avec-inspecteur:has(.atelier-inspecteur.replie) { padding-bottom: 64px; }
+  /* Le panneau bas ne cache pas le bas de la page : de la place en dessous. */
+  body.atelier-avec-inspecteur { padding-bottom: 45vh; padding-bottom: 45dvh; }
   /* Onglets du mode jouer : barre du bas. */
   .atelier-onglets { position: sticky; bottom: 0; }
 }
