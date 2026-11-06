@@ -132,8 +132,9 @@ export function creerSectionAuHasard(ctx) {
 
     // Forme : Auto (forme et dimensions tirées), la forme actuelle (on remplit seulement), ou une forme imposée. Un choix à la fois, avec sa miniature.
     // Les miniatures sont des caractères ou nos propres SVG (svgForme) : aucune icône récente à charger, la liste s'ouvre avec un icones.js plus ancien en cache.
-    const miniSvg = (svg) => { const e = h('span', { className: 'mini-forme' }); e.innerHTML = svg; return e; }; // svgForme : uniquement nos propres rectangles
-    const miniIcone = (nom, repli) => () => h('span', { className: 'mini-forme' }, (() => { try { return icone(nom); } catch { return repli; } })());
+    /** Un picto d'une icône maison ; un fichier d'icônes plus ancien en cache ne casse pas la grille (repli : un caractère). */
+    const picto = (nom, repli) => { try { return icone(nom); } catch { return h('span', { textContent: repli }); } };
+    const pictoForme = (svg) => { const e = h('span', { className: 'hasard-forme-svg' }); e.innerHTML = svg; return e; }; // svgForme : uniquement nos propres rectangles
     const textesForme = () => {
       const f = reglages.forme;
       if (f === 'actuelle') return 'La forme, les dimensions et les portes restent : seul le contenu change.';
@@ -141,23 +142,28 @@ export function creerSectionAuHasard(ctx) {
       return `La forme et les dimensions sont tirées aussi ; les portes gardent leur mur.${reliee ? ' Les portes reliées suivent la nouvelle forme.' : ''}${escalier ? ' Les escaliers gardent leur place.' : ''}`;
     };
     const aide = h('p', { className: 'note', textContent: textesForme() });
-    const champForme = creerChampMulti({
-      titre: 'Forme', icone: 'salle', unique: true, auto: 'Auto',
-      miniatureAuto: miniIcone('de', '?'),
-      options: [
-        { valeur: 'actuelle', libelle: 'Forme actuelle', miniature: miniIcone('salle', '▭') },
-        ...FORMES.map((f) => ({ valeur: f, libelle: LIBELLES_FORMES[f], miniature: () => miniSvg(svgForme(f)) })),
-      ],
-      valeurs: reglages.forme ? [reglages.forme] : [],
-      surChangement: ([valeur]) => { reglages.forme = valeur ?? null; aide.textContent = textesForme(); },
+    // La forme : la même grille de pictos que la section « Forme et dimensions », avec « Auto » et « Forme actuelle » en tête (un seul choix).
+    const choixForme = [
+      { valeur: null, libelle: 'Auto', pic: () => picto('de', '?') },
+      { valeur: 'actuelle', libelle: 'Forme actuelle', pic: () => picto('salle', '▭') },
+      ...FORMES.map((f) => ({ valeur: f, libelle: LIBELLES_FORMES[f], pic: () => pictoForme(svgForme(f)) })),
+    ];
+    const grilleForme = h('div', { className: 'hasard-formes', role: 'radiogroup', 'aria-label': 'Forme' });
+    const boutonsForme = choixForme.map((c) => {
+      const b = h('button', { type: 'button', className: 'btn', role: 'radio', title: c.libelle, 'aria-label': c.libelle }, c.pic(), h('span', { textContent: c.libelle }));
+      b.addEventListener('click', () => { reglages.forme = c.valeur; majGrille(); aide.textContent = textesForme(); });
+      return [c, b];
     });
+    function majGrille() { for (const [c, b] of boutonsForme) b.setAttribute('aria-checked', String(c.valeur === reglages.forme)); }
+    grilleForme.append(...boutonsForme.map(([, b]) => b));
+    majGrille();
     const noteAuto = h('p', { className: 'note', textContent: 'Vide = automatique : le tirage choisit.' });
 
     const generee = dernier && dernier.salle === sel.id && s?.texte === dernier.texte ? dernier : null;
     const corps = [
       h('div', { className: 'hasard-salle-champ' }, h('span', { className: 'hasard-salle-etiquette', textContent: 'Type de monstres' }), famille.element),
       champs, noteAuto, apparence,
-      h('div', { className: 'hasard-salle-champ' }, h('span', { className: 'hasard-salle-etiquette', textContent: 'Forme' }), champForme.element), aide,
+      h('div', { className: 'hasard-salle-champ' }, h('span', { className: 'hasard-salle-etiquette', textContent: 'Forme' }), grilleForme), aide,
     ];
     const bouton = h('button', { type: 'button', className: 'btn' }, icone('de'), 'Générer');
     bouton.addEventListener('click', () => generer(sel.id));

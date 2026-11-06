@@ -286,9 +286,14 @@
 .rang-case::after { content: ""; position: absolute; left: 4.5px; top: 1px; width: 4px; height: 8px; border: solid var(--accent-texte); border-width: 0 2px 2px 0; transform: rotate(45deg); opacity: 0; }
 .rang-choix[aria-selected="true"] .rang-case { background: var(--accent); border-color: var(--accent); }
 .rang-choix[aria-selected="true"] .rang-case::after { opacity: 1; }
-.rang-mini { color: var(--p-texte-2); } /* miniature d'un choix de forme (champ à choix unique) */
-.mini-forme { display: inline-flex; width: 18px; height: 18px; }
-.mini-forme svg { width: 100%; height: 100%; display: block; }
+/* La forme du tirage (js/atelier/au-hasard-salle.js) : la même grille de pictos que la section « Forme et dimensions », avec « Auto » et « Forme actuelle » en tête. */
+.hasard-formes { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.hasard-formes button { display: flex; align-items: center; justify-content: center; min-height: max(36px, var(--cible)); padding: 4px; border: 1px solid var(--p-filet-fort); background: none; color: var(--p-texte-2); }
+.hasard-formes button:hover { background: var(--p-surface-survol); }
+.hasard-formes button[aria-checked="true"] { background: var(--p-choisi); border-color: var(--accent); color: var(--accent); }
+.hasard-formes svg, .hasard-forme-svg { width: 20px; height: 20px; display: block; }
+.hasard-forme-svg { display: inline-flex; }
+.hasard-formes button > span:not(.hasard-forme-svg) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; } /* le libellé reste pour les lecteurs d'écran et l'info-bulle */
 .hasard-salle-champ select { width: 100%; max-width: none; min-height: max(32px, var(--cible)); }
 .p-section-corps > .rang-interrupteur:disabled { opacity: 0.5; cursor: default; }
 .p-section-corps > .rang-interrupteur:disabled:hover { background: var(--p-surface-1); }
