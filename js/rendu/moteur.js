@@ -22,7 +22,9 @@ import { coucheDe, COUCHE_PAR_DEFAUT } from '../catalogue.js';
 const CASE_VISEE_REMPLISSAGE = 'rgba(255, 212, 59, 0.55)'; // la case montrée par le MJ : fond translucide
 const CASE_VISEE_TRAIT = '#ffd43b'; // et son cadre épais
 const CASE_VISEE_CONTOUR = 'rgba(20, 19, 17, 0.8)'; // et le fin liséré sombre qui la détache du sol
-const REPERES_TEXTE = 'rgba(255, 255, 255, 0.6)'; // lettres et numéros dans la marge
+const REPERES_TEXTE = 'rgba(255, 255, 255, 0.95)'; // lettres et numéros dans la marge
+const REPERES_FOND = 'rgba(22, 19, 16, 0.88)'; // leur pastille
+const REPERES_CONTOUR = 'rgba(255, 255, 255, 0.3)';
 const GRILLE_TRAIT = 'rgba(0, 0, 0, 0.45)'; // lignes de la grille
 
 /**
@@ -167,9 +169,9 @@ function peindreDecor(ctx, plan, t, { grille, reperes, theme, relief = true, det
   auSol.forEach((o) => dessinerObjet(ctx, o, t, theme, plan));
   if (grille) (theme.grille || dessinerGrille)(ctx, plan, t, grille === true ? undefined : grille);
   theme.murs(ctx, plan, t);
-  if (reperes && !reperesApresLumiere(theme)) dessinerReperes(ctx, plan, t);
   plan.portes.forEach((p) => secret(ctx, p.cache, rectPorte(plan, p), t, theme, () => theme.porte(ctx, p, plan, t), 'porte'));
   autres.forEach((o) => dessinerObjet(ctx, o, t, theme, plan));
+  if (reperes && !reperesApresLumiere(theme)) dessinerReperes(ctx, plan, t); // après les portes : aucune ne les recouvre
 }
 
 /** Ce qui passe par-dessus le décor (et la lumière) : repères de la marge (thème avec lumière), case visée, pions, puis les repères d'interface. */
@@ -225,15 +227,36 @@ function secret(ctx, cache, rect, t, theme, dessin, genre) {
   theme.repereCache?.(ctx, rect, t, genre);
 }
 
-/** Repères de cases dans la marge : lettres en haut, numéros à gauche (« C4 »). */
+/**
+ * Repères de cases au bord extérieur de la marge : lettres en haut, numéros à gauche (« C4 »).
+ * Chacun est sur une pastille sombre collée au bord du canevas : les murs (jusqu'à ~0,6 case de la pièce, plus la perspective)
+ * et les portes (qui débordent presque jusqu'au bord) n'occupent pas ce liséré, et le fond contrasté garde le repère lisible
+ * quel que soit le thème. Dessinés après les portes pour qu'aucune ne les recouvre.
+ */
 function dessinerReperes(ctx, plan, t) {
+  const taille = Math.max(9, t * 0.24), h = taille * 1.3, r = h / 2;
+  const bord = r + 1; // distance du centre au bord du canevas : la pastille touche le bord, sans le dépasser
+  const demiLargeur = (texte) => Math.max(r, texte.length * taille * 0.32 + r * 0.55);
+  const pastille = (cx, cy, texte) => {
+    const demi = demiLargeur(texte);
+    ctx.beginPath();
+    ctx.arc(cx - demi + r, cy, r, Math.PI / 2, (3 * Math.PI) / 2);
+    ctx.arc(cx + demi - r, cy, r, -Math.PI / 2, Math.PI / 2);
+    ctx.closePath();
+    ctx.fillStyle = REPERES_FOND;
+    ctx.fill();
+    ctx.strokeStyle = REPERES_CONTOUR;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.fillStyle = REPERES_TEXTE;
+    ctx.fillText(texte, cx, cy + 0.5);
+  };
   ctx.save();
-  ctx.fillStyle = REPERES_TEXTE;
-  ctx.font = `600 ${Math.max(9, t * 0.28)}px system-ui, sans-serif`;
+  ctx.font = `700 ${taille}px system-ui, sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  for (let x = 0; x < plan.largeur; x++) ctx.fillText(lettreColonne(x), (x + 0.5) * t, -t * 0.66);
-  for (let y = 0; y < plan.longueur; y++) ctx.fillText(String(y + 1), -t * 0.66, (y + 0.5) * t);
+  for (let x = 0; x < plan.largeur; x++) pastille((x + 0.5) * t, -t + bord, lettreColonne(x));
+  for (let y = 0; y < plan.longueur; y++) pastille(-t + 1 + demiLargeur(String(y + 1)), (y + 0.5) * t, String(y + 1));
   ctx.restore();
 }
 
