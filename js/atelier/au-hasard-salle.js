@@ -1,10 +1,12 @@
 /**
- * La section « Au hasard » de l'inspecteur de la salle : tire au sort le contenu (monstres, coffres, pièges, mobilier) de LA salle
- * affichée, et sa forme si on le demande (`genererSalle`, js/generateur.js, pur). Le geste est à un clic sans déplier : l'action du
- * bandeau (le dé) génère avec les réglages courants.
+ * Le tirage au hasard de la salle : remplit LA salle affichée (monstres, coffres, pièges, mobilier, et sa forme si on le demande ;
+ * `genererSalle`, js/generateur.js, pur). Ce n'est pas un réglage de la salle mais un flux en aval : consignes, tirage, on juge, on
+ * relance ou on annule. Il a donc sa propre vue dans l'inspecteur, pas une section parmi les autres :
+ *   - `ligne(sel)` : une rangée en bas de la salle (le dé génère d'un clic avec les réglages courants ; « Régler… » ouvre la vue) ;
+ *   - `vue(sel)`   : la vue dédiée, qui remplace les sections de la salle (retour « ← Salle ») : consignes, Générer, Relancer, résumé.
  *
- *   const sectionAuHasard = creerSectionAuHasard(ctx);   // `ctx` : celui de main-mj.js (etat, donjon, salle, modifierPlan, annoncerCarte, activerSalle, salles, coquille)
- *   conteneur.append(sectionAuHasard(sel));
+ *   const hasard = creerSectionAuHasard(ctx);   // `ctx` : celui de main-mj.js (etat, donjon, salle, modifierPlan, annoncerCarte, activerSalle, salles, coquille)
+ *   if (hasard.ouverte(sel.id)) conteneur.append(hasard.vue(sel)); else conteneur.append(…, hasard.ligne(sel));
  *
  * Tout est automatique par défaut : un champ vide (nombre de monstres, de coffres, de pièges), la famille « Auto », la forme et les
  * dimensions tirées ; on ne renseigne un réglage que pour l'imposer. Le champ « Forme » (Auto · Forme actuelle · une forme) donne deux
@@ -35,6 +37,9 @@ export function creerSectionAuHasard(ctx) {
   const reglages = { familles: [], monstres: null, coffres: null, pieges: null, forme: null, apparence: {} };
   /** Le dernier tirage appliqué : sert à « Relancer » et à « Tirage N », tant que la description est encore celle qu'il a écrite. */
   let dernier = null;
+  /** La salle dont la vue « Au hasard » est ouverte (null : aucune). Changer de salle la referme d'elle-même (`ouverte(id)`). */
+  let vueOuverte = null;
+  const redessiner = () => ctx.coquille?.rafraichir({ inspecteur: true });
 
   const donjon = () => ctx.donjon();
 
@@ -92,7 +97,30 @@ export function creerSectionAuHasard(ctx) {
     ctx.coquille?.rafraichir({ inspecteur: true });
   }
 
-  return function sectionAuHasard(sel) {
+  /** Ce que les réglages imposent, en quelques mots (« Tout en auto », « 3 monstres · Cercle »). */
+  function resumeReglages() {
+    const dits = [];
+    if (reglages.familles.length) dits.push(reglages.familles.map((f) => FAMILLES[f]?.libelle ?? f).join(', '));
+    for (const [cle, libelle] of CHAMPS) if (reglages[cle] !== null) dits.push(`${reglages[cle]} ${libelle.toLowerCase()}`);
+    if (reglages.forme) dits.push(reglages.forme === 'actuelle' ? 'forme actuelle' : (LIBELLES_FORMES[reglages.forme] ?? reglages.forme).toLowerCase());
+    const n = Object.keys(reglages.apparence).length;
+    if (n) dits.push(n === 1 ? '1 aspect imposé' : `${n} aspects imposés`);
+    return dits.length ? dits.join(' · ') : 'Tout en auto';
+  }
+
+  /** La rangée de la salle : le dé génère tout de suite ; « Régler… » ouvre la vue dédiée. */
+  function ligne(sel) {
+    const de = h('button', { type: 'button', className: 'btn', title: 'Remplit la salle au hasard, avec les réglages courants' }, icone('de'), 'Générer');
+    de.addEventListener('click', () => generer(sel.id));
+    const regler = h('button', { type: 'button', className: 'btn btn-discret hasard-ligne-regler', title: 'Choisir ce que le tirage impose, et le relancer' }, 'Régler…');
+    regler.addEventListener('click', () => { vueOuverte = sel.id; redessiner(); });
+    return h('section', { className: 'hasard-ligne', 'aria-label': 'Au hasard' },
+      h('div', { className: 'hasard-ligne-texte' }, h('span', { className: 'hasard-ligne-titre', textContent: 'Au hasard' }), h('span', { className: 'hasard-ligne-resume', textContent: resumeReglages() })),
+      h('div', { className: 'hasard-ligne-actions' }, regler, de));
+  }
+
+  /** La vue dédiée : un retour, puis les consignes du tirage. */
+  function vue(sel) {
     const d = donjon();
     const s = d.salles[sel.id];
     const reliee = salleReliee(d, sel.id);
@@ -165,20 +193,23 @@ export function creerSectionAuHasard(ctx) {
       champs, noteAuto, apparence,
       h('div', { className: 'hasard-salle-champ' }, h('span', { className: 'hasard-salle-etiquette', textContent: 'Forme' }), grilleForme), aide,
     ];
-    const bouton = h('button', { type: 'button', className: 'btn' }, icone('de'), 'Générer');
+    const bouton = h('button', { type: 'button', className: 'btn btn-primaire' }, icone('de'), generee ? 'Générer un autre tirage' : 'Générer');
     bouton.addEventListener('click', () => generer(sel.id));
-    corps.push(h('div', { className: 'actions' }, bouton));
+    const actions = [bouton];
     if (generee) {
-      const relancer = h('button', { type: 'button', className: 'btn btn-discret', title: 'Remplace ce tirage par un autre' }, 'Relancer');
+      const relancer = h('button', { type: 'button', className: 'btn', title: 'Remplace ce tirage par un autre, avec les mêmes consignes' }, 'Relancer');
       relancer.addEventListener('click', () => generer(sel.id, true));
-      corps.push(h('p', { className: 'note', role: 'status', textContent: `Tirage ${generee.graine}${generee.mode === 'nouvelle' ? ` · nouvelle forme : ${generee.forme}` : ''}${generee.resume.reduit ? ' · la salle est trop petite pour tout' : ''}${generee.refus ? ` · ${generee.refus}` : ''}` }));
-      corps.push(h('div', { className: 'actions' }, relancer));
+      actions.push(relancer);
     }
+    corps.push(h('div', { className: 'actions' }, ...actions));
+    if (generee) corps.push(h('p', { className: 'note', role: 'status', textContent: `Tirage ${generee.graine}${generee.mode === 'nouvelle' ? ` · nouvelle forme : ${generee.forme}` : ''}${generee.resume.reduit ? ' · la salle est trop petite pour tout' : ''}${generee.refus ? ` · ${generee.refus}` : ''}` }));
 
-    return creerSection({
-      cle: 'donjon:salle-hasard', titre: 'Au hasard', repliee: true,
-      action: { libelle: 'Générer au hasard', icone: 'de', executer: () => generer(sel.id) },
-      enfants: corps,
-    }).element;
-  };
+    const retour = h('button', { type: 'button', className: 'hasard-vue-retour', 'aria-label': 'Retour à la salle' }, picto('retour', '←'), h('span', { textContent: 'Salle' }));
+    retour.addEventListener('click', () => { vueOuverte = null; redessiner(); });
+    return h('div', { className: 'hasard-vue' },
+      h('div', { className: 'hasard-vue-tete' }, retour, h('h3', { className: 'hasard-vue-titre', textContent: 'Au hasard' })),
+      h('div', { className: 'hasard-vue-corps' }, ...corps));
+  }
+
+  return { ligne, vue, ouverte: (id) => vueOuverte === id, fermer: () => { vueOuverte = null; } };
 }

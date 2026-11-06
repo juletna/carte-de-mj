@@ -128,6 +128,10 @@ Texte 13,5px/600 en T3, l'onglet actif en T1 souligné de 2px d'or. Pas de fond 
 - Sélection : fond `--p-choisi`, texte et icône en or, pas de contour.
 - La pastille « à la table » reste à droite.
 
+### Vue dédiée (flux aval)
+
+Ce qui n'est pas un réglage de l'objet mais un flux en aval de son édition (consignes, tirage, on juge, on relance ou on annule) n'est **pas une section** parmi les autres : le tirage au hasard d'une salle en est le cas. L'inspecteur garde une **rangée** collée en bas (titre, résumé des consignes en T3, « Régler… » discret, le geste d'un clic), et « Régler… » ouvre une **vue** qui remplace les sections, avec une barre « ← Salle · Au hasard » collée en haut. Un seul primaire dans la vue (Générer). Les consignes qui répètent un réglage de la salle (forme, apparence) restent dans la vue, jamais dans les sections de la salle. Changer de sélection referme la vue.
+
 ### Textes d'aide
 
 Une aide qui concerne la scène (« Clique une porte sur la carte pour créer la salle suivante ») ne va pas dans le panneau : barre d'outils de la scène ou « ? » de la section. Une note dans le corps tient en deux lignes au plus.
@@ -152,6 +156,7 @@ Même grammaire dans le panneau bas. Replié, il ne montre que l'en-tête. Cible
 | Inspecteur Monde, Lieu, Point | `js/atelier/inspecteurs-monde.js` | oui (typographie, sections, liste des points) |
 | Inspecteur Calage | `js/mj/univers-calage.js` | oui |
 | Inspecteur Donjon, Salle | `js/atelier/inspecteurs-donjon.js`, `js/mj/salle-forme.js` | oui (« Compris » en pastilles, formes en icônes) |
+| Salle · Au hasard (rangée et vue dédiée) | `js/atelier/au-hasard-salle.js`, `css/panneaux.css` | oui (voir « Vue dédiée ») |
 | Donjon · onglets Portes, Mobilier, Créatures (catalogue) | `js/atelier/catalogue-onglet.js`, `js/palette.js` | oui (onglets soulignés comme Jouer ; catégories, recherche et vignettes sous les onglets) |
 | Porte, Objet, Créature | `js/mj/bulle.js` | oui (sections « Liaison », « Aspect ») |
 | Jouer · Salle, Joueurs, Table | `presentation.html`, `js/regie.js`, `js/regie-panneau.js` | oui (en-tête de l'onglet Salle) |
