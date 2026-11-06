@@ -21,10 +21,6 @@ body.univers-ouvert .atelier-barre > :not(.barre-lieu), body:not(.univers-ouvert
 .barre-monde-titre .icone { flex: none; color: var(--texte-doux); }
 .barre-monde-nom { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .barre-monde-jouer { flex: none; }
-/* Sur ordinateur, la scène « lieu » s'étend sur les colonnes laissées vides par le rail et le panneau du Donjon (arbre et inspecteur gardent les leurs). */
-@media not all and (max-width: 760px) {
-  body.univers-ouvert #cadre-scene { grid-column: 2 / -2; grid-row: 3 / -1; }
-}
 
 /* Aide repliable : .aide de css/base.css ; ici seulement son placement */
 h3 .aide, h2 .aide { margin-left: var(--esp-1); font-weight: 400; }
@@ -124,10 +120,11 @@ h3 .aide, h2 .aide { margin-left: var(--esp-1); font-weight: 400; }
 
 /* --- Téléphone : la scène « lieu » tient sous la barre ; le panneau bas est l'inspecteur de l'atelier (css/atelier.css), l'arbre un tiroir --- */
 @media (max-width: 760px) {
-  /* Une seule page, sans défilement : la scène tient entre la barre et le panneau bas (45 % de l'écran au plus ; replié : sa seule barre de titre). */
-  body.univers-ouvert { --bas-monde: 45dvh; --haut-monde: calc(var(--h-barre) + var(--barre-onglets, 61px)); }
+  /* Une seule page, sans défilement : la scène tient entre la barre et le panneau bas (45 % de l'écran au plus ; replié : sa seule barre de titre).
+     Le zoom du Donjon n'est pas là : pas de rangée réservée sous la carte. */
+  body.univers-ouvert { --bas-monde: 45dvh; --haut-monde: calc(var(--h-barre) + 52px); }
   body.univers-ouvert:has(.atelier-inspecteur.replie) { --bas-monde: 64px; padding-bottom: 64px; }
-  body.univers-ouvert #cadre-scene { height: calc(100vh - var(--haut-monde) - var(--bas-monde)); height: calc(100dvh - var(--haut-monde) - var(--bas-monde)); min-height: 0; }
+  body.univers-ouvert #cadre-scene { padding-bottom: 0; }
   .univers-zone-carte { padding: var(--esp-2); }
   /* La carte tient dans ce qui reste : la scène, moins le fil d'Ariane et la barre d'outils (une trentaine de px chacun en plus de leurs marges). */
   .univers-image { max-height: calc(100vh - var(--haut-monde) - var(--bas-monde) - 128px); max-height: calc(100dvh - var(--haut-monde) - var(--bas-monde) - 128px); min-height: 120px; }
