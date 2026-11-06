@@ -264,3 +264,11 @@
 .p-section-apercu { min-width: 0; margin-left: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--p-texte-3); font-size: 12.5px; font-weight: 400; }
 .p-section-apercu::before { content: "· "; }
 .p-section:not(.repliee) .p-section-apercu { display: none; }
+
+/* === Inspecteur de la salle : section « Au hasard » (js/atelier/au-hasard-salle.js) : étiquette T3 au-dessus du champ, trois nombres sur une rangée === */
+.hasard-salle-champs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--esp-2); }
+.hasard-salle-champ { display: flex; flex-direction: column; gap: 5px; min-width: 0; margin: 0; }
+.hasard-salle-etiquette { font-size: 12.5px; font-weight: 500; color: var(--p-texte-3); }
+.hasard-salle-champ select { width: 100%; max-width: none; min-height: max(32px, var(--cible)); }
+.p-section-corps > .rang-interrupteur:disabled { opacity: 0.5; cursor: default; }
+.p-section-corps > .rang-interrupteur:disabled:hover { background: var(--p-surface-1); }

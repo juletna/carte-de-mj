@@ -13,11 +13,12 @@
  */
 import * as modele from './donjon.js';
 import { analyser } from './parseur/index.js';
-import { debutDescription } from './parseur/decrire.js';
+import { debutDescription, decrire } from './parseur/decrire.js';
+import { MOTS_AMBIANCE } from './parseur/ambiance.js';
 import { nomAffiche } from './parseur/lexique.js';
 import { CREATURES } from './catalogue.js';
 import { reperePorte } from './coordonnees.js';
-import { OPPOSE, VECTEUR, longueurMur } from './murs.js';
+import { OPPOSE, VECTEUR, longueurMur, portesEntreeDabord } from './murs.js';
 import { POSITIONS_FORMES, brasMax, retraitPorte } from './formes.js';
 import { generateur, lireGraine, nouvelleGraine, melanger, GRAINE_MAX } from './alea.js';
 
@@ -135,6 +136,17 @@ function repartir(total, salles, alea) {
   return parts;
 }
 
+/** Ajoute `n` monstres à `monstres` : une salle n'abrite qu'un ou deux types, on croise des groupes, pas un inventaire. */
+function peupler(n, troupe, alea, monstres) {
+  const tirer = (liste) => liste[Math.floor(alea() * liste.length)];
+  const types = [tirer(troupe), tirer(troupe)];
+  for (let k = n; k > 0; k--) {
+    const type = alea() < 0.75 ? types[0] : types[1];
+    monstres[type] = (monstres[type] || 0) + 1;
+  }
+  return monstres;
+}
+
 /** Position d'une porte sur un mur : pas dans un coin, et sur le bord de la forme tant que c'est possible. */
 function positionPorte(forme, mur, alea) {
   const long = longueurMur(mur, forme.largeur, forme.longueur);
@@ -147,12 +159,9 @@ function positionPorte(forme, mur, alea) {
 
 const quantite = (n, mot) => `${n} ${mot}`;
 
-/** Le texte d'une salle, avec des portes déjà placées. */
-function texteSalle(forme, spec, portes) {
-  const parties = debutDescription(forme);
-  if (spec.role.sol) parties.push(`sol en ${spec.role.sol}`);
-  for (const q of portes) parties.push(`${q.type === 'arche' ? 'une arche' : `une porte${q.secrete ? ' secrète' : ''}`} au mur ${q.mur} en ${reperePorte(q.mur, q.position)}`);
-  parties.push(...spec.role.contenu);
+/** Les phrases du contenu tiré au sort : coffres, pièges cachés, monstres (par groupes que le parseur sait lire). */
+function phrasesContenu(spec) {
+  const parties = [];
   if (spec.coffres) parties.push(quantite(spec.coffres, nomAffiche('coffre', spec.coffres)));
   if (spec.pieges) parties.push(`${spec.pieges} ${spec.pieges > 1 ? 'fosses cachées' : 'fosse cachée'}`);
   for (const [type, n] of Object.entries(spec.monstres)) {
@@ -161,6 +170,18 @@ function texteSalle(forme, spec, portes) {
       parties.push(quantite(k, nomAffiche(type, k)));
     }
   }
+  return parties;
+}
+
+/** Le texte d'une salle, avec des portes déjà placées. `spec.sol` et `spec.ambiance` (phrases) priment sur le rôle, s'ils sont donnés. */
+function texteSalle(forme, spec, portes) {
+  const parties = debutDescription(forme);
+  const sol = spec.sol ?? spec.role.sol;
+  if (sol) parties.push(`sol en ${sol}`);
+  if (spec.ambiance) parties.push(...spec.ambiance);
+  for (const q of portes) parties.push(`${q.type === 'arche' ? 'une arche' : `une porte${q.secrete ? ' secrète' : ''}`} au mur ${q.mur} en ${reperePorte(q.mur, q.position)}`);
+  parties.push(...spec.role.contenu);
+  parties.push(...phrasesContenu(spec));
   return `${parties.join(', ')}.`;
 }
 
@@ -244,12 +265,7 @@ export function genererDonjon(brut = {}) {
     const role = i === 0 ? ENTREE : estFond ? BOSS : roles[rangRole++ % roles.length];
     const monstres = {};
     if (estFond) monstres[tirer(familles.flatMap((f) => FAMILLES[f].boss))] = 1;
-    // Une salle n'abrite qu'un ou deux types : on croise des groupes, pas un inventaire.
-    const types = [tirer(troupe), tirer(troupe)];
-    for (let k = parts.get(i) || 0; k > 0; k--) {
-      const type = alea() < 0.75 ? types[0] : types[1];
-      monstres[type] = (monstres[type] || 0) + 1;
-    }
+    peupler(parts.get(i) || 0, troupe, alea, monstres);
     const tirerCote = estFond ? 10 + Math.floor(alea() * 5) : 5 + Math.floor(alea() * 5);
     const largeur = tirerCote, longueur = estFond ? 10 + Math.floor(alea() * 5) : 5 + Math.floor(alea() * 5);
     return { role, monstres, coffres: coffres.get(i) || 0, pieges: i === 0 && o.salles > 1 ? 0 : pieges.get(i) || 0, largeur, longueur, formes: o.formes };
@@ -288,3 +304,143 @@ export function genererDonjon(brut = {}) {
 
   return { donjon, graine, resume: { salles: o.salles, monstres: o.monstres, coffres: o.coffres, pieges: o.pieges, secretes: secretes.size, boucles: boucles.length, familles } };
 }
+
+// --- Une seule salle au hasard ------------------------------------------------------------------------------------------------
+
+/** Valeurs de départ d'une salle seule : [défaut, minimum, maximum] (les bornes sont celles du donjon entier). */
+export const BORNES_SALLE = {
+  monstres: [4, BORNES.monstres[1], BORNES.monstres[2]],
+  coffres: [1, BORNES.coffres[1], BORNES.coffres[2]],
+  pieges: [1, BORNES.pieges[1], BORNES.pieges[2]],
+};
+
+/** Un nom de salle que l'outil a donné lui-même (« Salle 3 ») : il peut être remplacé par le nom du rôle tiré. */
+export const estNomParDefaut = (nom) => /^Salle( \d+)?$/.test(String(nom ?? '').trim());
+
+/** Une salle a-t-elle déjà un contenu à perdre ? (objets, créatures ou une description qui n'est pas celle d'une salle vide) */
+export function salleAUnContenu(salle) {
+  const p = salle?.plan;
+  if (!p) return false;
+  return (p.objets?.length ?? 0) + (p.creatures?.length ?? 0) > 0 || (String(salle.texte ?? '').trim() !== '' && salle.texte !== modele.TEXTE_SALLE_VIDE);
+}
+
+/**
+ * Les familles qui expliquent le mieux des types de monstres déjà présents (les deux plus fréquentes), dans l'ordre de FAMILLES.
+ * @param {string[]} types  un type par créature (« gobelin », « gobelin », « troll »…)
+ */
+export function famillesPresentes(types) {
+  const compte = Object.entries(FAMILLES).map(([cle, f], rang) => [cle, types.filter((t) => f.troupe.includes(t) || f.boss.includes(t)).length, rang]);
+  return compte.filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1] || a[2] - b[2]).slice(0, 2).map(([cle]) => cle);
+}
+
+/** Bornes appliquées pour une salle seule ; `graine` reste null si elle n'est pas valable. */
+export function normaliserOptionsSalle(brut = {}) {
+  const nombre = (cle) => {
+    const [defaut, min, max] = BORNES_SALLE[cle];
+    const v = Math.round(Number(brut[cle]));
+    return Number.isFinite(v) && brut[cle] !== '' && brut[cle] !== null && brut[cle] !== undefined ? Math.max(min, Math.min(max, v)) : defaut;
+  };
+  return {
+    ...Object.fromEntries(Object.keys(BORNES_SALLE).map((cle) => [cle, nombre(cle)])),
+    familles: (Array.isArray(brut.familles) ? brut.familles : []).filter((f) => f in FAMILLES),
+    typesPresents: (Array.isArray(brut.typesPresents) ? brut.typesPresents : []).filter((t) => typeof t === 'string'),
+    formes: brut.formes !== false,
+    nouvelleForme: brut.nouvelleForme === true,
+    reliee: brut.reliee !== false, // au moindre doute, la salle est prise pour reliée : ses portes restent
+    graine: lireGraine(brut.graine),
+  };
+}
+
+const escaliersDe = (plan) => (plan.objets || []).filter((o) => o.type === 'escalier');
+/** Ce qui ne doit jamais bouger en remplissant : forme, dimensions, sol, ambiance, portes et escaliers (avec leur place et leur sens). */
+function ancresDe(plan) {
+  return JSON.stringify({
+    forme: [plan.forme ?? 'rectangle', plan.largeur, plan.longueur, plan.bras ?? null, plan.position ?? null],
+    aspect: [plan.sol ?? 'pierre', plan.ambiance ?? null, plan.etat ?? null, plan.eclairage ?? null],
+    portes: (plan.portes || []).map((p) => [p.mur, p.position, p.type, !!p.cache]).sort(),
+    escaliers: escaliersDe(plan).map((o) => [o.x, o.y, o.l, o.h, o.rotation, o.sens ?? null]).sort(),
+  });
+}
+/** Le contenu demandé, réduit d'une fraction `f` (arrondie vers le bas) : sert quand tout ne tient pas dans une salle qu'on ne peut pas agrandir. */
+const reduire = (spec, f) => ({
+  ...spec,
+  coffres: Math.floor(spec.coffres * f),
+  pieges: Math.floor(spec.pieges * f),
+  monstres: Object.fromEntries(Object.entries(spec.monstres).map(([t, n]) => [t, Math.floor(n * f)]).filter(([, n]) => n > 0)),
+});
+const nombreMonstres = (spec) => Object.values(spec.monstres).reduce((a, b) => a + b, 0);
+
+/**
+ * Génère le contenu d'UNE salle (monstres, coffres, pièges, mobilier, et éventuellement la forme), à partir du plan qu'elle a déjà.
+ * Même ingrédients que `genererDonjon` (rôles, familles, placement, relecture par le parseur), sans règle d'entrée ni de boss.
+ *
+ * Deux modes, pour qu'une porte reliée à une autre salle ne disparaisse jamais :
+ *  - « remplir » (par défaut) : forme, dimensions, sol, ambiance, TOUTES les portes et TOUS les escaliers restent où ils sont ; seul le
+ *    contenu change. La salle n'est pas agrandie : si tout ne tient pas, le contenu est réduit (`resume.reduit`) ;
+ *  - « nouvelle » (`nouvelleForme`) : nouvelle forme et nouvelles dimensions. Réservé à une salle sans liaison (`reliee: false`), sans
+ *    escalier et dont les portes sont des portes ou des arches ; sinon, ou au moindre doute, le mode « remplir » est employé et
+ *    `refus` en dit la raison.
+ * Si même le mode « remplir » ne peut pas garantir les portes et escaliers, rien n'est proposé (`ok: false`, `texte: null`).
+ *
+ * @param {object} brut  plan (le plan actuel de la salle), monstres, coffres, pieges, familles, typesPresents (types de monstres des
+ *   autres salles du donjon : leurs familles sont reprises par défaut), formes, nouvelleForme, reliee, graine (voir normaliserOptionsSalle)
+ * @returns {{ok:boolean, texte:string|null, nom:string|null, graine:number, mode:'remplir'|'nouvelle', refus:string|null,
+ *   resume:{monstres:number,coffres:number,pieges:number,familles:string[],reduit:boolean}}}
+ */
+export function genererSalle(brut = {}) {
+  const o = normaliserOptionsSalle(brut);
+  const plan = brut.plan ?? null;
+  const graine = o.graine ?? nouvelleGraine();
+  const alea = generateur(graine);
+
+  const presentes = famillesPresentes(o.typesPresents);
+  const familles = o.familles.length ? o.familles : presentes.length ? presentes : melanger(Object.keys(FAMILLES), alea).slice(0, 2);
+  const troupe = familles.flatMap((f) => FAMILLES[f].troupe);
+  const role = melanger(ROLES, alea)[0];
+  const monstres = peupler(o.monstres, troupe, alea, {});
+  const spec = { role, monstres, coffres: o.coffres, pieges: o.pieges, formes: o.formes };
+  const bilan = (texte, mode, refus, s, ok = true) => ({
+    ok, texte, nom: ok ? role.nom : null, graine, mode, refus,
+    resume: { monstres: nombreMonstres(s), coffres: s.coffres, pieges: s.pieges, familles, reduit: nombreMonstres(s) < o.monstres || s.coffres < o.coffres || s.pieges < o.pieges },
+  });
+
+  // Nouvelle forme : seulement si rien de ce qui compte pour les autres salles ne peut se perdre.
+  let refus = null;
+  if (o.nouvelleForme && plan) {
+    if (o.reliee) refus = 'Cette salle a des portes ou des escaliers reliés à d’autres salles : sa forme et ses dimensions restent.';
+    else if (escaliersDe(plan).length) refus = 'Cette salle a un escalier : sa forme et ses dimensions restent.';
+    else if ((plan.portes || []).some((p) => p.type !== 'porte' && p.type !== 'arche')) refus = 'Cette salle a des portes spéciales (herse, portail…) : sa forme et ses dimensions restent.';
+    if (!refus) {
+      const portes = portesEntreeDabord(plan).map((p) => ({ mur: p.mur, type: p.type, secrete: !!p.cache }));
+      // Ce qui n'est pas du contenu garde son aspect : sol (sauf s'il est resté « pierre », que le rôle peut changer), ambiance, état, éclairage.
+      const ambiance = ['ambiance', 'etat', 'eclairage'].map((c) => MOTS_AMBIANCE[c][plan[c]]).filter(Boolean);
+      const tirerCote = () => 5 + Math.floor(alea() * 5);
+      const neuve = { ...spec, largeur: tirerCote(), longueur: tirerCote(), sol: plan.sol && plan.sol !== 'pierre' ? plan.sol : undefined, ambiance };
+      const { texte } = construireSalle(neuve, portes, alea);
+      const relu = analyser(texte).plan;
+      // Chaque porte doit avoir survécu (deux portes tombées sur la même case n'en feraient qu'une) : sinon on remplit seulement.
+      if (relu.portes.length === portes.length && toutEstPose(relu, spec)) return bilan(texte, 'nouvelle', null, spec);
+      refus = 'Une nouvelle forme n’a pas pu garder toutes les portes de la salle : sa forme et ses dimensions restent.';
+    }
+  }
+
+  // Remplir : le plan sans son contenu (les escaliers restent), décrit tel quel ; le nouveau contenu s'ajoute à la fin.
+  if (!plan) return bilan(null, 'remplir', 'Il n’y a pas de plan à remplir.', reduire(spec, 0), false);
+  const debut = decrire({ ...plan, objets: escaliersDe(plan), creatures: [] }).replace(/\.$/, '');
+  const essais = [[1, true], [1, false], ...[0.8, 0.6, 0.4, 0.2, 0].map((f) => [f, false])];
+  for (const [f, avecDecor] of essais) {
+    const s = reduire(spec, f);
+    const texte = `${[debut, ...(avecDecor ? role.contenu : []), ...phrasesContenu(s)].join(', ')}.`;
+    const relu = analyser(texte).plan;
+    if (toutEstPose(relu, s) && ancresDe(relu) === ancresDe(plan)) return bilan(texte, 'remplir', refus, s);
+  }
+  return bilan(null, 'remplir', refus ?? 'Les portes et escaliers de cette salle ne peuvent pas être gardés avec certitude : rien n’a été changé.', reduire(spec, 0), false);
+}
+
+/** Une porte ou un escalier de cette salle est-il relié à une autre salle ? (alors sa forme et ses dimensions ne doivent pas changer) */
+export const salleReliee = (donjon, idSalle) => (donjon?.liaisons || []).some((l) => l.a.salle === idSalle || l.b.salle === idSalle);
+
+/** Les types de monstres des AUTRES salles du donjon, un par créature : de quoi reprendre leurs familles (`typesPresents` de `genererSalle`). */
+export const typesDesAutresSalles = (donjon, idSalle) => Object.values(donjon?.salles || {})
+  .filter((s) => s.id !== idSalle)
+  .flatMap((s) => (s.plan?.creatures || []).filter((k) => k.camp === 'monstre').map((k) => k.type));

@@ -10,6 +10,7 @@
  * l'en-tête : il écrit dans `#salle-nom` / `#donjon-nom` (qui restent dans la réserve) et y déclenche « change ».
  *
  *   salle   « 9 × 12 m · pierre » ; Taille (L, H, forme), Apparence (sol, ambiance, état, éclairage), description (dictée, « Compris »), liaisons orphelines, notes, éléments (liste), exemples.
+ *           Au hasard (repliée, dé dans le bandeau) : remplit la salle de monstres, coffres, pièges et mobilier, sans toucher aux portes ni à la forme.
  *           « ⋯ » : plan JSON, signaler une erreur de lecture, — , supprimer la salle.
  *   donjon  « 3 salles · 2 personnages » ; les personnages (liste, ajouter, au hasard) et, repliée, l'échelle (m par case) avec le plein écran. Le rendu (thème, grille…) est le bouton « Affichage » de la barre.
  *           « ⋯ » : exporter, imprimer, copier, — , supprimer le donjon. (L'arbre liste les salles ; la vue d'ensemble est celle du donjon.)
@@ -21,6 +22,7 @@ import { pluriel } from '../format.js';
 import { resumeTaille, tailleEnMetres } from './dimensions.js';
 import { creerSection } from './section.js';
 import { creerListe } from './liste.js';
+import { creerSectionAuHasard } from './au-hasard-salle.js';
 import { creerChampChoix } from './champ-choix.js';
 import { dessiner } from '../rendu/moteur.js';
 import { themeParNom } from '../rendu/themes/index.js';
@@ -75,6 +77,7 @@ export function enregistrerInspecteursDonjon(coquille, ctx) {
   blocApparence.append(...[['salle-sol', 'sol', 'Sol', 'sol', COULEURS_SOL], ['salle-ambiance', 'ambiance', 'Ambiance', 'ambiance'], ['salle-etat', 'état', 'État', 'etat'], ['salle-eclairage', 'éclairage', 'Éclairage', 'eclairage']]
     .map(([id, detail, titre, champ, couleurs]) => creerChampChoix({ select: $(id), detail, titre, couleurs, miniature: miniatureSalle(champ) }).element));
 
+  const sectionAuHasard = creerSectionAuHasard(ctx); // « Au hasard » : le contenu (et la forme) de la salle, js/atelier/au-hasard-salle.js
   const donjonDe = (sel) => etat.donjons[sel.contexte?.donjon ?? sel.id] ?? ctx.donjon();
   /** Le nom de l'en-tête écrit dans le champ historique (dont les écouteurs enregistrent, nettoient et sauvegardent). */
   const renommerVia = (idChamp) => (_sel, valeur) => {
@@ -160,6 +163,7 @@ export function enregistrerInspecteursDonjon(coquille, ctx) {
         section('salle-notes', 'Notes du MJ', ['bloc-notes'], { repliee: true, apercu: apercuNotes }),
         ...[sectionLiaisons(sel)].filter(Boolean),
         sectionElements(sel),
+        sectionAuHasard(sel),
         section('salle-exemples', 'Exemples', ['bloc-exemples'], { repliee: true }),
         ...(avanceDemande ? [section('salle-avance', 'Avancé', ['bloc-avance'])] : []));
       // Demandé par le menu « ⋯ » : la section s'ouvre même si le MJ l'avait repliée.

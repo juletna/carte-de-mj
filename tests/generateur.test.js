@@ -4,7 +4,7 @@
  */
 import * as m from '../js/donjon.js';
 import { validerDonjon } from '../js/donjon-validation.js';
-import { genererDonjon, normaliserOptions, BORNES, FAMILLES } from '../js/generateur.js';
+import { genererDonjon, normaliserOptions, BORNES, FAMILLES, genererSalle, famillesPresentes, normaliserOptionsSalle, estNomParDefaut, salleAUnContenu, BORNES_SALLE, salleReliee, typesDesAutresSalles } from '../js/generateur.js';
 import { analyser } from '../js/parseur/index.js';
 import { nomAffiche } from '../js/parseur/lexique.js';
 import { CREATURES } from '../js/catalogue.js';
@@ -12,6 +12,12 @@ import { disposerPlan } from '../js/plan-donjon.js';
 import { surLeSol, retraitPorte } from '../js/formes.js';
 import { vueTable, creerPresentation } from '../js/presentation.js';
 import { verifier, egal, executerSuite } from './mini-test.js';
+
+/** Une salle de départ avec ses portes (la première secrète) et un escalier, à relire comme le fait l'outil. */
+const SALLE_PORTES = 'Salle de 12 par 10 cases, sol en bois, une porte au mur sud en C, une porte secrète au mur nord en B, une arche au mur est en 3, un escalier qui monte en A1, 2 tonneaux, 3 rats.';
+const vide = (plan) => ({ ...plan, objets: [], creatures: [] });
+const ancres = (plan) => JSON.stringify([plan.forme, plan.largeur, plan.longueur, plan.sol,
+  plan.portes.map((q) => [q.mur, q.position, q.type, !!q.cache]).sort(), plan.objets.filter((o) => o.type === 'escalier').map((o) => [o.x, o.y, o.rotation, o.sens]).sort()]);
 
 const salles = (d) => Object.values(d.salles);
 const monstres = (d) => salles(d).flatMap((s) => s.plan.creatures.filter((k) => k.camp === 'monstre'));
@@ -158,6 +164,97 @@ const TESTS = [
     }
     verifier(formes > 0, 'des formes apparaissent');
     for (const s of salles(genererDonjon({ salles: 20, monstres: 8, formes: false, graine: 2 }).donjon)) egal(s.plan.forme, 'rectangle', 'formes décochées');
+  }],
+  ['une salle au hasard : mode « remplir », mêmes portes, escaliers, forme et dimensions, nombres respectés', () => {
+    const depart = [SALLE_PORTES, 'Salle en croix de 14 par 14 cases, bras de 4 cases, une porte au mur nord en G, 3 caisses.', 'Salle de 9 par 9 cases.'];
+    for (const texte of depart) {
+      const plan = analyser(texte).plan;
+      for (let graine = 1; graine <= 15; graine++) {
+        const r = genererSalle({ plan, reliee: true, nouvelleForme: true, monstres: 3 + (graine % 4), coffres: graine % 3, pieges: graine % 2, graine });
+        const quoi = `${texte} / graine ${graine}`;
+        verifier(r.ok, `pas de texte pour ${quoi} : ${r.refus}`);
+        egal(r.mode, 'remplir', `salle reliée : jamais de nouvelle forme (${quoi})`);
+        verifier(r.refus, 'la raison du refus est dite');
+        const relu = analyser(r.texte);
+        egal(relu.ignores, [], `mots non compris dans « ${r.texte} »`);
+        egal(ancres(relu.plan), ancres(plan), `portes, escaliers, forme et dimensions de ${quoi}`);
+        egal(relu.plan.creatures.length, r.resume.monstres, `monstres de ${quoi}`);
+        egal(relu.plan.objets.filter((o) => o.type === 'coffre').length, r.resume.coffres, `coffres de ${quoi}`);
+        egal(relu.plan.objets.filter((o) => o.type === 'fosse' && o.cache).length, r.resume.pieges, `pièges de ${quoi}`);
+        if (!r.resume.reduit) egal([r.resume.monstres, r.resume.coffres, r.resume.pieges], [3 + (graine % 4), graine % 3, graine % 2], `nombres demandés de ${quoi}`);
+        for (const e of [...relu.plan.objets, ...relu.plan.creatures]) verifier(surLeSol(relu.plan, e.x, e.y, e.taille ?? e.l, e.taille ?? e.h), `${e.type} hors du sol (${quoi})`);
+      }
+    }
+  }],
+  ['une salle au hasard : le contenu est réduit plutôt que la salle agrandie', () => {
+    const plan = analyser('Salle de 4 par 4 cases, une porte au mur sud en B, un escalier en A1.').plan;
+    const r = genererSalle({ plan, monstres: 100, coffres: 20, pieges: 20, graine: 3 });
+    verifier(r.ok && r.resume.reduit, 'trop pour 16 cases : réduit');
+    egal(ancres(analyser(r.texte).plan), ancres(plan), 'portes, escaliers et dimensions gardés');
+  }],
+  ['une salle au hasard : le même numéro redonne le même texte, un autre un autre', () => {
+    const plan = analyser(SALLE_PORTES).plan;
+    const o = { plan, reliee: true, monstres: 5, coffres: 2, pieges: 1 };
+    egal(genererSalle({ ...o, graine: 99 }).texte, genererSalle({ ...o, graine: 99 }).texte, 'même tirage');
+    const textes = new Set([1, 2, 3, 4, 5, 6].map((graine) => genererSalle({ ...o, graine }).texte));
+    verifier(textes.size > 3, 'des tirages différents');
+    const sans = genererSalle({ plan: vide(plan), nouvelleForme: true, reliee: false, graine: 12 });
+    egal(sans.graine, 12, 'la graine est rendue');
+    verifier(genererSalle({ plan, reliee: true }).graine >= 1, 'sans graine : un numéro est tiré');
+  }],
+  ['une salle au hasard : nouvelle forme seulement sans liaison ni escalier', () => {
+    const libre = analyser('Salle de 8 par 8 cases, sol en marbre, une porte au mur sud en C, une arche au mur nord en B, une porte secrète au mur est en 3.').plan;
+    let formes = 0, dimensions = 0;
+    for (let graine = 1; graine <= 20; graine++) {
+      const r = genererSalle({ plan: libre, reliee: false, nouvelleForme: true, monstres: 4, coffres: 1, pieges: 1, graine });
+      egal(r.mode, 'nouvelle', `salle libre : nouvelle forme (graine ${graine})`);
+      const relu = analyser(r.texte).plan;
+      egal(relu.portes.map((q) => [q.mur, q.type, !!q.cache]).sort(), libre.portes.map((q) => [q.mur, q.type, !!q.cache]).sort(), `les portes gardent mur, type et secret (graine ${graine})`);
+      egal(relu.sol, 'marbre', 'le sol est gardé');
+      egal([relu.creatures.length, relu.objets.filter((o) => o.type === 'coffre').length], [4, 1], `nombres de la graine ${graine}`);
+      for (const e of [...relu.objets, ...relu.creatures]) verifier(surLeSol(relu, e.x, e.y, e.taille ?? e.l, e.taille ?? e.h), 'sur le sol');
+      if (relu.forme !== 'rectangle') formes++;
+      if (relu.largeur !== libre.largeur || relu.longueur !== libre.longueur) dimensions++;
+    }
+    verifier(dimensions > 0, 'les dimensions changent');
+    verifier(formes > 0, 'des formes apparaissent');
+    // Le moindre doute : reliée (ou flag absent), escalier, porte spéciale, → on remplit seulement.
+    for (const [plan, reliee, mot] of [[libre, true, 'reliés'], [libre, undefined, 'reliés'], [analyser('Salle de 8 par 8 cases, un escalier en A1, une porte au mur sud en C.').plan, false, 'escalier'], [analyser('Salle de 8 par 8 cases, une herse au mur sud en C.').plan, false, 'spéciales']]) {
+      const r = genererSalle({ plan, reliee, nouvelleForme: true, graine: 4 });
+      egal(r.mode, 'remplir', mot);
+      verifier(r.refus && r.refus.includes(mot), `raison : ${r.refus}`);
+      egal(ancres(analyser(r.texte).plan), ancres(plan), `${mot} : rien ne bouge`);
+    }
+  }],
+  ['une salle au hasard : les familles par défaut sont celles des autres salles', () => {
+    egal(famillesPresentes(['gobelin', 'gobelin', 'orque', 'troll']), ['gobelins', 'colosses'], 'les plus fréquentes, deux au plus');
+    egal(famillesPresentes([]), [], 'rien de connu');
+    egal(famillesPresentes(['squelette', 'inconnu']), ['morts'], 'types inconnus ignorés');
+    const plan = analyser('Salle de 14 par 14 cases, une porte au mur sud en C.').plan;
+    for (let graine = 1; graine <= 8; graine++) {
+      const r = genererSalle({ plan, typesPresents: ['squelette', 'zombie'], monstres: 6, graine });
+      egal(r.resume.familles, ['morts'], 'famille reprise');
+      for (const k of analyser(r.texte).plan.creatures) verifier(FAMILLES.morts.troupe.includes(k.type), `${k.type} hors de la famille`);
+      egal(genererSalle({ plan, typesPresents: ['squelette'], familles: ['betes'], monstres: 2, graine }).resume.familles, ['betes'], 'le choix explicite l’emporte');
+    }
+    egal(genererSalle({ plan, monstres: 2, graine: 5 }).resume.familles.length, 2, 'rien de connu : deux familles au hasard');
+  }],
+  ['une salle au hasard : options, nom par défaut, contenu', () => {
+    const o = normaliserOptionsSalle({ monstres: 9999, coffres: -3, pieges: '', familles: ['betes', 'x'], graine: 'z' });
+    egal([o.monstres, o.coffres, o.pieges, o.familles, o.graine, o.reliee, o.nouvelleForme], [BORNES_SALLE.monstres[2], 0, BORNES_SALLE.pieges[0], ['betes'], null, true, false], 'bornes');
+    verifier(estNomParDefaut('Salle 4') && estNomParDefaut('Salle') && !estNomParDefaut('Cuisine') && !estNomParDefaut('Salle 4 bis'), 'noms par défaut');
+    const d = m.creerDonjon({});
+    verifier(!salleAUnContenu(d.salles[d.salleActive]), 'salle neuve : vide');
+    const s = { texte: 'Salle de 5 par 5 cases, 2 coffres.', plan: analyser('Salle de 5 par 5 cases, 2 coffres.').plan };
+    verifier(salleAUnContenu(s), 'avec des coffres');
+    const { donjon: g } = genererDonjon({ salles: 4, monstres: 8, familles: ['morts'], boucles: 0, graine: 21 });
+    const ids = Object.keys(g.salles);
+    verifier(ids.every((id) => salleReliee(g, id)), 'toutes les salles d’un donjon généré sont reliées');
+    const seul = m.creerDonjon({});
+    verifier(!salleReliee(seul, seul.salleActive), 'salle seule : pas reliée');
+    egal(typesDesAutresSalles(g, ids[0]).length, Object.values(g.salles).filter((s) => s.id !== ids[0]).flatMap((s) => s.plan.creatures).length, 'monstres des autres salles');
+    egal(famillesPresentes(typesDesAutresSalles(g, ids[0])), ['morts'], 'famille retrouvée');
+    verifier(salleAUnContenu({ texte: 'Salle de 5 par 5 cases, sol en bois.', plan: analyser('Salle de 5 par 5 cases, sol en bois.').plan }), 'une description non vide compte comme du contenu');
   }],
 ];
 
