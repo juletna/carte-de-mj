@@ -33,7 +33,7 @@ export function terre(X, Y, o, out) {
   // Hachures d'encre dans l'ombre des sillons et des plaques.
   vers(C, ENCRE, ombre * hachure(X, Y, 2.4) * 0.3);
   // Petits trous : un point d'encre.
-  semis(X, Y, 6, 0.08, 0.5, 0.9, o.s + 60);
+  semis(X, Y, 6, 0.05, 0.5, 0.9, o.s + 60);
   if (D.d < 1) vers(C, ENCRE, 0.55 * (1 - marche(D.d, 0.8, 0.2)));
   // Craquelures : des traits d'encre fins, seulement dans les zones sèches.
   const fis = Math.abs(fbmp(fx, fy, 9, o.s + 20, 2) - 0.5);
@@ -42,11 +42,11 @@ export function terre(X, Y, o, out) {
   semis(X, Y, 48, 0.2, 4, 5.4, o.s + 70);
   if (D.d < 1.05) touffe(C, 5, [150, 200, 92], [74, 128, 60]);
   // Pierres : petites, moyennes et grosses, cernées d'encre.
-  semis(X, Y, 8, 0.1, 1, 1.8, o.s + 30);
+  semis(X, Y, 8, 0.025, 1, 1.8, o.s + 30);
   if (D.d < 1) caillou(PIERRES[Math.floor(D.h * PIERRES.length)], C);
-  semis(X, Y, 16, 0.2, 2, 3.2, o.s + 40);
+  semis(X, Y, 16, 0.06, 2, 3.2, o.s + 40);
   if (D.d < 1) caillou(PIERRES[Math.floor(D.h * PIERRES.length)], C);
-  semis(X, Y, 48, 0.2, 3.6, 5.6, o.s + 50);
+  semis(X, Y, 48, 0.14, 3.6, 5.6, o.s + 50);
   if (D.d < 1) caillou(PIERRES[Math.floor(D.h * PIERRES.length)], C);
   out[0] = C[0]; out[1] = C[1]; out[2] = C[2];
 }

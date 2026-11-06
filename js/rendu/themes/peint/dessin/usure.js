@@ -8,14 +8,14 @@
  */
 import { fbmp, vbp } from '../bruit.js';
 import { PERIODE } from '../tuile.js';
-import { ENCRE, marche, vers, semis, D } from './outils.js';
+import { ENCRE, marche, vers, semis, D, mod } from './outils.js';
 
 // --- Réglages -----------------------------------------------------------------------------------------------
 const SALE = [[150, 112, 70], [118, 82, 48]]; // saleté : ton clair, ton foncé (brun chaud)
 const SALE_SEUIL = [0, 0.65, 0.6]; // la saleté commence au-dessus de ce bruit (indice : usure) ; plus bas = plus de saleté
 const SALE_FORCE = [0, 0.3, 0.38]; // part de la couleur de saleté mêlée au sol
 const SALE_PROFONDE = 0.075; // écart de bruit entre la flaque claire et son cœur foncé
-const MOUSSE = [[98, 152, 62], [132, 184, 80]]; // mousse : ton franc, ton clair (sommet des plaques)
+const MOUSSE = [[102, 146, 70], [136, 174, 92]]; // mousse : ton franc, ton clair (sommet des plaques)
 const MOUSSE_CONTOUR = [48, 92, 40]; // fin contour sombre autour de la plaque
 const MOUSSE_SEUIL = [0, 0.73, 0.67]; // la mousse commence au-dessus de ce bruit
 const MOUSSE_JOINT = 0.07; // bonus de bruit au bord des dalles de pierre (la mousse suit les joints)
@@ -67,7 +67,9 @@ export function abimerDessine(X, Y, usure, mousseOk, fissureOk, bord, out) {
   if (fissureOk) {
     const zone = vbp(fx, fy, 2, 2, 141), seuil = FISSURE_ZONE[usure];
     if (zone > seuil) {
-      const z = marche(zone, seuil, 0.03), s = fbmp(fx, fy, 9, 140, 2) - 0.5, d = Math.abs(s);
+      // Une ligne de niveau d'un bruit seul se referme souvent en boucle : on suit plutôt des bandes obliques (4 par période) que le bruit
+      // fait onduler sans jamais les refermer, et le masque de zone n'en garde que des tronçons.
+      const z = marche(zone, seuil, 0.03), s = mod(4 * fx + 2 * fy + 0.7 * (fbmp(fx, fy, 9, 140, 2) - 0.5), 1) - 0.5, d = Math.abs(s);
       let encre = d < FISSURE_LARGEUR ? 1 - marche(d, FISSURE_LARGEUR * 0.55, FISSURE_LARGEUR * 0.45) : 0;
       if (d < BRANCHE_LARGEUR * 6) {
         const near = 1 - marche(d, BRANCHE_LARGEUR * 4, BRANCHE_LARGEUR * 2); // les branches partent des abords de la fissure

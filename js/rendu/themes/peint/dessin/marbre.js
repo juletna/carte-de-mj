@@ -36,7 +36,8 @@ export function marbre(X, Y, o, out) {
   const c = Math.max(Math.abs(fu - 0.5), Math.abs(fv - 0.5)); // « rayon » depuis le centre de la dalle
 
   if (!(alt && c < 0.2)) {
-    const g1 = 3 * fx + 2 * fy + 0.6 * (fbmp(fx, fy, N, o.s + 30, 3) - 0.5), g2 = 2 * fx - 3 * fy + 0.5 * (fbmp(fx, fy, N * 2, o.s + 31, 2) - 0.5);
+    // Le bruit fait onduler les veines sans jamais annuler la pente de la bande (sinon le trait s'élargit en tache).
+    const g1 = 3 * fx + 2 * fy + 0.24 * (fbmp(fx, fy, N, o.s + 30, 3) - 0.5), g2 = 2 * fx - 3 * fy + 0.16 * (fbmp(fx, fy, N * 2, o.s + 31, 2) - 0.5);
     const v1 = Math.abs(mod(g1, 1) - 0.5), v2 = Math.abs(mod(g2, 1) - 0.5);
     // Veines : traits nets et sinueux, une grande (bleu-gris) et une fine plus claire.
     vers(C, [120, 128, 150], (1 - marche(v1, 0.014, 0.005)) * 0.8 * marche(de, 4.5, 1.5));
