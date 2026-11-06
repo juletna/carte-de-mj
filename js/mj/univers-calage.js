@@ -12,7 +12,7 @@
  *  - `quitter()` : le MJ sort sans enregistrer ;
  *  - `surMarqueurs()` : les repères des deux clics ont changé, l'appelant redessine la carte avec `marqueurs()`.
  */
-import { $, h } from '../dom.js';
+import { h } from '../dom.js';
 import { btn } from '../univers-boutons.js';
 import { aide } from './univers-menu.js';
 import * as g from '../univers-grille.js';
@@ -191,6 +191,6 @@ export function creerCalage({ carte, enregistrer, quitter, surMarqueurs }) {
       carte.cadre.removeAttribute('role');
       carte.cadre.removeAttribute('aria-label');
     },
-    focaliser: () => $('univers')?.querySelector('.univers-calage input[type="range"]')?.focus(),
+    focaliser: () => panneau?.querySelector('input[type="range"]')?.focus({ preventScroll: true }),
   };
 }

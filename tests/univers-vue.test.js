@@ -6,7 +6,8 @@ import { indexApresTouche, indexParFrappe } from '../js/univers-liste.js';
 import { classesBouton } from '../js/univers-boutons.js';
 import { verifier, egal, executerSuite } from './mini-test.js';
 
-const FICHIERS = ['js/mj/univers-ui.js', 'js/mj/univers-menu.js', 'js/mj/univers-arbre.js', 'js/mj/univers-calage.js', 'js/mj/univers-liste.js', 'js/regie-univers.js',
+const FICHIERS = ['js/mj/univers-ui.js', 'js/mj/univers-menu.js', 'js/mj/univers-calage.js', 'js/mj/univers-liste.js', 'js/regie-univers.js',
+  'js/atelier/inscrire-monde.js', 'js/atelier/inspecteurs-monde.js', 'js/atelier/barre-lieu.js',
   'js/bibliotheque/index.js', 'js/page-bibliotheque.js', 'bibliotheque.html', 'index.html', 'impression.html', 'js/main-impression.js'];
 const sources = {};
 

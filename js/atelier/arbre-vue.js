@@ -23,6 +23,7 @@ export function creerArbreVue({ mode = 'preparer', surChoix, pastille = null, ti
   const fermes = new Set();  // clés repliées par le MJ
   let donnees = { arbre: null, actifCle: null };
   let filtreTexte = '';
+  let vignette = null; // (noeud) → élément qui remplace l'icône du nœud (l'image d'un lieu), ou null : voir `definirVignette`
 
   const filtre = h('input', { type: 'search', className: 'atelier-arbre-filtre', placeholder: 'Filtrer…', 'aria-label': 'Filtrer l’arbre', spellcheck: false, hidden: true });
   const liste = h('ul', { className: 'atelier-arbre-liste', role: 'tree', 'aria-label': titre });
@@ -53,7 +54,8 @@ export function creerArbreVue({ mode = 'preparer', surChoix, pastille = null, ti
       const m = `aussi depuis ${n.aussiDepuis.join(', ')}`;
       texte.append(h('span', { className: 'doux atelier-noeud-aussi', textContent: m, title: m }));
     }
-    const ligne = h('div', { className: 'atelier-ligne' }, bascule, h('span', { className: 'atelier-icone', 'aria-hidden': 'true' }, icone(ICONE[n.type] ?? 'donjon')), texte);
+    const image = vignette?.(n) ?? null;
+    const ligne = h('div', { className: 'atelier-ligne' }, bascule, image ?? h('span', { className: 'atelier-icone', 'aria-hidden': 'true' }, icone(ICONE[n.type] ?? 'donjon')), texte);
     if (n.depart) ligne.append(h('span', { className: 'atelier-badge', textContent: 'départ', title: 'Lieu de départ du monde' }));
     if (n.nonRelie) ligne.append(h('span', { className: 'atelier-badge discret', textContent: 'non relié', title: 'Aucun chemin depuis le lieu de départ' }));
     if (mode === 'jouer' && pastille && n.type !== 'groupe') {
@@ -136,5 +138,8 @@ export function creerArbreVue({ mode = 'preparer', surChoix, pastille = null, ti
     dessiner();
   }
 
-  return { element, maj, focus: () => (liste.querySelector('.courant') ?? visibles()[0])?.focus({ preventScroll: true }), filtre };
+  /** `f(noeud)` rend une vignette (un élément) à la place de l'icône d'un nœud, ou null pour garder l'icône ; à redessiner ensuite avec `maj`. */
+  function definirVignette(f) { vignette = f; }
+
+  return { element, maj, definirVignette, focus: () => (liste.querySelector('.courant') ?? visibles()[0])?.focus({ preventScroll: true }), filtre };
 }

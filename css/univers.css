@@ -1,73 +1,63 @@
-/* Monde (cartes imbriquées) : préparation (Donjon), régie et vue table (Présentation). Jetons de base.css. */
+/* Monde (cartes imbriquées) : préparation (atelier du Donjon), régie et vue table (Présentation). Jetons de base.css.
+   Préparation : la scène « lieu » (#scene-monde, js/mj/univers-ui.js) prend la place de la scène du Donjon dans #cadre-scene ; l'arbre,
+   l'inspecteur et la barre d'outils sont ceux de l'atelier (css/atelier.css). Rien ne recouvre plus la page : ni la barre, ni l'arbre. */
 
-/* --- Écran Monde : sous la barre de navigation commune (js/mj/univers-ui.js pose `top` sous la barre), par-dessus le Donjon --- */
-body.univers-ouvert { overflow: hidden; }
-.univers { position: fixed; top: var(--h-barre); left: 0; right: 0; bottom: 0; z-index: 80; display: flex; flex-direction: column; background: var(--fond); color: var(--texte); font-family: var(--police); overflow: hidden; }
-.univers[hidden] { display: none; }
-/* Barre du haut : [sélecteur du monde ✎] · Jouer · ⋯ (on quitte par la barre de navigation) */
-.univers-barre { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: var(--esp-2); padding: var(--esp-2) var(--esp-3); background: var(--panneau); border-bottom: 1px solid var(--bord); }
-.univers-nom-monde { display: flex; align-items: center; gap: var(--esp-2); flex: 1 1 200px; min-width: 0; }
-.univers-nom-monde select, .univers-nom-monde input[type="text"] { flex: 0 1 280px; min-width: 0; font-weight: 600; }
-.univers-jouer[hidden] { display: none; }
-.univers.sans-monde .univers-corps { align-items: flex-start; }
-/* Menu « ⋯ » */
-.univers-menu-cadre { position: relative; display: inline-block; }
-.univers-menu { position: absolute; right: 0; top: calc(100% + 4px); z-index: 20; min-width: 210px; padding: 4px; background: var(--panneau); border: 1px solid var(--bord); border-radius: var(--rayon); box-shadow: 0 8px 24px rgba(0, 0, 0, .55); text-align: left; }
-.univers-menu[hidden] { display: none; }
-.univers-menu hr { border: 0; border-top: 1px solid var(--bord); margin: 4px 0; }
-.univers-menu .univers-menu-item { display: flex; width: 100%; justify-content: flex-start; margin: 0; text-align: left; }
-.univers-menu .univers-menu-item:focus-visible { outline: var(--focus); outline-offset: -2px; }
-.univers-menu .univers-menu-danger.danger { background: var(--erreur); color: #fff; }
+/* --- Le Monde est ouvert : les blocs du Donjon (rail, panneau, salles, scène de salle) s'effacent, la scène « lieu » prend leur place --- */
+body.univers-ouvert .salles-barre, body.univers-ouvert #rail, body.univers-ouvert #panneau, body.univers-ouvert #aide-carte,
+body.univers-ouvert #cadre-scene > :not(.atelier-barre):not(.univers-scene),
+body.univers-ouvert .menu-donjon, body.univers-ouvert #presenter, body.univers-ouvert #barre .onglets { display: none !important; }
+body.univers-ouvert[data-onglet] #cadre-scene { display: flex; flex-direction: column; }
+.atelier-barre > .barre-lieu { display: flex; flex-wrap: wrap; align-items: center; gap: var(--esp-2); }
+.atelier-barre > .barre-lieu[hidden] { display: none; }
+body.univers-ouvert .atelier-barre > :not(.barre-lieu), body:not(.univers-ouvert) .atelier-barre > .barre-lieu { display: none; }
+.atelier-barre:not(:has(> :not([hidden]))) { display: none; }
+.barre-lieu .btn[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); background: rgba(217, 169, 41, 0.16); font-weight: 600; }
+.barre-lieu .btn[hidden] { display: none; }
+.barre-lieu-aide { flex: 1 1 200px; min-width: 0; }
+/* La barre du haut en mode Monde : « Monde · nom » et « Jouer ce monde » (le seul doré de l'écran). */
+.barre-monde { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: var(--esp-3); }
+.barre-monde[hidden] { display: none; }
+.barre-monde-titre { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: var(--esp-2); font-weight: 600; }
+.barre-monde-titre .icone { flex: none; color: var(--texte-doux); }
+.barre-monde-nom { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.barre-monde-jouer { flex: none; }
+/* Sur ordinateur, la scène « lieu » s'étend sur les colonnes laissées vides par le rail et le panneau du Donjon (arbre et inspecteur gardent les leurs). */
+@media not all and (max-width: 760px) {
+  body.univers-ouvert #cadre-scene { grid-column: 2 / -2; grid-row: 3 / -1; }
+}
+
 /* Aide repliable : .aide de css/base.css ; ici seulement son placement */
 h3 .aide, h2 .aide { margin-left: var(--esp-1); font-weight: 400; }
 .aide-texte { text-transform: none; letter-spacing: 0; }
 .univers-masque { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-/* Notifications temporaires : sur le panneau (jamais sur la carte) ; sur téléphone, en bas, jamais sur la barre du haut */
-.univers-notifications { position: absolute; right: 12px; bottom: 12px; z-index: 40; width: 316px; max-width: calc(100vw - 24px); display: flex; flex-direction: column; gap: var(--esp-2); pointer-events: none; }
+/* Notifications temporaires : en haut de la scène, elles se ferment seules et ne recouvrent ni l'inspecteur ni le bas de la carte. */
+.univers-notifications { position: absolute; left: 50%; top: var(--esp-2); transform: translateX(-50%); z-index: 40; width: 420px; max-width: calc(100% - 24px); display: flex; flex-direction: column; gap: var(--esp-2); pointer-events: none; }
 .univers-notification { pointer-events: auto; display: flex; align-items: center; gap: var(--esp-2); padding: var(--esp-2) var(--esp-3); background: var(--panneau); color: var(--texte); border: 1px solid var(--accent); border-radius: var(--rayon); box-shadow: 0 6px 20px rgba(0, 0, 0, .5); font-size: 13px; text-align: left; }
 .univers-notification > span { flex: 1 1 auto; }
 .univers-notification.erreur { border-color: var(--erreur); }
 .univers-notification .btn { flex: none; }
-.univers-corps { flex: 1 1 auto; min-height: 0; display: flex; }
-.univers.sans-monde .univers-arbre, .univers.sans-monde .univers-lieux-bouton { display: none; }
+/* La scène « lieu » */
+.univers-scene { position: relative; flex: 1 1 auto; min-width: 0; min-height: 0; display: flex; flex-direction: column; background: var(--scene); }
+.univers-scene[hidden] { display: none; }
+.univers-vide { margin: 8vh auto 0; max-width: 460px; padding: var(--esp-4); text-align: center; display: flex; flex-direction: column; align-items: center; gap: var(--esp-3); }
+.univers-vide[hidden] { display: none; }
+.univers-cadre.mode-selection.poser { cursor: default; }
 
-/* --- Arborescence des lieux (colonne de gauche ; tiroir sous 760 px) --- */
-.univers-arbre { flex: none; width: 260px; box-sizing: border-box; display: flex; flex-direction: column; gap: var(--esp-2); overflow-y: auto; padding: var(--esp-2); background: var(--panneau); border-right: 1px solid var(--bord); text-align: left; }
-.univers-arbre-filtre { width: 100%; box-sizing: border-box; }
-.univers-arbre-liste, .univers-arbre-liste ul { list-style: none; margin: 0; padding: 0; }
-.univers-arbre-liste ul { margin-left: 14px; border-left: 1px solid var(--bord); }
-.univers-arbre-noeud { margin: 0; outline: none; }
-.univers-arbre-ligne { display: flex; align-items: center; gap: 6px; min-height: max(48px, var(--cible)); padding: 2px 6px 2px 2px; border-radius: var(--rayon); border: 1px solid transparent; cursor: pointer; color: var(--texte); }
-.univers-arbre-ligne:hover { background: var(--champ); }
-.univers-arbre-noeud:focus-visible > .univers-arbre-ligne { outline: var(--focus); outline-offset: -2px; }
-.univers-arbre-noeud.courant > .univers-arbre-ligne { background: var(--champ); border-color: var(--accent); color: var(--accent); }
-.univers-arbre-bascule { flex: none; width: 16px; align-self: stretch; display: flex; align-items: center; justify-content: center; color: var(--texte-doux); }
-.univers-chevron { width: 6px; height: 6px; border-right: 1.75px solid currentColor; border-bottom: 1.75px solid currentColor; transform: translateY(-2px) rotate(45deg); transition: transform .12s; }
-.univers-arbre-bascule.replie .univers-chevron { transform: rotate(-45deg); }
-@media (prefers-reduced-motion: reduce) { .univers-chevron { transition: none; } }
+/* --- Les inspecteurs du Monde (js/atelier/inspecteurs-monde.js) --- */
+.univers-insp { text-align: left; display: flex; flex-direction: column; gap: var(--esp-2); }
+.univers-insp h3 { margin: var(--esp-3) 0 var(--esp-2); font-size: 14px; color: var(--accent); }
+.univers-insp .ligne { display: flex; flex-direction: column; align-items: stretch; gap: 2px; margin: 0; font-size: 13px; }
+.univers-insp .ligne.case { flex-direction: row; align-items: center; gap: var(--esp-2); }
+.univers-insp select, .univers-insp input[type="text"], .univers-insp textarea { width: 100%; box-sizing: border-box; }
+.univers-insp .actions { display: flex; flex-wrap: wrap; gap: var(--esp-2); margin-top: var(--esp-1); }
+.univers-insp .note { margin: 0; }
+.univers-confirmation { padding: var(--esp-2); border: 1px solid var(--erreur); border-radius: var(--rayon); }
+.univers-insp .univers-ligne-point { max-width: 100%; }
+
 .univers-vignette { flex: none; box-sizing: border-box; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 4px; background: var(--scene); border: 1px solid var(--bord); font-size: 18px; line-height: 1; }
 .univers-vignette .icone { width: 55%; height: 55%; color: var(--texte-doux); }
 .univers-vignette.petite { width: 32px; height: 32px; }
 .univers-vignette img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.univers-arbre-texte { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; font-size: 13px; line-height: 1.25; }
-.univers-arbre-nom, .univers-arbre-aussi { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.univers-arbre-aussi { font-size: 11px; }
-.univers-arbre-badge { flex: none; padding: 1px 6px; border-radius: 999px; border: 1px solid var(--accent); color: var(--accent); font-size: 11px; }
-.univers-arbre-ajout { align-self: flex-start; margin-top: auto; }
-.univers-lieux-bouton .icone, .univers-arbre-ajout .icone { flex: none; }
-.univers-lieux-bouton { display: none; align-self: flex-start; margin: var(--esp-2) var(--esp-2) 0; }
-.univers-voile { display: none; }
-.univers-scene { position: relative; flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; background: var(--scene); }
-.univers-panneau { text-align: left; flex: none; width: 340px; overflow-y: auto; padding: var(--esp-3); background: var(--panneau); border-left: 1px solid var(--bord); }
-.univers-panneau h3 { margin: var(--esp-4) 0 var(--esp-2); font-size: 14px; color: var(--accent); }
-.univers-panneau h3:first-child { margin-top: 0; }
-.univers-panneau section + section { margin-top: var(--esp-4); }
-.univers.sans-monde .univers-panneau { width: auto; flex: 1 1 auto; max-width: 520px; margin: 8vh auto 0; border: 0; background: transparent; text-align: center; }
-.univers-panneau .actions .univers-menu-cadre { margin-left: auto; }
-.univers-panneau .ligne { display: flex; flex-direction: column; align-items: stretch; text-align: left; gap: 2px; margin: var(--esp-2) 0; font-size: 13px; }
-.univers-panneau .ligne.case { flex-direction: row; align-items: center; gap: var(--esp-2); }
-.univers-panneau select, .univers-panneau input[type="text"], .univers-panneau textarea { width: 100%; box-sizing: border-box; }
-.univers-panneau .actions { display: flex; flex-wrap: wrap; gap: var(--esp-2); margin-top: var(--esp-3); }
 .univers-liste { list-style: none; margin: var(--esp-2) 0; padding: 0; }
 .univers-liste li { margin: 2px 0; }
 .univers-liste .doux, .doux { color: var(--texte-doux); font-size: 12px; }
@@ -100,13 +90,6 @@ h3 .aide, h2 .aide { margin-left: var(--esp-1); font-weight: 400; }
 .univers-point.transparent { opacity: .35; pointer-events: none; } /* pendant le calage de la grille */
 .univers-cadre.calage .univers-point.transparent .univers-etiquette { display: none; }
 
-/* --- La bulle d'un point, accrochée au point sur la carte : quatre lignes, sans défilement --- */
-.univers-bulle { position: absolute; z-index: 10; width: 320px; max-width: calc(100% - 16px); box-sizing: border-box; overflow-y: auto; padding: var(--esp-2) var(--esp-3); background: var(--panneau); color: var(--texte); border: 1px solid var(--accent); border-radius: var(--rayon); box-shadow: 0 8px 28px rgba(0, 0, 0, .6); text-align: left; font-size: 13px; display: flex; flex-direction: column; gap: var(--esp-2); }
-.univers-bulle[hidden] { display: none; }
-.univers-bulle-tete { display: flex; align-items: center; gap: var(--esp-2); }
-.univers-bulle-tete .univers-point-nom { flex: 1 1 auto; min-width: 0; font-weight: 600; }
-.univers-bulle select, .univers-bulle input[type="text"] { width: 100%; box-sizing: border-box; }
-.univers-bulle .note { margin: 0; }
 .univers-segment { display: flex; border: 1px solid var(--bord); border-radius: var(--rayon); overflow: hidden; }
 .univers-segment-bouton { flex: 1 1 0; margin: 0; border: 0; border-radius: 0; background: var(--champ); }
 .univers-segment-bouton + .univers-segment-bouton { border-left: 1px solid var(--bord); }
@@ -130,7 +113,6 @@ h3 .aide, h2 .aide { margin-left: var(--esp-1); font-weight: 400; }
 .univers-combo-option[aria-disabled="true"] { opacity: .5; cursor: default; }
 .univers-combo-option.ajout { margin-top: 4px; border-top: 1px solid var(--bord); border-radius: 0 0 4px 4px; color: var(--accent); }
 .univers-combo-option .icone { flex: none; width: 20px; margin: 0 6px; }
-.univers-bulle-pied { display: flex; align-items: center; justify-content: space-between; gap: var(--esp-2); }
 .univers-entrer .icone { transform: scaleX(-1); }
 .univers-interrupteur { display: flex; align-items: center; gap: var(--esp-2); margin: 0; min-height: var(--cible); cursor: pointer; }
 .univers-interrupteur input { position: absolute; opacity: 0; width: 1px; height: 1px; }
@@ -140,41 +122,24 @@ h3 .aide, h2 .aide { margin-left: var(--esp-1); font-weight: 400; }
 .univers-interrupteur input:checked + .univers-glissiere::after { transform: translateX(16px); background: var(--accent-texte); }
 .univers-interrupteur input:focus-visible + .univers-glissiere { outline: var(--focus); outline-offset: 2px; }
 
-/* --- Téléphone --- */
+/* --- Téléphone : la scène « lieu » tient sous la barre ; le panneau bas est l'inspecteur de l'atelier (css/atelier.css), l'arbre un tiroir --- */
 @media (max-width: 760px) {
-  .univers-corps { flex-direction: column; overflow-y: auto; }
-  .univers-scene { flex: none; min-height: 60vh; }
-  .univers-panneau { flex: none; width: auto; overflow: visible; border-left: 0; border-top: 1px solid var(--bord); }
+  /* Une seule page, sans défilement : la scène tient entre la barre et le panneau bas (45 % de l'écran au plus ; replié : sa seule barre de titre). */
+  body.univers-ouvert { --bas-monde: 45dvh; --haut-monde: calc(var(--h-barre) + var(--barre-onglets, 61px)); }
+  body.univers-ouvert:has(.atelier-inspecteur.replie) { --bas-monde: 64px; padding-bottom: 64px; }
+  body.univers-ouvert #cadre-scene { height: calc(100vh - var(--haut-monde) - var(--bas-monde)); height: calc(100dvh - var(--haut-monde) - var(--bas-monde)); min-height: 0; }
   .univers-zone-carte { padding: var(--esp-2); }
-  .univers-image { max-height: 70vh; }
-  .univers-nom-monde { flex-basis: 100%; }
-  .univers-nom-monde select, .univers-nom-monde input[type="text"] { flex: 1 1 auto; }
-  .univers-notifications { left: 8px; right: 8px; top: auto; bottom: max(8px, env(safe-area-inset-bottom)); width: auto; }
-  body.univers-bulle-ouverte .univers-notifications { bottom: calc(var(--haut-bulle, 190px) + 8px); } /* au-dessus de la bulle du point */
-  /* Les lieux : un tiroir ouvert par le bouton « Lieux » au-dessus de la carte */
-  .univers-lieux-bouton { display: inline-flex; }
-  .univers-arbre { position: fixed; top: var(--decalage-univers, var(--h-barre)); bottom: 0; left: 0; z-index: 60; width: min(86vw, 340px); border-right: 1px solid var(--accent); box-shadow: 8px 0 24px rgba(0, 0, 0, .5); transform: translateX(-102%); visibility: hidden; transition: transform .18s, visibility .18s; }
-  .univers-arbre.ouvert { transform: none; visibility: visible; }
-  .univers-voile { position: fixed; top: var(--decalage-univers, var(--h-barre)); left: 0; right: 0; bottom: 0; z-index: 55; background: rgba(0, 0, 0, .5); }
-  .univers-voile:not([hidden]) { display: block; }
-  @media (prefers-reduced-motion: reduce) { .univers-arbre { transition: none; } }
-  /* La bulle du point devient un panneau fixe en bas d'écran ; la carte reste visible au-dessus (réserve sous le corps). */
-  .univers-bulle { position: fixed; left: 0; right: 0; bottom: 0; top: auto; width: auto; max-width: none; max-height: 60vh; z-index: 30; border-width: 1px 0 0; border-radius: var(--rayon) var(--rayon) 0 0; padding: var(--esp-3) var(--esp-4) max(var(--esp-3), env(safe-area-inset-bottom)); visibility: visible !important; }
-  body.univers-bulle-ouverte .univers-corps { padding-bottom: var(--haut-bulle, 190px); }
-  body.univers-bulle-ouverte .univers-scene { min-height: 0; }
-  body.univers-bulle-ouverte .univers-image { max-height: 50vh; }
-  #univers-bouton .libelle { display: none; }
+  /* La carte tient dans ce qui reste : la scène, moins le fil d'Ariane et la barre d'outils (une trentaine de px chacun en plus de leurs marges). */
+  .univers-image { max-height: calc(100vh - var(--haut-monde) - var(--bas-monde) - 128px); max-height: calc(100dvh - var(--haut-monde) - var(--bas-monde) - 128px); min-height: 120px; }
+  .univers-notifications { left: 8px; right: 8px; width: auto; transform: none; max-width: none; }
+  .barre-monde-titre .doux, .barre-lieu-aide { display: none; } /* la place va au nom du monde, à « Jouer ce monde » et aux trois outils */
   .univers-pastille { width: 26px; height: 26px; }
   .univers-vignette { width: 44px; height: 44px; }
   .univers-vignette.petite { width: 32px; height: 32px; }
-  .univers-arbre-bascule { width: 32px; }
-  .univers-arbre-ligne { min-height: 52px; }
-  .univers-segment-bouton, .univers-combo-bouton, .univers-ligne-destination select, .univers-bulle input[type="text"] { min-height: 44px; }
+  .univers-segment-bouton, .univers-combo-bouton, .univers-ligne-destination select, .univers-insp input[type="text"] { min-height: 44px; }
   .univers-interrupteur { min-height: 44px; }
-  /* Calage : la carte reste en haut de l'écran pendant qu'on règle les curseurs dessous, pour voir la grille bouger. */
-  .univers.en-calage .univers-scene { position: sticky; top: 0; z-index: 2; min-height: 0; background: var(--scene); border-bottom: 1px solid var(--bord); }
-  .univers.en-calage .univers-image { max-height: 38vh; }
-  .univers.en-calage .univers-fil { display: none; }
+  /* Le calage : la carte reste visible au-dessus pendant qu'on règle les curseurs dans le panneau bas. */
+  .univers-scene.en-calage .univers-fil { display: none; }
 }
 
 /* --- Régie de la Présentation : carte d'univers --- */

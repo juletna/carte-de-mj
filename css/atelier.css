@@ -70,16 +70,13 @@ body.atelier-avec-inspecteur { --largeur-inspecteur: 330px; }
 .atelier-onglet { flex: 1 1 0; min-width: 0; }
 .atelier-onglet[aria-selected="true"] { border-color: var(--accent); color: var(--accent); background: rgba(217, 169, 41, 0.16); font-weight: 600; }
 
-/* --- Ordinateur : le Monde (écran #univers) laisse l'arbre et l'inspecteur visibles --- */
+/* --- Ordinateur : l'arbre à gauche, l'inspecteur à droite (le Monde est une scène de l'atelier : css/univers.css) --- */
 @media not all and (max-width: 760px) { /* complément exact de (max-width: 760px) */
   .atelier-arbre { grid-column: 1; grid-row: 2 / 4; }
   body.arbre-replie .atelier-arbre { display: none; }
   .atelier-inspecteur { grid-column: 3; grid-row: 3; }
   .atelier-arbre-bouton { display: none; }
   body.arbre-replie .atelier-arbre-bouton { display: inline-flex; }
-  .univers { left: var(--largeur-arbre); right: var(--largeur-inspecteur); }
-  /* L'arbre de l'atelier remplace celui de l'écran Monde ; l'ancien tiroir « Lieux » n'a plus lieu d'être. */
-  .univers .univers-arbre, .univers .univers-lieux-bouton { display: none; }
 }
 
 /* --- Écran étroit (sous 760 px) : arbre en tiroir, inspecteur en panneau bas --- */

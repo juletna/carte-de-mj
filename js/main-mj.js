@@ -346,8 +346,7 @@ ctx.univers = creerUniversUI(ctx);
 /** Où va la scène quand l'arbre ou l'adresse changent : le Monde (écran #univers) ou une salle du Donjon. */
 function allerALaRoute(route) {
   if (route.page === 'monde') {
-    ctx.univers.ouvrir({ id: route.monde ?? null });
-    ctx.univers.allerALieu(route.lieu ?? null); // sans lieu : celui de départ
+    ctx.univers.ouvrir({ id: route.monde ?? null, lieu: route.lieu ?? null }); // sans lieu : celui de départ
     return;
   }
   const etaitMonde = ctx.univers.ouvert();
@@ -374,7 +373,11 @@ ctx.coquille = creerCoquille({
 });
 ctx.univers.surChangement(() => {
   if (!ctx.univers.ouvert()) { ctx.coquille.rafraichir(); return; }
-  ctx.coquille.positionner({ monde: ctx.univers.donnees().actif, lieu: ctx.univers.lieu() });
+  const { actif, univers } = ctx.univers.donnees();
+  const pos = ctx.coquille.position();
+  // Le nœud « monde » est choisi : la scène montre son lieu de départ, mais la position (et l'inspecteur du monde) restent au monde.
+  if (pos.monde === actif && !pos.lieu && !pos.donjon && ctx.univers.lieu() === (univers[actif]?.racine ?? ctx.univers.lieu())) { ctx.coquille.rafraichir(); return; }
+  ctx.coquille.positionner({ monde: actif, lieu: ctx.univers.lieu() });
 });
 inscrireDonjon(ctx.coquille, ctx);
 inscrireMonde(ctx.coquille, ctx);
