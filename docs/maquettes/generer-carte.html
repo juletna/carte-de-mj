@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Générer une carte · maquette</title>
+<title>Illustration par IA · maquette</title>
 <style>
-/* Maquette de la page Bibliothèque, volet « Générer une carte ». Les jetons reprennent css/base.css ;
+/* Maquette de la page Bibliothèque, volet « Créer une illustration ». Les jetons reprennent css/base.css ;
    le volet suit docs/design-panneaux.md (sections-accordéon, étiquettes T3, un seul primaire doré). */
 :root {
   color-scheme: dark;
@@ -154,7 +154,7 @@ h2 { font-size: 22px; }
 
 <header>
   <p class="sur">Maquette · 6 novembre 2026</p>
-  <h1>Bibliothèque : générer une carte</h1>
+  <h1>Bibliothèque : créer une illustration</h1>
   <p class="chapeau">Aujourd’hui, « Générer une carte… » déroule trois cartes empilées <em>au-dessus</em> de la bibliothèque et la repousse hors de l’écran. La proposition : un volet latéral qui prend la place de l’aperçu, avec les trois étapes en sections repliables, comme les inspecteurs de Monde et de Donjons.</p>
 </header>
 
@@ -197,7 +197,7 @@ h2 { font-size: 22px; }
     <div class="ecran-corps">
       <h4>Bibliothèque</h4>
       <p class="sous">Tes cartes illustrées, importées ou générées.</p>
-      <div class="rangee"><span class="btn">Importer une image…</span><span class="btn primaire" aria-pressed="true">+ Générer une carte…</span></div>
+      <div class="rangee"><span class="btn">Importer une image…</span><span class="btn primaire" aria-pressed="true">+ Créer une illustration…</span></div>
       <div class="bib" id="bib">
         <div style="display:flex;flex-direction:column;gap:12px;min-width:0">
           <div class="filtres"><span class="fake" style="flex:1;min-width:150px">Rechercher (titre, tag, milieu…)</span><span class="fake">Tous les niveaux</span></div>
@@ -209,18 +209,18 @@ h2 { font-size: 22px; }
             <div class="tuile"><div class="v v4"></div><span class="n">Marais de Brume</span><span class="s">Région</span></div>
             <div class="tuile"><div class="v v5"></div><span class="n">Forteresse naine</span><span class="s">Bâtiment</span></div>
             <div class="tuile"><div class="v v6"></div><span class="n">Désert des Os</span><span class="s">Région</span></div>
-            <div class="tuile" id="nouvelle" hidden><div class="v v1" style="filter:hue-rotate(40deg)"></div><span class="n">Clairière du sanctuaire</span><span class="s">Zone · nouvelle</span></div>
+            <div class="tuile" id="nouvelle" hidden><div class="v v1" style="filter:hue-rotate(40deg)"></div><span class="n">Clairière du sanctuaire</span><span class="s">Zone · Illustration IA</span></div>
           </div>
         </div>
 
-        <aside class="volet" aria-label="Générer une carte">
+        <aside class="volet" aria-label="Illustration par IA">
           <div class="volet-tete">
-            <div><div class="type">Génération</div><div class="nom">Nouvelle carte</div><div class="meta" id="meta">Brouillon enregistré dans ce navigateur</div></div>
+            <div><div class="type">Illustration par IA</div><div class="nom">Nouvelle illustration</div><div class="meta" id="meta">Brouillon enregistré dans ce navigateur</div></div>
             <button class="x" type="button" aria-label="Fermer">×</button>
           </div>
 
           <section class="sec ouverte" data-sec="1">
-            <button class="sec-bandeau" type="button"><span class="chev">▸</span><span class="etape">1</span>Décrire la carte<span class="pastille" id="p1">Zone · Dessin animé · 16:9</span></button>
+            <button class="sec-bandeau" type="button"><span class="chev">▸</span><span class="etape">1</span>Décrire l’illustration<span class="pastille" id="p1">Zone · Dessin animé · 16:9</span></button>
             <div class="sec-corps">
               <div class="champ"><label for="scene">Scène</label>
                 <textarea id="scene" rows="4" placeholder="Une clairière dans une forêt de chênes, avec un petit sanctuaire en ruine de 6 cases à l’est et un chemin de 2 cases qui la traverse du nord au sud."></textarea></div>
@@ -239,7 +239,7 @@ h2 { font-size: 22px; }
             <div class="sec-corps">
               <div class="prompt vide" id="prompt">Décris la carte à l’étape 1 pour voir le prompt.</div>
               <div class="ligne-copie"><button class="btn primaire" type="button" id="copier" disabled>Copier le prompt</button><button class="btn lien" type="button">Agrandir</button></div>
-              <p class="note">Colle-le dans ChatGPT, avec une de tes cartes réussies en référence pour garder le style.</p>
+              <p class="note">À coller dans ChatGPT ou un autre générateur d’images, avec une de tes cartes réussies en référence pour garder le style.</p>
             </div>
           </section>
 
@@ -259,7 +259,7 @@ h2 { font-size: 22px; }
       </div>
     </div>
   </div>
-  <p class="legende">À l’ouverture : « Générer » se met en surbrillance, le focus va dans le champ Scène, la grille reste où elle est. Au clic sur « Ajouter », le volet se ferme et la nouvelle carte est sélectionnée dans la grille (son aperçu reprend la colonne). Le brouillon (scène, niveau, style, format) est mémorisé dans le navigateur : si le MJ quitte la page pour ChatGPT, il retrouve le volet ouvert sur l’étape 3.</p>
+  <p class="legende">À l’ouverture : « Créer une illustration » se met en surbrillance, le focus va dans le champ Scène, la grille reste où elle est. Au clic sur « Ajouter », le volet se ferme et la nouvelle carte est sélectionnée dans la grille (son aperçu reprend la colonne). Le brouillon (scène, niveau, style, format) est mémorisé dans le navigateur : si le MJ quitte la page pour ChatGPT, il retrouve le volet ouvert sur l’étape 3.</p>
 </section>
 
 <!-- ============ Téléphone ============ -->
@@ -271,15 +271,15 @@ h2 { font-size: 22px; }
       <div class="tel">
         <div class="tel-corps">
           <h4 style="font-size:18px">Bibliothèque</h4>
-          <div class="rangee"><span class="btn">Importer…</span><span class="btn primaire">+ Générer</span></div>
+          <div class="rangee"><span class="btn">Importer…</span><span class="btn primaire">+ Créer</span></div>
           <div class="grille"><div class="tuile"><div class="v v1"></div><span class="n">Clairière</span></div><div class="tuile"><div class="v v2"></div><span class="n">Port</span></div></div>
         </div>
         <div class="fond-assombri"></div>
         <div class="tiroir">
           <div class="poignee"></div>
-          <div class="volet-tete" style="padding-top:8px"><div><div class="type">Génération</div><div class="nom">Nouvelle carte</div></div><button class="x" type="button">×</button></div>
+          <div class="volet-tete" style="padding-top:8px"><div><div class="type">Illustration par IA</div><div class="nom">Nouvelle illustration</div></div><button class="x" type="button">×</button></div>
           <div class="tiroir-defile">
-            <section class="sec ouverte"><button class="sec-bandeau" type="button"><span class="chev">▸</span><span class="etape">1</span>Décrire la carte</button>
+            <section class="sec ouverte"><button class="sec-bandeau" type="button"><span class="chev">▸</span><span class="etape">1</span>Décrire l’illustration</button>
               <div class="sec-corps">
                 <div class="champ"><label>Scène</label><textarea rows="4" placeholder="Une clairière dans une forêt de chênes…"></textarea></div>
                 <div class="champ"><label>Niveau</label><select><option>Zone</option></select></div>
@@ -298,6 +298,18 @@ h2 { font-size: 22px; }
       <div class="constat"><strong>Une étape à la fois</strong><span>Sur un petit écran, l’accordéon vaut mieux que tout empiler : on passe à l’étape 2 au clavier « Suivant » ou en touchant son bandeau.</span></div>
       <div class="constat"><strong>Reprise après ChatGPT</strong><span>Au retour dans l’onglet, le tiroir s’ouvre sur l’étape 3 grâce au brouillon mémorisé.</span></div>
     </div>
+  </div>
+</section>
+
+<!-- ============ Libellés ============ -->
+<section class="bloc">
+  <h2>Libellés retenus</h2>
+  <p class="intro">La fonction ne génère rien elle-même : elle compose un prompt, à coller dans un générateur d’images externe, puis importe le résultat. Le vocabulaire le dit.</p>
+  <div class="constats">
+    <div class="constat"><strong>Bouton</strong><span>« Créer une illustration… » (verbe, comme « Importer une image… »).</span></div>
+    <div class="constat"><strong>Titre du volet</strong><span>« Illustration par IA », étapes : Décrire l’illustration · Copier le prompt · Importer l’image.</span></div>
+    <div class="constat"><strong>Étiquette d’une carte obtenue</strong><span>« Illustration IA » (champ <code>origine</code>, identifiant <code>generee</code> inchangé).</span></div>
+    <div class="constat"><strong>Aide de l’étape 2</strong><span>« À coller dans ChatGPT ou un autre générateur d’images. »</span></div>
   </div>
 </section>
 
