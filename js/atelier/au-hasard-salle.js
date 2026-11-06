@@ -84,7 +84,7 @@ export function creerSectionAuHasard(ctx) {
 
     // Famille : « comme le donjon » quand les autres salles en ont, sinon le hasard.
     const presentes = famillesPresentes(typesDesAutresSalles(d, sel.id));
-    const famille = h('select', { 'aria-label': 'Famille de monstres' },
+    const famille = h('select', { 'aria-label': 'Type de monstres' },
       h('option', { value: '', textContent: presentes.length ? `Comme le donjon (${presentes.map((f) => FAMILLES[f].libelle).join(', ')})` : 'Au hasard' }),
       ...Object.entries(FAMILLES).map(([cle, f]) => h('option', { value: cle, textContent: f.libelle })));
     famille.value = reglages.famille;
@@ -114,7 +114,7 @@ export function creerSectionAuHasard(ctx) {
 
     const generee = dernier && dernier.salle === sel.id && s?.texte === dernier.texte ? dernier : null;
     const corps = [
-      h('label', { className: 'hasard-salle-champ' }, h('span', { className: 'hasard-salle-etiquette', textContent: 'Famille' }), famille),
+      h('label', { className: 'hasard-salle-champ' }, h('span', { className: 'hasard-salle-etiquette', textContent: 'Type de monstres' }), famille),
       champs, forme, aide,
     ];
     const bouton = h('button', { type: 'button', className: 'btn' }, icone('de'), 'Générer');

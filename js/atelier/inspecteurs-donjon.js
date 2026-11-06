@@ -9,7 +9,7 @@
  * qu'ils restent toujours dans la page (`$('description')` répond même quand un autre type est affiché). Le nom, lui, est le champ de
  * l'en-tête : il écrit dans `#salle-nom` / `#donjon-nom` (qui restent dans la réserve) et y déclenche « change ».
  *
- *   salle   « 9 × 12 m · pierre » ; Taille (L, H, forme), Apparence (sol, ambiance, état, éclairage), description (dictée, « Compris »), liaisons orphelines, notes, éléments (liste), exemples.
+ *   salle   « 9 × 12 m · pierre » ; Forme et dimensions (L, H, forme), Apparence (sol, ambiance, état, éclairage), description (dictée, « Compris »), liaisons orphelines, notes, éléments (liste), exemples.
  *           Au hasard (repliée, dé dans le bandeau) : remplit la salle de monstres, coffres, pièges et mobilier, sans toucher aux portes ni à la forme.
  *           « ⋯ » : plan JSON, signaler une erreur de lecture, — , supprimer la salle.
  *   donjon  « 3 salles · 2 personnages » ; les personnages (liste, ajouter, au hasard) et, repliée, l'échelle (m par case) avec le plein écran. Le rendu (thème, grille…) est le bouton « Affichage » de la barre.
@@ -166,7 +166,7 @@ export function enregistrerInspecteursDonjon(coquille, ctx) {
   inspecteur.enregistrer('salle', {
     titre: (sel) => donjonDe(sel).salles[sel.id]?.nom ?? 'Salle',
     renommer: renommerVia('salle-nom'),
-    etiquette: () => '', // l'onglet « Salle » au-dessus porte déjà l'icône et le mot ; la taille et le sol sont dans les sections Taille et Apparence
+    etiquette: () => '', // l'onglet « Salle » au-dessus porte déjà l'icône et le mot ; la taille et le sol sont dans les sections Forme et dimensions et Apparence
     rendre: (conteneur, sel) => {
       if (avanceDemande !== sel.id) avanceDemande = null;
       const salle = donjonDe(sel).salles[sel.id];
@@ -178,7 +178,7 @@ export function enregistrerInspecteursDonjon(coquille, ctx) {
       const notes = (salle?.notes ?? '').trim().replace(/\s+/g, ' ');
       const apercuNotes = notes ? (notes.length > 32 ? `${notes.slice(0, 31)}…` : notes) : 'vide';
       conteneur.append(
-        section('salle-taille', 'Taille', ['bloc-taille'], { repliee: true, apercu: apercuTaille }),
+        section('salle-taille', 'Forme et dimensions', ['bloc-taille'], { repliee: true, apercu: apercuTaille }),
         section('salle-apparence', 'Apparence', ['bloc-apparence'], { repliee: true, apercu: apercuApparence }),
         section('salle-description', 'Description', ['bloc-description', 'bloc-orphelines']),
         section('salle-notes', 'Notes du MJ', ['bloc-notes'], { repliee: true, apercu: apercuNotes }),
