@@ -11,7 +11,9 @@ import * as vectoriel from './themes/vectoriel.js';
 import { lettreColonne } from '../coordonnees.js';
 import { tracerSol } from './trace.js';
 import { MARGE, EPAISSEUR_MUR, rectPorte, rectDe } from './geometrie.js';
-import { TAILLE_PAR_DEFAUT } from '../affichage.js';
+import { TAILLE_PAR_DEFAUT, PENOMBRE_PAR_DEFAUT } from '../affichage.js';
+import { opaciteVoile, listeSources, animationPossible } from './lumiere.js';
+import { creerToile } from './toile.js';
 import { coucheDe, COUCHE_PAR_DEFAUT } from '../catalogue.js';
 
 // Ordre de dessin : ce qui est au sol d'abord, ce qui est accroché aux murs en dernier (la couche de chaque type est dans catalogue.js).
@@ -32,14 +34,19 @@ const GRILLE_TRAIT = 'rgba(0, 0, 0, 0.45)'; // lignes de la grille
  *          (0 : pas de grille). `true` garde le trait habituel du thème ; un nombre le règle (réglage « Cases »)
  *        relief = fausse 3D des murs vus du centre de la salle, pour les thèmes qui la savent (`theme.preparer`) ; les autres l'ignorent
  *        reperes = lettres et numéros dans la marge (par défaut : suit `grille`)
+ *        penombre = obscurité de la salle, 0–100 % (thème qui a `creerCouche`, c'est-à-dire peint ; défaut : PENOMBRE_PAR_DEFAUT)
+ *        vue = 'table' (pénombre pleine) ou 'mj' (Donjon, régie : une part seulement, le MJ voit tout ; défaut) ; voir lumiere.js
+ *        animer = à la table seulement : garde le décor dans un canevas et rend une scène dont `image(ms)` ne redessine que la lumière, les flammes, les pions et les marques
  *        marques = repères d'interface dessinés par-dessus (le thème en décide l'apparence) :
  *          portesReliees: [{mur, position}]            portes reliées à une autre salle
  *          selection: {genre, element}                 élément sélectionné (porte, objet ou créature)
  *          caseVisee: {x, y}                           case montrée par le MJ à la table (« c'est là que tu veux te mettre ? »)
  *        Les éléments `cache: true` (secrets) restent visibles dans la vue MJ : dessinés en
  *        translucide avec un repère en pointillés.
+ * @returns {{anime:boolean, image:(ms:number)=>void}} la scène : `anime` vrai quand il y a des flammes à animer (l'appelant appelle alors `image(ms)` à chaque image,
+ *          voir animation-carte.js), sinon le dessin est complet et `image` ne fait rien
  */
-export function dessiner(canvas, plan, { taille = TAILLE_PAR_DEFAUT, grille = true, theme = vectoriel, marques = {}, reperes = !!grille, relief = true } = {}) {
+export function dessiner(canvas, plan, { taille = TAILLE_PAR_DEFAUT, grille = true, theme = vectoriel, marques = {}, reperes = !!grille, relief = true, penombre = PENOMBRE_PAR_DEFAUT, vue = 'mj', animer = false } = {}) {
   const t = taille;
   const largeurPx = (plan.largeur + 2 * MARGE) * t;
   const hauteurPx = (plan.longueur + 2 * MARGE) * t;
@@ -55,13 +62,49 @@ export function dessiner(canvas, plan, { taille = TAILLE_PAR_DEFAUT, grille = tr
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, largeurPx, hauteurPx);
 
-  theme.preparer?.(ctx, plan, t, { relief }); // le fond de roche du thème peint est semé selon la salle
-  theme.roche(ctx, largeurPx, hauteurPx, t);
+  const options = { grille, reperes, theme, marques, relief };
+  if (typeof theme.creerCouche !== 'function') {
+    theme.preparer?.(ctx, plan, t, { relief }); // le fond de roche du thème peint est semé selon la salle
+    theme.roche(ctx, largeurPx, hauteurPx, t);
+    ctx.translate(MARGE * t, MARGE * t); // à partir d'ici, l'origine est le coin nord-ouest de la pièce
+    peindre(ctx, plan, t, options);
+    return SCENE_FIXE;
+  }
 
-  // À partir d'ici, l'origine est le coin nord-ouest de la pièce.
-  ctx.translate(MARGE * t, MARGE * t);
-  peindre(ctx, plan, t, { grille, reperes, theme, marques, relief });
+  // Thème avec lumière (peint) : décor, puis pénombre et flammes, puis pions et marques par-dessus.
+  const opacite = opaciteVoile({ penombre, eclairage: plan.eclairage, vue });
+  const salle = [dpr, 0, 0, dpr, MARGE * t * dpr, MARGE * t * dpr]; // matrice du repère de la salle
+  const hors = animer && vue === 'table' && animationPossible(canvas.width, canvas.height) ? creerToile(canvas.width, canvas.height) : null;
+  const cible = hors ? hors.getContext('2d') : ctx; // animé : le décor va dans un canevas gardé, recopié à chaque image
+  const decor = { ...options, flammes: !!hors };
+  cible.setTransform(dpr, 0, 0, dpr, 0, 0);
+  theme.preparer?.(cible, plan, t, { relief, flammes: !!hors });
+  theme.roche(cible, largeurPx, hauteurPx, t);
+  cible.translate(MARGE * t, MARGE * t);
+  peindreDecor(cible, plan, t, decor);
+  const sources = listeSources(theme.sources?.(), { largeur: plan.largeur * t, hauteur: plan.longueur * t, marge: MARGE * t });
+  const couche = opacite > 0 ? theme.creerCouche(hors || canvas, { ambiance: plan.ambiance }) : null; // copie du décor, avant les pions
+  const eclairer = (ms) => theme.eclairer(ctx, couche, { sources, opacite, ms, salle, anime: !!hors });
+  const dessus = () => {
+    ctx.setTransform(...salle);
+    theme.preparer(ctx, plan, t, { relief, flammes: !!hors }); // un autre dessin a pu changer l'état du thème depuis la dernière image
+    peindreDessus(ctx, plan, t, decor);
+  };
+  if (!hors) { eclairer(0); dessus(); return SCENE_FIXE; }
+  const image = (ms) => {
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = 1;
+    ctx.drawImage(hors, 0, 0);
+    eclairer(ms);
+    dessus();
+  };
+  image(0);
+  return { anime: sources.length > 0, image };
 }
+
+/** Une scène sans animation : tout est déjà dessiné. */
+const SCENE_FIXE = Object.freeze({ anime: false, image() {} });
 
 /**
  * Dessine une ou plusieurs cases d'une salle pour le papier : une « fenêtre » de cases entières, à l'échelle
@@ -101,8 +144,17 @@ export function dessinerFenetre(canvas, plan, { fenetre, bords, taille, debord =
  * Sol, objets, grille, murs, portes, pions et repères d'interface ; l'origine du contexte est le coin nord-ouest de la salle.
  * `relief` n'a de sens que pour un thème qui a `preparer` (peint) : il y règle la fausse 3D.
  */
-export function peindre(ctx, plan, t, { grille, reperes, theme, marques, relief = true }) {
-  theme.preparer?.(ctx, plan, t, { relief });
+export function peindre(ctx, plan, t, options) {
+  peindreDecor(ctx, plan, t, options);
+  peindreDessus(ctx, plan, t, options);
+}
+
+/** Les repères sont-ils dessinés après la lumière ? Oui pour un thème qui en a une (la pénombre les assombrirait dans la marge). */
+const reperesApresLumiere = (theme) => typeof theme.creerCouche === 'function';
+
+/** Le décor : sol, objets, grille, murs, portes (et repères pour un thème sans lumière). `flammes` : voir `preparer` du thème peint. */
+function peindreDecor(ctx, plan, t, { grille, reperes, theme, relief = true, flammes = false }) {
+  theme.preparer?.(ctx, plan, t, { relief, flammes });
   theme.sol(ctx, plan, t);
 
   // Un thème en fausse 3D (`preparer`) veut aussi le plus loin du centre d'abord, au sein d'une couche (voir ordonnerObjets).
@@ -113,9 +165,14 @@ export function peindre(ctx, plan, t, { grille, reperes, theme, marques, relief 
   auSol.forEach((o) => dessinerObjet(ctx, o, t, theme));
   if (grille) (theme.grille || dessinerGrille)(ctx, plan, t, grille === true ? undefined : grille);
   theme.murs(ctx, plan, t);
-  if (reperes) dessinerReperes(ctx, plan, t);
+  if (reperes && !reperesApresLumiere(theme)) dessinerReperes(ctx, plan, t);
   plan.portes.forEach((p) => secret(ctx, p.cache, rectPorte(plan, p), t, theme, () => theme.porte(ctx, p, plan, t), 'porte'));
   autres.forEach((o) => dessinerObjet(ctx, o, t, theme));
+}
+
+/** Ce qui passe par-dessus le décor (et la lumière) : repères de la marge (thème avec lumière), case visée, pions, puis les repères d'interface. */
+function peindreDessus(ctx, plan, t, { reperes, theme, marques }) {
+  if (reperes && reperesApresLumiere(theme)) dessinerReperes(ctx, plan, t);
   if (marques.caseVisee) dessinerCaseVisee(ctx, marques.caseVisee, t);
   // Les pions passent par-dessus tout le décor.
   (plan.creatures || []).forEach((k) => secret(ctx, k.cache, rectDe('creature', k), t, theme, () => theme.pion(ctx, k, t), 'creature'));

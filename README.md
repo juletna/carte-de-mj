@@ -42,7 +42,14 @@ Au-dessus de 760 px, ni la mise en page ni la carte ne changent. En dessous, le 
     on voit donc les faces des murs tournées vers le centre (trois assises de briques, ombrées par une lumière venue du nord-ouest) et leur dessus, presque noir. KP est calculé par salle
     pour que le décalage et l'épaisseur du mur tiennent dans la marge de roche ; sans relief, KP vaut 0 et la salle est vue à plat. Une salle non rectangulaire (croix, L, U…) suit le
     même principe, mur par mur.
-  - Ces trois réglages sont enregistrés (`theme`, `cases`, `relief`) dans `carte-de-mj:reglages-v1` seulement quand ils diffèrent du défaut, et transmis à la table avec l'affichage.
+  - **Pénombre** : l'obscurité de la salle à la table, de 0 à 100 % (45 % par défaut). Un voile (le décor multiplié par la couleur d'ambiance de la salle, neutre pour l'instant) est posé sur le décor,
+    percé d'un trou radial autour de chaque source de lumière (torche, autel…), avec un halo coloré ; les pions, la case montrée, les éléments secrets et les marques de sélection restent au-dessus
+    et lisibles. **La vue du MJ (Donjon et régie) n'en garde que 35 %** pour tout voir ; **la table a la pénombre pleine**. Le champ `eclairage` du plan, quand le schéma le connaîtra, multiplie la pénombre :
+    `eclairee` ×0,4, `penombre` ×1, `obscurite` ×1,6 (jamais plus de 95 % d'opacité). Un objet qui brûle déclare sa source avec `V.lumiere(x, y, h, { s, r, c, k, petite? })` (voir `themes/peint/volumes.js`).
+  - **Flammes animées** (case à cocher, oui par défaut) : à la table seulement, les flammes dansent et les lumières vacillent (environ 30 images par seconde). Le décor est dessiné une fois et gardé dans un canevas ;
+    chaque image ne redessine que la lumière, les flammes, les pions et les marques. L'animation s'arrête quand l'onglet est caché ou que la carte n'est plus affichée, avec `prefers-reduced-motion`,
+    quand la case est décochée et sur un canevas trop grand (plus de 12 millions de pixels) : les objets gardent alors leur petite flamme fixe. Le Donjon et la régie restent fixes.
+  - Ces réglages sont enregistrés (`theme`, `cases`, `relief`, `penombre`, `flammes`) dans `carte-de-mj:reglages-v1` seulement quand ils diffèrent du défaut, et transmis à la table avec l'affichage.
     Le décor d'une salle (décalage des textures, briques) est tiré d'une graine dérivée de son identifiant : la même salle a le même rendu à la régie et à la table, qui ne reçoit
     qu'une empreinte de l'identifiant, jamais l'identifiant lui-même.
 - **Taille de la carte** : réduite **par la taille de case** (jamais par `transform`) pour que la salle entière tienne dans la zone, entre 16 px et le réglage. Le réglage enregistré (`reglages.taille`, `calibre`, `modeTable`) n'est jamais modifié ; dans le Donjon, tant que « Calibrer avec une carte bancaire » est coché, c'est la taille réglée qui s'applique. La géométrie du pointeur suit la même taille.
@@ -167,7 +174,7 @@ Dans chaque salle, la description reste la seule référence (texte → plan →
   (elle n'efface jamais un texte : elle ne remet qu'une description que la salle a eue). Annuler le déplacement d'une porte
   reliée ramène aussi sa liaison. La pile d'une salle est vidée quand vous retapez son texte.
 - **Plusieurs donjons** : changer, créer, renommer, supprimer (deux clics). Tout est enregistré dans le navigateur :
-  `carte-de-mj:donjons-v1` (les donjons) et `carte-de-mj:reglages-v1` (échelle, taille des cases, grille, thème, relief). L'ancienne clé
+  `carte-de-mj:donjons-v1` (les donjons) et `carte-de-mj:reglages-v1` (échelle, taille des cases, grille, thème, relief, pénombre, flammes animées). L'ancienne clé
   `jdr-carte:v1` est migrée en un donjon d'une salle au premier lancement, et n'est jamais supprimée.
   Un donjon (ou un modèle) enregistré qui ne se relit pas, par exemple écrit par une version plus récente de l'outil, n'est jamais
   écrasé en silence : il est copié tel quel dans `carte-de-mj:mis-de-cote-v1` avant que le reste soit réécrit (une seule fois, même
@@ -286,8 +293,8 @@ ni de la Fiche ni d'un réseau, et n'exige de décrire quoi que ce soit : elle o
     relire de texte : les identifiants (pions, objets, portes), les numéros, les états et les liaisons (salle + mur + position) restent
     intacts. Le `texte` des salles de la copie est la description de préparation, figée au démarrage et non utilisée en partie (déplacer un
     pion ne le réécrit pas non plus) ; seule une salle créée en jeu reçoit un texte, écrit par `decrire(plan)`.
-- **Réglages** (`carte-de-mj:reglages-v1`, partagés avec le Donjon ; clés facultatives `reperes`, `calibre`, `modeTable`, `cases`, `theme`, `relief`) : taille d'une case
-  (le calibrage à la carte bancaire se fait dans le Donjon), thème, cases, relief (voir « Apparence de la carte »), repères, mode de taille de la table. « Adapter la carte de la régie à la fenêtre » ne change que la régie.
+- **Réglages** (`carte-de-mj:reglages-v1`, partagés avec le Donjon ; clés facultatives `reperes`, `calibre`, `modeTable`, `cases`, `theme`, `relief`, `penombre`, `flammes`) : taille d'une case
+  (le calibrage à la carte bancaire se fait dans le Donjon), thème, cases, relief, pénombre, flammes animées (voir « Apparence de la carte »), repères, mode de taille de la table. « Adapter la carte de la régie à la fenêtre » ne change que la régie.
 - **Carte plus grande que l'écran de la table** : la table défile à la molette ou au doigt, et la régie propose des flèches
   (« Faire défiler la vue table ») ; on peut aussi réduire la taille d'une case.
 
@@ -376,10 +383,11 @@ js/main-presentation.js  point d'entrée de presentation.html : la régie, ou la
 js/regie.js         régie : état, canal, sauvegarde, rendu, panneaux, plein écran ici, Échap ; racine de composition (DOM, stockage, BroadcastChannel)
 js/regie-depart.js  régie : liste des donjons et des parties, import d'un fichier, « Qui joue ? »
 js/regie-selection.js  régie : panneau Sélection (révéler, état d'un pion, passer une porte, créer la salle d'à côté)
-js/regie-reglages.js  régie : réglages (taille de case, thème, cases, relief, repères, mini-carte, mode de la table)
+js/regie-reglages.js  régie : réglages (taille de case, thème, cases, relief, pénombre, flammes, repères, mini-carte, mode de la table)
 js/reglages-rendu.js  les contrôles Thème, Cases et Relief, communs au Donjon et à la régie
 js/vue-table.js     fenêtre de table (?vue=table) : reçoit la régie par le canal, ne lit jamais les parties
-js/ecran-table.js   écran de table partagé par la fenêtre de table et « Plein écran ici » : un seul `appliquer`, boutons de coin, défilement
+js/ecran-table.js   écran de table partagé par la fenêtre de table et « Plein écran ici » : un seul `appliquer`, boutons de coin, défilement ; seule vue à pénombre pleine et flammes animées
+js/animation-carte.js  la boucle d'animation de la table (une seule, arrêtée quand la carte ne se voit pas ; prefers-reduced-motion)
 js/protocole-table.js  canal et messages régie ↔ table : fabrication côté régie, relecture et validation côté table (sans DOM)
 js/commande-table.js  quelle régie commande la table quand plusieurs sont ouvertes (pur, sans DOM)
 js/impression.js    découpage en pages A4, mesures de la feuille (aussi données au CSS), échelle, proposition de réduction et phrases de la page (pages voisines, proposition, feuille du MJ), versions MJ / joueurs (pur, sans DOM)
@@ -407,7 +415,7 @@ js/coordonnees.js   coordonnées de cases façon échecs (A1…), repère d'une 
 js/parseur/         index (chaîne d'analyse), normalisation, nombres, lexique (vocabulaire et index des mots), dimensions, positions, placement,
                     decrire (plan → texte), commandes (« ajoute trois gobelins » en cours de partie : pur, sans DOM)
 js/parseur/placement/  le détail de placement.js (qui orchestre) : grille (cases occupées, répartition), portes (mur d'entrée, portes), placeurs (une disposition par zone), journal (phrases du journal)
-js/rendu/           moteur Canvas (une salle ; `peindre`), plan.js (le plan complet du donjon : couloirs, ponts, cadres, noms ; s'appuie sur le moteur), géométrie (marge, épaisseur des murs, rectangle d'un élément, ancrage d'une porte : pur), trace.js (tracé Canvas du sol et des murs découpés), portraits de monstres, thème vectoriel, thème papier (impression) et thème peint (themes/peint.js, avec ses modules dans themes/peint/ : bruits, tuiles de sol, murs en segments, volumes en fausse 3D, objets, pions) ; perspective.js (calculs de la fausse 3D : KP, `haut`, repère local d'un objet ; pur) et graine.js (graine d'une salle)
+js/rendu/           moteur Canvas (une salle ; `peindre`), plan.js (le plan complet du donjon : couloirs, ponts, cadres, noms ; s'appuie sur le moteur), géométrie (marge, épaisseur des murs, rectangle d'un élément, ancrage d'une porte : pur), trace.js (tracé Canvas du sol et des murs découpés), portraits de monstres, thème vectoriel, thème papier (impression) et thème peint (themes/peint.js, avec ses modules dans themes/peint/ : bruits, tuiles de sol, murs en segments, volumes en fausse 3D, objets, pions) ; perspective.js (calculs de la fausse 3D : KP, `haut`, repère local d'un objet ; pur), lumiere.js (pénombre par vue et par éclairage, couleurs d'ambiance, liste des sources, vacillement ; pur), themes/peint/lumiere.js (dessin du voile, des halos et des flammes) et graine.js (graine d'une salle)
 tests/              un fichier de test par module (*.test.js), tous.js (la liste unique des suites, lue par node.mjs et tests.html),
                     mini-test.js (assertions et harnais communs), aides-partie.js (donjon et partie d'essai des tests de partie), phrases.js (phrases du parseur), references.js (empreintes de rendu
                     et de disposition, générées par regenerer-references.mjs)

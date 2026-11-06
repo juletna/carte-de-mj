@@ -252,8 +252,8 @@ const TESTS = [
   ['Thème et Relief : peint et relief par défaut, valeurs inconnues ignorées', () => {
     egal([themeDeReglages({}), themeDeReglages({ theme: 'vectoriel' }), themeDeReglages({ theme: 'pixel' }), themeDeReglages({ theme: 'papier' })], ['peint', 'vectoriel', 'peint', 'peint'], 'thème');
     egal([reliefDeReglages({}), reliefDeReglages({ relief: false }), reliefDeReglages({ relief: 0 })], [true, false, true], 'relief : seul faux l’éteint');
-    egal(optionsRendu({ grille: true, theme: 'vectoriel', relief: false, cases: 25 }), { grille: 0.25, theme: 'vectoriel', relief: false }, 'optionsRendu');
-    egal(optionsRendu({ grille: false }), { grille: 0, theme: 'peint', relief: true }, 'ancien réglage « sans grille »');
+    egal(optionsRendu({ grille: true, theme: 'vectoriel', relief: false, cases: 25 }), { grille: 0.25, theme: 'vectoriel', relief: false, penombre: 45, flammes: true }, 'optionsRendu');
+    egal(optionsRendu({ grille: false }), { grille: 0, theme: 'peint', relief: true, penombre: 45, flammes: true }, 'ancien réglage « sans grille »');
     egal(themeParNom('vectoriel'), THEMES.vectoriel, 'themeParNom');
     egal(themeParNom('inconnu'), THEMES.peint, 'thème inconnu : peint');
     egal(Object.keys(THEMES), ['peint', 'vectoriel'], 'les thèmes de l’écran');
@@ -273,7 +273,7 @@ const TESTS = [
     egal(a, { taille: 48, grille: true, reperes: true, mode: 'remplir', cases: 30, theme: 'vectoriel', relief: false }, 'tout réglé');
     egal(validerAffichage(a, AFFICHAGE_PAR_DEFAUT), { mode: 'remplir', taille: 48, grille: true, reperes: true, cases: 30, theme: 'vectoriel', relief: false }, 'aller-retour');
     egal(validerAffichage({ theme: 'x', cases: 'beaucoup', relief: 'non' }, AFFICHAGE_PAR_DEFAUT), { mode: 'remplir', taille: 48, grille: true, reperes: true }, 'valeurs invalides : le défaut');
-    egal(optionsRendu(a), { grille: 0.3, theme: 'vectoriel', relief: false }, 'ce que la table dessine');
+    egal(optionsRendu(a), { grille: 0.3, theme: 'vectoriel', relief: false, penombre: 45, flammes: true }, 'ce que la table dessine');
   }],
 
   // --- Dessin complet sur un contexte simulé ---------------------------------------------------------------
@@ -382,10 +382,12 @@ const TESTS = [
     egal(etat.lumieres, [], 'preparer vide les sources');
   }],
   ['peint : tant que les flammes ne sont pas animées par la couche de lumière, la torche dessine sa flamme ; ensuite non', () => {
-    const traces = () => { const { ctx, lignes } = ctxJournal(); THEMES.peint.preparer(ctx, rect(9, 7, { id: 'l' }), 48, { relief: true }); objetsPeints.torche(ctx, 48, 48, 48, { type: 'torche', x: 4, y: 0, rotation: 180 }); return lignes.length; };
-    const fixe = traces();
-    etat.flammesAnimees = true;
-    try { verifier(traces() < fixe, 'moins de tracés quand la flamme est animée ailleurs'); } finally { etat.flammesAnimees = false; }
+    const traces = (flammes) => { const { ctx, lignes } = ctxJournal(); THEMES.peint.preparer(ctx, rect(9, 7, { id: 'l' }), 48, { relief: true, flammes }); objetsPeints.torche(ctx, 48, 48, 48, { type: 'torche', x: 4, y: 0, rotation: 180 }); return lignes.length; };
+    const fixe = traces(false), animee = traces(true);
+    verifier(animee < fixe, 'moins de tracés quand la flamme est animée ailleurs');
+    verifier(etat.flammesAnimees === true, 'preparer pose etat.flammesAnimees');
+    THEMES.peint.preparer(ctxPermissif(), rect(9, 7, { id: 'l' }), 48, { relief: true });
+    verifier(etat.flammesAnimees === false, 'et le remet à faux au dessin suivant');
   }],
   ['peint : ordonner joue les pièces du plus loin au plus proche du centre ; face() ne voit que les faces tournées vers lui', () => {
     const vue = vueDeSalle(rect(10, 6), 40), V = creerVolumes(vue), vus = [];

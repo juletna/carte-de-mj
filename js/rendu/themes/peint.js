@@ -4,12 +4,16 @@
  * Il respecte le contrat des thèmes (voir vectoriel.js) et y ajoute :
  *   preparer(ctx, plan, t, {relief})      appelé par le moteur avant de dessiner une salle : calcule la vue (centre, KP) et la graine (peint/etat.js)
  *   grille(ctx, plan, t, opacite)         grille en pointillés, d'opacité réglable (0–1)
+ *   sources()                             les sources de lumière relevées pendant le dessin du décor (brutes : rendu/lumiere.js `listeSources` les nettoie)
+ *   creerCouche(decor, {ambiance})        la couche sombre d'un décor dessiné ; eclairer(ctx, couche, {…}) pose la lumière (peint/lumiere.js)
  *
  * Où se brancheront les lots suivants :
  *   - objets en fausse 3D (lot 2)  : peint/objets.js, avec `volumesLocaux(ctx)` (peint/volumes.js : haut, KP, prisme, cylindre, auNiveau) ; les pions à plat : peint/pions.js.
  *                                    Le moteur dessine les objets du plus loin au plus proche du centre (moteur.js : `ordonnerObjets`).
- *   - lumière et flammes (lot 3)   : une couche sombre posée par le moteur après `pions`. Les sources sont relevées pendant le dessin des objets dans `etat.lumieres`
- *                                    (un objet les déclare avec `V.lumiere(x, y, h, source)`, voir peint/volumes.js et peint/etat.js) ; `etat.flammesAnimees` éteint les flammes fixes.
+ *   - lumière et flammes (lot 3)   : peint/lumiere.js. Les sources sont relevées pendant le dessin des objets dans `etat.lumieres` (un objet les déclare avec
+ *                                    `V.lumiere(x, y, h, source)`, voir peint/volumes.js et peint/etat.js) ; le moteur les lit avec `sources()`, fabrique la couche sombre
+ *                                    (`creerCouche`) puis pose pénombre, halos et flammes (`eclairer`) entre le décor et les pions. `etat.flammesAnimees` (option `flammes`
+ *                                    de `preparer`) éteint les flammes fixes des objets quand `eclairer` dessine les siennes.
  *   - ambiance, état, éclairage (lot 4) : champs du plan lus par `preparer` (etat.ambiance, etat.etatSalle) et déjà dans la clé des tuiles de sol.
  *
  * Modules : peint/bruit.js (bruits), peint/sols.js (tuiles), peint/segments.js (murs en segments), peint/murs.js (murs, ombre, portes),
@@ -21,12 +25,14 @@ import { CASES_PAR_TUILE, calculerTuile, cleTuile, resolutionTuile } from './pei
 import { dessinerMurs, dessinerPorte, ombreAuPied } from './peint/murs.js';
 import { h2 } from './peint/bruit.js';
 import { graineDePlan } from '../graine.js';
+import { creerToile } from '../toile.js';
 import { etat } from './peint/etat.js';
 import * as vectoriel from './vectoriel.js';
 
 // Les objets et les pions sont ceux du thème peint (peint/objets.js, peint/pions.js) ; le repère de liaison reste celui du vectoriel.
 export { objets } from './peint/objets.js';
 export { pion } from './peint/pions.js';
+export { creerCouche, eclairer } from './peint/lumiere.js';
 export { marqueLiaison } from './vectoriel.js';
 
 const FOND_ROCHE = '#141316';
@@ -35,10 +41,10 @@ const GRILLE_PART = 0.7; // opacité du trait à 100 % du réglage « Cases » :
 
 /**
  * Prépare le dessin d'une salle : le centre de la vue, KP (0 sans relief), la graine tirée de l'identifiant de la salle, la matrice de base.
- * Appelée par le moteur avant `roche` puis au début de `peindre` (la matrice change entre les deux : la marge de roche).
- * @param {{relief?:boolean}} [options]
+ * Appelée par le moteur avant `roche` puis au début de `peindre` (la matrice change entre les deux : la marge de roche), et avant chaque image de l'animation.
+ * @param {{relief?:boolean, flammes?:boolean}} [options]  flammes = la couche de lumière dessine les flammes : les objets n'ont plus la leur
  */
-export function preparer(ctx, plan, t, { relief = true } = {}) {
+export function preparer(ctx, plan, t, { relief = true, flammes = false } = {}) {
   const m = ctx.getTransform?.();
   const valide = m && Number.isFinite(m.a);
   etat.base = valide ? { a: m.a, b: m.b, c: m.c, d: m.d, e: m.e, f: m.f } : IDENTITE;
@@ -51,18 +57,16 @@ export function preparer(ctx, plan, t, { relief = true } = {}) {
   etat.plan = plan;
   etat.t = t;
   etat.lumieres = [];
+  etat.flammesAnimees = flammes;
 }
+
+/** Les sources de lumière déclarées par les objets depuis le dernier `preparer`. */
+export const sources = () => etat.lumieres.slice();
 
 // --- Tuiles de sol --------------------------------------------------------------------------------------------
 
 const tuiles = new Map(); // clé de cache → canvas (ou null quand le navigateur ne sait pas en fabriquer : tests sous Node)
 const TUILES_MAX = 40;
-
-function creerCanvas(largeur, hauteur) {
-  if (typeof OffscreenCanvas !== 'undefined') return new OffscreenCanvas(largeur, hauteur);
-  if (typeof document !== 'undefined') { const c = document.createElement('canvas'); c.width = largeur; c.height = hauteur; return c; }
-  return null;
-}
 
 /** La tuile d'un sol pour des cases de `t` px, calculée une fois puis gardée. @returns {{canvas:object, cote:number}|null} */
 function tuile(nom, t) {
@@ -72,7 +76,7 @@ function tuile(nom, t) {
     if (tuiles.size >= TUILES_MAX) tuiles.delete(tuiles.keys().next().value);
     let canvas = null;
     const { cote, data } = calculerTuile(nom, resolution);
-    canvas = creerCanvas(cote, cote);
+    canvas = creerToile(cote, cote);
     if (canvas) {
       const g = canvas.getContext('2d'), img = g.createImageData(cote, cote);
       img.data.set(data);

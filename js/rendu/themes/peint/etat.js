@@ -12,8 +12,9 @@
  *   ambiance, etatSalle   neutre/froide/chaude/nuit et neuve/usee/ruine : champs du plan prévus pour le lot 4, valeurs neutres d'ici là
  *   lumieres sources de lumière relevées pendant le dessin des objets, vidées par `preparer` : { x, y, s, r, c, k, petite? } en pixels, dans le repère de la
  *            salle (origine : coin nord-ouest de la pièce) ; s = taille de la flamme, r = rayon de la lumière, c = 'r,g,b', k = intensité (0–1).
- *            Un objet les déclare avec `V.lumiere(x, y, h, source)` (volumes.js) ; le lot « lumière » les lit après avoir dessiné les objets.
- *   flammesAnimees  vrai quand la couche de lumière dessine elle-même les flammes (lot 3) : les objets ne dessinent alors plus leur petite flamme fixe
+ *            Un objet les déclare avec `V.lumiere(x, y, h, source)` (volumes.js) ; la couche de lumière (lumiere.js) les lit après avoir dessiné les objets.
+ *   flammesAnimees  vrai quand la couche de lumière dessine elle-même les flammes (lumiere.js, vue table animée) : les objets ne dessinent alors plus leur petite flamme fixe ;
+ *            posé par `preparer` (option `flammes`) à chaque dessin
  */
 import { IDENTITE } from '../../perspective.js';
 

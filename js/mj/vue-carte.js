@@ -59,8 +59,8 @@ export function creerVueCarte(ctx) {
     return tailleRemplir(plan, scene.clientWidth - retrait, scene.clientHeight - retrait) ?? r.taille;
   }
   const optionsDessin = (plan) => {
-    const { grille, theme, relief } = optionsRendu(r);
-    return { taille: tailleAffichee(plan), grille, theme: themeParNom(theme), relief, marques: marques(plan) };
+    const { grille, theme, relief, penombre } = optionsRendu(r);
+    return { taille: tailleAffichee(plan), grille, theme: themeParNom(theme), relief, penombre, vue: 'mj', marques: marques(plan) };
   };
 
   /** Dessine `plan` sur la carte sans rien enregistrer (aperçu d'un glissement), à la taille donnée ou à celle de l'affichage. */

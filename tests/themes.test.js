@@ -15,8 +15,8 @@ import { verifier, egal, executerSuite } from './mini-test.js';
 const THEMES = { vectoriel, papier, peint };
 /** Ce que le moteur appelle sans test préalable. */
 const FONCTIONS = ['roche', 'sol', 'murs', 'porte', 'pion', 'repereCache', 'marqueLiaison'];
-/** Facultatif : le moteur teste leur présence (`theme.grille || …`, `theme.marqueSelection?.(…)`, `theme.opaciteCache ?? 0.5`). */
-const FACULTATIFS = { vectoriel: ['marqueSelection'], papier: ['grille', 'opaciteCache'], peint: ['marqueSelection', 'grille', 'preparer'] };
+/** Facultatif : le moteur teste leur présence (`theme.grille || …`, `theme.marqueSelection?.(…)`, `theme.opaciteCache ?? 0.5`, `typeof theme.creerCouche`). */
+const FACULTATIFS = { vectoriel: ['marqueSelection'], papier: ['grille', 'opaciteCache'], peint: ['marqueSelection', 'grille', 'preparer', 'sources', 'creerCouche', 'eclairer'] };
 /** Les types qui ont un dessin : tous ceux du lexique, plus le repli des types inconnus. */
 const TYPES = [...OBJETS.map((o) => o.type), 'inconnu'];
 
@@ -59,6 +59,7 @@ const TESTS = [
     verifier(typeof papier.grille === 'function', 'papier : grille');
     verifier(typeof papier.opaciteCache === 'number', 'papier : opaciteCache');
     verifier(typeof peint.marqueSelection === 'function' && typeof peint.grille === 'function' && typeof peint.preparer === 'function', 'peint : marqueSelection, grille, preparer');
+    verifier(['sources', 'creerCouche', 'eclairer'].every((f) => typeof peint[f] === 'function'), 'peint : sources, creerCouche, eclairer (la lumière)');
   }],
   ['chaque objet du lexique a son dessin dans chaque thème, et rien d’autre', () => {
     for (const [nom, theme] of Object.entries(THEMES)) {

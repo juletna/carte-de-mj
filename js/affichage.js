@@ -16,6 +16,7 @@ import { MARGE } from './rendu/geometrie.js';
 export const MODES_TABLE = ['remplir', 'reel'];
 export const THEMES_RENDU = ['peint', 'vectoriel']; // l'apparence de la carte à l'écran (js/rendu/themes/) ; l'impression garde le papier
 export const THEME_PAR_DEFAUT = 'peint';
+export const PENOMBRE_PAR_DEFAUT = 45; // obscurité de la salle à la table, en % (la vue MJ n'en garde qu'une part : rendu/lumiere.js)
 export const CASES_PAR_DEFAUT = 40;    // opacité des lignes de case (en %) quand seul l'ancien réglage « grille » oui/non est enregistré
 export const TAILLE_PAR_DEFAUT = 48;   // px par case
 export const TAILLE_MIN = 16;          // plus petite case réglable ou affichée (une grande salle défile alors)
@@ -42,17 +43,26 @@ export const carteDeCalibrage = (taille, caseMm = CASE_MM_PAR_DEFAUT) => ({
 /** Cette opacité de la grille (« Cases », en pourcent) est-elle un entier de 0 à 100 ? */
 export const casesValides = (v) => Number.isInteger(v) && v >= 0 && v <= 100;
 
+/** Cette pénombre (en pourcent) est-elle un entier de 0 à 100 ? */
+export const penombreValide = (v) => Number.isInteger(v) && v >= 0 && v <= 100;
+
 /**
- * Les trois réglages du rendu de la carte, lus dans des réglages enregistrés OU dans un affichage de table (mêmes champs) :
+ * Les réglages du rendu de la carte, lus dans des réglages enregistrés OU dans un affichage de table (mêmes champs) :
  *  - Cases : l'opacité des lignes, en %. Le réglage `cases` l'emporte ; à défaut, l'ancien booléen `grille` (vrai : CASES_PAR_DEFAUT, faux : 0) ;
  *  - Thème : `theme` (peint par défaut) ;
- *  - Relief : la fausse 3D des murs, `relief` (oui par défaut).
+ *  - Relief : la fausse 3D des murs, `relief` (oui par défaut) ;
+ *  - Pénombre : `penombre`, de 0 à 100 % (PENOMBRE_PAR_DEFAUT) ;
+ *  - Flammes animées : `flammes`, oui par défaut (elles ne bougent qu'à la table).
  */
 export const casesDeReglages = (r = {}) => (casesValides(r.cases) ? r.cases : r.grille === false ? 0 : CASES_PAR_DEFAUT);
 export const themeDeReglages = (r = {}) => (THEMES_RENDU.includes(r.theme) ? r.theme : THEME_PAR_DEFAUT);
 export const reliefDeReglages = (r = {}) => r.relief !== false;
-/** Ce que le moteur attend (moteur.js `dessiner`) : { grille: opacité 0–1, theme: nom du thème, relief }. */
-export const optionsRendu = (r = {}) => ({ grille: casesDeReglages(r) / 100, theme: themeDeReglages(r), relief: reliefDeReglages(r) });
+export const penombreDeReglages = (r = {}) => (penombreValide(r.penombre) ? r.penombre : PENOMBRE_PAR_DEFAUT);
+export const flammesDeReglages = (r = {}) => r.flammes !== false;
+/** Ce que le moteur attend (moteur.js `dessiner`) : { grille: opacité 0–1, theme: nom du thème, relief, penombre: 0–100, flammes }. La vue (`vue`) et `animer` sont décidés par l'appelant. */
+export const optionsRendu = (r = {}) => ({
+  grille: casesDeReglages(r) / 100, theme: themeDeReglages(r), relief: reliefDeReglages(r), penombre: penombreDeReglages(r), flammes: flammesDeReglages(r),
+});
 
 /** Affichage de la table quand personne n'a rien envoyé : la taille par défaut, grille et repères, la salle qui remplit la fenêtre. */
 export const AFFICHAGE_PAR_DEFAUT = { taille: TAILLE_PAR_DEFAUT, grille: true, reperes: true, mode: 'remplir' };
@@ -91,13 +101,15 @@ export function tailleTable({ mode, plan, vue, taille }) {
 
 /**
  * L'affichage de la table tel que le décrivent des réglages enregistrés : { taille, grille, reperes, mode }, plus `cases` (si réglé), `theme`,
- * `relief`, `rotation`, `miroir` et `caseMm` seulement s'ils diffèrent du défaut. `calibrage` n'est jamais enregistré : la régie l'ajoute le temps du réglage.
+ * `relief`, `penombre`, `flammes` (faux), `rotation`, `miroir` et `caseMm` seulement s'ils diffèrent du défaut. `calibrage` n'est jamais enregistré : la régie l'ajoute le temps du réglage.
  */
 export const affichageDeReglages = (reglages) => ({
   taille: reglages.taille, grille: casesDeReglages(reglages) > 0, reperes: reglages.reperes !== false, mode: modeTable(reglages),
   ...(casesValides(reglages.cases) ? { cases: reglages.cases } : {}),
   ...(themeDeReglages(reglages) !== THEME_PAR_DEFAUT ? { theme: themeDeReglages(reglages) } : {}),
   ...(reglages.relief === false ? { relief: false } : {}),
+  ...(penombreValide(reglages.penombre) ? { penombre: reglages.penombre } : {}),
+  ...(reglages.flammes === false ? { flammes: false } : {}),
   ...(reglages.rotationTable ? { rotation: reglages.rotationTable } : {}),
   ...(reglages.miroirTable === true ? { miroir: true } : {}),
   ...(reglages.caseMm ? { caseMm: reglages.caseMm } : {}),
@@ -113,6 +125,8 @@ export const validerAffichage = (a, defaut) => ({
   ...(casesValides(a?.cases) ? { cases: a.cases } : {}),
   ...(THEMES_RENDU.includes(a?.theme) && a.theme !== THEME_PAR_DEFAUT ? { theme: a.theme } : {}),
   ...(a?.relief === false ? { relief: false } : {}),
+  ...(penombreValide(a?.penombre) ? { penombre: a.penombre } : {}),
+  ...(a?.flammes === false ? { flammes: false } : {}),
   ...(ROTATIONS_TABLE.includes(a?.rotation) && a.rotation ? { rotation: a.rotation } : {}),
   ...(a?.miroir === true ? { miroir: true } : {}),
   ...(caseMmValide(a?.caseMm) ? { caseMm: a.caseMm } : {}),

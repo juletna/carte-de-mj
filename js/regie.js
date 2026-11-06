@@ -264,9 +264,9 @@ export function demarrerRegie() {
 
   function dessinerRegie(plan) {
     const s = salleConsultee();
-    const { grille, theme, relief } = optionsRendu(r);
+    const { grille, theme, relief, penombre } = optionsRendu(r);
     dessiner($('carte'), pres.planRegie(plan, idsReveles(s.id)), {
-      taille: tailleRegie(s.plan), grille, theme: themeParNom(theme), relief, reperes: r.reperes !== false, marques: marques(plan),
+      taille: tailleRegie(s.plan), grille, theme: themeParNom(theme), relief, penombre, vue: 'mj', reperes: r.reperes !== false, marques: marques(plan),
     });
     marquerDefilement($('carte'), $('scene')); // écran étroit : une carte qui dépasse se fait défiler au doigt
   }

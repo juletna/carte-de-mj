@@ -5,10 +5,14 @@
  *
  * Ce qu'on lui donne est déjà filtré : le résultat de `lireEtat` (message reçu) ou, en plein écran ici, celui de vueTable()
  * et de miniPlanTable() relu par recevoirMiniPlan (voir vue-publique.js). Il ne lit ni le stockage ni les parties.
+ *
+ * C'est la seule vue où la lumière est pleine (pénombre du réglage) et où les flammes bougent (animation-carte.js) : `dessiner` reçoit `vue: 'table'`.
  */
 import { dessiner } from './rendu/moteur.js';
 import { themeParNom } from './rendu/themes/index.js';
 import { dessinerPlanDonjon } from './rendu/plan.js';
+import { animationActive } from './rendu/lumiere.js';
+import { creerAnimation, mouvementReduit } from './animation-carte.js';
 import { activerDeplacement } from './deplacement.js';
 import { AFFICHAGE_PAR_DEFAUT, CASE_MM_PAR_DEFAUT, optionsRendu, tailleTable, tailleQuiTientPlan, carteDeCalibrage, transformOrientation, versCarte } from './affichage.js';
 import { virgule } from './format.js';
@@ -24,6 +28,7 @@ const DUREE_COINS = 3500;
  */
 export function creerEcranTable({ affichage = { ...AFFICHAGE_PAR_DEFAUT }, surCoinsCaches } = {}) {
   const ecran = { plan: null, mini: null, caseVisee: null, affichage };
+  const animation = creerAnimation($('carte-table')); // une seule boucle, qui s'arrête quand la carte n'est plus affichée
 
   /** Côté de case à la table : « échelle réelle » = la taille calibrée, exacte ; « remplir » = calculé sur la fenêtre. */
   function tailleEcranTable() {
@@ -33,8 +38,14 @@ export function creerEcranTable({ affichage = { ...AFFICHAGE_PAR_DEFAUT }, surCo
 
   function optionsEcran(taille) {
     const { reperes } = ecran.affichage;
-    const { grille, theme, relief } = optionsRendu(ecran.affichage);
-    return { taille, grille, theme: themeParNom(theme), relief, reperes, marques: ecran.caseVisee ? { caseVisee: ecran.caseVisee } : {} };
+    const { grille, theme, relief, penombre, flammes } = optionsRendu(ecran.affichage);
+    const animer = animationActive({ vue: 'table', flammes, mouvementReduit: mouvementReduit() });
+    return { taille, grille, theme: themeParNom(theme), relief, penombre, vue: 'table', animer, reperes, marques: ecran.caseVisee ? { caseVisee: ecran.caseVisee } : {} };
+  }
+
+  /** Dessine la carte et confie la scène à la boucle d'animation (qui remplace la précédente). */
+  function dessinerCarte(plan, taille) {
+    animation.suivre(dessiner($('carte-table'), plan, optionsEcran(taille)));
   }
 
   /** Tourne ou retourne tout ce que voient les joueurs ; les boutons de coin restent à l'endroit. */
@@ -76,7 +87,7 @@ export function creerEcranTable({ affichage = { ...AFFICHAGE_PAR_DEFAUT }, surCo
     const mini = $('mini-table');
     mini.hidden = !ecran.plan || !ecran.mini;
     montrerCalibrage(ecran.affichage.taille);
-    if (!ecran.plan) return;
+    if (!ecran.plan) { animation.arreter(); return; }
     garderEveille();
     if (ecran.mini) {
       const { donjon, disposition, actif, portesFermees } = ecran.mini;
@@ -85,7 +96,7 @@ export function creerEcranTable({ affichage = { ...AFFICHAGE_PAR_DEFAUT }, surCo
     }
     const taille = tailleEcranTable();
     carte.dataset.taille = String(taille); // mesurable (tests, vérification) ; aucun secret
-    dessiner(carte, ecran.plan, optionsEcran(taille)); // aucun repère de liaison ni de sélection
+    dessinerCarte(ecran.plan, taille); // aucun repère de liaison ni de sélection
   }
 
   /**
@@ -117,7 +128,7 @@ export function creerEcranTable({ affichage = { ...AFFICHAGE_PAR_DEFAUT }, surCo
     activerDeplacement($('carte-table'), {
       plan: () => ecran.plan,
       taille: () => tailleEcranTable(),
-      apercu: (plan) => dessiner($('carte-table'), plan, optionsEcran(tailleEcranTable())),
+      apercu: (plan) => dessinerCarte(plan, tailleEcranTable()),
       deposer: (nouveau) => {
         const pion = nouveau.creatures.find((k, i) => k.x !== ecran.plan.creatures[i].x || k.y !== ecran.plan.creatures[i].y);
         if (pion) deplacer(pion.id, pion.x, pion.y);
