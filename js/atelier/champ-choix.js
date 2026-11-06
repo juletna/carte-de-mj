@@ -4,6 +4,7 @@
  * (ses écouteurs, ses valeurs, son remplissage) et sort de l'écran ; la rangée le reflète.
  *
  *   const champ = creerChampChoix({ select, detail: 'sol', couleurs?: { valeur: '#hex' }, miniature?: (valeur) => <canvas>|null, titre?: 'Sol' });   → { element, maj }
+ * `badge` : le nom d'une icône (js/icones.js) posée dans un coin de la miniature, pour que les rangées ne se ressemblent pas (le sol, l'ambiance, l'état et l'éclairage par défaut donnent la même pierre).
  * `miniature(valeur)` : un aperçu dessiné (un canvas) de ce choix ; sans elle, ou si elle ne rend rien, un carré de la couleur de `couleurs`.
  *
  * `maj()` relit la valeur du <select> ; elle est rappelée toute seule quand le <select> reçoit l'événement « synchro » (js/mj/salle-forme.js
@@ -11,12 +12,13 @@
  * Un clic ailleurs ou Échap referme le popover.
  */
 import { h } from '../dom.js';
+import { icone } from '../icones.js';
 
-export function creerChampChoix({ select, detail, couleurs = {}, miniature = null, titre = detail }) {
+export function creerChampChoix({ select, detail, couleurs = {}, miniature = null, badge = null, titre = detail }) {
   const apercu = (valeur) => {
     let dessin = null;
     try { dessin = miniature?.(valeur) ?? null; } catch (err) { console.error(`Miniature de « ${titre} » :`, err); } // une miniature ratée ne casse pas le champ
-    if (dessin) return h('span', { className: 'rang-aperce rang-rendu' }, dessin);
+    if (dessin) return h('span', { className: 'rang-aperce rang-rendu' }, h('span', { className: 'rang-cadre' }, dessin), ...(badge ? [h('span', { className: 'rang-badge', 'aria-hidden': 'true' }, icone(badge))] : []));
     const a = h('span', { className: 'rang-aperce rang-couleur' });
     if (couleurs[valeur]) a.style.background = couleurs[valeur];
     return a;

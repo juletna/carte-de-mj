@@ -272,3 +272,11 @@
 .hasard-salle-champ select { width: 100%; max-width: none; min-height: max(32px, var(--cible)); }
 .p-section-corps > .rang-interrupteur:disabled { opacity: 0.5; cursor: default; }
 .p-section-corps > .rang-interrupteur:disabled:hover { background: var(--p-surface-1); }
+
+/* Badge d'une miniature de salle (ambiance, état, éclairage) : un coin d'icône qui distingue les rangées. */
+.rang-rendu { position: relative; overflow: visible; }
+.rang-cadre { display: block; width: 100%; height: 100%; overflow: hidden; border-radius: 5px; } /* recadre la miniature, le badge dépasse */
+.rang-badge { position: absolute; right: -5px; bottom: -5px; display: grid; place-items: center; width: 18px; height: 18px; background: var(--p-surface-0); border: 1px solid var(--p-filet-fort); border-radius: 50%; color: var(--accent); }
+.rang-badge .icone { width: 11px; height: 11px; }
+canvas[data-cadrage="coin"] { transform-origin: 0 0 !important; transform: scale(1.7) !important; } /* l'état se lit sur un coin de mur : le sol seul ressemble au choix du sol */
+canvas[data-cadrage="plein"] { transform: none !important; }

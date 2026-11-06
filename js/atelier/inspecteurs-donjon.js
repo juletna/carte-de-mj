@@ -26,6 +26,7 @@ import { creerSectionAuHasard } from './au-hasard-salle.js';
 import { creerChampChoix } from './champ-choix.js';
 import { dessiner } from '../rendu/moteur.js';
 import { themeParNom } from '../rendu/themes/index.js';
+import { couleurAmbiance } from '../rendu/lumiere.js';
 import { libelleSelection, nomCase } from '../coordonnees.js';
 import { descripteur } from '../donjon.js';
 import { telephone } from '../telephone.js';
@@ -65,17 +66,40 @@ export function enregistrerInspecteursDonjon(coquille, ctx) {
 
   // Apparence de la salle : quatre rangées à popover (sol, ambiance, état, éclairage) devant les <select> d'origine, qui restent la source.
   const COULEURS_SOL = { pierre: '#55555c', bois: '#7a5a36', terre: '#6b4e35', sable: '#cdb98a', herbe: '#4f7a3f', marbre: '#d8d6d2', glace: '#a8d4e6' };
-  /** La miniature d'un choix : une petite salle de 4 × 4 dessinée par le vrai moteur (thème de l'utilisateur), avec ce seul réglage changé. */
+  /**
+   * La miniature d'un choix. Sol et état : une petite salle de 4 × 4 dessinée par le vrai moteur (thème de l'utilisateur), avec ce seul
+   * réglage changé (l'état cadré sur un coin de mur, pour ne pas ressembler au sol). Ambiance et éclairage : leur lumière dessinée seule
+   * (une lueur colorée, une intensité), car sur une pierre unique elles se voient à peine.
+   */
   const miniatureSalle = (champ) => (valeur) => {
-    const plan = { ...ctx.salle().plan, largeur: 4, longueur: 4, forme: 'rectangle', bras: undefined, position: undefined, portes: [], objets: [], creatures: [], [champ]: valeur };
     const canvas = document.createElement('canvas');
-    dessiner(canvas, plan, { taille: 14, grille: false, reperes: false, theme: themeParNom(etat.reglages.theme), details: etat.reglages.details, relief: etat.reglages.relief, vue: champ === 'eclairage' ? 'table' : 'mj' }); // à la table, la pénombre est pleine : c'est là que l'éclairage change quelque chose
     canvas.setAttribute('aria-hidden', 'true');
+    if (champ === 'ambiance' || champ === 'eclairage') {
+      const dpr = window.devicePixelRatio || 1, cote = 84;
+      canvas.width = canvas.height = Math.round(cote * dpr);
+      canvas.style.width = canvas.style.height = `${cote}px`;
+      const c = canvas.getContext('2d');
+      c.scale(dpr, dpr);
+      c.fillStyle = '#17161b';
+      c.fillRect(0, 0, cote, cote);
+      const [r, g, bl] = champ === 'ambiance' ? couleurAmbiance(valeur).map((v) => Math.min(255, Math.round(v * 1.8))) : [255, 226, 160]; // teintes du moteur, éclaircies : ce sont des lueurs faibles
+      const { rayon, alpha } = champ === 'ambiance' ? { rayon: 0.62, alpha: 0.95 } : ({ obscurite: { rayon: 0.16, alpha: 0.5 }, penombre: { rayon: 0.42, alpha: 0.75 }, eclairee: { rayon: 0.75, alpha: 1 } }[valeur] ?? { rayon: 0.4, alpha: 0.7 });
+      const lueur = c.createRadialGradient(cote / 2, cote / 2, 0, cote / 2, cote / 2, cote * rayon);
+      lueur.addColorStop(0, `rgba(${r}, ${g}, ${bl}, ${alpha})`);
+      lueur.addColorStop(1, `rgba(${r}, ${g}, ${bl}, 0)`);
+      c.fillStyle = lueur;
+      c.fillRect(0, 0, cote, cote);
+      canvas.dataset.cadrage = 'plein';
+      return canvas;
+    }
+    const plan = { ...ctx.salle().plan, largeur: 4, longueur: 4, forme: 'rectangle', bras: undefined, position: undefined, portes: [], objets: [], creatures: [], [champ]: valeur };
+    dessiner(canvas, plan, { taille: 14, grille: false, reperes: false, theme: themeParNom(etat.reglages.theme), details: etat.reglages.details, relief: etat.reglages.relief, vue: 'mj' });
+    if (champ === 'etat') canvas.dataset.cadrage = 'coin';
     return canvas;
   };
   const blocApparence = $('bloc-apparence');
-  blocApparence.append(...[['salle-sol', 'sol', 'Sol', 'sol', COULEURS_SOL], ['salle-ambiance', 'ambiance', 'Ambiance', 'ambiance'], ['salle-etat', 'état', 'État', 'etat'], ['salle-eclairage', 'éclairage', 'Éclairage', 'eclairage']]
-    .map(([id, detail, titre, champ, couleurs]) => creerChampChoix({ select: $(id), detail, titre, couleurs, miniature: miniatureSalle(champ) }).element));
+  blocApparence.append(...[['salle-sol', 'sol', 'Sol', 'sol', COULEURS_SOL, null], ['salle-ambiance', 'ambiance', 'Ambiance', 'ambiance', undefined, 'ambiance'], ['salle-etat', 'état', 'État', 'etat', undefined, 'etat'], ['salle-eclairage', 'éclairage', 'Éclairage', 'eclairage', undefined, 'eclairage']]
+    .map(([id, detail, titre, champ, couleurs, badge]) => creerChampChoix({ select: $(id), detail, titre, couleurs, badge, miniature: miniatureSalle(champ) }).element));
 
   const sectionAuHasard = creerSectionAuHasard(ctx); // « Au hasard » : le contenu (et la forme) de la salle, js/atelier/au-hasard-salle.js
   const donjonDe = (sel) => etat.donjons[sel.contexte?.donjon ?? sel.id] ?? ctx.donjon();
