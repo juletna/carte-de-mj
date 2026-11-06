@@ -10,8 +10,24 @@ const dossier = path.join(racine, 'bibliotheque');
 const fichierCatalogue = path.join(dossier, 'catalogue.json');
 function sortir(m) { console.error(m); process.exit(1); }
 
-const source = process.argv[2];
-if (!source) sortir('Usage : node outils/cartes/ajouter.mjs <entree.json | ->');
+const AIDE = `Ajoute une carte à bibliotheque/catalogue.json (le crée s'il manque, n'écrase rien).
+
+Usage : node outils/cartes/ajouter.mjs <entree.json | ->
+
+  <entree.json>   fichier JSON d'une entrée du catalogue (id, titre, fichier, largeur, hauteur, niveau, milieux, tags, description, grille…)
+  -               lit l'entrée sur l'entrée standard
+  --help, -h      cette aide
+
+L'image (bibliotheque/<fichier>) doit déjà exister ; un id déjà pris ou une entrée invalide est refusé avec ses raisons.
+
+Exemple :
+  node outils/cartes/ajouter.mjs entree.json`;
+const args = process.argv.slice(2);
+if (args.includes('--help') || args.includes('-h')) { console.log(AIDE); process.exit(0); }
+const inconnue = args.find((a) => a.startsWith('-') && a !== '-');
+if (inconnue) sortir(`Option inconnue : ${inconnue}\n\n${AIDE}`);
+const source = args[0];
+if (!source) sortir(`Il manque le fichier d'entrée.\n\n${AIDE}`);
 let entree;
 try {
   const texte = source === '-' ? await new Promise((ok) => { let t = ''; process.stdin.on('data', (d) => (t += d)).on('end', () => ok(t)); }) : await readFile(source, 'utf8');

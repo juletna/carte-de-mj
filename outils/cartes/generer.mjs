@@ -13,14 +13,37 @@ const FICHIER_STYLE = (style) => path.join(racine, '.claude/skills/generer-carte
 const TYPES = { '.png': 'image/png', '.webp': 'image/webp', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg' };
 const MAX_REFERENCES = 3;
 
-const { values: o } = parseArgs({ options: {
-  niveau: { type: 'string' }, scene: { type: 'string' }, id: { type: 'string' }, style: { type: 'string', default: 'peint-v1' },
-  ref: { type: 'string', multiple: true }, 'sans-reference': { type: 'boolean' }, format: { type: 'string', default: 'webp' },
-  qualite: { type: 'string', default: 'high' }, essai: { type: 'boolean' }, aide: { type: 'boolean' },
-} });
+const AIDE = `Génère une image de carte dans bibliotheque/cartes/ (gpt-image-1, clé dans OPENAI_API_KEY).
+
+Usage : node outils/cartes/generer.mjs --niveau <${NIVEAUX.join('|')}> --id <id> --scene "<description>" [options]
+
+Options :
+  --niveau <niveau>     niveau de la carte (obligatoire)
+  --id <id>             identifiant et nom de fichier : minuscules, chiffres, tirets (obligatoire)
+  --scene "<texte>"     ce que la carte montre, de préférence en anglais (obligatoire)
+  --ref <image>         image de référence de style, répétable (png, webp, jpg)
+  --sans-reference      ne pas utiliser bibliotheque/references/<style>/
+  --format webp|png     format de sortie (défaut : webp)
+  --style <nom>         fichier de style du skill (défaut : peint-v1)
+  --qualite <q>         qualité demandée à l'API (défaut : high)
+  --essai               montre la requête et le prompt sans appeler l'API
+  --help, -h            cette aide
+
+Exemple :
+  node outils/cartes/generer.mjs --niveau zone --id foret-ruines-01 --scene "forest clearing with a broken-column shrine" --essai`;
+
+let o;
+try {
+  ({ values: o } = parseArgs({ options: {
+    niveau: { type: 'string' }, scene: { type: 'string' }, id: { type: 'string' }, style: { type: 'string', default: 'peint-v1' },
+    ref: { type: 'string', multiple: true }, 'sans-reference': { type: 'boolean' }, format: { type: 'string', default: 'webp' },
+    qualite: { type: 'string', default: 'high' }, essai: { type: 'boolean' }, help: { type: 'boolean', short: 'h' }, aide: { type: 'boolean' },
+  } }));
+} catch (e) { console.error(`${/Unknown option '([^']+)'/.exec(e.message)?.[0].replace(/Unknown option '([^']+)'/, 'Option inconnue : $1') ?? e.message}\n\n${AIDE}`); process.exit(1); }
 
 function sortir(message) { console.error(message); process.exit(1); }
-if (o.aide || !o.niveau || !o.scene || !o.id) sortir(`Usage : node outils/cartes/generer.mjs --niveau <${NIVEAUX.join('|')}> --id <id> --scene "<description>" [--ref image]… [--sans-reference] [--format webp|png] [--style peint-v1] [--essai]`);
+if (o.help || o.aide) { console.log(AIDE); process.exit(0); }
+if (!o.niveau || !o.scene || !o.id) sortir(`Il manque --niveau, --id ou --scene.\n\n${AIDE}`);
 if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(o.id) || o.id.length > 64) sortir('id : minuscules, chiffres et tirets, 64 caractères au plus.');
 if (!['webp', 'png'].includes(o.format)) sortir('format : webp ou png.');
 
