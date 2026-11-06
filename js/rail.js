@@ -1,26 +1,22 @@
 /**
- * Rail d'outils du Donjon (à gauche, à la Canva) et panneau contextuel qui lui répond.
- *
- * Le rail est une colonne de boutons (`data-outil`, `aria-pressed`). Choisir un outil affiche son contenu dans le panneau :
- * les blocs du panneau portent `data-pour="outil1 outil2"` et sont masqués (`hidden`) quand ils ne concernent pas l'outil.
- * Sur ordinateur, cliquer l'outil déjà actif replie le panneau (la carte récupère la place) ; un autre clic le rouvre.
- * Sur téléphone, le rail devient une rangée dans l'onglet Texte : il n'offre que les outils de texte et ne replie rien.
- * Le dernier outil et l'état replié sont mémorisés (localStorage, jamais bloquant).
+ * Les outils de la barre d'outils de la scène du Donjon (js/atelier/barre-salle.js) : Portes, Mobilier et Créatures ouvrent le
+ * catalogue de vignettes (js/palette.js). L'ancien rail à gauche n'existe plus : Salle, Personnages, Notes, Salles et Réglages
+ * sont passés dans l'inspecteur (js/atelier/inspecteurs-donjon.js). Ne reste ici que la table des outils de catalogue et l'état
+ * mémorisé de l'ancien rail (`etatDepuis`, `outilAffiche`, gardés tels quels : testés dans tests/pose.test.js).
  */
 
 /**
- * Les outils du rail, dans l'ordre des boutons de donjon.html (`data-outil`). `titre` : celui du panneau. `catalogue` : l'outil montre
- * le catalogue de vignettes ; sur téléphone, il vit dans un tiroir de l'onglet Carte. Un test garde cette table et la page d'accord.
+ * Les outils de la barre, dans l'ordre des boutons. `titre` : celui du bouton ; `aide` : son infobulle ; `trace` : le dessin de son
+ * icône (intérieur d'un <svg viewBox="0 0 24 24">, trait de 1,7 px). `catalogue` : l'outil montre le catalogue de vignettes ; sur
+ * téléphone, ils passent tous par le bouton « + Ajouter » et le tiroir du bas. Un test garde cette table et la page d'accord.
  */
 export const OUTILS = [
-  { id: 'salle', titre: 'Salle' },
-  { id: 'portes', titre: 'Portes', catalogue: true },
-  { id: 'mobilier', titre: 'Mobilier', catalogue: true },
-  { id: 'creatures', titre: 'Créatures', catalogue: true },
-  { id: 'personnages', titre: 'Personnages' },
-  { id: 'notes', titre: 'Notes' },
-  { id: 'plan', titre: 'Salles' },
-  { id: 'reglages', titre: 'Réglages' },
+  { id: 'portes', titre: 'Portes', catalogue: true, aide: 'Portes, herses et arches',
+    trace: '<path d="M7 21V4.5a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1V21"/><path d="M4 21h16"/><circle cx="14.2" cy="12.5" r="0.9" fill="currentColor" stroke="none"/>' },
+  { id: 'mobilier', titre: 'Mobilier', catalogue: true, aide: 'Mobilier : coffres, tables, piliers…',
+    trace: '<path d="M3.5 10.5a8.5 5.5 0 0 1 17 0V19a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1z"/><path d="M3.5 14h17"/><rect x="10.5" y="12" width="3" height="4" rx="0.6"/>' },
+  { id: 'creatures', titre: 'Créatures', catalogue: true, aide: 'Créatures : monstres, peuples, personnage',
+    trace: '<circle cx="12" cy="7.5" r="3.5"/><path d="M6.5 20.5c0-4.2 2.4-7 5.5-7s5.5 2.8 5.5 7z"/>' },
 ];
 export const OUTILS_CATALOGUE = OUTILS.filter((o) => o.catalogue).map((o) => o.id);
 export const TITRES_OUTILS = Object.fromEntries(OUTILS.map((o) => [o.id, o.titre]));
@@ -40,72 +36,8 @@ export function etatDepuis(brut, valides) {
 
 /**
  * Outil réellement affiché : sur téléphone, un outil de catalogue n'a pas de panneau (il passe par le tiroir) ;
- * on montre alors l'outil par défaut dans l'onglet Texte.
+ * on montre alors l'outil par défaut.
  */
 export function outilAffiche(outil, surTelephone) {
   return surTelephone && OUTILS_CATALOGUE.includes(outil) ? OUTIL_DEFAUT : outil;
-}
-
-/**
- * @param {HTMLElement} nav  le rail (boutons `button[data-outil]`)
- * @param {{
- *   cle: string,                          clé du localStorage
- *   telephone: () => boolean,
- *   titres: Object<string,string>,        titre du panneau par outil
- *   onChange?: (etat: {outil: string, replie: boolean}) => void   après chaque changement (panneau déjà mis à jour)
- * }} options
- * @returns {{ choisir: (outil: string) => void, etat: () => {outil: string, replie: boolean}, appliquer: () => void }}
- */
-export function creerRail(nav, { cle, telephone, titres, onChange }) {
-  const boutons = [...nav.querySelectorAll('button[data-outil]')];
-  const valides = boutons.map((b) => b.dataset.outil);
-  let brut = null;
-  try { brut = localStorage.getItem(cle); } catch { /* stockage indisponible */ }
-  const etat = etatDepuis(brut, valides);
-  const titre = document.getElementById('panneau-titre');
-
-  function memoriser() {
-    try { localStorage.setItem(cle, JSON.stringify(etat)); } catch { /* le choix n'est pas retenu */ }
-  }
-
-  /** Montre le bon contenu et pose l'état sur la page (appelée aussi quand on passe de l'ordinateur au téléphone). */
-  function appliquer() {
-    const tel = telephone();
-    const affiche = outilAffiche(etat.outil, tel);
-    const replie = !tel && etat.replie;
-    for (const b of boutons) b.setAttribute('aria-pressed', String(b.dataset.outil === affiche && !replie));
-    for (const bloc of document.querySelectorAll('[data-pour]')) {
-      // Le catalogue (tiroir) n'est jamais masqué sur téléphone : le CSS l'affiche seulement quand il est ouvert.
-      const catalogue = bloc.dataset.pour.split(' ').some((o) => OUTILS_CATALOGUE.includes(o));
-      bloc.hidden = catalogue && tel ? false : !bloc.dataset.pour.split(' ').includes(affiche);
-    }
-    document.body.classList.toggle('panneau-replie', replie);
-    document.body.dataset.outil = affiche;
-    if (titre) titre.textContent = titres[affiche] || '';
-    onChange?.({ outil: affiche, replie });
-  }
-
-  function choisir(outil) {
-    if (!valides.includes(outil)) return;
-    if (!telephone() && outil === etat.outil && !etat.replie) etat.replie = true; // l'outil actif : on replie
-    else { etat.outil = outil; etat.replie = false; }
-    memoriser();
-    appliquer();
-  }
-
-  for (const b of boutons) b.addEventListener('click', () => choisir(b.dataset.outil));
-  // Flèches haut/bas (ou gauche/droite sur téléphone) : passe d'un outil à l'autre du rail, comme une barre d'outils.
-  nav.addEventListener('keydown', (e) => {
-    const sens = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 }[e.key];
-    if (!sens) return;
-    const visibles = boutons.filter((b) => b.offsetParent !== null);
-    const i = visibles.indexOf(document.activeElement);
-    if (i < 0) return;
-    e.preventDefault();
-    visibles[(i + sens + visibles.length) % visibles.length].focus();
-  });
-  document.getElementById('panneau-replier')?.addEventListener('click', () => { etat.replie = true; memoriser(); appliquer(); });
-
-  appliquer();
-  return { choisir, etat: () => ({ ...etat }), appliquer };
 }

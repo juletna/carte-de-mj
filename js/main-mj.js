@@ -1,8 +1,9 @@
 /**
  * Point d'entrée de la vue MJ (outil Donjon) : racine de composition. Elle garde l'état (`etat`), l'historique d'annulation, le
- * rendu (`rendre`), la navigation entre salles, la saisie de la description, les notes, le rail d'outils, les réglages, le micro
+ * rendu (`rendre`), la navigation entre salles, la saisie de la description, les notes, les réglages, le micro
  * et le démarrage ; le reste est dans les modules de js/mj/, des fabriques `creerX(ctx)` qui ne s'importent pas entre elles :
- * personnages-ui, salles-liste, menu-donjon, salle-forme, bulle, vue-carte, vue-plan et zoom.
+ * personnages-ui, salles-liste, menu-donjon, salle-forme, bulle, vue-carte, vue-plan et zoom. L'interface est l'atelier
+ * (js/atelier/ : arbre, scène sous sa barre d'outils, inspecteur) ; js/atelier/inscrire-donjon.js y branche le Donjon.
  *
  * Rappel : dans chaque salle, la description est la seule référence.
  * texte → analyser() → plan → carte et JSON. Aucune dépendance à un autre outil ni au réseau.
@@ -10,12 +11,11 @@
 import { analyser } from './parseur/index.js';
 import { disposerPlan, cleDisposition } from './plan-donjon.js';
 import { creerHistorique } from './historique.js';
-import { creerRail, OUTILS_CATALOGUE, TITRES_OUTILS } from './rail.js';
 import { creerMicro, voixDisponible } from './voix.js';
 import * as stockage from './stockage.js';
 import { decrire } from './parseur/decrire.js';
 import * as modele from './donjon.js';
-import { telephone, activerOnglets, LARGEUR_TELEPHONE } from './telephone.js';
+import { telephone, LARGEUR_TELEPHONE } from './telephone.js';
 import { creerPersonnages } from './mj/personnages-ui.js';
 import { creerSalles } from './mj/salles-liste.js';
 import { creerMenu } from './mj/menu-donjon.js';
@@ -89,7 +89,7 @@ function memoriser(idSalle = donjon().salleActive, liaisons = []) {
 
 // Contexte des modules mj/ : ils le lisent au moment de l'appel (jamais pendant leur création) et ne s'importent pas entre eux.
 // Ici ce que le tronc fournit ; les fonctions sont déclarées plus bas dans ce fichier. Chaque module qu'un autre appelle s'ajoute à
-// `ctx` sous son nom en le créant : `ctx.carte`, `ctx.bulle`, `ctx.zoom`, `ctx.plan`, `ctx.salles`, `ctx.menu`, puis `ctx.onglets`.
+// `ctx` sous son nom en le créant : `ctx.carte`, `ctx.bulle`, `ctx.zoom`, `ctx.plan`, `ctx.salles`, `ctx.menu`, puis `ctx.coquille` et `ctx.barre` (l'atelier).
 const ctx = { etat, donjon, salle, rendre, modifierPlan, annoncerCarte, deselectionner, sauvegarder, historique, activerSalle, afficherSalleActive, dispositionDuDonjon };
 
 // --- Rendu --------------------------------------------------------------------
@@ -190,7 +190,7 @@ function majAide() {
 
 /**
  * Affiche la salle active : description, notes, listes. À appeler après tout changement de salle ou de donjon.
- * Le panneau revient en haut ; une salle qui vient d'être créée donne le focus à sa description (sauf au doigt,
+ * L'inspecteur revient en haut ; une salle qui vient d'être créée donne le focus à sa description (sauf au doigt,
  * pour ne pas faire surgir le clavier, et sauf si le focus doit rester sur la mini-carte).
  */
 function afficherSalleActive() {
@@ -203,9 +203,9 @@ function afficherSalleActive() {
   ctx.menu.majDonjons();
   ctx.salles.majListe();
   generer();
-  $('panneau').scrollTo({ top: 0 });
+  ctx.coquille?.inspecteur.element.scrollTo?.({ top: 0 }); // l'inspecteur revient en haut
   ctx.menu.fermer();
-  if (!ctx.univers?.ouvert()) ctx.coquille?.positionner({ donjon: etat.actif, salle: donjon().salleActive }); // l'arbre et l'adresse suivent la salle
+  if (!ctx.univers?.ouvert()) ctx.coquille?.positionner(etat.plan ? { donjon: etat.actif } : { donjon: etat.actif, salle: donjon().salleActive }); // l'arbre et l'adresse suivent la salle (ou la vue d'ensemble)
   const nouvelle = etat.neuves.delete(salle().id);
   if (nouvelle && !garderMini && !matchMedia('(pointer: coarse)').matches) $('description').focus({ preventScroll: true });
 }
@@ -284,33 +284,25 @@ function annoncerCarte(texte, erreur = false, duree = erreur ? 4500 : 2500) {
   minuterieMessage = setTimeout(() => { zone.hidden = true; }, duree);
 }
 
-// --- Rail d'outils et panneau contextuel ---------------------------------------------------------------
-// Portes, Mobilier et Créatures montrent le catalogue (le groupe suit l'outil) ; les autres outils, leur bloc du panneau.
-// Cliquer l'outil actif replie le panneau : la scène grandit et l'observateur de taille réajuste la carte.
-const rail = creerRail($('rail'), {
-  cle: 'carte-de-mj:outil',
-  telephone,
-  titres: TITRES_OUTILS,
-  onChange: ({ outil }) => { if (OUTILS_CATALOGUE.includes(outil) && ctx.carte.palette.groupe() !== outil) ctx.carte.palette.afficherGroupe(outil); },
-});
-// Passage de l'ordinateur au téléphone (rotation, fenêtre redimensionnée) : le rail et le tiroir se remettent d'aplomb.
-matchMedia(`(max-width: ${LARGEUR_TELEPHONE}px)`).addEventListener('change', () => { ctx.carte.ouvrirTiroir(false); rail.appliquer(); });
+// Passage de l'ordinateur au téléphone (rotation, fenêtre redimensionnée) : le catalogue (colonne ou tiroir) se referme.
+matchMedia(`(max-width: ${LARGEUR_TELEPHONE}px)`).addEventListener('change', () => ctx.carte.ouvrirTiroir(false));
 
-// --- Menu du donjon (barre du haut) : donjons, fichiers, rapport (js/mj/menu-donjon.js) ---
+// --- Donjons neufs, fichiers, copies mises de côté : la feuille « Ajouter un donjon » (js/mj/menu-donjon.js) ---
 ctx.menu = creerMenu(ctx);
 
-// Échap, du plus proche au plus lointain : glisser en cours, menu ouvert, tiroir ouvert, élément armé, bulle ouverte.
+// Échap, du plus proche au plus lointain : glisser en cours, feuille ouverte, élément armé (ordinateur), catalogue ouvert, élément sélectionné.
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape' || e.defaultPrevented) return;
   if (ctx.carte.palette.annulerGlisser() || salleForme.annulerGlisserBord()) return;
-  if (ctx.menu.ouvert()) { ctx.menu.fermer(); $('menu-donjon-bouton').focus(); return; }
-  if (ctx.carte.tiroirOuvert()) { ctx.carte.ouvrirTiroir(false); $('ajouter').focus(); return; }
+  if (ctx.menu.ouvert()) { ctx.menu.fermer(); return; }
+  if (!telephone() && ctx.carte.palette.arme()) { ctx.carte.palette.desarmer(); return; } // le catalogue reste ouvert à côté de la carte
+  if (ctx.carte.tiroirOuvert()) { ctx.carte.ouvrirTiroir(false); ctx.barre.focusCatalogue(); return; }
   if (ctx.carte.palette.arme()) { ctx.carte.palette.desarmer(); return; }
   if (etat.selection) { deselectionner(); rendre(); return; }
   if (etat.plan) { ctx.plan.ouvrir(false); $('plan-bouton').focus(); }
 });
 
-// --- Salles : onglets, liste, liaisons orphelines, miniature du plan (js/mj/salles-liste.js) ---
+// --- Salles : nom, liaisons orphelines, miniature du plan, suppression (js/mj/salles-liste.js) ---
 ctx.salles = creerSalles(ctx); // la bulle appelle majListe
 
 // --- Micro --------------------------------------------------------------------
@@ -346,19 +338,11 @@ $('plein-ecran').addEventListener('click', () => $('scene').requestFullscreen?.(
 $('quitter-plein-ecran').addEventListener('click', () => document.exitFullscreen());
 document.addEventListener('fullscreenchange', () => { $('quitter-plein-ecran').hidden = !document.fullscreenElement; });
 
-// --- Écran étroit : onglets Texte / Carte ---------------------------------------------
-// La carte est redessinée (à la taille qui tient) quand on l'affiche ; quand la fenêtre change de taille ou de sens,
-// c'est l'observateur de la scène (plus haut) qui s'en charge.
-ctx.onglets = activerOnglets(document.querySelector('.onglets'), {
-  defaut: 'texte',
-  onChange: (nom) => { if (nom === 'carte' && $('scene').clientWidth) ctx.carte.redessiner(salle().plan); },
-});
-
 // --- Univers : cartes imbriquées, préparation (js/mj/univers-ui.js) ---
 ctx.univers = creerUniversUI(ctx);
 
 // --- Atelier : arbre unifié, sélection commune, inspecteur, adresse (js/atelier/coquille.js) ---
-// L'ancien rail et l'ancien panneau restent branchés ; les lots Donjon et Monde y inscrivent leurs inspecteurs (inscrire-donjon.js, inscrire-monde.js).
+// Les lots Donjon et Monde y inscrivent leurs inspecteurs, leur barre d'outils et leurs actions (inscrire-donjon.js, inscrire-monde.js).
 /** Où va la scène quand l'arbre ou l'adresse changent : le Monde (écran #univers) ou une salle du Donjon. */
 function allerALaRoute(route) {
   if (route.page === 'monde') {
@@ -375,7 +359,10 @@ function allerALaRoute(route) {
     etat.actif = d.id;
     if (route.salle && route.salle in d.salles) ctx.activerSalle(route.salle); else ctx.afficherSalleActive();
   }
-  if (!route.salle) ctx.coquille.positionner({ donjon: d.id }); // le nœud donjon de l'arbre, pas sa salle active
+  if (!route.salle) { // le nœud donjon de l'arbre : la vue d'ensemble, pas sa salle active
+    ctx.coquille.positionner({ donjon: d.id });
+    if (!etat.plan) ctx.plan.ouvrir(true);
+  }
 }
 ctx.coquille = creerCoquille({
   racine: $('atelier'), mode: 'preparer', scene: $('cadre-scene'), bouton: $('arbre-bouton'),
@@ -395,7 +382,7 @@ inscrireMonde(ctx.coquille, ctx);
 // --- Démarrage ----------------------------------------------------------------
 afficherSalleActive();
 ctx.coquille.naviguer(routeInitiale); // F5 retrouve le même nœud ; une adresse périmée retombe sur le donjon actif
-if (charge.miseDeCote) { // dit après le premier dessin : le bandeau de la carte est prêt, et l'avertissement reste aussi dans le panneau des fichiers
+if (charge.miseDeCote) { // dit après le premier dessin : le bandeau de la carte est prêt, et l'avertissement reste aussi dans la feuille « Ajouter un donjon »
   const phrase = stockage.phraseMiseDeCote(charge.miseDeCote);
   annoncerCarte(phrase, !charge.miseDeCote.ok, 15000);
   if (charge.miseDeCote.ok) ctx.menu.messageFichier(phrase); else ctx.menu.messageFichier('', [phrase]);

@@ -1,9 +1,12 @@
 /**
- * Le menu du donjon (barre du haut) : le choix, le nom et la suppression du donjon, un donjon neuf (vide, au hasard ou d'un modèle),
- * « Copier pour signaler », et les fichiers (exporter, importer, copier, coller, éditeur du plan JSON). Fabrique `creerMenu(ctx)` ;
- * `ctx` est celui de main-mj.js (`etat`, `donjon`, `salle`, `rendre`, `modifierPlan`, `annoncerCarte`, `historique`,
- * `afficherSalleActive`, `sauvegarder`, `plan`), lu au moment de l'appel. Renvoie `fermer`, `ouvert` (pour Échap), `majDonjons`
- * (à rappeler quand on change de donjon ou de salle) et `messageFichier` (l'avertissement du démarrage).
+ * Ce que faisait le menu du donjon (barre du haut), réparti dans l'atelier : le nom, l'export, la copie et la suppression du donjon
+ * sont dans l'inspecteur « donjon » (js/atelier/inspecteurs-donjon.js) ; un donjon neuf (vide, au hasard ou d'un modèle), l'import
+ * (fichier ou texte collé) et les copies mises de côté sont dans la feuille « Ajouter un donjon » (`#feuille-donjons`), qu'ouvre le
+ * « ⋯ » de l'arbre ; l'éditeur du plan JSON et « Copier pour signaler » sont dans l'inspecteur « salle » (bloc Avancé). Le choix du
+ * donjon est l'arbre. Fabrique `creerMenu(ctx)` ; `ctx` est celui de main-mj.js (`etat`, `donjon`, `salle`, `rendre`, `modifierPlan`,
+ * `annoncerCarte`, `historique`, `afficherSalleActive`, `sauvegarder`, `plan`, `coquille`), lu au moment de l'appel.
+ * Renvoie `fermer` et `ouvert` (la feuille, pour Échap), `ouvrir(section)`, `majDonjons` (à rappeler quand on change de donjon ou de
+ * salle), `messageFichier` (l'avertissement du démarrage), `exporter`, `copierDonjon`, `supprimerDonjon`, `annonceSuppression`, `nombreCopies`.
  */
 import { validerPlan } from '../schema.js';
 import { genererDonjon, BORNES, FAMILLES } from '../generateur.js';
@@ -23,36 +26,43 @@ export function creerMenu(ctx) {
   const afficherSalleActive = () => ctx.afficherSalleActive();
   const annoncerCarte = (...a) => ctx.annoncerCarte(...a);
 
-  // --- Menu du donjon (barre du haut) -------------------------------------------------------------------
-  function ouvrirMenu(ouvert) {
-    $('menu-donjon').hidden = !ouvert;
-    $('menu-donjon-bouton').setAttribute('aria-expanded', String(ouvert));
+  // --- La feuille « Ajouter un donjon » : nouveau, importer, coller, copies mises de côté ----------------------
+  let declencheur = null;
+  const feuilleOuverte = () => !$('feuille-donjons').hidden;
+  /** Ouvre la feuille ; `section` : 'nouveau' (par défaut), 'importer', 'coller' ou 'copies' (le bloc voulu est déplié et vu). */
+  function ouvrirFeuille(section = 'nouveau') {
+    if (!feuilleOuverte()) declencheur = document.activeElement;
+    $('feuille-donjons').hidden = false;
+    if (section === 'coller') $('donjon-colle').closest('details').open = true;
+    if (section === 'copies') $('copies').open = true;
+    const cible = { nouveau: 'nouveau-vide', importer: 'importer', coller: 'donjon-colle', copies: 'copies-titre' }[section] ?? 'nouveau-vide';
+    const el = section === 'importer' ? $('importer').closest('label') : $(cible);
+    if (section === 'importer') el.tabIndex = -1;
+    el.scrollIntoView?.({ block: 'nearest' });
+    el.focus?.();
   }
-  function fermerMenu() { ouvrirMenu(false); }
-  $('menu-donjon-bouton').addEventListener('click', () => ouvrirMenu($('menu-donjon').hidden));
-  document.addEventListener('pointerdown', (e) => {
-    if (!$('menu-donjon').hidden && !e.target.closest('.menu-donjon')) fermerMenu();
-  });
+  function fermerMenu() {
+    if (!feuilleOuverte()) return;
+    $('feuille-donjons').hidden = true;
+    if (declencheur?.isConnected) declencheur.focus();
+    declencheur = null;
+  }
+  $('feuille-fermer').addEventListener('click', fermerMenu);
+  $('feuille-donjons').querySelector('.feuille-voile').addEventListener('click', fermerMenu);
 
-  // --- Donjons : changer, nouveau, renommer, supprimer ------------------------------
+  // --- Donjons : nom, suppression ---------------------------------------------------
   function majDonjons() {
-    const choix = $('donjon-choix');
-    choix.replaceChildren(...Object.values(etat.donjons).map((d) => h('option', { value: d.id, textContent: d.nom, selected: d.id === etat.actif })));
-    choix.value = etat.actif;
-    $('donjon-nom').value = donjon().nom;
-    $('menu-donjon-nom').textContent = donjon().nom;
+    if (document.activeElement !== $('donjon-nom')) $('donjon-nom').value = donjon().nom;
     $('presenter').href = `presentation.html?donjon=${encodeURIComponent(etat.actif)}`;
+    ctx.coquille?.rafraichir();
   }
 
-  $('donjon-choix').addEventListener('change', (e) => {
-    if (!(e.target.value in etat.donjons)) return;
-    etat.actif = e.target.value;
-    afficherSalleActive();
-  });
   $('donjon-nom').addEventListener('change', (e) => {
     donjon().nom = e.target.value.trim().slice(0, 80) || donjon().nom;
+    e.target.value = donjon().nom;
     majDonjons();
     ctx.sauvegarder();
+    ctx.coquille?.rafraichir({ inspecteur: true }); // le titre de l'inspecteur suit le nom
   });
   // --- Nouveau donjon : vide, au hasard ou à partir d'un modèle ---
   function choixNouveau(quoi) {
@@ -61,19 +71,19 @@ export function creerMenu(ctx) {
     ouvrir('nouveau-modele', 'modeles', quoi === 'modele');
     if (quoi === 'modele') majModeles();
   }
+  /** Affiche le donjon `d` ; depuis l'écran Monde (qui peut recevoir un import), l'atelier y va aussi. */
+  function montrerDonjon(d) {
+    afficherSalleActive();
+    if (ctx.univers?.ouvert()) ctx.coquille.naviguer({ page: 'donjon', donjon: d.id, salle: d.salleActive });
+  }
   /** Le donjon neuf prend la place : il devient le donjon affiché, et le menu se referme sur lui. */
   function accueillirDonjon(d, { plan = true } = {}) {
     etat.donjons[d.id] = d;
     etat.actif = d.id;
-    afficherSalleActive();
+    montrerDonjon(d);
     if (plan) ctx.plan.ouvrir(true);
     fermerMenu();
   }
-  $('donjon-nouveau').addEventListener('click', () => {
-    const ouvert = $('nouveau').hidden;
-    $('nouveau').hidden = !ouvert;
-    $('donjon-nouveau').setAttribute('aria-expanded', String(ouvert));
-  });
   $('nouveau-vide').addEventListener('click', () => {
     const d = modele.creerDonjon({ nom: `Donjon ${Object.keys(etat.donjons).length + 1}`, echelle: r.echelle });
     etat.neuves.add(d.salleActive);
@@ -144,14 +154,15 @@ export function creerMenu(ctx) {
   });
 
   /** Ce que la confirmation annonce : le nom, le nombre de salles, et le sort d'une partie en cours. */
-  function annonceSuppressionDonjon() {
+  function annonceSuppression() {
     const d = donjon();
     const n = Object.keys(d.salles).length;
     const partie = d.id in stockage.chargerPresentations();
-    return `Supprimer « ${d.nom} » et ${n > 1 ? `ses ${n} salles` : 'sa salle'} ? Clique sur Confirmer dans les 4 secondes.`
-      + (partie ? ' La partie en cours reste disponible dans la Présentation.' : '');
+    return `Supprimer « ${d.nom} » et ${n > 1 ? `ses ${n} salles` : 'sa salle'} ?`
+      + (partie ? ' Sa partie en cours reste dans la Présentation.' : '');
   }
-  deuxTemps($('donjon-supprimer'), 'Supprimer ce donjon', 'Confirmer', () => {
+  /** Supprime le donjon affiché (le dernier est remplacé par un donjon vide) ; un autre s'affiche. L'inspecteur demande la confirmation. */
+  function supprimerDonjon() {
     ctx.historique.oublierDonjon(etat.actif);
     delete etat.donjons[etat.actif];
     if (!Object.keys(etat.donjons).length) {
@@ -160,7 +171,7 @@ export function creerMenu(ctx) {
     }
     etat.actif = Object.keys(etat.donjons)[0];
     afficherSalleActive();
-  }, { zone: $('donjon-confirmation'), texte: annonceSuppressionDonjon });
+  }
 
   // --- Copier pour signaler -----------------------------------------------------
   $('copier-rapport').addEventListener('click', async () => {
@@ -172,7 +183,6 @@ export function creerMenu(ctx) {
       message.textContent = 'Copié ! Colle-le dans ton message.';
     } catch {
       // Presse-papiers refusé (page non sécurisée…) : on montre le texte à copier à la main.
-      ouvrirMenu(true);
       for (let d = $('json').closest('details'); d; d = d.parentElement?.closest('details')) d.open = true;
       $('json').value = texte;
       $('json').select();
@@ -183,14 +193,19 @@ export function creerMenu(ctx) {
   });
 
   // --- Fichiers -----------------------------------------------------------------
-  $('exporter').addEventListener('click', () => stockage.exporterDonjon(donjon()));
+  const exporter = () => stockage.exporterDonjon(donjon());
 
+  /** Le retour d'un import ou d'une copie : dans la feuille, et sur la carte quand la feuille est fermée (jamais en HTML). */
   function messageFichier(texte, erreurs = []) {
     const ok = $('message-fichier'), ko = $('erreurs-fichier');
     ok.hidden = !texte;
     ok.textContent = texte || '';
     ko.hidden = erreurs.length === 0;
     ko.textContent = erreurs.join(' · '); // textContent : le contenu du fichier n'est jamais interprété comme du HTML
+    if (!feuilleOuverte()) {
+      if (erreurs.length) annoncerCarte(erreurs.join(' · '), true, 9000);
+      else if (texte) annoncerCarte(texte, false, 4500);
+    }
   }
 
   // --- Copies mises de côté : ce qui ne s'est pas relu, à récupérer (le bloc n'apparaît que s'il y en a) ---
@@ -223,7 +238,7 @@ export function creerMenu(ctx) {
     const d = resultat.donjon;
     etat.donjons[d.id] = d;
     etat.actif = d.id;
-    afficherSalleActive();
+    montrerDonjon(d);
     const n = Object.keys(d.salles).length;
     messageFichier(`Donjon « ${d.nom} » importé (${n} salle${n > 1 ? 's' : ''}).${resultat.avertissements.length ? ` À noter : ${resultat.avertissements.join(' · ')}` : ''}`);
     return true;
@@ -239,20 +254,20 @@ export function creerMenu(ctx) {
     }
   });
 
-  $('donjon-copier').addEventListener('click', async () => {
+  async function copierDonjon() {
     const texte = stockage.texteDonjon(donjon());
     try {
       await navigator.clipboard.writeText(texte);
       messageFichier('Donjon copié, notes et éléments cachés compris. Colle-le où tu veux.');
     } catch {
-      // Presse-papiers refusé (page non sécurisée…) : on montre le texte à copier à la main.
+      // Presse-papiers refusé (page non sécurisée…) : on montre le texte à copier à la main, dans la feuille.
       const zone = $('donjon-colle');
-      zone.closest('details').open = true;
+      ouvrirFeuille('coller');
       zone.value = texte;
       zone.select();
       messageFichier('Copie automatique impossible : le texte est sélectionné ci-dessous, fais Cmd+C. Notes et éléments cachés compris.');
     }
-  });
+  }
 
   $('donjon-coller').addEventListener('click', () => {
     const zone = $('donjon-colle');
@@ -288,5 +303,8 @@ export function creerMenu(ctx) {
     zone.textContent = erreurs.join(' · ');
   }
 
-  return { fermer: fermerMenu, ouvert: () => !$('menu-donjon').hidden, majDonjons, messageFichier };
+  return {
+    fermer: fermerMenu, ouvert: feuilleOuverte, ouvrir: ouvrirFeuille, majDonjons, messageFichier, exporter, copierDonjon,
+    supprimerDonjon, annonceSuppression, nombreCopies: () => stockage.misDeCote().length,
+  };
 }

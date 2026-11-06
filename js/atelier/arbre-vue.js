@@ -86,7 +86,7 @@ export function creerArbreVue({ mode = 'preparer', surChoix, pastille = null, ti
     filtre.hidden = total <= SEUIL_FILTRE && !filtreTexte;
     const forcer = !!filtreTexte.trim();
     const vue = filtrerAtelier(arbre, filtreTexte);
-    const ancetres = new Set(arbre.actif?.chemin ?? []);
+    const ancetres = new Set([...(arbre.actif?.chemin ?? []), ...(arbre.actif?.cle ? [arbre.actif.cle] : [])]); // le donjon choisi montre ses salles
     const tetes = [...vue.mondes.map((m) => noeud(m, 1, forcer, ancetres))];
     if (vue.horsMonde.enfants.length) tetes.push(noeud(vue.horsMonde, 1, forcer, ancetres));
     liste.replaceChildren(...tetes);
@@ -131,7 +131,7 @@ export function creerArbreVue({ mode = 'preparer', surChoix, pastille = null, ti
 
   /** `arbre` : le résultat d'`arbreAtelier` ; `actifCle` : le nœud à marquer (par défaut `arbre.actif.cle`). */
   function maj({ arbre, actifCle = arbre?.actif?.cle ?? null }) {
-    if (actifCle !== donnees.actifCle) for (const cle of arbre?.actif?.chemin ?? []) fermes.delete(cle); // aller quelque part déplie le chemin
+    if (actifCle !== donnees.actifCle) for (const cle of [...(arbre?.actif?.chemin ?? []), ...(actifCle ? [actifCle] : [])]) fermes.delete(cle); // aller quelque part déplie le chemin
     donnees = { arbre, actifCle };
     dessiner();
   }

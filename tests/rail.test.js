@@ -1,35 +1,47 @@
 /**
- * Tests de la table des outils du rail (js/rail.js) : les titres et le catalogue en dérivent, et la page donjon.html (boutons
- * `data-outil`, blocs `data-pour`) reste d'accord avec elle. Le reste du rail (état mémorisé) est testé dans pose.test.js.
- * Les pages sont lues par `lire(chemin)` (disque sous Node, fetch dans tests.html).
+ * Tests de la table des outils de la barre d'outils du Donjon (js/rail.js : Portes, Mobilier, Créatures) et de l'accord entre
+ * donjon.html et les modules qui le lisent : tout `$('identifiant')` cité par le tronc (main-mj.js), les modules de js/mj/ et ceux de
+ * l'atelier existe dans la page (un bloc déplacé ou retiré de donjon.html sans son code se voit ici, pas au navigateur).
+ * Le reste de l'ancien rail (état mémorisé) est testé dans pose.test.js. Les fichiers sont lus par `lire(chemin)` (disque sous Node, fetch dans tests.html).
  */
 import { OUTILS, OUTILS_CATALOGUE, TITRES_OUTILS } from '../js/rail.js';
 import { verifier, egal, executerSuite } from './mini-test.js';
 
+const MODULES = [
+  'js/main-mj.js', 'js/reglages-rendu.js', 'js/atelier/barre-salle.js', 'js/atelier/inspecteurs-donjon.js', 'js/atelier/inscrire-donjon.js',
+  'js/mj/bulle.js', 'js/mj/menu-donjon.js', 'js/mj/personnages-ui.js', 'js/mj/salle-forme.js', 'js/mj/salles-liste.js', 'js/mj/vue-carte.js',
+  'js/mj/vue-plan.js', 'js/mj/zoom.js',
+];
+
 export async function executer({ lire }) {
   const html = await lire('donjon.html');
   const ids = OUTILS.map((o) => o.id);
-  const boutons = [...html.matchAll(/<button\b[^>]*\bdata-outil="([^"]+)"/g)].map((m) => m[1]);
-  const blocs = [...html.matchAll(/\bdata-pour="([^"]+)"/g)].map((m) => m[1].split(/\s+/));
+  const idsPage = new Set([...html.matchAll(/\bid="([^"]+)"/g)].map((m) => m[1]));
+  const sources = {};
+  for (const m of MODULES) sources[m] = await lire(m);
 
   const TESTS = [
     ['les titres et le catalogue dérivent de la table des outils', () => {
       egal(Object.keys(TITRES_OUTILS), ids, 'un titre par outil, dans l’ordre');
-      verifier(ids.every((id) => TITRES_OUTILS[id]), 'chaque outil a un titre');
+      verifier(OUTILS.every((o) => o.titre && o.aide && o.trace), 'chaque outil a un titre, une infobulle et une icône');
       egal(OUTILS_CATALOGUE, ['portes', 'mobilier', 'creatures'], 'les outils du catalogue de vignettes');
       verifier(new Set(ids).size === ids.length, 'identifiants uniques');
     }],
-    ['donjon.html a un bouton par outil, dans l’ordre de la table', () => {
-      egal(boutons, ids, 'boutons data-outil de la page');
+    ['donjon.html : plus de rail ni de panneau, un catalogue, la barre d’outils et les blocs de l’inspecteur', () => {
+      verifier(!/data-outil=|data-pour=|id="rail"|id="panneau"|id="selection"|id="menu-donjon"/.test(html), 'aucun reste de l’ancien rail, du panneau, de la bulle ou du menu');
+      for (const id of ['palette', 'barre-donjon', 'barre-catalogue', 'reserve', 'feuille-donjons', 'cadre-scene', 'scene', 'carte', 'presenter', 'arbre-bouton']) verifier(idsPage.has(id), `#${id} est dans la page`);
+      for (const id of ['bloc-salle-nom', 'bloc-description', 'bloc-orphelines', 'bloc-notes', 'bloc-forme', 'bloc-exemples', 'bloc-avance', 'bloc-donjon-nom', 'bloc-plan', 'bloc-personnages', 'bloc-reglages']) verifier(idsPage.has(id), `le bloc #${id} est dans la page`);
     }],
-    ['les blocs du panneau ne citent que des outils connus, et chaque outil a son bloc', () => {
-      const cites = blocs.flat();
-      egal(cites.filter((id) => !ids.includes(id)), [], 'outils inconnus dans data-pour');
-      egal(ids.filter((id) => !cites.includes(id)), [], 'outils sans bloc dans le panneau');
+    ['les identifiants de la page sont uniques', () => {
+      const tous = [...html.matchAll(/\bid="([^"]+)"/g)].map((m) => m[1]);
+      egal(tous.filter((id, i) => tous.indexOf(id) !== i), [], 'identifiants en double');
     }],
-    ['le bloc du catalogue est celui des outils de catalogue', () => {
-      const bloc = blocs.find((b) => b.some((id) => OUTILS_CATALOGUE.includes(id)));
-      egal(bloc, OUTILS_CATALOGUE, 'data-pour du catalogue');
+    ['chaque $(\'identifiant\') cité par le tronc et les modules du Donjon existe dans donjon.html', () => {
+      const manques = [];
+      for (const [fichier, source] of Object.entries(sources)) {
+        for (const m of source.matchAll(/\$\('([a-z0-9-]+)'\)/g)) if (!idsPage.has(m[1])) manques.push(`${fichier} : #${m[1]}`);
+      }
+      egal([...new Set(manques)], [], 'identifiants cités mais absents de la page');
     }],
   ];
   return executerSuite('rail : ', TESTS);

@@ -14,37 +14,230 @@
   <link rel="stylesheet" href="css/atelier.css">
 </head>
 <body>
-  <!-- Barre de navigation commune (js/navigation.js), puis les commandes du donjon. Écran étroit (js/telephone.js, CSS sous
-       760 px) : la barre compacte reste en haut, et la barre du donjon porte les onglets Texte / Carte. -->
+  <!-- Barre de navigation commune (js/navigation.js), puis la barre du donjon : le bouton de l'arbre et « Jouer ». -->
   <header class="menu-site" data-navigation></header>
   <header id="barre">
+    <h1 class="cache-visuel">Donjon</h1>
     <!-- Arbre de l'atelier (js/atelier/coquille.js) : tiroir sous 760 px ; sur ordinateur, rouvre l'arbre quand il est replié. -->
     <button id="arbre-bouton" type="button" class="btn btn-icone btn-discret atelier-arbre-bouton" aria-label="Arbre" title="L'arbre : monde, lieux, donjons, salles"><span data-icone="menu"></span></button>
+    <a id="presenter" class="btn btn-primaire" href="presentation.html" title="Présente ce donjon : reprend sa partie en cours s'il en a une, sinon en commence une"><span data-icone="jouer"></span>Jouer</a>
+  </header>
 
-    <div class="onglets" role="group" aria-label="Afficher">
-      <button type="button" class="btn" data-onglet="texte" aria-pressed="true">Texte</button>
-      <button type="button" class="btn" data-onglet="carte" aria-pressed="false">Carte</button>
-      <button id="annuler-carte" type="button" class="btn btn-discret" hidden aria-label="Annuler" title="Annuler la dernière modification"><span data-icone="annuler"></span><span class="libelle">Annuler</span></button>
+  <!-- L'atelier (js/atelier/coquille.js) : la coquille ajoute la colonne de l'arbre au début et celle de l'inspecteur à la fin ;
+       au centre, la scène sous sa barre d'outils (js/atelier/barre-salle.js, qui y range #barre-donjon). -->
+  <div id="atelier" class="atelier">
+    <div id="cadre-scene">
+      <!-- La barre d'outils de la scène : js/atelier/barre-salle.js la range dans coquille.barreOutils. Écran étroit : « + Ajouter » ouvre le tiroir du catalogue. -->
+      <div id="barre-donjon" class="barre-donjon">
+        <div class="barre-groupe" id="barre-catalogue" role="group" aria-label="Ajouter à la carte">
+          <button id="ajouter" type="button" class="btn bouton-ajouter" aria-haspopup="dialog" aria-expanded="false" aria-controls="palette"><span data-icone="plus"></span>Ajouter</button>
+        </div>
+        <button id="pose-pastille" type="button" class="btn pose-pastille" hidden></button>
+        <div class="barre-groupe" role="group" aria-label="Salles">
+          <button id="salle-ajouter" type="button" class="btn btn-discret" title="Ajouter une salle isolée"><span data-icone="plus"></span><span class="libelle">Salle</span></button>
+          <button id="plan-bouton" type="button" class="btn btn-discret bouton-plan" aria-pressed="false" aria-controls="plan-donjon"
+            title="Voir tout le donjon d'un coup : les salles à leur vraie taille, reliées par des couloirs"><span data-icone="donjon"></span><span class="libelle">Vue d’ensemble</span></button>
+        </div>
+        <button id="annuler-carte" type="button" class="btn btn-discret" hidden title="Annuler la dernière modification de la carte (déplacement, ajout, suppression)"><span data-icone="annuler"></span><span class="libelle">Annuler</span></button>
+      </div>
+
+      <div id="zone-scene">
+        <!-- Catalogue de vignettes (js/palette.js) : Portes, Mobilier, Créatures. Ordinateur : colonne à gauche de la carte ; téléphone : tiroir du bas. -->
+        <section id="palette" class="catalogue" role="group" aria-label="Ajouter à la carte"></section>
+        <main id="scene">
+          <!-- Vue Plan (js/main-mj.js, ouvrirPlan) : remplace #support. La liste est cachée à l'œil mais atteignable au clavier. -->
+          <ul id="plan-salles" class="cache-visuel" aria-label="Salles du plan" hidden></ul>
+          <canvas id="plan-donjon" role="img" aria-label="Vue d’ensemble du donjon" hidden></canvas>
+          <div id="support">
+            <canvas id="carte" aria-label="Carte de la salle"></canvas>
+            <!-- Dimensions de la salle : glisser la bande d'un côté, ou ses boutons − et + (js/main-mj.js). -->
+            <div class="bord-salle" data-cote="nord" data-lettre="N"></div>
+            <div class="bord-salle" data-cote="sud" data-lettre="S"></div>
+            <div class="bord-salle" data-cote="ouest" data-lettre="O"></div>
+            <div class="bord-salle" data-cote="est" data-lettre="E"></div>
+          </div>
+          <button id="quitter-plein-ecran" type="button" class="btn" hidden><span data-icone="fermer"></span>Quitter le plein écran</button>
+        </main>
+      </div>
+
+      <!-- Hors de la scène qui défile : ces commandes restent au même endroit quand on fait défiler une carte zoomée. -->
+      <div id="zoom" class="flottant" role="group" aria-label="Zoom de la carte">
+        <button id="zoom-moins" type="button" class="btn btn-icone btn-discret" aria-label="Réduire la carte" title="Réduire"><span data-icone="moins"></span></button>
+        <output id="zoom-pct" aria-live="off" title="Taille de la carte par rapport à la taille réelle">100 %</output>
+        <button id="zoom-plus" type="button" class="btn btn-icone btn-discret" aria-label="Agrandir la carte" title="Agrandir"><span data-icone="plus"></span></button>
+        <button id="zoom-ajuster" type="button" class="btn btn-discret" title="La salle remplit la zone de carte">Ajuster</button>
+      </div>
+      <p id="message-carte" class="message-carte" role="status" hidden></p>
     </div>
 
-    <div class="menu-donjon">
-      <button id="menu-donjon-bouton" type="button" class="btn btn-discret" aria-haspopup="true" aria-expanded="false" aria-controls="menu-donjon"
-        title="Changer de donjon, le renommer, l'exporter, l'importer…">
-        <span data-icone="donjon"></span><span class="mot-donjon">Donjon</span> <strong id="menu-donjon-nom"></strong><span data-icone="chevron-bas"></span>
-      </button>
-      <div id="menu-donjon" class="menu-panneau" hidden>
-        <label for="donjon-choix">Changer de donjon</label>
-        <select id="donjon-choix"></select>
-        <label for="donjon-nom" class="doux">Renommer</label>
-        <input id="donjon-nom" type="text" maxlength="80" spellcheck="false">
+    <!-- Les blocs de l'inspecteur (js/atelier/inspecteurs-donjon.js) : rangés ici, hors écran, puis posés dans l'inspecteur selon la sélection. -->
+    <div id="reserve" hidden>
+      <div id="bloc-salle-nom" class="champ-inspecteur">
+        <label for="salle-nom">Nom de la salle</label>
+        <input id="salle-nom" type="text" maxlength="80" spellcheck="false">
+      </div>
+      <div id="bloc-description">
+        <section class="saisie">
+        <label for="description" class="cache-visuel">Description de la salle <span id="nom-salle-active"></span></label>
+        <textarea id="description" rows="4" spellcheck="false"
+          placeholder="Ex. : grande salle de 4 m par 12, quatre piliers, deux coffres au fond de la salle, une statue devant une porte"></textarea>
         <div class="actions">
-          <button id="donjon-nouveau" type="button" class="btn" aria-expanded="false" aria-controls="nouveau"><span data-icone="plus"></span>Nouveau donjon</button>
-          <button id="exporter" type="button" class="btn" title="Enregistre le donjon entier (salles, notes, liaisons, éléments cachés)"><span data-icone="exporter"></span>Exporter</button>
-          <label class="btn"><span data-icone="importer"></span>Importer <input id="importer" type="file" accept=".json,application/json" hidden></label>
-          <a id="donjon-imprimer" class="btn" href="impression.html" title="Plans de ce donjon à l'échelle des figurines, version MJ ou joueurs">Imprimer ce donjon</a>
-          <button id="donjon-copier" type="button" class="btn" title="Copie le donjon entier, à coller dans un message. Attention : les notes et les éléments cachés sont dedans."><span data-icone="copier"></span>Copier</button>
+          <button id="micro" type="button" class="btn" title="Dicter la description"><span data-icone="micro"></span>Dicter</button>
+          <button id="effacer" type="button" class="btn btn-discret">Effacer</button>
+          <button id="annuler" type="button" class="btn btn-discret" hidden title="Annule la dernière modification de la carte (déplacement, ajout, suppression)"><span data-icone="annuler"></span>Annuler</button>
         </div>
-        <section id="nouveau" class="nouveau" aria-label="Nouveau donjon" hidden>
+        <p id="message-micro" class="note" hidden></p>
+        <p id="aide-debut" class="note" hidden></p>
+      </section>
+        <section class="retour">
+        <h2>Compris</h2>
+        <ul id="compris"></ul>
+        <p id="ignores" class="note" hidden></p>
+      </section>
+      </div>
+      <div id="bloc-orphelines"><div id="orphelines" hidden></div></div>
+      <div id="bloc-notes" class="champ-inspecteur">
+        <label for="notes" class="outil-etiquette">Notes de la salle</label>
+        <textarea id="notes" rows="6" spellcheck="true"
+          placeholder="Secrets, pièges, trésors… Ces notes ne sont jamais réécrites par la description."></textarea>
+      </div>
+      <details id="bloc-forme" class="bloc-inspecteur" open>
+        <summary>Forme et ambiance</summary>
+        <section class="forme-salle" aria-labelledby="titre-forme">
+        <h3 id="titre-forme">Forme</h3>
+        <div id="formes" class="formes" role="group" aria-labelledby="titre-forme"></div>
+        <div id="forme-reglages" class="forme-reglages" hidden>
+          <label class="ligne" id="forme-ligne-bras"><span id="forme-nom-bras">Épaisseur des bras</span>
+            <span><input id="forme-bras" type="range" min="1" max="4" step="1" value="1"> <output id="forme-bras-val">1</output></span>
+          </label>
+          <label class="ligne" id="forme-ligne-position"><span id="forme-nom-position">Position</span>
+            <select id="forme-position"></select>
+          </label>
+        </div>
+        <p id="forme-compte" class="note"></p>
+        <label class="ligne" for="salle-sol">Sol
+          <select id="salle-sol"></select>
+        </label>
+        <label class="ligne" for="salle-ambiance">Ambiance
+          <select id="salle-ambiance"></select>
+        </label>
+        <label class="ligne" for="salle-etat">État
+          <select id="salle-etat"></select>
+        </label>
+        <label class="ligne" for="salle-eclairage">Éclairage
+          <select id="salle-eclairage"></select>
+        </label>
+      </section>
+      </details>
+      <div id="bloc-exemples">
+        <details class="exemples">
+        <summary>Exemples</summary>
+        <ul id="exemples"></ul>
+      </details>
+      </div>
+      <details id="bloc-avance" class="bloc-inspecteur">
+        <summary>Avancé : plan JSON, signaler une erreur</summary>
+        <textarea id="json" rows="10" spellcheck="false" aria-label="Plan JSON de la salle (modifiable)"></textarea>
+        <div class="actions"><button id="appliquer-json" type="button" class="btn">Appliquer le JSON</button></div>
+        <p id="erreurs-json" class="note erreur" hidden></p>
+        <div class="actions">
+          <button id="copier-rapport" type="button" class="btn btn-discret"
+            title="Copie la description, ce qui a été compris, les mots ignorés et la carte en texte, à coller dans ton message"><span data-icone="copier"></span>Copier pour signaler une erreur de lecture</button>
+        </div>
+        <p id="message-copie" class="note" hidden></p>
+      </details>
+
+      <div id="bloc-donjon-nom" class="champ-inspecteur">
+        <label for="donjon-nom">Nom du donjon</label>
+        <input id="donjon-nom" type="text" maxlength="80" spellcheck="false">
+      </div>
+      <section id="bloc-plan" class="bloc-inspecteur" aria-labelledby="titre-plan">
+        <h3 id="titre-plan">Salles</h3>
+        <div id="minicarte" class="minicarte" role="region" aria-label="Vue d’ensemble du donjon"></div>
+        <p id="aide-salles" class="note"></p>
+        <button id="plan-complet" type="button" class="btn btn-discret" title="Voir tout le donjon d'un coup, les salles à leur vraie taille">Voir la vue d’ensemble</button>
+      </section>
+      <section id="bloc-personnages" class="bloc-inspecteur" aria-labelledby="titre-personnages">
+        <h3 id="titre-personnages">Personnages</h3>
+        <div class="personnages">
+          <div class="ligne-aide">
+            <p class="note">Les fiches de ce donjon.</p>
+            <details class="aide"><summary class="btn btn-icone btn-discret" aria-label="Aide : les fiches du donjon">?</summary><div class="aide-texte">Ce sont des copies, qui partent avec le donjon quand tu l'exportes. Les joueurs ne les voient jamais à la table.</div></details>
+          </div>
+          <ul id="personnages-liste" class="fiches"></ul>
+          <p id="personnages-vide" class="note" hidden>Aucune fiche pour l'instant.</p>
+          <div class="ligne-ajout">
+            <label for="personnages-locales">Fiches de ce navigateur</label>
+            <select id="personnages-locales"></select>
+            <div class="actions">
+              <button id="personnages-ajouter" type="button" class="btn">Ajouter</button>
+              <button id="personnages-actualiser" type="button" class="btn btn-discret" title="Recopie les fiches encore présentes dans ce navigateur">Actualiser</button>
+              <label class="btn"><span data-icone="importer"></span>Depuis un fichier <input id="personnages-fichier" type="file" accept=".json,application/json" hidden></label>
+            </div>
+          </div>
+          <p id="personnages-message" class="note" role="status" hidden></p>
+          <div class="actions">
+            <button id="personnages-hasard" type="button" class="btn btn-discret" aria-pressed="false" aria-controls="fiche-hasard"><span data-icone="de"></span>Au hasard</button>
+          </div>
+          <div id="fiche-hasard" class="hasard" hidden>
+            <p class="note">Tirage aux règles de D&amp;D 2014.</p>
+            <div class="hasard-nombres">
+              <label>Nombre de fiches <input id="fiche-hasard-nombre" type="number"></label>
+              <label>Niveau <input id="fiche-hasard-niveau" type="number"></label>
+              <label>Classe <select id="fiche-hasard-classe"></select></label>
+              <label>Race <select id="fiche-hasard-race"></select></label>
+            </div>
+            <label class="hasard-tirage">Numéro de tirage <span class="doux">(vide : un nouveau à chaque fois)</span> <input id="fiche-hasard-graine" type="number" min="1" max="999999" step="1"></label>
+            <div class="actions">
+              <button id="fiche-hasard-generer" type="button" class="btn">Générer</button>
+              <button id="fiche-hasard-garder" type="button" class="btn btn-discret" hidden>Garder</button>
+            </div>
+            <p id="fiche-hasard-message" class="note" role="status" hidden></p>
+          </div>
+          <div class="ligne-aide">
+            <p class="note">Les fiches se créent dans <a href="fiche.html">l'outil Fiche</a>, ou ici au hasard.</p>
+            <details class="aide"><summary class="btn btn-icone btn-discret" aria-label="Aide : la fiche d'un joueur">?</summary><div class="aide-texte">Celle d'un joueur sur son téléphone : il l'exporte, tu ajoutes le fichier.</div></details>
+          </div>
+        </div>
+      </section>
+      <section id="bloc-reglages" class="bloc-inspecteur" aria-labelledby="titre-reglages">
+        <h3 id="titre-reglages">Affichage</h3>
+        <div class="reglages">
+          <label class="ligne">Échelle
+            <span><input id="echelle" type="number" min="0.5" max="5" step="0.5" value="1.5"> m par case</span>
+          </label>
+          <label class="ligne">Thème
+            <select id="theme"><option value="peint">Peint</option><option value="vectoriel">Vectoriel</option></select>
+          </label>
+          <label class="ligne" title="Sols dessinés et détaillés, ou sols simples (thème peint).">Détails des sols
+            <select id="details"><option value="riches">Riches</option><option value="sobres">Sobres</option></select>
+          </label>
+          <label class="ligne" title="Opacité des lignes de la grille : 0 % les cache.">Grille
+            <span><input id="cases" type="range" min="0" max="100" step="5" value="60"> <output id="cases-val">60 %</output></span>
+          </label>
+          <label class="ligne case"><input id="relief" type="checkbox" checked> Relief des murs</label>
+          <label class="ligne" title="Obscurité de la salle à la table. La vue du MJ (ici) n'en garde qu'une part, pour tout voir.">Pénombre
+            <span><input id="penombre" type="range" min="0" max="100" step="5" value="45"> <output id="penombre-val">45 %</output></span>
+          </label>
+          <label class="ligne case"><input id="flammes" type="checkbox" checked> Flammes animées (à la table)</label>
+          <div class="actions">
+            <button id="plein-ecran" type="button" class="btn"><span data-icone="plein-ecran"></span>Plein écran (table)</button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- La feuille « Donjons » (ouverte par le « ⋯ » de l'arbre) : nouveau donjon, importer, coller, copies mises de côté (js/mj/menu-donjon.js). -->
+    <div id="feuille-donjons" class="feuille" hidden>
+      <div class="feuille-voile"></div>
+      <section class="feuille-corps" role="dialog" aria-modal="true" aria-labelledby="feuille-titre">
+        <div class="feuille-tete">
+          <h2 id="feuille-titre">Ajouter un donjon</h2>
+          <button id="feuille-fermer" type="button" class="btn btn-icone btn-discret" aria-label="Fermer" title="Fermer"><span data-icone="fermer"></span></button>
+        </div>
+        <p id="message-fichier" class="note" role="status" hidden></p>
+        <p id="erreurs-fichier" class="note erreur" role="alert" hidden></p>
+        <section id="nouveau" class="nouveau" aria-label="Nouveau donjon">
           <p class="note">Partir :</p>
           <div class="nouveau-choix">
             <button id="nouveau-vide" type="button" class="btn">D’un donjon vide</button>
@@ -76,259 +269,20 @@
             <p id="modele-message" class="note" role="status" hidden></p>
           </div>
         </section>
+        <div class="actions"><label class="btn"><span data-icone="importer"></span>Importer un fichier <input id="importer" type="file" accept=".json,application/json" hidden></label></div>
         <details class="plan-json">
           <summary>Coller un donjon</summary>
           <textarea id="donjon-colle" rows="5" spellcheck="false" aria-label="Texte du donjon à coller" placeholder="Colle ici le texte copié avec « Copier »"></textarea>
           <div class="actions"><button id="donjon-coller" type="button" class="btn">Ajouter ce donjon</button></div>
         </details>
-        <p id="message-fichier" class="note" hidden></p>
-        <p id="erreurs-fichier" class="note erreur" hidden></p>
         <details id="copies" class="plan-json" hidden>
           <summary id="copies-titre">Copies mises de côté</summary>
           <p class="note">Ce que ce navigateur n’a pas pu relire : donjons, modèles, parties et fiches, tels qu’ils étaient enregistrés. Télécharge une copie pour la garder ou la faire réparer.</p>
           <ul id="copies-liste" class="fiches"></ul>
         </details>
-
-        <details class="plan-json">
-          <summary>Plan JSON de la salle (modifiable)</summary>
-          <textarea id="json" rows="10" spellcheck="false"></textarea>
-          <div class="actions"><button id="appliquer-json" type="button" class="btn">Appliquer le JSON</button></div>
-          <p id="erreurs-json" class="note erreur" hidden></p>
-        </details>
-
-        <div class="actions">
-          <button id="copier-rapport" type="button" class="btn btn-discret"
-            title="Copie la description, ce qui a été compris, les mots ignorés et la carte en texte, à coller dans ton message"><span data-icone="copier"></span>Copier pour signaler une erreur de lecture</button>
-        </div>
-        <p id="message-copie" class="note" hidden></p>
-
         <p class="note pied">Projet libre (MIT) · fonctionne hors ligne</p>
-
-        <div class="actions zone-danger">
-          <button id="donjon-supprimer" type="button" class="btn btn-danger">Supprimer ce donjon</button>
-        </div>
-        <p id="donjon-confirmation" class="note erreur" role="status" hidden></p>
-      </div>
-    </div>
-
-    <a id="presenter" class="btn btn-primaire" href="presentation.html" title="Présente ce donjon : reprend sa partie en cours s'il en a une, sinon en commence une"><span data-icone="jouer"></span>Jouer</a>
-  </header>
-
-  <!-- L'atelier (js/atelier/coquille.js) : la coquille ajoute la colonne de l'arbre au début et celle de l'inspecteur à la fin ;
-       les blocs ci-dessous (anciens rail et panneau, scène) y restent branchés tant que le lot Donjon n'a pas migré les siens. -->
-  <div id="atelier" class="atelier">
-  <!-- Onglets des salles : toujours visibles, au-dessus de la carte, quel que soit l'outil (js/main-mj.js, majOnglets). -->
-  <div class="salles-barre">
-    <button id="plan-bouton" type="button" class="btn btn-discret bouton-plan" aria-pressed="false" aria-controls="plan-donjon"
-      title="Voir tout le donjon d'un coup : les salles à leur vraie taille, reliées par des couloirs"><span data-icone="donjon"></span><span>Vue d’ensemble</span>
-    </button>
-    <ul id="salles-onglets" class="salles-onglets" role="tablist" aria-label="Salles du donjon"></ul>
-    <button id="salle-ajouter" type="button" class="btn btn-icone btn-discret" aria-label="Ajouter une salle" title="Ajouter une salle isolée"><span data-icone="plus"></span></button>
-  </div>
-
-  <!-- Rail d'outils à gauche (ordinateur) ; sur téléphone, rangée d'outils de l'onglet Texte (js/rail.js). Icônes en SVG en ligne. -->
-  <nav id="rail" class="rail" aria-label="Outils">
-    <button type="button" class="rail-outil" data-outil="salle" aria-pressed="true" title="Salle : description, dictée, ce qui a été compris">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 20H4V4h16v16h-5"/><path d="M8.5 9h7M8.5 13h4"/></svg><span>Salle</span>
-    </button>
-    <button type="button" class="rail-outil" data-outil="portes" aria-pressed="false" title="Portes, herses et arches">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 21V4.5a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1V21"/><path d="M4 21h16"/><circle cx="14.2" cy="12.5" r="0.9" fill="currentColor" stroke="none"/></svg><span>Portes</span>
-    </button>
-    <button type="button" class="rail-outil" data-outil="mobilier" aria-pressed="false" title="Mobilier : coffres, tables, piliers…">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 10.5a8.5 5.5 0 0 1 17 0V19a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1z"/><path d="M3.5 14h17"/><rect x="10.5" y="12" width="3" height="4" rx="0.6"/></svg><span>Mobilier</span>
-    </button>
-    <button type="button" class="rail-outil" data-outil="creatures" aria-pressed="false" title="Créatures : monstres, peuples, personnage">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7.5" r="3.5"/><path d="M6.5 20.5c0-4.2 2.4-7 5.5-7s5.5 2.8 5.5 7z"/></svg><span>Créatures</span>
-    </button>
-    <span class="rail-sep" role="separator" aria-hidden="true"></span>
-    <button type="button" class="rail-outil" data-outil="personnages" aria-pressed="false" title="Personnages : les fiches associées à ce donjon">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M3 20c.5-4 3-6 6-6s5.5 2 6 6"/><path d="M16 5a3 3 0 0 1 0 6M18 14c1.700.6 2.800 2.600 3 6"/></svg><span>Personnages</span>
-    </button>
-    <button type="button" class="rail-outil" data-outil="notes" aria-pressed="false" title="Notes du MJ pour cette salle">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5h9l4 4v13H6z"/><path d="M15 3.5v4h4"/><path d="M9.5 12h6M9.5 15.5h6"/></svg><span>Notes</span>
-    </button>
-    <button type="button" class="rail-outil" data-outil="plan" aria-pressed="false" title="Salles du donjon : liste, liaisons, vue d'ensemble">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4" width="7" height="6" rx="1"/><rect x="13.5" y="14" width="7" height="6" rx="1"/><path d="M10.5 7H17v7"/></svg><span>Salles</span>
-    </button>
-    <button type="button" class="rail-outil" data-outil="reglages" aria-pressed="false" title="Réglages : échelle, rendu de la carte">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h9M19 7h1M4 17h1M11 17h9"/><circle cx="16" cy="7" r="2.5"/><circle cx="8" cy="17" r="2.5"/></svg><span>Réglages</span>
-    </button>
-  </nav>
-
-  <aside id="panneau" aria-label="Panneau de l'outil choisi">
-    <h1 class="cache-visuel">Donjon</h1>
-    <div class="panneau-tete">
-      <h2 id="panneau-titre">Salle</h2>
-      <button id="panneau-replier" type="button" class="btn btn-icone btn-discret" aria-label="Replier le panneau" title="Replier le panneau : la carte prend la place"><span data-icone="chevron-gauche"></span></button>
-    </div>
-
-    <div class="outil" data-pour="salle">
-      <section class="saisie">
-        <label for="description" class="cache-visuel">Description de la salle <span id="nom-salle-active"></span></label>
-        <textarea id="description" rows="4" spellcheck="false"
-          placeholder="Ex. : grande salle de 4 m par 12, quatre piliers, deux coffres au fond de la salle, une statue devant une porte"></textarea>
-        <div class="actions">
-          <button id="micro" type="button" class="btn" title="Dicter la description"><span data-icone="micro"></span>Dicter</button>
-          <button id="effacer" type="button" class="btn btn-discret">Effacer</button>
-          <button id="annuler" type="button" class="btn btn-discret" hidden title="Annule la dernière modification de la carte (déplacement, ajout, suppression)"><span data-icone="annuler"></span>Annuler</button>
-        </div>
-        <p id="message-micro" class="note" hidden></p>
-        <p id="aide-debut" class="note" hidden></p>
       </section>
-
-      <section class="forme-salle" aria-labelledby="titre-forme">
-        <h2 id="titre-forme">Forme</h2>
-        <div id="formes" class="formes" role="group" aria-labelledby="titre-forme"></div>
-        <div id="forme-reglages" class="forme-reglages" hidden>
-          <label class="ligne" id="forme-ligne-bras"><span id="forme-nom-bras">Épaisseur des bras</span>
-            <span><input id="forme-bras" type="range" min="1" max="4" step="1" value="1"> <output id="forme-bras-val">1</output></span>
-          </label>
-          <label class="ligne" id="forme-ligne-position"><span id="forme-nom-position">Position</span>
-            <select id="forme-position"></select>
-          </label>
-        </div>
-        <p id="forme-compte" class="note"></p>
-        <label class="ligne" for="salle-sol">Sol
-          <select id="salle-sol"></select>
-        </label>
-        <label class="ligne" for="salle-ambiance">Ambiance
-          <select id="salle-ambiance"></select>
-        </label>
-        <label class="ligne" for="salle-etat">État
-          <select id="salle-etat"></select>
-        </label>
-        <label class="ligne" for="salle-eclairage">Éclairage
-          <select id="salle-eclairage"></select>
-        </label>
-      </section>
-
-      <section class="retour">
-        <h2>Compris</h2>
-        <ul id="compris"></ul>
-        <p id="ignores" class="note" hidden></p>
-      </section>
-
-      <details class="exemples">
-        <summary>Exemples</summary>
-        <ul id="exemples"></ul>
-      </details>
     </div>
-
-    <div class="outil personnages" data-pour="personnages" hidden>
-      <div class="ligne-aide">
-        <p class="note">Les fiches de ce donjon.</p>
-        <details class="aide"><summary class="btn btn-icone btn-discret" aria-label="Aide : les fiches du donjon">?</summary><div class="aide-texte">Ce sont des copies, qui partent avec le donjon quand tu l'exportes. Les joueurs ne les voient jamais à la table.</div></details>
-      </div>
-      <ul id="personnages-liste" class="fiches"></ul>
-      <p id="personnages-vide" class="note" hidden>Aucune fiche pour l'instant.</p>
-      <div class="ligne-ajout">
-        <label for="personnages-locales">Fiches de ce navigateur</label>
-        <select id="personnages-locales"></select>
-        <div class="actions">
-          <button id="personnages-ajouter" type="button" class="btn">Ajouter</button>
-          <button id="personnages-actualiser" type="button" class="btn btn-discret" title="Recopie les fiches encore présentes dans ce navigateur">Actualiser</button>
-          <label class="btn"><span data-icone="importer"></span>Depuis un fichier <input id="personnages-fichier" type="file" accept=".json,application/json" hidden></label>
-        </div>
-      </div>
-      <p id="personnages-message" class="note" role="status" hidden></p>
-      <div class="actions">
-        <button id="personnages-hasard" type="button" class="btn btn-discret" aria-pressed="false" aria-controls="fiche-hasard"><span data-icone="de"></span>Au hasard</button>
-      </div>
-      <div id="fiche-hasard" class="hasard" hidden>
-        <p class="note">Tirage aux règles de D&amp;D 2014.</p>
-        <div class="hasard-nombres">
-          <label>Nombre de fiches <input id="fiche-hasard-nombre" type="number"></label>
-          <label>Niveau <input id="fiche-hasard-niveau" type="number"></label>
-          <label>Classe <select id="fiche-hasard-classe"></select></label>
-          <label>Race <select id="fiche-hasard-race"></select></label>
-        </div>
-        <label class="hasard-tirage">Numéro de tirage <span class="doux">(vide : un nouveau à chaque fois)</span> <input id="fiche-hasard-graine" type="number" min="1" max="999999" step="1"></label>
-        <div class="actions">
-          <button id="fiche-hasard-generer" type="button" class="btn">Générer</button>
-          <button id="fiche-hasard-garder" type="button" class="btn btn-discret" hidden>Garder</button>
-        </div>
-        <p id="fiche-hasard-message" class="note" role="status" hidden></p>
-      </div>
-      <div class="ligne-aide">
-        <p class="note">Les fiches se créent dans <a href="fiche.html">l'outil Fiche</a>, ou ici au hasard.</p>
-        <details class="aide"><summary class="btn btn-icone btn-discret" aria-label="Aide : la fiche d'un joueur">?</summary><div class="aide-texte">Celle d'un joueur sur son téléphone : il l'exporte, tu ajoutes le fichier.</div></details>
-      </div>
-    </div>
-
-    <div class="outil" data-pour="notes" hidden>
-      <label for="notes" class="outil-etiquette">Notes de la salle</label>
-      <textarea id="notes" rows="8" spellcheck="true"
-        placeholder="Secrets, pièges, trésors… Ces notes ne sont jamais réécrites par la description."></textarea>
-    </div>
-
-    <div class="outil" data-pour="plan" hidden>
-      <div id="minicarte" class="minicarte" role="region" aria-label="Vue d’ensemble du donjon"></div>
-      <div id="orphelines" hidden></div>
-      <button id="plan-complet" type="button" class="btn btn-discret" title="Voir tout le donjon d'un coup, les salles à leur vraie taille">Voir la vue d’ensemble</button>
-      <p id="aide-salles" class="note"></p>
-      <ul id="salles-liste" class="salles-liste"></ul>
-    </div>
-
-    <div class="outil reglages" data-pour="reglages" hidden>
-      <label class="ligne">Échelle
-        <span><input id="echelle" type="number" min="0.5" max="5" step="0.5" value="1.5"> m par case</span>
-      </label>
-      <label class="ligne">Thème
-        <select id="theme"><option value="peint">Peint</option><option value="vectoriel">Vectoriel</option></select>
-      </label>
-      <label class="ligne" title="Sols dessinés et détaillés, ou sols simples (thème peint).">Détails des sols
-        <select id="details"><option value="riches">Riches</option><option value="sobres">Sobres</option></select>
-      </label>
-      <label class="ligne" title="Opacité des lignes de la grille : 0 % les cache.">Grille
-        <span><input id="cases" type="range" min="0" max="100" step="5" value="60"> <output id="cases-val">60 %</output></span>
-      </label>
-      <label class="ligne case"><input id="relief" type="checkbox" checked> Relief des murs</label>
-      <label class="ligne" title="Obscurité de la salle à la table. La vue du MJ (ici) n'en garde qu'une part, pour tout voir.">Pénombre
-        <span><input id="penombre" type="range" min="0" max="100" step="5" value="45"> <output id="penombre-val">45 %</output></span>
-      </label>
-      <label class="ligne case"><input id="flammes" type="checkbox" checked> Flammes animées (à la table)</label>
-      <div class="actions">
-        <button id="plein-ecran" type="button" class="btn"><span data-icone="plein-ecran"></span>Plein écran (table)</button>
-      </div>
-    </div>
-
-    <!-- Catalogue de vignettes (js/palette.js) : Portes, Mobilier, Créatures. Ordinateur : dans le panneau ; téléphone : tiroir du bas. -->
-    <section id="palette" class="catalogue" data-pour="portes mobilier creatures" role="group" aria-label="Ajouter à la carte" hidden></section>
-  </aside>
-
-  <div id="cadre-scene">
-    <main id="scene">
-      <!-- Vue Plan (js/main-mj.js, ouvrirPlan) : remplace #support. La liste est cachée à l'œil mais atteignable au clavier. -->
-      <ul id="plan-salles" class="cache-visuel" aria-label="Salles du plan" hidden></ul>
-      <canvas id="plan-donjon" role="img" aria-label="Vue d’ensemble du donjon" hidden></canvas>
-      <div id="support">
-        <canvas id="carte" aria-label="Carte de la salle"></canvas>
-        <!-- Dimensions de la salle : glisser la bande d'un côté, ou ses boutons − et + (js/main-mj.js). -->
-        <div class="bord-salle" data-cote="nord" data-lettre="N"></div>
-        <div class="bord-salle" data-cote="sud" data-lettre="S"></div>
-        <div class="bord-salle" data-cote="ouest" data-lettre="O"></div>
-        <div class="bord-salle" data-cote="est" data-lettre="E"></div>
-        <!-- Actions de l'élément cliqué : bulle posée à côté de lui (ordinateur) ou bandeau fixe en bas (écran étroit). -->
-        <section id="selection" class="selection" aria-live="polite" hidden></section>
-      </div>
-      <button id="quitter-plein-ecran" type="button" class="btn" hidden><span data-icone="fermer"></span>Quitter le plein écran</button>
-    </main>
-
-    <!-- Hors de la scène qui défile : ces commandes restent au même endroit quand on fait défiler une carte zoomée. -->
-    <!-- État de la pose, visible quel que soit l'outil ouvert : un clic l'arrête. Téléphone : « + Ajouter » ouvre le tiroir. -->
-    <button id="pose-pastille" type="button" class="btn pose-pastille" hidden></button>
-    <button id="ajouter" type="button" class="btn flottant bouton-ajouter" aria-haspopup="dialog" aria-expanded="false" aria-controls="palette"><span data-icone="plus"></span>Ajouter</button>
-    <div id="zoom" class="flottant" role="group" aria-label="Zoom de la carte">
-      <button id="zoom-moins" type="button" class="btn btn-icone btn-discret" aria-label="Réduire la carte" title="Réduire"><span data-icone="moins"></span></button>
-      <output id="zoom-pct" aria-live="off" title="Taille de la carte par rapport à la taille réelle">100 %</output>
-      <button id="zoom-plus" type="button" class="btn btn-icone btn-discret" aria-label="Agrandir la carte" title="Agrandir"><span data-icone="plus"></span></button>
-      <button id="zoom-ajuster" type="button" class="btn btn-discret" title="La salle remplit la zone de carte">Ajuster</button>
-    </div>
-    <p id="message-carte" class="message-carte" role="status" hidden></p>
-  </div>
-
-  <!-- Écran étroit, onglet Carte : la zone réservée aux actions de la sélection, quand rien n'est sélectionné. -->
-  <p id="aide-carte" class="aide-carte">Touche une porte, un objet ou un pion : ses actions apparaissent ici.</p>
   </div>
 
   <div id="univers" class="univers" hidden></div>
