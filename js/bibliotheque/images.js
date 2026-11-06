@@ -88,7 +88,7 @@ const nouvelId = () => `img-${Date.now().toString(36)}${Math.random().toString(3
 
 /**
  * Importe un fichier image avec ses métadonnées { titre, niveau, milieux, tags, description, credit, licence, origine }. Rend l'entrée rangée.
- * `colonnes` (facultatif) : nombre de cases demandées sur la largeur (onglet « Générer une carte ») ; la grille en découle
+ * `colonnes` (facultatif) : nombre de cases demandées sur la largeur (volet « Générer une illustration IA ») ; la grille en découle
  * d'après la largeur réelle de l'image, que le générateur a pu changer.
  * Lève une Error au message lisible si le fichier ne convient pas ou si le rangement échoue.
  */

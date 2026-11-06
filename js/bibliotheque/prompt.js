@@ -1,5 +1,5 @@
 /**
- * Composition du prompt d'une carte, la même pour la page Bibliothèque (onglet « Générer une carte », prompt à copier dans ChatGPT…)
+ * Composition du prompt d'une carte, la même pour la page Bibliothèque (volet « Générer une illustration IA », prompt à copier dans ChatGPT…)
  * et pour le skill generer-carte (outils/cartes/generer.mjs, API) : bloc de style + gabarit du niveau (scène, cases) + échelle
  * + format + rappel final. Deux choix indépendants : le STYLE (l'allure, un fichier assets/styles-cartes/<id>.md) et le FORMAT
  * (la forme de l'image et la grille, décrits ici). Module pur (aucune API Node ni DOM) : l'appelant lit le fichier de style.

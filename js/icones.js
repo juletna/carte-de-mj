@@ -17,6 +17,7 @@ export const ICONES = {
   sauvegarde: '<path d="M5 4h11l3 3v13H5z"/><path d="M8 4v5h7V4"/><rect x="8" y="13" width="8" height="7"/>',
   menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
   plus: '<path d="M12 5v14M5 12h14"/>',
+  coche: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
   ambiance: '<path d="M19.5 14.2A8 8 0 0 1 9.8 4.5a8 8 0 1 0 9.7 9.7z"/>',
   etat: '<path d="M6 4l4 5-3 3 5 3-2 5"/><path d="M15 4l-2 4 4 3-3 3 4 6"/>',
   eclairage: '<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/>',

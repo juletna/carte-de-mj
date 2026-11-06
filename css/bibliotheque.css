@@ -75,18 +75,55 @@ dialog.bib .btn-danger.danger, #bibliotheque .btn-danger.danger { background: va
   .bib-tuile { min-height: 44px; }
 }
 
-/* Page Bibliothèque, panneau « Générer une carte » (js/page-bibliotheque.js) : trois étapes, du texte au prompt à copier puis à l'import. */
+/* Page Bibliothèque, volet « Générer une illustration IA » (js/page-bibliotheque.js, maquette docs/maquettes/generer-carte.html).
+   Bureau : il prend la colonne de l'aperçu (la grille ne bouge pas). Téléphone : tiroir bas. Sections de css/panneaux.css (.p-section). */
 #bibliotheque [hidden] { display: none; }
-.bib-generer { display: flex; flex-direction: column; gap: var(--esp-3); max-width: 720px; }
-.bib-etape { display: flex; flex-direction: column; gap: 5px; padding: var(--esp-3) var(--esp-4) var(--esp-4); border: 1px solid var(--bord); border-radius: var(--rayon); background: var(--panneau); }
-.bib-etape h2 { margin: 0 0 var(--esp-2); font-size: 15px; font-weight: 650; color: var(--p-texte-1); }
-.bib-etape label, .bib-formulaire label { font-size: 12.5px; color: var(--p-texte-3); margin-top: var(--esp-2); }
-.bib-etape label:first-of-type { margin-top: 0; }
-.bib-etape select, .bib-etape textarea, .bib-formulaire textarea {
-  background: var(--champ); color: var(--p-texte-1); border: 1px solid var(--bord); border-radius: var(--rayon);
-  padding: var(--esp-2) var(--esp-3); min-height: var(--cible); font: inherit; font-size: 14px; box-sizing: border-box; width: 100%; resize: vertical;
+.bib-lib-court { display: none; }
+#bibliotheque .bib-actions .btn[aria-expanded="true"] { border-color: var(--accent); color: var(--accent); }
+.bib-corps.avec-volet { grid-template-columns: minmax(0, 1fr) 420px; }
+.bib-corps.avec-volet .bib-detail { display: none; }
+.bib-volet { grid-column: 2; grid-row: 1; align-self: start; position: sticky; top: var(--esp-4); max-height: 85vh; overflow-y: auto; display: flex; flex-direction: column; background: var(--panneau); border: 1px solid var(--p-filet-fort); border-radius: 8px; }
+.bib-fond, .bib-poignee { display: none; }
+.bib-volet-tete { display: flex; align-items: flex-start; gap: var(--esp-2); padding: 14px var(--esp-4) 12px; border-bottom: 1px solid var(--p-filet-fort); }
+.bib-volet-tete > div { flex: 1; min-width: 0; }
+.bib-type { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .09em; color: var(--accent); }
+.bib-volet-nom { font-size: 18px; font-weight: 650; color: var(--p-texte-1); line-height: 1.25; }
+.bib-volet-meta { margin-top: 2px; font-size: 12.5px; color: var(--p-texte-3); }
+.bib-volet .p-section-compte { max-width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bib-volet .p-section.bib-fait .p-section-compte { color: var(--succes-texte); }
+.bib-volet .p-section.bib-fait .p-section-compte::before { content: ""; display: inline-block; width: 4px; height: 8px; margin: 0 7px 1px 2px; border: solid currentColor; border-width: 0 1.75px 1.75px 0; transform: rotate(45deg); }
+.bib-champ { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.bib-champ label { font-size: 12.5px; color: var(--p-texte-3); }
+.bib-volet select, .bib-volet textarea, .bib-volet .bib-formulaire input[type="text"] {
+  background: var(--champ); color: var(--p-texte-1); border: 1px solid var(--p-filet-fort); border-radius: var(--rayon);
+  padding: var(--esp-2) var(--esp-3); min-height: max(34px, var(--cible)); font: inherit; font-size: 14px; box-sizing: border-box; width: 100%; resize: vertical;
 }
-.bib-prompt { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px !important; line-height: 1.45; color: var(--p-texte-2) !important; }
+.bib-trois { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--esp-2); }
+.bib-trois select { padding-inline: var(--esp-2) 2px; text-overflow: ellipsis; }
+.bib-etiquette { margin: 0; width: fit-content; max-width: 100%; padding: 5px 9px; border-radius: 6px; background: var(--p-surface-1); color: var(--p-texte-3); font-size: 12.5px; }
 .bib-note { margin: 0; font-size: 12.5px; color: var(--p-texte-3); }
 .bib-note:empty { display: none; }
-.bib-etape .bib-actions { margin-top: var(--esp-2); }
+.bib-prompt { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px !important; line-height: 1.5; color: var(--p-texte-2) !important; }
+.bib-prompt.vide { opacity: .55; }
+.bib-volet .bib-actions { margin-top: 0; align-items: center; }
+.bib-depot { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 22px var(--esp-3); border: 1.5px dashed var(--p-filet-fort); border-radius: 8px; text-align: center; color: var(--p-texte-2); font-size: 14px; cursor: pointer; }
+.bib-depot strong { color: var(--p-texte-1); font-weight: 600; }
+.bib-depot small { color: var(--p-texte-3); font-size: 12.5px; }
+.bib-depot:hover, .bib-depot.survol { border-color: var(--accent); background: var(--p-choisi); }
+.bib-depot:focus-visible { outline: var(--focus); outline-offset: var(--focus-decalage); }
+.bib-form-gen:empty { display: none; }
+.bib-volet .bib-formulaire { max-width: none; background: var(--p-surface-1); border-color: transparent; }
+.bib-volet .bib-formulaire label { font-size: 12.5px; color: var(--p-texte-3); }
+
+@media (max-width: 760px) {
+  .bib-lib-long { display: none; }
+  .bib-lib-court { display: inline; }
+  .bib-corps.avec-volet { grid-template-columns: 1fr; }
+  #bibliotheque .bib-corps.avec-volet .bib-detail { display: flex; }
+  .bib-fond:not([hidden]) { display: block; position: fixed; inset: 0; z-index: 19; background: rgb(0 0 0 / .55); }
+  .bib-volet { position: fixed; left: 0; right: 0; bottom: 0; top: auto; height: 85dvh; z-index: 20; max-height: none; border-radius: 18px 18px 0 0; border-bottom: 0; box-shadow: 0 -12px 30px rgb(0 0 0 / .5); padding-bottom: env(safe-area-inset-bottom); }
+  .bib-poignee { display: block; flex: none; width: 38px; height: 4px; margin: 8px auto 0; border-radius: 2px; background: var(--p-filet-fort); }
+  .bib-volet-tete { padding-top: 8px; }
+  .bib-trois { grid-template-columns: 1fr; }
+  .bib-volet .btn { min-height: 44px; }
+}
