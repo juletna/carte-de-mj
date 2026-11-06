@@ -4,7 +4,7 @@
 import * as u from '../js/univers.js';
 import * as p from '../js/univers-partie.js';
 import { creerDonjon } from '../js/donjon.js';
-import { messageUnivers, lireVueUnivers, TYPE_UNIVERS } from '../js/univers-protocole.js';
+import { messageUnivers, lireVueUnivers, TYPE_UNIVERS, CENTRE, decalerDefilement, bornerDefilement, positionDefilement } from '../js/univers-protocole.js';
 import { AFFICHAGE_PAR_DEFAUT } from '../js/affichage.js';
 import { chargerUnivers, sauverUnivers, chargerPartiesUnivers, enregistrerPartieUnivers, supprimerPartieUnivers, misDeCote, CLE_UNIVERS, CLE_UNIVERS_PARTIES } from '../js/stockage.js';
 import { verifier, egal, fauxStock, executerSuite } from './mini-test.js';
@@ -179,6 +179,29 @@ const TESTS = [
     verifier(enregistrerPartieUnivers(b, sale), 'écriture avec une partie abîmée');
     egal(misDeCote(sale).length, 1, 'la partie abîmée est mise de côté');
     egal(Object.keys(chargerPartiesUnivers(sale)).sort(), ['u1', 'u2'], 'les bonnes restent');
+  }],
+  ['partie ouverte d’un univers : la clé se relit, un id de donjon ne se confond pas', () => {
+    egal(p.universOuvert(p.cleOuverteUnivers('u_1')), 'u_1', 'aller-retour');
+    egal(p.universOuvert('donjon-1'), null, 'un donjon');
+    egal(p.universOuvert('univers:'), null, 'vide');
+    egal(p.universOuvert('univers:a b'), null, 'id invalide');
+    egal(p.universOuvert(null), null, 'rien');
+  }],
+  ['défilement de la table : centré par défaut, pas borné, relu et borné côté table', () => {
+    egal(decalerDefilement(CENTRE, 1, 0), { x: 0.75, y: 0.5 }, 'à droite');
+    egal(decalerDefilement({ x: 0.9, y: 0.1 }, 1, -1), { x: 1, y: 0 }, 'bornes');
+    egal(decalerDefilement(CENTRE, 0, 0), CENTRE, 'rien');
+    egal(decalerDefilement(undefined, -1, 1), { x: 0.25, y: 0.75 }, 'sans point de départ');
+    egal(bornerDefilement({ x: 7, y: -3 }), { x: 1, y: 0 }, 'hors bornes');
+    egal(bornerDefilement({ x: NaN, y: 'a' }), CENTRE, 'illisible = centre');
+    egal(positionDefilement(0.5, 400), 200, 'milieu de la course');
+    egal(positionDefilement(2, 400), 400, 'borné');
+    egal(positionDefilement(0.5, -10), 0, 'course négative');
+    const vue = { image: { source: 'bibliotheque', id: 'x' }, points: [] };
+    egal(messageUnivers(vue, {}).defilement, CENTRE, 'message sans défilement : centre');
+    egal(lireVueUnivers(messageUnivers(vue, {}, { x: 0.2, y: 1 }), AFFICHAGE_PAR_DEFAUT).defilement, { x: 0.2, y: 1 }, 'transmis');
+    egal(lireVueUnivers({ type: TYPE_UNIVERS, vue, defilement: { x: 99, y: -1 } }, AFFICHAGE_PAR_DEFAUT).defilement, { x: 1, y: 0 }, 'borné à la lecture');
+    egal(lireVueUnivers({ type: TYPE_UNIVERS, vue, defilement: 'x' }, AFFICHAGE_PAR_DEFAUT).defilement, CENTRE, 'illisible');
   }],
 ];
 

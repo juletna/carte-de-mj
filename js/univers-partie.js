@@ -179,3 +179,12 @@ export function validerPartieUnivers(brut) {
   if (brut.masquerNoms === true) partie.masquerNoms = true;
   return { ok: !avertissements.length, erreurs: [], avertissements, partie };
 }
+
+/**
+ * La « partie ouverte » de la régie (stockage.memoriserPartieOuverte) ne connaît qu'un identifiant. Pour un univers on y met `univers:<id>` :
+ * un identifiant de donjon ne contient jamais « : », donc aucun risque de confusion, et le mécanisme existant suffit à rouvrir la régie
+ * sur la même carte après un rechargement (la partie d'univers elle-même garde le lieu, le chemin et les points révélés).
+ */
+const PREFIXE_OUVERTE = 'univers:';
+export const cleOuverteUnivers = (idUnivers) => `${PREFIXE_OUVERTE}${idUnivers}`;
+export const universOuvert = (valeur) => (typeof valeur === 'string' && valeur.startsWith(PREFIXE_OUVERTE) && RE_ID.test(valeur.slice(PREFIXE_OUVERTE.length)) ? valeur.slice(PREFIXE_OUVERTE.length) : null);

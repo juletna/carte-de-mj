@@ -15,12 +15,26 @@ export const TYPE_UNIVERS = 'univers-etat';
 const RE_ID = /^[A-Za-z0-9_-]{1,64}$/;
 const fraction = (v) => typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= 1;
 
-/** @param {{image:object, nom?:string, points:object[]}} vue  le résultat de vueDeLaTable() */
-export const messageUnivers = (vue, affichage) => ({ type: TYPE_UNIVERS, vue, affichage });
+/**
+ * Quelle partie de la carte la table montre quand la carte dépasse son écran : `{ x, y }`, deux fractions de 0 à 1 de la course du
+ * défilement, dans le repère de la CARTE (0 : bord gauche / haut, 1 : bord droit / bas). Ce repère ne change ni avec la rotation ni
+ * avec le miroir de la table : « vers le haut » est toujours le haut de la carte que le MJ a sous les yeux.
+ */
+export const CENTRE = Object.freeze({ x: 0.5, y: 0.5 });
+export const PAS_DEFILEMENT = 0.25;
+const borner01 = (v) => (typeof v === 'number' && Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : 0.5);
+export const bornerDefilement = (d) => ({ x: borner01(d?.x), y: borner01(d?.y) });
+/** Décale la vue d'un pas (dx, dy valent -1, 0 ou 1) ; borné à la carte. */
+export const decalerDefilement = (d, dx, dy, pas = PAS_DEFILEMENT) => bornerDefilement({ x: borner01(d?.x) + Math.sign(dx || 0) * pas, y: borner01(d?.y) + Math.sign(dy || 0) * pas });
+/** Position de défilement en pixels pour une fraction et une course (contenu moins fenêtre, jamais négative). */
+export const positionDefilement = (fraction, course) => Math.round(borner01(fraction) * Math.max(0, Number.isFinite(course) ? course : 0));
+
+/** @param {{image:object, nom?:string, points:object[]}} vue  le résultat de vueDeLaTable() ; `defilement` : voir CENTRE */
+export const messageUnivers = (vue, affichage, defilement = CENTRE) => ({ type: TYPE_UNIVERS, vue, affichage, defilement: bornerDefilement(defilement) });
 
 /**
  * Côté table : relit un message `univers-etat`. Un point mal formé est écarté ; une image invalide fait refuser le message.
- * @returns {{vue:{image:{source:string,id:string}, nom?:string, grille?:{case:number,dx:number,dy:number}, points:{id:string,x:number,y:number,nom?:string}[]}, affichage:object}|null}
+ * @returns {{defilement:{x:number,y:number}, vue:{image:{source:string,id:string}, nom?:string, grille?:{case:number,dx:number,dy:number}, points:{id:string,x:number,y:number,nom?:string}[]}, affichage:object}|null}
  */
 export function lireVueUnivers(m, affichageActuel) {
   if (!estObjet(m) || m.type !== TYPE_UNIVERS || !estObjet(m.vue) || !imageValide(m.vue.image)) return null;
@@ -31,5 +45,5 @@ export function lireVueUnivers(m, affichageActuel) {
   const grille = normaliserGrille(m.vue.grille);
   if (grille) vue.grille = grille;
   if (typeof m.vue.nom === 'string' && m.vue.nom) vue.nom = m.vue.nom.slice(0, LIMITES.nom);
-  return { vue, affichage: validerAffichage(m.affichage, affichageActuel) };
+  return { vue, affichage: validerAffichage(m.affichage, affichageActuel), defilement: bornerDefilement(estObjet(m.defilement) ? m.defilement : CENTRE) };
 }
