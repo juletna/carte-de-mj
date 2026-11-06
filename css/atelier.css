@@ -54,10 +54,15 @@ body.atelier-avec-inspecteur { --largeur-inspecteur: 330px; }
 .atelier-menu-item { justify-content: flex-start; width: 100%; text-align: left; }
 /* « + Nouveau » : libellé visible (créer est l'action principale de l'atelier) ; groupes titrés Créer · Apporter. Le titre de l'arbre ne se tasse pas. */
 .atelier-arbre-titre { white-space: nowrap; flex-shrink: 0; }
-.atelier-arbre-tete .atelier-menu { margin-left: auto; }
+.atelier-arbre-tete .atelier-menu-corps { right: auto; left: 0; } /* « Nouveau » est à gauche de la tête : le menu s'ouvre vers la droite */
+.atelier-tout-replier { margin-left: auto; } /* « Nouveau » à gauche, les icônes (tout replier, replier la colonne) à droite */
+/* Le titre de la colonne ne sert plus qu'aux lecteurs d'écran : l'onglet « Préparer » dit déjà où l'on est. */
+.atelier-arbre .atelier-arbre-titre { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .atelier-menu-bouton { gap: 6px; min-width: 0; padding-inline: var(--esp-2); white-space: nowrap; }
-.atelier-menu-bouton { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); font-weight: 650; } /* visible sans être un second bouton doré : « Jouer » reste l'unique action pleine */
-.atelier-menu-bouton:hover, .atelier-menu[open] > .atelier-menu-bouton { background: color-mix(in srgb, var(--accent) 26%, transparent); }
+/* « Nouveau » : un bouton plein et neutre, un peu plus clair que le panneau ; seul le « + » prend l'accent (le doré est pris par l'onglet, la sélection et le badge « départ »). */
+.atelier-menu-bouton { background: var(--p-surface-1, var(--champ)); border-color: var(--p-filet-fort, var(--bord)); color: var(--texte); font-weight: 650; }
+.atelier-menu-bouton .icone { color: var(--accent); }
+.atelier-menu-bouton:hover, .atelier-menu[open] > .atelier-menu-bouton { background: var(--p-surface-survol, var(--champ)); }
 .atelier-arbre-tete .atelier-menu-corps { min-width: 200px; } /* la colonne de l'arbre coupe ce qui dépasse : le menu tient dedans, aligné à droite du bouton */
 .atelier-menu-groupe { margin: 0; padding: 6px var(--esp-3) 2px; font-size: 11px; font-weight: 650; letter-spacing: .06em; text-transform: uppercase; color: var(--texte-doux); }
 .atelier-menu-separateur { width: 100%; margin: 4px 0; border: 0; border-top: 1px solid var(--bord); }

@@ -70,9 +70,17 @@ export function creerCoquille({
   const menuCorps = h('div', { className: 'atelier-menu-corps' });
   const menu = h('details', { className: 'atelier-menu', hidden: true },
     h('summary', { className: 'btn btn-discret atelier-menu-bouton', title: 'Créer un lieu, un monde ou un donjon, importer un fichier, coller un donjon' }, icone('plus'), 'Nouveau'), menuCorps);
-  const toutReplier = h('button', { type: 'button', className: 'btn btn-icone btn-discret atelier-tout-replier', 'aria-label': 'Tout replier', title: 'Tout replier : seules les têtes de l’arbre restent' }, icone('tout-replier'));
-  toutReplier.addEventListener('click', () => vue.toutReplier());
-  const tete = h('div', { className: 'atelier-arbre-tete' }, h('h2', { className: 'atelier-arbre-titre', textContent: mode === 'jouer' ? 'La table' : 'L’atelier' }), toutReplier, menu, replier, fermer);
+  const toutReplier = h('button', { type: 'button', className: 'btn btn-icone btn-discret atelier-tout-replier' });
+  toutReplier.addEventListener('click', () => vue.toutBasculer());
+  // Un seul bouton, dans les deux sens : tout est replié → il déplie tout, sinon il replie tout.
+  vue.surPlis((replie) => {
+    const libelle = replie ? 'Tout déplier' : 'Tout replier';
+    toutReplier.replaceChildren(icone(replie ? 'tout-deplier' : 'tout-replier'));
+    toutReplier.setAttribute('aria-label', libelle);
+    toutReplier.title = replie ? 'Tout déplier : ouvre toutes les branches' : 'Tout replier : seules les têtes de l’arbre restent';
+  });
+  // Le titre reste pour les lecteurs d'écran seulement : l'onglet « Préparer » dit déjà où l'on est. « Nouveau » à gauche, les icônes à droite.
+  const tete = h('div', { className: 'atelier-arbre-tete' }, h('h2', { className: 'atelier-arbre-titre', textContent: mode === 'jouer' ? 'La table' : 'L’atelier' }), menu, toutReplier, replier, fermer);
   const colonneArbre = h('aside', { className: 'atelier-arbre', 'aria-label': 'Arbre : monde, lieux, donjons, salles' }, tete, vue.element);
   const voile = h('div', { className: 'atelier-voile', hidden: true });
 

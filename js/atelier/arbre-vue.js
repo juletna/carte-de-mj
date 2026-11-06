@@ -4,7 +4,7 @@
  * 'table' | 'decouvert' | 'cache').
  * Rôle `tree` : flèches haut/bas, droite/gauche (déplier/replier, changer de niveau), Début/Fin, Entrée ou Espace pour choisir.
  * Les branches se plient ; les salles d'un donjon replié ne sont pas rendues (gros donjons générés) avant son ouverture.
- * Renvoie `{ element, maj({ arbre, actifCle, filtre? }), definirVignette(f), definirAjout(f), toutReplier(), focus(), filtre }`.
+ * Renvoie `{ element, maj({ arbre, actifCle, filtre? }), definirVignette(f), definirAjout(f), toutBasculer(), surPlis(f), focus(), filtre }`.
  */
 import { h } from '../dom.js';
 import { icone } from '../icones.js';
@@ -99,13 +99,23 @@ export function creerArbreVue({ mode = 'preparer', surChoix, pastille = null, ti
     dessiner(cle);
   }
 
-  /** Replie toutes les branches (le MJ rouvre ce qu'il veut ; aller quelque part déplie le chemin). */
-  function toutReplier() {
-    ouverts.clear();
-    if (donnees.arbre) for (const n of parcourir(donnees.arbre)) if (n.enfants?.length) fermes.add(n.cle);
+  /** Les branches ont-elles toutes été repliées ? (aucun nœud à enfants n'est déplié) */
+  function toutEstReplie() {
+    if (!donnees.arbre) return false;
+    const ancetres = new Set([...(donnees.arbre.actif?.chemin ?? []), ...(donnees.arbre.actif?.cle ? [donnees.arbre.actif.cle] : [])]);
+    return ![...parcourir(donnees.arbre)].some((n) => n.enfants?.length && deplie(n, false, ancetres));
+  }
+  /** Un seul geste dans les deux sens : tout est replié → on déplie tout ; sinon on replie tout (le MJ rouvre ce qu'il veut ; aller quelque part déplie le chemin). */
+  function toutBasculer() {
+    const deplier = toutEstReplie();
+    ouverts.clear(); fermes.clear();
+    if (donnees.arbre) for (const n of parcourir(donnees.arbre)) if (n.enfants?.length) (deplier ? ouverts : fermes).add(n.cle);
     garderPlis();
     dessiner();
   }
+  let surPlisChange = null;
+  /** `f(toutReplie)` est appelée à chaque dessin de l'arbre, pour que le bouton « tout replier / tout déplier » suive. */
+  const surPlis = (f) => { surPlisChange = f; surPlisChange?.(toutEstReplie()); };
 
   const visibles = () => [...liste.querySelectorAll('[role="treeitem"]')];
 
@@ -129,6 +139,7 @@ export function creerArbreVue({ mode = 'preparer', surChoix, pastille = null, ti
     tous.forEach((li) => { li.tabIndex = li === cible ? 0 : -1; });
     if (garde && cible?.dataset.cle === garde) cible.focus({ preventScroll: true });
     liste.querySelector('.courant')?.scrollIntoView?.({ block: 'nearest' });
+    surPlisChange?.(toutEstReplie());
   }
 
   filtre.addEventListener('input', () => { filtreTexte = filtre.value; dessiner(); });
@@ -174,5 +185,5 @@ export function creerArbreVue({ mode = 'preparer', surChoix, pastille = null, ti
   /** `f(noeud)` rend `{ libelle, executer }` pour finir la branche du nœud par une ligne d'ajout (« + Ajouter un lieu »), ou null ; mode 'preparer' seulement. */
   function definirAjout(f) { ajoutDe = f; if (donnees.arbre) dessiner(); }
 
-  return { element, maj, definirVignette, definirAjout, toutReplier, focus: () => (liste.querySelector('.courant') ?? visibles()[0])?.focus({ preventScroll: true }), filtre };
+  return { element, maj, definirVignette, definirAjout, toutBasculer, surPlis, focus: () => (liste.querySelector('.courant') ?? visibles()[0])?.focus({ preventScroll: true }), filtre };
 }
