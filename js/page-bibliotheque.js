@@ -8,9 +8,9 @@ import { btn } from './univers-boutons.js';
 import { selectionner, creditAffiche } from './bibliotheque/catalogue.js';
 import { NIVEAUX, MILIEUX, NIVEAUX_AIDE, libelleNiveau, libelleMilieu } from './bibliotheque/vocabulaire.js';
 import { lireCatalogue } from './bibliotheque/index.js';
+import { urlBibliotheque } from './bibliotheque/source.js';
 import { importerImage, listerImages, supprimerImage } from './bibliotheque/images.js';
 
-const DOSSIER = 'bibliotheque/';
 
 const racine = document.getElementById('bibliotheque');
 const etat = { onglet: 'bibliotheque', niveau: '', milieux: new Set(), requete: '' };
@@ -103,7 +103,7 @@ function dessinerListe() {
   const source = etat.onglet === 'bibliotheque' ? catalogue.cartes : images;
   const visibles = selectionner(source, { niveau: etat.niveau, milieux: [...etat.milieux], requete: etat.requete });
   grille.replaceChildren(...visibles.map((c) => etat.onglet === 'bibliotheque'
-    ? tuile(c, { source: 'bibliotheque', id: c.id }, DOSSIER + c.fichier)
+    ? tuile(c, { source: 'bibliotheque', id: c.id }, urlBibliotheque(c.fichier))
     : tuile(c, { source: 'navigateur', id: c.id }, urlDepuisBlob(c))));
   const msgs = [];
   if (etat.onglet === 'bibliotheque') {

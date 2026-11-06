@@ -7,6 +7,9 @@ description: Génère une carte illustrée (monde, région, zone, village, bâti
 
 Tout est en français avec le MJ. Les prompts envoyés au générateur sont en anglais (déjà écrits dans `style/peint-v1.md`).
 Les cartes et les images de référence vivent dans `bibliotheque/` à la racine, **ignoré par git** : n'y ajoute jamais rien à un commit.
+Si le MJ utilise le « dossier de travail » de l'appli (bouton Sauvegarde, voir le README), la bibliothèque peut vivre dans ce dossier : exporte
+`CARTE_DE_MJ_BIBLIOTHEQUE=/chemin/absolu/du/dossier/bibliotheque` avant les scripts `outils/cartes/*.mjs`, qui écrivent alors là (cartes, références,
+catalogue) au lieu de `<dépôt>/bibliotheque/`. Sans la variable, rien ne change. L'appli relit le catalogue du dossier au rechargement de la page.
 Claude ne dessine pas : `outils/cartes/generer.mjs` appelle l'API d'images (`gpt-image-1`).
 
 ## Avant de commencer

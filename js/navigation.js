@@ -8,6 +8,9 @@
  */
 import { LIENS, LIEN_ACCUEIL, LIEN_FICHE, pageCourante } from './navigation-donnees.js';
 import { icone } from './icones.js';
+import { installerMiroir } from './dossier-travail.js';
+
+installerMiroir(); // dossier de travail : recopie les données dans le dossier choisi (sans effet sans dossier)
 
 let compteur = 0;
 

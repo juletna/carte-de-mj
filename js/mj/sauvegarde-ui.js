@@ -3,6 +3,7 @@
  * un clic pour tout restaurer. Le dialogue est construit à la demande par `ouvrirSauvegarde()`.
  * La logique (zip, validation, remplacement sans perte) est dans sauvegarde.js et zip.js ; ici, seulement le DOM,
  * le localStorage, IndexedDB et le téléchargement. Avant de remplacer quoi que ce soit, l'état actuel est téléchargé.
+ * La section « Dossier de travail » (choisir, reconnecter, dissocier, trancher un conflit) pilote js/dossier-travail.js.
  */
 import { $, h, deuxTemps, fichierChoisi } from '../dom.js';
 import { icone } from '../icones.js';
@@ -10,6 +11,8 @@ import { lireZip, creerZip } from '../zip.js';
 import { contenuSauvegarde, lireSauvegarde, entreesImages, resumeSauvegarde, restaurer, bibliothequeManquante, nomSauvegarde, nomAvantRestauration, TAILLE_MAX_SAUVEGARDE } from '../sauvegarde.js';
 import { listerImages, remplacerToutesImages } from '../bibliotheque/images.js';
 import { validerCatalogue } from '../bibliotheque/catalogue.js';
+import { lireFichierBibliotheque } from '../bibliotheque/source.js';
+import { dossierDisponible, etatDossier, surEtatDossier, choisirDossier, reconnecter, dissocier, resoudreConflit } from '../dossier-travail.js';
 
 /** Propose le téléchargement d'un fichier binaire (même méthode que stockage.js). */
 function proposerZip(octets, nom) {
@@ -25,12 +28,59 @@ async function imagesDuNavigateur() {
   try { return { images: await listerImages(), avertissement: '' }; } catch (e) { return { images: [], avertissement: `Images importées non incluses : ${e.message}.` }; }
 }
 
-/** Les ids du catalogue de la bibliothèque, ou null s'il ne se charge pas (on ne bloque jamais pour ça). */
+/** Les ids du catalogue de la bibliothèque (site ou dossier de travail), ou null s'il ne se charge pas (on ne bloque jamais pour ça). */
 async function idsDuCatalogue() {
   try {
-    const rep = await fetch('bibliotheque/catalogue.json', { cache: 'no-store' });
-    return rep.ok ? validerCatalogue(await rep.json()).cartes.map((c) => c.id) : null;
+    const r = await lireFichierBibliotheque('catalogue.json');
+    return r.statut === 'ok' ? validerCatalogue(JSON.parse(r.texte)).cartes.map((c) => c.id) : null;
   } catch { return null; }
+}
+
+/** La section « Dossier de travail » : état, boutons, choix en cas de conflit. Se met à jour seule quand l'état change. */
+function sectionDossier() {
+  const etat = h('p', { id: 'dossier-etat', className: 'note', role: 'status' });
+  const erreur = h('p', { id: 'dossier-erreur', className: 'note erreur', role: 'alert', hidden: true });
+  const conflitTexte = h('p', { id: 'dossier-conflit', className: 'note', hidden: true });
+  const choisir = h('button', { type: 'button', className: 'btn', title: 'Choisis un dossier de ton ordinateur : l\'appli y recopie tout, en direct' }, icone('importer'), 'Choisir un dossier…');
+  const reconnecterBtn = h('button', { type: 'button', className: 'btn btn-primaire', title: 'Redonne à l\'appli le droit d\'écrire dans le dossier' }, 'Reconnecter');
+  const dissocierBtn = h('button', { type: 'button', className: 'btn btn-discret', title: 'Oublie le dossier ; ses fichiers restent où ils sont' }, 'Dissocier');
+  const prendre = h('button', { type: 'button', className: 'btn btn-danger', title: 'Remplace ce navigateur par le contenu du dossier (une sauvegarde .zip de ce navigateur est téléchargée d\'abord)' }, 'Prendre le dossier');
+  const garder = h('button', { type: 'button', className: 'btn', title: 'Remplace le contenu du dossier par celui de ce navigateur' }, 'Garder ce navigateur');
+  const actions = h('div', { className: 'actions' }, choisir, reconnecterBtn, dissocierBtn);
+  const actionsConflit = h('div', { className: 'actions', hidden: true }, prendre, garder);
+  const racine = h('section', { className: 'dossier-travail', 'aria-labelledby': 'dossier-titre' },
+    h('h3', { id: 'dossier-titre', textContent: 'Dossier de travail' }),
+    h('p', { className: 'note', textContent: 'Choisis un dossier une fois : l\'appli y recopie tout en direct (et y lit la bibliothèque de cartes). Dans un dossier Google Drive ou iCloud, deux ordinateurs restent à jour. N\'ouvre pas l\'appli sur deux ordinateurs en même temps.' }),
+    etat, erreur, conflitTexte, actionsConflit, actions);
+
+  const afficher = (e) => {
+    const dispo = dossierDisponible();
+    etat.textContent = e.texte;
+    choisir.hidden = !dispo || ['connecte', 'synchronisation', 'a-reconnecter', 'conflit'].includes(e.etat);
+    choisir.className = `btn${e.etat === 'aucun' || e.etat === 'erreur' ? ' btn-primaire' : ''}`;
+    reconnecterBtn.hidden = e.etat !== 'a-reconnecter';
+    dissocierBtn.hidden = !['connecte', 'a-reconnecter', 'conflit', 'erreur'].includes(e.etat);
+    actions.hidden = choisir.hidden && reconnecterBtn.hidden && dissocierBtn.hidden;
+    const c = e.etat === 'conflit' ? e.conflit : null;
+    actionsConflit.hidden = !c;
+    conflitTexte.hidden = !c;
+    if (c) conflitTexte.textContent = `Dans le dossier : ${c.dossier}${c.modifie ? ` (modifié le ${c.modifie.slice(0, 10)})` : ''}. Dans ce navigateur : ${c.navigateur}. Prendre le dossier remplace ce navigateur, après avoir téléchargé son état dans un .zip ; garder ce navigateur remplace le contenu du dossier.`;
+  };
+  const echec = (err) => { erreur.hidden = false; erreur.textContent = `Dossier de travail : ${err.message}`; };
+  const agir = (bouton, travail, recharger = false) => bouton.addEventListener('click', async () => {
+    erreur.hidden = true;
+    bouton.disabled = true;
+    try { const ok = await travail(); if (recharger && ok !== false && ['connecte', 'aucun'].includes(etatDossier().etat)) setTimeout(() => location.reload(), 600); } catch (err) { echec(err); } finally { bouton.disabled = false; }
+  });
+  // La bibliothèque et les images changent de source avec le dossier : on recharge la page pour que tout la relise.
+  agir(choisir, choisirDossier, true);
+  agir(reconnecterBtn, reconnecter, true);
+  agir(dissocierBtn, dissocier, true);
+  agir(prendre, () => resoudreConflit('dossier'));
+  agir(garder, () => resoudreConflit('navigateur'), true);
+  surEtatDossier(afficher);
+  afficher(etatDossier());
+  return racine;
 }
 
 /** Ouvre le dialogue de sauvegarde (construit au premier appel). */
@@ -39,7 +89,7 @@ export function ouvrirSauvegarde() {
   if (!dialogue) {
     dialogue = h('dialog', { id: 'dialogue-sauvegarde', className: 'dialogue-sauvegarde', 'aria-labelledby': 'sauvegarde-titre' },
       h('h2', { id: 'sauvegarde-titre', textContent: 'Sauvegarde complète' }),
-      h('p', { className: 'note', textContent: 'Un seul fichier pour tout garder ou tout retrouver : donjons, personnages, mondes, modèles, parties, réglages et images importées.' }),
+      h('p', { className: 'note', textContent: 'Un seul fichier pour tout garder ou tout retrouver : donjons, personnages, mondes, modèles, parties, réglages et images importées. Avec un dossier de travail (plus bas), le .zip ne sert plus que pour passer à un autre navigateur.' }),
       h('div', { className: 'actions' },
         h('button', { id: 'sauvegarder-tout', type: 'button', className: 'btn btn-primaire', title: 'Télécharge un fichier .zip' }, icone('sauvegarde'), 'Tout sauvegarder'),
         h('label', { className: 'btn', title: 'Remplace tout ce que ce navigateur garde par le contenu d\'une sauvegarde .zip' }, icone('importer'), 'Tout restaurer… ',
@@ -48,6 +98,7 @@ export function ouvrirSauvegarde() {
       h('div', { className: 'actions' }, h('button', { id: 'restaurer-confirmer', type: 'button', className: 'btn btn-danger', hidden: true })),
       h('p', { id: 'sauvegarde-etat', className: 'note', role: 'status', hidden: true }),
       h('p', { id: 'sauvegarde-erreur', className: 'note erreur', role: 'alert', hidden: true }),
+      sectionDossier(),
       h('div', { className: 'actions' }, h('button', { type: 'button', className: 'btn btn-discret', textContent: 'Fermer', onclick: () => dialogue.close() })));
     document.body.append(dialogue);
     dialogue.addEventListener('click', (e) => { if (e.target === dialogue) dialogue.close(); });

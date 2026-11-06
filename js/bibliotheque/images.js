@@ -1,6 +1,7 @@
 /**
  * Images importées par le MJ, rangées dans IndexedDB (base « carte-de-mj », magasin « images »).
  * Entrée : { id, nom, type (MIME), blob, largeur, hauteur, ajoute (ISO), titre, niveau, milieux, tags, description }.
+ * `apresEcritureImages` : écouteurs prévenus après chaque écriture (dossier de travail, js/dossier-travail.js).
  * Touche indexedDB et le DOM (dimensions de l'image) : pas pour Node. Toute erreur est rendue, jamais avalée en silence.
  */
 import { validerCarte } from './catalogue.js';
@@ -23,11 +24,15 @@ function ouvrir() {
   return ouverture;
 }
 
+/** Fonctions appelées après chaque écriture réussie (le dossier de travail y recopie les images). Une erreur d'un écouteur n'empêche rien. */
+export const apresEcritureImages = new Set();
+const prevenir = () => { for (const f of apresEcritureImages) { try { f(); } catch (e) { console.warn('écouteur d’images :', e); } } };
+
 function transaction(mode, action) {
   return ouvrir().then((db) => new Promise((resolve, reject) => {
     const tx = db.transaction(MAGASIN, mode);
     const req = action(tx.objectStore(MAGASIN));
-    tx.oncomplete = () => resolve(req?.result);
+    tx.oncomplete = () => { if (mode === 'readwrite') prevenir(); resolve(req?.result); };
     tx.onerror = () => reject(tx.error ?? new Error('écriture impossible'));
     tx.onabort = () => reject(tx.error ?? new Error('opération annulée (espace plein ?)'));
   }));

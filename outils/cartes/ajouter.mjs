@@ -4,9 +4,11 @@ import { readFile, writeFile, mkdir, access, rename } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { ajouterAuCatalogue, catalogueVide } from './entree.js';
+import { dossierBibliotheque } from './dossier.js';
 
 const racine = fileURLToPath(new URL('../../', import.meta.url));
-const dossier = path.join(racine, 'bibliotheque');
+let dossier;
+try { dossier = dossierBibliotheque(racine, process.env); } catch (e) { console.error(e.message); process.exit(1); }
 const fichierCatalogue = path.join(dossier, 'catalogue.json');
 function sortir(m) { console.error(m); process.exit(1); }
 

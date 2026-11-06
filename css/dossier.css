@@ -1,0 +1,9 @@
+/* Dossier de travail (js/dossier-travail.js) : pastille sur le bouton « Sauvegarde » quand le dossier attend une action
+   (à reconnecter, conflit, erreur). Injecté par le script, indépendant des feuilles de page. */
+.menu-sauvegarde[data-dossier] { position: relative; }
+.menu-sauvegarde[data-dossier]::after { content: ""; position: absolute; top: 3px; right: 3px; width: 9px; height: 9px; border-radius: 50%; background: #e0a21b; box-shadow: 0 0 0 2px var(--panneau, #1f1e24); }
+.menu-sauvegarde[data-dossier="erreur"]::after { background: #d9534f; }
+.dialogue-sauvegarde .dossier-travail { margin-top: var(--esp-4, 16px); padding-top: var(--esp-3, 12px); border-top: 1px solid var(--bord, #3d3a44); }
+.dialogue-sauvegarde .dossier-travail h3 { margin: 0 0 var(--esp-2, 8px); font-size: 15px; }
+/* .btn et .actions fixent display : sans cette règle l'attribut hidden ne cache rien dans le dialogue. */
+.dialogue-sauvegarde [hidden] { display: none !important; }

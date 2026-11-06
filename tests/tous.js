@@ -67,6 +67,7 @@ import { executer as executerAtelierRoute } from './atelier-route.test.js';
 import { executer as executerGrilleAffichage } from './grille-affichage.test.js';
 import { executer as executerCartouche } from './cartouche.test.js';
 import { executer as executerFilCompact } from './fil-compact.test.js';
+import { executer as executerDossierTravail } from './dossier-travail.test.js';
 
 /** Les suites, dans l'ordre d'exécution : chacune reçoit `{ lire }` et rend (ou promet) une liste de résultats. */
 export const SUITES = [
@@ -84,7 +85,7 @@ export const SUITES = [
   executerUniversGrille,
   executerUniversVue, executerIcones,
   executerAtelierArbre, executerAtelierSelection, executerAtelierRoute, executerGrilleAffichage, executerCartouche, executerFilCompact,
-  executerSection, executerListe,
+  executerSection, executerListe, executerDossierTravail,
 ];
 
 /** Joue toutes les suites ; renvoie les résultats { phrase, ecarts, resultat? } à la suite les uns des autres. */

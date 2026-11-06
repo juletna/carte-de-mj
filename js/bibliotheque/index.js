@@ -11,9 +11,10 @@ import { btn } from '../univers-boutons.js';
 import { validerCatalogue, selectionner, creditAffiche } from './catalogue.js';
 import { NIVEAUX, MILIEUX, libelleNiveau, libelleMilieu } from './vocabulaire.js';
 import { importerImage, listerImages, lireImage, supprimerImage } from './images.js';
+import { lireFichierBibliotheque, urlBibliotheque } from './source.js';
 
 const DOSSIER = 'bibliotheque/';
-const COMMENT_REMPLIR = 'Pour la remplir : lance la génération avec le skill « generer-carte » de Claude Code, ou, pour essayer, « node outils/demo-bibliotheque.mjs » depuis la racine du projet. Tu peux aussi importer tes propres images dans « Mes images ».';
+const COMMENT_REMPLIR = 'Pour la remplir : lance la génération avec le skill « generer-carte » de Claude Code, ou, pour essayer, « node outils/demo-bibliotheque.mjs » depuis la racine du projet. Tu peux aussi importer tes propres images dans « Mes images », ou choisir un dossier de travail (bouton « Sauvegarde ») qui contient un sous-dossier bibliotheque/.';
 
 let catalogueEnCours;
 function chargerCatalogue(rafraichir = false) {
@@ -21,16 +22,13 @@ function chargerCatalogue(rafraichir = false) {
   return catalogueEnCours;
 }
 export async function lireCatalogue() {
-  try {
-    const rep = await fetch(`${DOSSIER}catalogue.json`, { cache: 'no-store' });
-    if (!rep.ok) return { cartes: [], avertissements: [], message: `Aucun catalogue (${DOSSIER}catalogue.json est absent). ${COMMENT_REMPLIR}` };
-    let brut;
-    try { brut = await rep.json(); } catch { return { cartes: [], avertissements: [], message: `${DOSSIER}catalogue.json est illisible (ce n’est pas du JSON valide).` }; }
-    const r = validerCatalogue(brut);
-    return { ...r, message: r.cartes.length ? '' : `Le catalogue est vide. ${COMMENT_REMPLIR}` };
-  } catch {
-    return { cartes: [], avertissements: [], message: `Le catalogue n’a pas pu être lu (ouvre l’appli par « python3 outils/serveur.py », pas en double-cliquant sur le fichier). ${COMMENT_REMPLIR}` };
-  }
+  const r = await lireFichierBibliotheque('catalogue.json');
+  if (r.statut === 'absent') return { cartes: [], avertissements: [], message: `Aucun catalogue (${DOSSIER}catalogue.json est absent du site comme du dossier de travail). ${COMMENT_REMPLIR}` };
+  if (r.statut === 'erreur') return { cartes: [], avertissements: [], message: `Le catalogue n’a pas pu être lu (ouvre l’appli par « python3 outils/serveur.py », pas en double-cliquant sur le fichier, ou choisis un dossier de travail dans « Sauvegarde »). ${COMMENT_REMPLIR}` };
+  let brut;
+  try { brut = JSON.parse(r.texte); } catch { return { cartes: [], avertissements: [], message: `${DOSSIER}catalogue.json est illisible (ce n’est pas du JSON valide).` }; }
+  const v = validerCatalogue(brut);
+  return { ...v, message: v.cartes.length ? '' : `Le catalogue est vide. ${COMMENT_REMPLIR}` };
 }
 
 const urlsCreees = new Map(); // id d'image du navigateur → objectURL
@@ -47,7 +45,7 @@ async function trouver(ref) {
   if (!ref || typeof ref !== 'object' || typeof ref.id !== 'string') return null;
   if (ref.source === 'bibliotheque') {
     const c = (await chargerCatalogue()).cartes.find((x) => x.id === ref.id);
-    return c ? { url: DOSSIER + c.fichier, infos: infosDe(c) } : null;
+    return c ? { url: urlBibliotheque(c.fichier), infos: infosDe(c) } : null;
   }
   if (ref.source === 'navigateur') {
     try {
@@ -148,7 +146,7 @@ export function choisirCarte(options = {}) {
       const source = onglet === 'bibliotheque' ? catalogue.cartes : images;
       const visibles = selectionner(source, { niveau: etat.niveau, milieux: [...etat.milieux], requete: etat.requete });
       grille.replaceChildren(...visibles.map((c) => onglet === 'bibliotheque'
-        ? tuile(c, { source: 'bibliotheque', id: c.id }, DOSSIER + c.fichier)
+        ? tuile(c, { source: 'bibliotheque', id: c.id }, urlBibliotheque(c.fichier))
         : tuile(c, { source: 'navigateur', id: c.id }, urlDepuisBlob(c))));
       const msgs = [];
       if (onglet === 'bibliotheque') {

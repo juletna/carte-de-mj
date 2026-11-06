@@ -443,6 +443,32 @@ Choisir une carte image (monde, région, zone, localité, bâtiment, souterrain)
 
 Bouton « Sauvegarde » de la barre (toutes les pages) : **Tout sauvegarder** télécharge un seul `sauvegarde-carte-de-mj-AAAA-MM-JJ.zip` (toutes les clés `carte-de-mj:*`, `dd-fiche-*` et `jdr-carte:*` du navigateur, telles quelles, plus les images importées) ; **Tout restaurer…** relit un tel zip, en montre le contenu, puis « Tout remplacer » → « Confirmer » remplace tout (une sauvegarde `avant-restauration-…zip` de l'état actuel est téléchargée d'abord ; si l'espace manque, rien n'est modifié). Les images de la bibliothèque (dossier `bibliotheque/`) ne sont pas dans le zip : leurs identifiants sont cités et la restauration signale celles qui manquent. Code : `js/zip.js`, `js/sauvegarde.js` (purs, testés), `js/mj/sauvegarde-ui.js` (`ouvrirSauvegarde`, chargé à la demande par `js/navigation.js`).
 
+## Dossier de travail
+
+Au lieu d'exporter un zip pour être tranquille, le MJ choisit **une fois** un dossier de son ordinateur (bouton « Sauvegarde » → « Dossier de travail » → « Choisir un dossier… »). L'appli y recopie alors **en direct** tout ce qu'elle garde dans le navigateur (donjons, personnages, mondes, parties, réglages, images importées) et y lit la bibliothèque de cartes. Si ce dossier est dans Google Drive ou iCloud Drive, deux ordinateurs se synchronisent sans rien faire de plus.
+
+- **Navigateurs** : Chrome et Edge sur ordinateur (File System Access API, `showDirectoryPicker`). Ailleurs, la section l'indique (« Non disponible dans ce navigateur ») et tout marche comme avant : localStorage, IndexedDB, export et import du zip (qui reste utile pour changer de navigateur).
+- **Reconnexion** : le navigateur oublie parfois l'autorisation d'écrire. Le bouton « Sauvegarde » porte alors une pastille ; « Reconnecter » la redonne en un clic.
+- **Dissocier** oublie le dossier, sans jamais supprimer ses fichiers.
+- **Ne pas ouvrir l'appli sur deux ordinateurs en même temps** : le dernier qui écrit l'emporte, et un service de synchronisation peut créer des copies en conflit.
+
+Disposition du dossier :
+
+```
+<dossier>/
+  dossier-carte-de-mj.json   { format: "carte-de-mj-dossier", version: 1, modifie: <date ISO>, appareil: <id> }
+  donnees/<clé>.json         texte brut de chaque clé retenue ; « : » devient « __ » (carte-de-mj__donjons-v1.json)
+  images/index.json          les images importées (mêmes entrées que le manifeste du zip) …
+  images/<id>.<ext>          … et leur contenu
+  bibliotheque/              catalogue.json, cartes/, references/ : lue par l'appli, écrite par le skill generer-carte
+```
+
+**Au démarrage (et au choix d'un dossier)**, l'appli compare le navigateur et le dossier : dossier vide → le navigateur y est recopié ; navigateur sans donnée → il est rempli depuis le dossier (puis la page se recharge) ; contenus identiques → rien. Sinon, un marqueur local (`cdm-dossier-local-v1`, hors sauvegarde) dit si le dossier a bougé depuis la dernière synchronisation et si le navigateur a changé sans être recopié : le plus récent l'emporte ; si **les deux** ont changé (ou si ce navigateur n'a jamais été synchronisé avec ce dossier), l'appli demande : « Prendre le dossier » ou « Garder ce navigateur ». Avant de remplacer des données du navigateur, son état est téléchargé en zip (`avant-restauration-…zip`).
+
+**Bibliothèque** : si le dossier contient `bibliotheque/catalogue.json`, l'appli lit les cartes là (sinon, elle lit `bibliotheque/` du site comme avant). Pour que le skill `generer-carte` y écrive : `export CARTE_DE_MJ_BIBLIOTHEQUE=/chemin/du/dossier/bibliotheque` avant de lancer Claude Code. Après un changement de source, la page se recharge.
+
+Code : `js/dossier-travail-logique.js` (pur, testé : noms de fichiers, comparaison, décision), `js/dossier-travail.js` (poignée du dossier dans sa propre base IndexedDB « carte-de-mj-dossier », miroir des écritures installé tôt par `js/navigation.js`, états), `js/bibliotheque/source.js` (d'où lire la bibliothèque), section du dialogue dans `js/mj/sauvegarde-ui.js`, pastille dans `css/dossier.css`. Les accès au dossier ne se testent pas sous Node : à essayer à la main (choisir un dossier vide, modifier un donjon, importer une image, regarder `donnees/` et `images/`, vider le navigateur puis reconnecter).
+
 ## Univers : des cartes qui s'emboîtent
 
 Un **univers** relie des cartes image comme des poupées russes : le monde mène à une région, puis à un village, puis à un donjon du Donjon. Il se prépare dans le Donjon et se joue dans la Présentation. Conception et contrats : `docs/conception-univers.md`.
@@ -572,7 +598,7 @@ dans ce dépôt : « génère une carte de forêt avec des ruines » (skill `.cl
 d'OpenAI, vous montre l'image, puis l'ajoute à `bibliotheque/catalogue.json` si vous la validez.
 
 - Il faut votre propre clé : `export OPENAI_API_KEY=…` avant de lancer Claude Code. Elle n'est jamais écrite ni affichée.
-- `bibliotheque/` est ignoré par git : les images et vos références de style restent sur votre disque.
+- `bibliotheque/` est ignoré par git : les images et vos références de style restent sur votre disque. Pour écrire dans le sous-dossier `bibliotheque/` de votre dossier de travail, définissez `CARTE_DE_MJ_BIBLIOTHEQUE` (chemin absolu) : voir « Dossier de travail ».
 - À la main : `node outils/cartes/generer.mjs --niveau zone --id foret-01 --scene "…" [--essai]` puis `node outils/cartes/ajouter.mjs entree.json`.
   `--essai` montre la requête sans rien envoyer.
 

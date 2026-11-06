@@ -18,7 +18,7 @@ export const VERSION_SAUVEGARDE = 1;
 export const PREFIXES_CLES = ['carte-de-mj:', 'dd-fiche-', 'jdr-carte:'];
 export const TAILLE_MAX_SAUVEGARDE = 500 * 1024 * 1024;
 export const NOM_MANIFESTE = 'sauvegarde.json';
-const TYPES_IMAGES = { 'image/webp': 'webp', 'image/png': 'png', 'image/jpeg': 'jpg', 'image/svg+xml': 'svg' };
+export const TYPES_IMAGES = { 'image/webp': 'webp', 'image/png': 'png', 'image/jpeg': 'jpg', 'image/svg+xml': 'svg' };
 
 /** Cette clé du stockage fait-elle partie de la sauvegarde ? */
 export const cleRetenue = (cle) => typeof cle === 'string' && PREFIXES_CLES.some((p) => cle.startsWith(p));
@@ -67,6 +67,18 @@ export function bibliothequeManquante(ids, catalogueIds) {
 const octetsDe = async (blob) => (blob instanceof Uint8Array ? blob : new Uint8Array(await blob.arrayBuffer()));
 const idSur = (id) => String(id).replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 100) || 'image';
 
+/** Le chemin `images/<id>.<ext>` de chaque image (dans l'ordre donné), sans collision : partagé avec le dossier de travail. */
+export function nomsImages(images) {
+  const pris = new Set();
+  return images.map((e) => {
+    const ext = TYPES_IMAGES[e.type] ?? 'bin';
+    let nom = `images/${idSur(e.id)}.${ext}`;
+    for (let n = 2; pris.has(nom); n++) nom = `images/${idSur(e.id)}-${n}.${ext}`;
+    pris.add(nom);
+    return nom;
+  });
+}
+
 /**
  * Ce qu'il faut écrire dans le zip : { manifeste, fichiers: [{ nom, donnees }] } (le manifeste est aussi le premier fichier).
  * `images` : les entrées d'IndexedDB (avec leur `blob`).
@@ -78,15 +90,12 @@ export async function contenuSauvegarde({ stock, images = [], maintenant = new D
     const valeur = stock.getItem(cle);
     if (typeof valeur === 'string') cles[cle] = valeur;
   }
-  const fichiersImages = [], metas = [], pris = new Set();
-  for (const e of images) {
-    const ext = TYPES_IMAGES[e.type] ?? 'bin';
-    let nom = `images/${idSur(e.id)}.${ext}`;
-    for (let n = 2; pris.has(nom); n++) nom = `images/${idSur(e.id)}-${n}.${ext}`;
-    pris.add(nom);
+  const fichiersImages = [], metas = [];
+  const noms = nomsImages(images);
+  for (const [i, e] of images.entries()) {
     const { blob, ...meta } = e;
-    metas.push({ ...meta, fichier: nom });
-    fichiersImages.push({ nom, donnees: await octetsDe(blob), date: maintenant });
+    metas.push({ ...meta, fichier: noms[i] });
+    fichiersImages.push({ nom: noms[i], donnees: await octetsDe(blob), date: maintenant });
   }
   const manifeste = { format: FORMAT_SAUVEGARDE, version: VERSION_SAUVEGARDE, cree: maintenant.toISOString(), cles, images: metas, bibliotheque: bibliothequeCitee(cles) };
   const fichiers = [{ nom: NOM_MANIFESTE, donnees: new TextEncoder().encode(JSON.stringify(manifeste, null, 1)), date: maintenant }, ...fichiersImages];
