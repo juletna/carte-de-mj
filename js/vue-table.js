@@ -10,6 +10,8 @@ import * as table from './commande-table.js';
 import { creerEcranTable } from './ecran-table.js';
 import { MESSAGES, ouvrirCanal, lireEtat, lireDefilement, messageDemandeEtat, messageDeplacer, messageViser } from './protocole-table.js';
 import { affichageDeReglages } from './affichage.js';
+import { TYPE_UNIVERS, lireVueUnivers } from './univers-protocole.js';
+import { creerTableUnivers } from './univers-table.js';
 import { $ } from './dom.js';
 
 export function demarrerTable() {
@@ -18,6 +20,7 @@ export function demarrerTable() {
   $('ecran-table').hidden = false;
   const reglages = stockage.chargerReglages(); // seuls les réglages d'affichage : jamais les présentations
   const ecran = creerEcranTable({ affichage: affichageDeReglages(reglages) });
+  const universTable = creerTableUnivers(); // une carte d'univers à la place de la salle (js/univers-table.js)
   const attendre = (texte) => ecran.attendre(texte);
 
   const canal = ouvrirCanal();
@@ -26,7 +29,14 @@ export function demarrerTable() {
   canal.onmessage = (ev) => {
     const m = ev.data;
     if (!m || typeof m !== 'object') return;
-    if (m.type === MESSAGES.ETAT) {
+    if (m.type === TYPE_UNIVERS) {
+      const lu = lireVueUnivers(m, ecran.affichage());
+      if (!lu) return;
+      recu = true;
+      ecran.appliquer({ plan: null, mini: null, caseVisee: null, affichage: lu.affichage }, '');
+      universTable.montrer(lu.vue);
+    } else if (m.type === MESSAGES.ETAT) {
+      universTable.masquer();
       recu = true;
       ecran.appliquer(lireEtat(m, ecran.affichage()), 'La présentation n’a pas commencé. Lance-la depuis la régie.');
     } else if (m.type === MESSAGES.DEFILER) {

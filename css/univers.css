@@ -57,3 +57,36 @@
   #univers-bouton .libelle { display: none; }
   .univers-pastille { width: 26px; height: 26px; }
 }
+
+/* --- Régie de la Présentation : carte d'univers --- */
+.univers-regie { max-width: 1200px; margin: 0 auto; padding: 0 var(--esp-4) var(--esp-4); }
+.univers-regie[hidden] { display: none; }
+.univers-regie h1 { margin: var(--esp-3) 0 var(--esp-2); font-size: 22px; }
+.univers-regie-grille { display: flex; gap: var(--esp-4); align-items: flex-start; }
+.univers-regie .univers-zone-carte { flex: 1 1 auto; min-width: 0; background: var(--scene); border-radius: var(--rayon); padding: var(--esp-2); }
+.univers-regie-panneau { flex: none; width: 320px; }
+.univers-regie-panneau h2 { margin: var(--esp-3) 0 var(--esp-2); font-size: 15px; }
+.univers-regie-panneau h3 { margin: var(--esp-3) 0 var(--esp-2); font-size: 15px; color: var(--accent); }
+.univers-regie-panneau .actions { display: flex; flex-wrap: wrap; gap: var(--esp-2); margin: var(--esp-2) 0; }
+.univers-notes { white-space: pre-wrap; font-size: 14px; }
+.univers-regie .univers-fil { background: transparent; border: 0; padding-left: 0; }
+.univers-point.revele .univers-pastille { background: var(--succes); }
+#fil-univers { margin: var(--esp-2) 0; }
+#fil-univers[hidden] { display: none; }
+#fil-univers.univers-fil { background: transparent; border: 0; padding: 0; }
+@media (max-width: 760px) {
+  .univers-regie-grille { flex-direction: column; }
+  .univers-regie-panneau { width: auto; align-self: stretch; }
+}
+
+/* --- Vue table : la carte d'univers à la place de la salle --- */
+#univers-table { position: absolute; inset: 0; z-index: 1; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+#univers-table[hidden] { display: none; }
+.univers-table-zone { flex: 1 1 auto; min-height: 0; width: 100%; display: flex; align-items: center; justify-content: center; padding: 12px; box-sizing: border-box; }
+.univers-table-zone .univers-image { max-width: 100%; max-height: calc(100vh - 24px); border-radius: 0; }
+#orientation-table.couche .univers-table-zone .univers-image { max-height: calc(100vw - 24px); }
+.univers-table-zone .univers-pastille { width: 34px; height: 34px; }
+.univers-table-zone .univers-etiquette { font-size: 22px; padding: 4px 12px; }
+.univers-table-zone .univers-point { pointer-events: none; }
+.univers-table-titre { position: absolute; left: 50%; top: 12px; transform: translateX(-50%); margin: 0; padding: 6px 16px; border-radius: var(--rayon); background: rgba(12, 11, 14, .8); color: #fff; font-size: 22px; font-weight: 700; pointer-events: none; z-index: 2; }
+.univers-table-titre[hidden] { display: none; }

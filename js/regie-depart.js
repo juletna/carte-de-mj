@@ -86,6 +86,7 @@ export function creerDepart(ctx) {
     $('orphelines-presentations').hidden = orphelines.length === 0;
     $('liste-orphelines').replaceChildren(...orphelines.map(ligneOrpheline));
     $('liste-fichier').replaceChildren(...(etat.fichier ? [ligneFichier(etat.fichier)] : []));
+    ctx.univers?.listerDepart();
     diffuser(); // si cette régie a la main, la table n'affiche plus rien tant qu'aucune partie n'est ouverte
   }
 

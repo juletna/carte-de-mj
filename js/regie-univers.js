@@ -1,0 +1,236 @@
+/**
+ * Les univers dans la RÉGIE (presentation.html) : l'écran de départ les propose, la régie navigue de carte en carte, révèle des points,
+ * entre dans un donjon (sa partie de donjon, au format inchangé, s'ouvre ou se reprend) et remonte. À la table : la carte en grand et
+ * seulement les points visibles ou révélés (voir univers-protocole.js : la référence de l'image part, jamais l'image).
+ * Fabrique `creerRegieUnivers(ctx)` ; `ctx` est celui de regie.js (`etat`, `r`, `commande`, `canal`, `annoncer`, `entrer`, `depart`, `rendre`,
+ * `viderSauvegarde`, `noterRetrait`, `quitterPleinIci`, `prendreLaMain`), lu au moment de l'appel.
+ * Renvoie `listerDepart` (l'écran de départ), `diffuser` (vrai si la table a reçu une carte d'univers), `majFil` (le fil d'Ariane de la régie de donjon).
+ */
+import * as stockage from './stockage.js';
+import * as pres from './presentation.js';
+import * as modele from './univers.js';
+import * as pu from './univers-partie.js';
+import { messageUnivers } from './univers-protocole.js';
+import { creerCarteUnivers } from './univers-carte.js';
+import * as images from './univers-images.js';
+import { affichageDeReglages } from './affichage.js';
+import { $, h, bouton, deuxTemps } from './dom.js';
+import { pluriel } from './format.js';
+
+export function creerRegieUnivers(ctx) {
+  const { etat } = ctx;
+  let courant = null;   // { univers, partie } : l'univers dont la carte est affichée (ou dont on est dans un donjon)
+  let pointId = null;   // point choisi sur la carte
+  let sequence = 0;
+  const donjons = () => stockage.chargerDonjons()?.donjons ?? {};
+  const universEnregistres = () => stockage.chargerUnivers().etat?.univers ?? {};
+
+  const ecran = $('univers-regie');
+  const titre = h('h1', { id: 'titre-univers-regie', tabIndex: -1 });
+  const fil = h('nav', { className: 'univers-fil', 'aria-label': 'Fil d’Ariane' });
+  const zoneCarte = h('div', { className: 'univers-zone-carte' });
+  const panneau = h('div', { className: 'univers-regie-panneau' });
+  ecran.querySelector('.univers-regie-corps').replaceChildren(h('header', {}, titre, fil), h('div', { className: 'univers-regie-grille' }, zoneCarte, panneau));
+  const carte = creerCarteUnivers(zoneCarte, { onPoint: (id) => { pointId = id; rendre(); } });
+
+  function sauver() {
+    if (!stockage.enregistrerPartieUnivers(courant.partie)) ctx.annoncer('Impossible d’enregistrer la partie de l’univers dans ce navigateur (stockage plein ou bloqué) : elle continue, mais ne pourra pas être reprise.', 12000);
+  }
+  const vue = () => pu.vueDeLaTable(courant.partie, courant.univers);
+
+  // --- Table ----------------------------------------------------------------------------------------------
+  /** Envoie la carte à la table si la régie a la main et affiche une carte d'univers. Vrai : la table est servie (regie.js n'envoie alors pas de plan). */
+  function diffuser() {
+    if (!courant || ecran.hidden) return false;
+    if (!ctx.commande.main) return true; // en retrait : on ne parle pas à la table, et on ne lui envoie pas non plus un plan vide
+    const v = vue();
+    if (v) ctx.canal?.postMessage(messageUnivers(v, affichageDeReglages(ctx.r)));
+    return true;
+  }
+
+  // --- Départ -----------------------------------------------------------------------------------------------
+  function listerDepart() {
+    const tous = Object.values(universEnregistres());
+    const parties = stockage.chargerPartiesUnivers();
+    $('section-univers').hidden = !tous.length;
+    $('liste-univers').replaceChildren(...tous.map((u) => {
+      const partie = parties[u.id];
+      const n = Object.keys(u.lieux).length;
+      const infos = h('div', { className: 'infos' }, h('b', { textContent: u.nom }), h('span', { textContent: pluriel(n, 'lieu', 'lieux') }));
+      if (partie) infos.append(h('br'), h('span', { className: 'en-cours', textContent: `En cours : ${partie.dans ? 'dans un donjon, ' : ''}${u.lieux[partie.lieuCourant]?.nom ?? 'lieu disparu'}` }));
+      const boutons = h('div', { className: 'boutons' });
+      if (!n) infos.append(h('br'), h('span', { textContent: 'Aucune carte : prépare-la dans le Donjon, mode Univers.' }));
+      else if (partie) {
+        const recommencer = h('button', { type: 'button', className: 'discret' });
+        deuxTemps(recommencer, 'Recommencer', 'Effacer la partie ?', () => ouvrir(u, pu.creerPartieUnivers(u)));
+        boutons.append(bouton('Reprendre', () => ouvrir(u, partie, { reprise: true })), recommencer);
+      } else boutons.append(bouton('Présenter', () => ouvrir(u, pu.creerPartieUnivers(u))));
+      return h('li', {}, infos, boutons);
+    }));
+  }
+
+  // --- Ouvrir un univers et naviguer ---------------------------------------------------------------------------
+  function afficherEcran() {
+    for (const id of ['depart', 'choix-joueurs', 'regie']) $(id).hidden = true;
+    ecran.hidden = false;
+    document.title = `${courant.univers.nom} · Présentation · Carte de MJ`;
+  }
+  function ouvrir(univers, partie, { reprise = false } = {}) {
+    const notes = pu.reconcilier(partie, univers, donjons());
+    courant = { univers, partie };
+    pointId = null;
+    ctx.prendreLaMain();
+    if (!ctx.commande.retrait) stockage.oublierPartieOuverte();
+    ctx.viderSauvegarde();
+    etat.p = null; etat.consultee = null;
+    ctx.noterRetrait();
+    ctx.quitterPleinIci();
+    if (!partie.lieuCourant) { ctx.annoncer('Cet univers n’a plus aucune carte.', 8000); return; }
+    sauver();
+    if (partie.dans && reprise && donjons()[partie.dans.donjon]) { entrerDonjon(partie.dans); return; }
+    afficherEcran();
+    rendre();
+    if (notes.length) ctx.annoncer(notes.join(' '), 12000);
+    titre.focus({ preventScroll: true });
+  }
+
+  function entrerDonjon({ donjon: idDonjon, salle }) {
+    const d = donjons()[idDonjon];
+    if (!d) return;
+    ecran.hidden = true;
+    const existante = stockage.chargerPresentations()[d.id];
+    if (existante) {
+      ctx.entrer(existante, { reprise: true });
+      if (salle && salle in etat.p.donjon.salles) { etat.consultee = salle; ctx.rendre(); }
+      return;
+    }
+    ctx.depart.demanderJoueurs(pres.creerPresentation(d, { salleDepart: salle && salle in d.salles ? salle : pres.salleDepart(d) }));
+  }
+
+  function franchir(id) {
+    const but = pu.franchir(courant.partie, courant.univers, id, donjons());
+    if (!but) { ctx.annoncer('Cette destination n’existe plus : le point est signalé ⚠. Rien n’a été retiré.', 8000); return; }
+    sauver();
+    pointId = null;
+    if (but.donjon) entrerDonjon(but); else rendre();
+  }
+  /** De retour d'un donjon : sa partie reste enregistrée telle quelle ; la régie quitte la partie de donjon et revient à la carte. */
+  function quitterLeDonjon() {
+    ctx.viderSauvegarde();
+    if (!ctx.commande.retrait) stockage.oublierPartieOuverte();
+    etat.p = null; etat.consultee = null;
+    ctx.noterRetrait();
+    ctx.quitterPleinIci();
+    $('regie').hidden = true;
+    $('fil-univers').hidden = true;
+    afficherEcran();
+  }
+  /** Après un changement de lieu ou de niveau : on enregistre, on sort du donjon si l'on y était, et on redessine la carte. */
+  function apres() {
+    sauver();
+    pointId = null;
+    if (ecran.hidden) quitterLeDonjon();
+    rendre();
+  }
+  const remonter = () => { if (pu.remonter(courant.partie)) apres(); };
+  const versLe = (index) => { if (pu.allerAuChemin(courant.partie, index)) apres(); };
+
+  // --- Fil d'Ariane (carte et donjon) ---------------------------------------------------------------------------
+  function remplirFil(conteneur, partie, univers, dernier) {
+    const noms = pu.filDAriane(partie, univers);
+    const items = [...noms.map((n, i) => ({ ...n, index: i })), ...(dernier ? [{ nom: dernier }] : [])];
+    conteneur.replaceChildren(...items.flatMap((it, i) => {
+      const sep = i ? [h('span', { className: 'univers-sep', textContent: '›', 'aria-hidden': 'true' })] : [];
+      if (i === items.length - 1) return [...sep, h('strong', { textContent: it.nom, 'aria-current': 'location' })];
+      return [...sep, bouton(it.nom, () => versLe(it.index), 'discret petit')];
+    }), ...(items.length > 1 ? [bouton('↑ Remonter', () => remonter(), 'discret petit univers-remonter')] : []));
+  }
+  /** Dans la régie de donjon : le fil de l'univers d'où l'on vient, avec « Remonter ». Appelée à chaque rendu de la régie. */
+  function majFil() {
+    const zone = $('fil-univers');
+    if (!zone) return;
+    const idDonjon = etat.p?.donjon.id;
+    let trouve = null;
+    if (idDonjon && ecran.hidden) {
+      const univers = universEnregistres();
+      for (const partie of Object.values(stockage.chargerPartiesUnivers())) {
+        if (partie.dans?.donjon === idDonjon && univers[partie.univers]) { trouve = { univers: univers[partie.univers], partie }; break; }
+      }
+    }
+    zone.hidden = !trouve;
+    if (!trouve) return;
+    courant = trouve;
+    remplirFil(zone, trouve.partie, trouve.univers, etat.p.donjon.nom);
+    zone.prepend(h('span', { className: 'doux', textContent: `${trouve.univers.nom} · ` }));
+  }
+
+  // --- Rendu de la carte ----------------------------------------------------------------------------------------
+  function rendre() {
+    const { univers, partie } = courant;
+    const lieu = univers.lieux[partie.lieuCourant];
+    titre.textContent = univers.nom;
+    remplirFil(fil, partie, univers);
+    const dons = donjons();
+    const points = lieu.points.map((p) => {
+      const orph = modele.raisonOrpheline(univers, p.vers, dons);
+      const visible = pu.pointRevele(partie, lieu.id, p);
+      return {
+        id: p.id, x: p.x, y: p.y, nom: p.nom,
+        titre: `${p.nom || 'Point sans nom'} → ${modele.nomDestination(univers, p.vers, dons)}${orph ? ` (${orph})` : ''}${p.cache ? (visible ? ' — révélé à la table' : ' — caché à la table') : ''}`,
+        classes: [p.cache && !visible ? 'cache' : '', p.cache && visible ? 'revele' : '', orph ? 'orphelin' : '', !p.vers ? 'libre' : '', p.id === pointId ? 'choisi' : ''].filter(Boolean),
+        selectionne: p.id === pointId,
+      };
+    });
+    const moi = ++sequence;
+    const options = { points, alt: `Carte : ${lieu.nom}` };
+    carte.afficher({ ...options, url: null, absente: 'Chargement de l’image…' });
+    images.urlImage(lieu.image).then((url) => { if (moi === sequence) carte.afficher({ ...options, url, absente: 'Image introuvable : la carte n’est plus dans la bibliothèque ou dans ce navigateur. Les points restent utilisables dans la liste.' }); });
+    rendrePanneau(lieu, dons);
+    diffuser();
+  }
+
+  function rendrePanneau(lieu, dons) {
+    const { univers, partie } = courant;
+    const p = lieu.points.find((q) => q.id === pointId) ?? null;
+    const choisi = [];
+    if (p) {
+      const orph = modele.raisonOrpheline(univers, p.vers, dons);
+      const visible = pu.pointRevele(partie, lieu.id, p);
+      choisi.push(h('h3', { textContent: p.nom || 'Point sans nom' }),
+        h('p', { className: 'note', textContent: `Mène à : ${modele.nomDestination(univers, p.vers, dons)}${orph ? ` ⚠ ${orph}` : ''}` }));
+      if (p.cache) choisi.push(h('p', { className: 'note', textContent: visible ? 'Révélé : la table le voit.' : 'Caché : la table ne le voit pas.' }));
+      const actions = h('div', { className: 'actions' });
+      if (p.cache) actions.append(bouton(visible ? 'Cacher à nouveau' : 'Révéler à la table', () => { (visible ? pu.recacher : pu.reveler)(partie, lieu.id, p.id); sauver(); rendre(); }));
+      const entrer = bouton(p.vers?.donjon ? 'Entrer dans le donjon' : 'Entrer dans ce lieu', () => franchir(p.id), 'principal');
+      entrer.disabled = !p.vers || !!orph;
+      actions.append(entrer);
+      choisi.push(actions);
+    } else choisi.push(h('p', { className: 'note', textContent: 'Touche un point de la carte, ou choisis-le dans la liste.' }));
+
+    const liste = lieu.points.map((q) => {
+      const orph = modele.raisonOrpheline(univers, q.vers, dons);
+      const marque = [orph ? '⚠' : '', q.cache ? (pu.pointRevele(partie, lieu.id, q) ? '👁' : '🙈') : ''].filter(Boolean).join(' ');
+      const b = bouton(`${marque ? `${marque} ` : ''}${q.nom || 'Point sans nom'}`, () => { pointId = q.id; rendre(); }, `discret petit${q.id === pointId ? ' choisi' : ''}`);
+      if (q.id === pointId) b.setAttribute('aria-current', 'true');
+      return h('li', {}, b);
+    });
+    const masquer = h('input', { type: 'checkbox', checked: !!partie.masquerNoms });
+    masquer.addEventListener('change', () => { if (masquer.checked) partie.masquerNoms = true; else delete partie.masquerNoms; sauver(); rendre(); });
+    const nbCaches = lieu.points.filter((q) => q.cache && !pu.pointRevele(partie, lieu.id, q)).length;
+    panneau.replaceChildren(
+      h('section', { className: 'bloc-table', 'aria-label': 'Table' }, h('h2', { textContent: 'Table' }),
+        h('p', { className: 'note', textContent: ctx.commande.main ? `La table voit cette carte${nbCaches ? ` sans ${pluriel(nbCaches, 'point caché', 'points cachés')}` : ''}.` : 'Cette régie est en retrait : la table ne voit pas ce que tu fais ici.' }),
+        h('div', { className: 'actions' }, bouton('Ouvrir la fenêtre table', () => ouvrirFenetreTable())),
+        h('label', { className: 'ligne case' }, masquer, ' Masquer les noms à la table')),
+      h('section', { 'aria-label': 'Point choisi' }, ...choisi),
+      h('section', { 'aria-label': 'Points de ce lieu' }, h('h2', { textContent: `Points (${lieu.points.length})` }), lieu.points.length ? h('ul', { className: 'univers-liste' }, ...liste) : h('p', { className: 'note', textContent: 'Aucun point sur cette carte.' })),
+      ...(lieu.notes ? [h('section', { 'aria-label': 'Notes du lieu' }, h('h2', { textContent: 'Notes du lieu' }), h('p', { className: 'univers-notes', textContent: lieu.notes }))] : []),
+      h('p', { className: 'note' }, bouton('← Liste des donjons et univers', () => { ecran.hidden = true; ctx.depart.afficher(); }, 'discret petit')));
+  }
+  function ouvrirFenetreTable() {
+    const w = window.open(new URL('presentation.html?vue=table', location.href).href, 'carte-de-mj-table', 'popup,width=1024,height=768');
+    if (w) w.focus(); else ctx.annoncer('Le navigateur a bloqué la fenêtre. Autorise les fenêtres pour ce site, ou ouvre presentation.html?vue=table dans un nouvel onglet.', 10000);
+  }
+
+  return { listerDepart, diffuser, majFil, actif: () => !ecran.hidden };
+}

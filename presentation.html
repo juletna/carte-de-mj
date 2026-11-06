@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/presentation.css">
+  <link rel="stylesheet" href="css/univers.css">
 </head>
 <body class="presentation">
 
@@ -30,6 +31,12 @@
     </header>
     <p id="alerte-parties" class="note" role="status" hidden></p>
 
+    <section id="section-univers" aria-labelledby="titre-univers" hidden>
+      <h2 id="titre-univers">Univers de ce navigateur</h2>
+      <p class="note">Des cartes qui s'emboîtent : du monde jusqu'au donjon. Prépare-les dans le Donjon, mode Univers.</p>
+      <ul id="liste-univers" class="liste-depart"></ul>
+    </section>
+
     <section aria-labelledby="titre-biblio">
       <h2 id="titre-biblio">Donjons de ce navigateur</h2>
       <ul id="liste-donjons" class="liste-depart"></ul>
@@ -49,6 +56,21 @@
       <ul id="liste-fichier" class="liste-depart"></ul>
       <p id="erreur-fichier" class="note erreur" hidden></p>
     </section>
+  </main>
+
+  <!-- Une carte d'univers (js/regie-univers.js) : la régie navigue de carte en carte, révèle des points, entre dans un donjon. -->
+  <main id="univers-regie" class="univers-regie" hidden>
+    <header class="menu-site">
+      <div class="menu-int">
+        <a class="menu-nom" href="index.html">Carte de MJ</a>
+        <nav aria-label="Navigation principale">
+          <a class="menu-lien" href="fiche.html">Fiche</a>
+          <a class="menu-lien" href="donjon.html">Donjon</a>
+          <a class="menu-lien" href="presentation.html" aria-current="page">Présentation</a>
+        </nav>
+      </div>
+    </header>
+    <div class="univers-regie-corps"></div>
   </main>
 
   <!-- Au lancement d'une partie : qui joue ? Des fiches du donjon, ou un simple nombre de joueurs. -->
@@ -113,6 +135,7 @@
       <header>
         <h1>Régie</h1>
         <p class="sous-titre"><span id="nom-donjon"></span></p>
+        <div id="fil-univers" class="univers-fil" hidden></div>
         <p id="alerte-stockage" class="note erreur" role="alert" hidden></p>
         <div id="alerte-retrait" role="alert" hidden>
           <p id="texte-retrait" class="note erreur"></p>
@@ -308,6 +331,8 @@
       <!-- Salles découvertes seulement (vue-publique.js, miniPlanTable). Ne reçoit aucun clic : le doigt d'un joueur passe au travers. -->
       <canvas id="mini-table" aria-label="Plan des salles découvertes, la salle en cours en surbrillance" hidden></canvas>
       <p id="attente" role="status" hidden></p>
+      <!-- Une carte d'univers à la place de la salle (js/univers-table.js) : l'image en grand, les points visibles. -->
+      <div id="univers-table" hidden></div>
       <div id="calibrage-table" hidden>
         <div id="carte-calibrage"></div>
         <p id="texte-calibrage"></p>

@@ -34,6 +34,7 @@ import { creerEcranTable } from './ecran-table.js';
 import { creerDepart } from './regie-depart.js';
 import { creerSelection } from './regie-selection.js';
 import { creerReglages } from './regie-reglages.js';
+import { creerRegieUnivers } from './regie-univers.js';
 
 export function demarrerRegie() {
   // L'écran de table local (« Plein écran ici ») : créé le premier, comme ses écouteurs l'étaient à l'import.
@@ -106,6 +107,7 @@ export function demarrerRegie() {
   /** Envoie à la table son contenu (seule la régie qui a la main le fait). */
   function diffuser() {
     if (!commande.main) return;
+    if (univers.diffuser()) return; // une carte d'univers est affichée : c'est elle que voit la table (js/regie-univers.js)
     canal?.postMessage(messageEtat(contenuTable()));
   }
   /** « Plein écran ici » : la même chose, dessinée par l'écran de table de cette page (l'encart relu comme le fait la fenêtre table). */
@@ -279,6 +281,7 @@ export function demarrerRegie() {
 
   function rendre() {
     if (!etat.p) return;
+    univers.majFil();
     oublierCaseSiResolue();
     const s = salleConsultee();
     dessinerRegie(s.plan);
@@ -608,8 +611,11 @@ export function demarrerRegie() {
   // --- Câblage des modules de la régie ---------------------------------------------------------------
   // Tout ce qui précède est déclaré (fonctions) ou défini (constantes) : on peut le donner aux modules. Ils ne l'appellent
   // qu'une fois la page démarrée, jamais pendant leur création.
-  const ctx = { etat, r, commande, annoncer, rendre, modifie, salleCourante, salleConsultee, entrer, viderSauvegarde, noterRetrait, quitterPleinIci, diffuser, montrerIci };
+  const ctx = { etat, r, commande, canal, prendreLaMain, annoncer, rendre, modifie, salleCourante, salleConsultee, entrer, viderSauvegarde, noterRetrait, quitterPleinIci, diffuser, montrerIci };
   const depart = creerDepart(ctx);
+  ctx.depart = depart;
+  const univers = creerRegieUnivers(ctx);
+  ctx.univers = univers;
   const selection = creerSelection(ctx);
   const reglages = creerReglages(ctx);
   let minuterie;
