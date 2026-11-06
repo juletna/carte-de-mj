@@ -1,18 +1,19 @@
 /**
- * Le catalogue d'objets (Portes, Mobilier, Créatures) dans la colonne de droite du Donjon : deux onglets en haut de l'inspecteur,
- * « Salle » (l'inspecteur : propriétés de la salle ou de l'objet choisi) et « Ajouter » (le catalogue de vignettes, js/palette.js).
- * Les onglets sont ceux de la coquille (`coquille.onglets`, comme dans Jouer).
+ * Le catalogue d'objets dans la colonne de droite du Donjon : quatre onglets-icônes en haut de l'inspecteur, « Salle » (l'inspecteur :
+ * propriétés de la salle ou de l'objet choisi) puis « Portes », « Mobilier » et « Créatures » (le catalogue de vignettes, js/palette.js,
+ * sur la catégorie choisie). Les onglets sont ceux de la coquille (`coquille.onglets`, comme dans Jouer).
  *
  *   const cat = creerCatalogueOnglet(coquille, ctx);
  *   cat.montrer(vrai | faux)   les onglets n'ont de sens que dans le Donjon (le Monde y met ses propres inspecteurs)
  *
  * Ordinateur : #palette se range dans la colonne, sous les onglets ; poser un objet marche comme avant (armer, puis cliquer la carte).
- * Cliquer un objet déjà posé (porte, objet, créature, pion) ramène sur « Salle » ; choisir dans « Ajouter » y reste tant qu'on pose.
+ * Cliquer un objet déjà posé (porte, objet, créature, pion) ramène sur « Salle » ; changer d'onglet ne désarme pas l'objet armé (pose en série).
  * Sous 760 px : pas d'onglets, #palette retourne dans la zone de la scène et le « + Ajouter » du bas l'ouvre en tiroir (js/mj/vue-carte.js).
  */
 import { $ } from '../dom.js';
 import { TYPES_ELEMENT } from '../atelier-selection.js';
 import { telephone } from '../telephone.js';
+import { OUTILS, OUTILS_CATALOGUE } from '../rail.js';
 
 export function creerCatalogueOnglet(coquille, ctx) {
   const colonne = coquille.colonneInspecteur;
@@ -25,8 +26,11 @@ export function creerCatalogueOnglet(coquille, ctx) {
   const { onglets } = coquille;
   onglets.element.classList.add('onglets-donjon');
   onglets.element.setAttribute('aria-label', 'Salle ou catalogue');
-  onglets.ajouter({ id: 'salle', libelle: 'Salle', contenu: [tete, corps] });
-  onglets.ajouter({ id: 'ajouter', libelle: 'Ajouter', contenu: palette });
+  onglets.ajouter({ id: 'salle', libelle: 'Salle', icone: 'salle', contenu: [tete, corps] });
+  // Les trois catégories partagent le même catalogue : l'onglet choisit le groupe affiché (js/palette.js).
+  const ICONES_GROUPE = { portes: 'porte', mobilier: 'objet', creatures: 'creature' };
+  for (const o of OUTILS) onglets.ajouter({ id: o.id, libelle: o.titre, icone: ICONES_GROUPE[o.id], contenu: palette });
+  onglets.surChoix((id) => { if (OUTILS_CATALOGUE.includes(id)) ctx.carte.palette.afficherGroupe(id); });
   onglets.choisir('salle');
 
   /** Ordinateur : le catalogue est dans la colonne ; téléphone : dans la scène (tiroir du bas). */
@@ -37,7 +41,7 @@ export function creerCatalogueOnglet(coquille, ctx) {
       onglets.choisir('salle');
     } else {
       if (palette.parentNode !== colonne) colonne.append(palette);
-      palette.setAttribute('role', 'tabpanel'); palette.setAttribute('aria-labelledby', 'atelier-onglet-ajouter');
+      palette.setAttribute('role', 'tabpanel'); palette.setAttribute('aria-labelledby', `atelier-onglet-${onglets.courant()}`);
     }
   }
   matchMedia('(max-width: 760px)').addEventListener('change', placer);

@@ -117,7 +117,7 @@ Oui/non : interrupteur (`role="switch"`) puis le libellé en T1, aligné sur le 
 
 ### Onglets (Jouer, Donjon)
 
-Texte 13,5px/600 en T3, l'onglet actif en T1 souligné de 2px d'or. Pas de fond doré : l'or est réservé à la sélection et au bouton principal. Chaque onglet a ensuite un en-tête et des sections comme un inspecteur. Dans le Donjon (ordinateur), deux onglets en haut de l'inspecteur : « Salle » (l'inspecteur) et « Ajouter » (le catalogue : Portes · Mobilier · Créatures, recherche, vignettes) ; sous 760 px, pas d'onglets, le « + Ajouter » du bas ouvre le catalogue en tiroir.
+Texte 13,5px/600 en T3, l'onglet actif en T1 souligné de 2px d'or. Pas de fond doré : l'or est réservé à la sélection et au bouton principal. Chaque onglet a ensuite un en-tête et des sections comme un inspecteur. Dans le Donjon (ordinateur), quatre onglets-icônes (icône au-dessus du libellé) en haut de l'inspecteur : « Salle » (l'inspecteur) puis « Portes », « Mobilier » et « Créatures » (le catalogue sur cette catégorie : recherche, vignettes) ; sous 760 px, pas d'onglets, le « + Ajouter » du bas ouvre le catalogue en tiroir.
 
 ### Arbre
 
@@ -151,7 +151,7 @@ Même grammaire dans le panneau bas. Replié, il ne montre que l'en-tête. Cible
 | Inspecteur Monde, Lieu, Point | `js/atelier/inspecteurs-monde.js` | oui (typographie, sections, liste des points) |
 | Inspecteur Calage | `js/mj/univers-calage.js` | oui |
 | Inspecteur Donjon, Salle | `js/atelier/inspecteurs-donjon.js`, `js/mj/salle-forme.js` | oui (« Compris » en pastilles, formes en icônes) |
-| Donjon · onglet « Ajouter » (catalogue) | `js/atelier/catalogue-onglet.js`, `js/palette.js` | oui (onglets soulignés comme Jouer ; catégories, recherche et vignettes sous les onglets) |
+| Donjon · onglets Portes, Mobilier, Créatures (catalogue) | `js/atelier/catalogue-onglet.js`, `js/palette.js` | oui (onglets soulignés comme Jouer ; catégories, recherche et vignettes sous les onglets) |
 | Porte, Objet, Créature | `js/mj/bulle.js` | oui (sections « Liaison », « Aspect ») |
 | Jouer · Salle, Joueurs, Table | `presentation.html`, `js/regie.js`, `js/regie-panneau.js` | oui (en-tête de l'onglet Salle) |
 | Jouer · Lieu (monde) | `js/regie-univers.js` | oui |
@@ -166,4 +166,4 @@ Tirées du panneau « Design » de Figma, le 6 novembre 2026 (maquette avant / a
 - **Œil et « − » par ligne dans les listes** : sur chaque rangée (éléments d'une salle, points d'un lieu), un œil (caché aux joueurs) et un « − » (supprimer) visibles au survol, pour agir sans ouvrir l'élément.
 - Écartées pour l'instant, à rediscuter : rangée d'icônes d'action sous les onglets (pivoter, miroir, dupliquer, masquer, supprimer), champs compacts à deux colonnes avec icône (L/H, case), ordre de sections identique pour porte, objet et créature, valeurs réglées en glissant l'étiquette, icône de type dans l'en-tête.
 
-- **Où mettre le catalogue d'objets** : trois options maquettées dans [`maquettes/ajouter-alternatives.html`](maquettes/ajouter-alternatives.html) (A : bouton doré « + Ajouter » en tête du panneau, sans onglets ; B : fenêtre flottante sous « + Ajouter » ; C : bandeau-catalogue sous la carte ; D : quatre onglets-icônes Salle · Portes · Mobilier · Créatures, proposée par Julien). Réglages communs à retenir quel que soit le choix : sections Description et Éléments ouvertes par défaut, aperçu sur les sections repliées, Liaisons masquée quand elle est vide. Choix de Julien en attente.
+- **Où mettre le catalogue d'objets** : trois options maquettées dans [`maquettes/ajouter-alternatives.html`](maquettes/ajouter-alternatives.html) (A : bouton doré « + Ajouter » en tête du panneau, sans onglets ; B : fenêtre flottante sous « + Ajouter » ; C : bandeau-catalogue sous la carte ; D : quatre onglets-icônes Salle · Portes · Mobilier · Créatures, proposée par Julien). Réglages communs à retenir quel que soit le choix : sections Description et Éléments ouvertes par défaut, aperçu sur les sections repliées, Liaisons masquée quand elle est vide. Choix de Julien : **D**, livrée le 6 novembre 2026 (onglets-icônes, aperçus sur les sections repliées, Description et Éléments ouvertes, Liaisons masquée quand vide).

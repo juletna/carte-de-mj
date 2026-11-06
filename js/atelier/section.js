@@ -7,6 +7,7 @@
  *   s.corps     son corps, pour y ajouter des nœuds après coup
  *
  * `compte` : un texte (« 2 ») ou un nœud vivant qu'un autre module met à jour (il est déplacé dans le bandeau, son id suit).
+ * `apercu` : un court texte à côté du titre, montré seulement quand la section est repliée (« Taille · 12 × 12 m »).
  * `repliee` : l'état par défaut, quand la session n'en a pas gardé (le rare d'abord replié : JSON, exemples, réglages).
  * Le DOM est fabriqué par `fabrique` (`h` de js/dom.js par défaut) et le stockage est injectable : le module se teste sous Node.
  */
@@ -39,7 +40,7 @@ export function memoireReplis(stockage = stockageSession()) {
 
 const replisParDefaut = memoireReplis();
 
-export function creerSection({ cle, titre, compte = null, aide = null, action = null, repliee = false, enfants = [] } = {},
+export function creerSection({ cle, titre, apercu = '', compte = null, aide = null, action = null, repliee = false, enfants = [] } = {},
   { fabrique = hDom, icone = iconeDom, replis = replisParDefaut } = {}) {
   const h = fabrique;
   const idCorps = `p-section-${String(cle).replace(/[^a-z0-9-]/gi, '-')}`;
@@ -47,6 +48,8 @@ export function creerSection({ cle, titre, compte = null, aide = null, action = 
   const chevron = h('span', { className: 'p-section-chevron', 'aria-hidden': 'true' });
   const bascule = h('button', { type: 'button', className: 'p-section-bascule', 'aria-controls': idCorps }, chevron, h('span', { className: 'p-section-titre', textContent: titre }));
   const tete = h('div', { className: 'p-section-tete' }, bascule);
+  // L'aperçu : l'état de la section dit en peu de mots (« 12 × 12 m »), visible seulement quand elle est repliée.
+  if (apercu) bascule.append(h('span', { className: 'p-section-apercu', textContent: apercu }));
   if (compte !== null && compte !== '') {
     const pastille = typeof compte === 'object' ? compte : h('span', { textContent: String(compte) });
     pastille.classList.add('p-section-compte');

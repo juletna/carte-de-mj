@@ -25,7 +25,7 @@
  *   coquille.position()        la position courante
  *   coquille.rafraichir({ inspecteur? })   les données ont changé : l'arbre (si ses noms ont changé) et la validité de la sélection ; l'inspecteur seulement si `inspecteur: true`
  *   coquille.surSelection(f)   f(sel) après chaque changement de sélection
- *   coquille.onglets           { ajouter({ id, libelle, contenu }), choisir(id), courant(), element } : Salle · Joueurs · Table (Jouer) ; Salle · Ajouter (Préparer, Donjon : js/atelier/catalogue-onglet.js).
+ *   coquille.onglets           { ajouter({ id, libelle, contenu, icone? }), choisir(id), courant(), surChoix(f), element } : Salle · Joueurs · Table (Jouer) ; Salle · Portes · Mobilier · Créatures (Préparer, Donjon : js/atelier/catalogue-onglet.js).
  *                              `contenu` : un élément ou une liste d'éléments ; la colonne porte `data-onglet`.
  *   coquille.colonneInspecteur la colonne de droite
  *   coquille.ouvrirTiroir() / fermerTiroir()   l'arbre en tiroir (sous 760 px)
@@ -152,6 +152,7 @@ export function creerCoquille({
     const liste = h('div', { className: 'atelier-onglets', role: 'tablist', 'aria-label': 'Panneaux' });
     const panneaux = new Map();
     let courant = null;
+    const ecouteursChoix = [];
     function choisir(id) {
       if (!panneaux.has(id)) return;
       courant = id;
@@ -161,9 +162,13 @@ export function creerCoquille({
         p.bouton.tabIndex = cle === id ? 0 : -1;
         for (const c of p.contenus) if (!c.dataset.sansMasque) c.hidden = cle !== id; // sans-masque : le CSS décide (display: flex l'emporte sur hidden)
       }
+      for (const f of ecouteursChoix) f(id);
     }
-    function ajouter({ id, libelle, contenu }) {
-      const b = h('button', { type: 'button', role: 'tab', className: 'btn btn-discret atelier-onglet', textContent: libelle, id: `atelier-onglet-${id}` });
+    function ajouter({ id, libelle, contenu, icone: nomIcone = null }) {
+      // `icone` : le nom d'une icône de js/icones.js, au-dessus du libellé (Donjon : Salle · Portes · Mobilier · Créatures).
+      const b = nomIcone
+        ? h('button', { type: 'button', role: 'tab', className: 'btn btn-discret atelier-onglet avec-icone', id: `atelier-onglet-${id}` }, icone(nomIcone), h('span', { textContent: libelle }))
+        : h('button', { type: 'button', role: 'tab', className: 'btn btn-discret atelier-onglet', textContent: libelle, id: `atelier-onglet-${id}` });
       b.addEventListener('click', () => choisir(id));
       // `contenu` : un élément, ou une liste d'éléments (Préparer : l'en-tête et le corps de l'inspecteur forment l'onglet « Salle »).
       const contenus = [].concat(contenu);
@@ -182,7 +187,7 @@ export function creerCoquille({
       if (!va) return;
       e.preventDefault(); choisir(va); panneaux.get(va).bouton.focus();
     });
-    return { ajouter, choisir, courant: () => courant, element: liste };
+    return { ajouter, choisir, courant: () => courant, element: liste, surChoix: (f) => { ecouteursChoix.push(f); } };
   })();
 
   // --- Données, position, adresse ----------------------------------------------------------------------------------

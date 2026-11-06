@@ -5,7 +5,7 @@
  *   coquille : voir js/atelier/coquille.js (arbre.ajouterAction, barreOutils, inspecteur.enregistrer, selectionner, naviguer…)
  *   ctx      : le ctx de main-mj.js (etat, donjon(), salle(), rendre, modifierPlan, historique, activerSalle, afficherSalleActive, …)
  * Elle enregistre les inspecteurs salle, donjon, porte, objet, creature et pion (inspecteurs-donjon.js), range la barre d'outils de la
- * scène (barre-salle.js : pose, salle, vue d'ensemble, annuler), les onglets Salle · Ajouter de l'inspecteur (catalogue-onglet.js), ajoute au menu « + Nouveau » de l'arbre ce que
+ * scène (barre-salle.js : pose, salle, vue d'ensemble, annuler), les onglets Salle · Portes · Mobilier · Créatures de l'inspecteur (catalogue-onglet.js), ajoute au menu « + Nouveau » de l'arbre ce que
  * le menu du donjon faisait (nouveau, coller, copies mises de côté ; l'import est commun, js/atelier/importer.js) et tient d'accord la sélection de la carte et celle de l'atelier.
  * Elle expose `ctx.barre` (voir barre-salle.js).
  */

@@ -253,3 +253,14 @@
 .rang-rendu canvas { width: 100% !important; height: 100% !important; object-fit: cover; transform: scale(1.5); } /* recadré sur le sol : la marge de roche du moteur sort du cadre */
 .rang-aperce { min-width: 28px; }
 .rang-choix .rang-rendu { width: 36px; height: 36px; margin: 3px 0; }
+
+/* === Onglets-icônes du Donjon : Salle · Portes · Mobilier · Créatures (js/atelier/catalogue-onglet.js) === */
+.onglets-donjon .atelier-onglet.avec-icone.btn { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 52px; padding: 6px 0 4px; font-size: 11px; }
+.onglets-donjon .atelier-onglet.avec-icone .icone { width: 18px; height: 18px; }
+.onglets-donjon .atelier-onglet.avec-icone[aria-selected="true"] .icone { color: var(--accent); }
+.onglets-donjon .atelier-onglet:focus-visible { outline: 2px solid var(--accent); outline-offset: -4px; border-radius: 6px; }
+
+/* Aperçu d'une section repliée : « Taille · 12 × 12 m » (le texte s'efface dès qu'elle est ouverte). */
+.p-section-apercu { min-width: 0; margin-left: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--p-texte-3); font-size: 12.5px; font-weight: 400; }
+.p-section-apercu::before { content: "· "; }
+.p-section:not(.repliee) .p-section-apercu { display: none; }

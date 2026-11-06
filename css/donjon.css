@@ -20,7 +20,7 @@
 /* Pastille d'état de la pose : rangée dans la barre, posée sur le haut de la carte (rien ne bouge), quel que soit le groupe ouvert. */
 .pose-pastille { position: absolute; z-index: 28; top: 54px; left: 50%; transform: translateX(-50%); max-width: calc(100% - 24px); min-height: max(var(--cible), 30px); padding: 0 var(--esp-3); overflow: hidden; text-overflow: ellipsis; background: var(--panneau); color: var(--accent); border-color: var(--accent); border-radius: 999px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45); }
 
-/* --- La scène : la carte (le catalogue est l'onglet « Ajouter » de l'inspecteur sur ordinateur, un tiroir sur téléphone) --- */
+/* --- La scène : la carte (le catalogue est dans les onglets Portes · Mobilier · Créatures de l'inspecteur sur ordinateur, un tiroir sur téléphone) --- */
 #cadre-scene { position: relative; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
 #zone-scene { flex: 1 1 auto; display: flex; min-width: 0; min-height: 0; }
 /* flex et marges automatiques (pas place-items) : une carte zoomée plus grande que la scène reste entièrement atteignable au défilement. */
@@ -138,12 +138,13 @@ body.vue-plan #palette { display: none; }
   body > .menu-site { grid-column: 1 / -1; grid-row: 1; }
   #cadre-scene { grid-column: 2; grid-row: 3; }
 
-  /* Le catalogue : l'onglet « Ajouter » de l'inspecteur (js/atelier/catalogue-onglet.js le range dans la colonne de droite). L'onglet « Salle » montre l'en-tête et le corps de l'inspecteur. */
-  .atelier-inspecteur[data-onglet="ajouter"] > #palette { display: flex; flex: 1 1 auto; min-height: 0; padding: var(--esp-4); gap: var(--esp-3); }
-  .atelier-inspecteur[data-onglet="ajouter"] > .atelier-inspecteur-tete, .atelier-inspecteur[data-onglet="ajouter"] > .atelier-inspecteur-corps { display: none; }
-  .atelier-inspecteur .palette-tete { display: none; } /* l'onglet « Ajouter » dit déjà de quoi il s'agit */
+  /* Le catalogue : les onglets Portes, Mobilier et Créatures de l'inspecteur (js/atelier/catalogue-onglet.js le range dans la colonne de droite). L'onglet « Salle » montre l'en-tête et le corps de l'inspecteur. */
+  .atelier-inspecteur:is([data-onglet="portes"], [data-onglet="mobilier"], [data-onglet="creatures"]) > #palette { display: flex; flex: 1 1 auto; min-height: 0; padding: var(--esp-4); gap: var(--esp-3); }
+  .atelier-inspecteur:is([data-onglet="portes"], [data-onglet="mobilier"], [data-onglet="creatures"]) > .atelier-inspecteur-tete, .atelier-inspecteur:is([data-onglet="portes"], [data-onglet="mobilier"], [data-onglet="creatures"]) > .atelier-inspecteur-corps { display: none; }
+  .atelier-inspecteur .palette-groupes { display: none; } /* les onglets-icônes en tête du panneau choisissent la catégorie */
+  .atelier-inspecteur .palette-tete { display: none; } /* les onglets-icônes disent déjà de quoi il s'agit */
   .onglets-donjon { position: sticky; top: 0; z-index: 6; }
-  [data-atelier="preparer"] .atelier-inspecteur-tete { top: 41px; } /* sous les onglets */
+  [data-atelier="preparer"] .atelier-inspecteur-tete { top: 53px; } /* sous les onglets */
 }
 
 /* --- Écran étroit (sous 760 px) : une seule colonne, la scène sous sa barre d'outils, l'inspecteur en panneau bas (css/atelier.css) --- */
@@ -155,7 +156,7 @@ body.vue-plan #palette { display: none; }
   #scene { min-height: 0; } /* style.css réserve 70 vh à la scène des autres pages */
   .atelier-barre { padding: var(--esp-1) var(--esp-2); gap: var(--esp-1); }
   .atelier-barre .btn { min-height: 44px; }
-  .onglets-donjon { display: none; } /* « + Ajouter » ouvre le catalogue en tiroir */
+  .atelier-onglets.onglets-donjon { display: none; } /* « + Ajouter » ouvre le catalogue en tiroir (sélecteur plus précis : atelier.css, chargée après, pose display: flex sur .atelier-onglets) */
   .bouton-ajouter { display: inline-flex; padding: 0 var(--esp-4); font-size: 14px; background: var(--panneau); color: var(--texte); border-color: var(--accent); }
   #plan-bouton .libelle, #annuler-carte .libelle { display: none; } /* icônes seules (étiquettes en aria-label) */
   #plan-bouton, #annuler-carte { padding: 0; width: 44px; }

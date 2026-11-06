@@ -16,7 +16,7 @@
  *   porte, objet, creature, pion   js/mj/bulle.js (relier, créer la salle derrière, cacher, aspect). « ⋯ » : fermer, délier, supprimer.
  */
 import { $, h } from '../dom.js';
-import { NOMS_SOLS } from '../schema.js';
+import { NOMS_SOLS, NOMS_AMBIANCES, NOMS_ETATS_SALLE, NOMS_ECLAIRAGES } from '../schema.js';
 import { pluriel } from '../format.js';
 import { resumeTaille, tailleEnMetres } from './dimensions.js';
 import { creerSection } from './section.js';
@@ -92,7 +92,7 @@ export function enregistrerInspecteursDonjon(coquille, ctx) {
     apres?.();
   };
 
-  /** La section « Éléments » : les portes, le mobilier et les créatures de la salle, en liste ; « + » ouvre le catalogue (onglet « Ajouter », tiroir sur téléphone). */
+  /** La section « Éléments » : les portes, le mobilier et les créatures de la salle, en liste ; « + » ouvre le catalogue (onglets Portes · Mobilier · Créatures, tiroir sur téléphone). */
   const sectionElements = (sel) => {
     const salle = donjonDe(sel).salles[sel.id];
     const majuscule = (t) => t.charAt(0).toUpperCase() + t.slice(1);
@@ -109,7 +109,7 @@ export function enregistrerInspecteursDonjon(coquille, ctx) {
     }
     const ouvrirCatalogue = () => { if (telephone()) ctx.carte.ouvrirTiroir(true); else coquille.onglets.choisir('ajouter'); };
     return creerSection({
-      cle: 'donjon:salle-elements', titre: 'Éléments', compte: String(rangees.length), repliee: true,
+      cle: 'donjon:salle-elements', titre: 'Éléments', compte: String(rangees.length),
       action: { libelle: 'Ajouter un élément', icone: 'plus', executer: ouvrirCatalogue },
       enfants: [rangees.length ? creerListe(rangees) : h('p', { className: 'note', textContent: 'Rien pour l’instant : « + » ouvre le catalogue.' })],
     }).element;
@@ -132,10 +132,8 @@ export function enregistrerInspecteursDonjon(coquille, ctx) {
         surChoix: () => ctx.activerSalle(autre.salle),
       });
     }
-    return creerSection({
-      cle: 'donjon:salle-liaisons', titre: 'Liaisons', compte: String(rangees.length),
-      enfants: [rangees.length ? creerListe(rangees) : h('p', { className: 'note', textContent: 'Aucune porte reliée : une porte se relie à une autre salle depuis son inspecteur.' })],
-    }).element;
+    if (!rangees.length) return null; // rien à dire : pas de section « Liaisons 0 »
+    return creerSection({ cle: 'donjon:salle-liaisons', titre: 'Liaisons', compte: String(rangees.length), enfants: [creerListe(rangees)] }).element;
   };
 
   inspecteur.enregistrer('salle', {
@@ -147,12 +145,20 @@ export function enregistrerInspecteursDonjon(coquille, ctx) {
     },
     rendre: (conteneur, sel) => {
       if (avanceDemande !== sel.id) avanceDemande = null;
+      const salle = donjonDe(sel).salles[sel.id];
+      const p = salle?.plan;
+      const mot = (noms, v, defaut) => (v && v !== defaut ? (noms[v] ?? '').toLowerCase() : '');
+      // Les aperçus des sections repliées : l'état sans déplier. Description et Éléments, qu'on utilise vraiment, s'ouvrent d'office.
+      const apercuTaille = p ? (tailleEnMetres(p.largeur, p.longueur, etat.reglages.echelle) || `${p.largeur} × ${p.longueur} cases`) : '';
+      const apercuApparence = p ? [(NOMS_SOLS[p.sol] ?? 'Pierre').toLowerCase(), (NOMS_AMBIANCES[p.ambiance] ?? 'Neutre').toLowerCase(), mot(NOMS_ETATS_SALLE, p.etat, 'neuve'), mot(NOMS_ECLAIRAGES, p.eclairage, 'penombre')].filter(Boolean).join(', ') : '';
+      const notes = (salle?.notes ?? '').trim().replace(/\s+/g, ' ');
+      const apercuNotes = notes ? (notes.length > 32 ? `${notes.slice(0, 31)}…` : notes) : 'vide';
       conteneur.append(
-        section('salle-taille', 'Taille', ['bloc-taille']),
-        section('salle-apparence', 'Apparence', ['bloc-apparence']),
+        section('salle-taille', 'Taille', ['bloc-taille'], { repliee: true, apercu: apercuTaille }),
+        section('salle-apparence', 'Apparence', ['bloc-apparence'], { repliee: true, apercu: apercuApparence }),
         section('salle-description', 'Description', ['bloc-description', 'bloc-orphelines']),
-        section('salle-notes', 'Notes du MJ', ['bloc-notes'], { repliee: true }),
-        sectionLiaisons(sel),
+        section('salle-notes', 'Notes du MJ', ['bloc-notes'], { repliee: true, apercu: apercuNotes }),
+        ...[sectionLiaisons(sel)].filter(Boolean),
         sectionElements(sel),
         section('salle-exemples', 'Exemples', ['bloc-exemples'], { repliee: true }),
         ...(avanceDemande ? [section('salle-avance', 'Avancé', ['bloc-avance'])] : []));
