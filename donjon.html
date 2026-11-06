@@ -168,7 +168,7 @@
     <button type="button" class="rail-outil" data-outil="plan" aria-pressed="false" title="Plan du donjon : salles et liaisons">
       <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4" width="7" height="6" rx="1"/><rect x="13.5" y="14" width="7" height="6" rx="1"/><path d="M10.5 7H17v7"/></svg><span>Plan</span>
     </button>
-    <button type="button" class="rail-outil" data-outil="reglages" aria-pressed="false" title="Réglages : échelle, grille, taille des cases">
+    <button type="button" class="rail-outil" data-outil="reglages" aria-pressed="false" title="Réglages : échelle, rendu de la carte">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h9M19 7h1M4 17h1M11 17h9"/><circle cx="16" cy="7" r="2.5"/><circle cx="8" cy="17" r="2.5"/></svg><span>Réglages</span>
     </button>
   </nav>
@@ -296,14 +296,6 @@
         <span><input id="penombre" type="range" min="0" max="100" step="5" value="45"> <output id="penombre-val">45 %</output></span>
       </label>
       <label class="ligne case"><input id="flammes" type="checkbox" checked> Flammes animées (à la table)</label>
-      <label class="ligne">Taille réelle d'une case
-        <span><input id="taille" type="range" min="16" max="160" step="1" value="48"> <output id="taille-val">48 px</output></span>
-      </label>
-      <label class="ligne case"><input id="calibrage" type="checkbox"> Calibrer avec une carte bancaire</label>
-      <p id="aide-calibrage" class="note" hidden>
-        Pose une carte bancaire sur l'écran et ajuste « Taille réelle d'une case » jusqu'à ce que le rectangle
-        pointillé ait exactement sa taille. Une case fera alors <span id="aide-calibrage-mm">25 mm</span>.
-      </p>
       <div class="actions">
         <button id="plein-ecran" type="button">⛶ Plein écran (table)</button>
       </div>
@@ -325,7 +317,6 @@
         <div class="bord-salle" data-cote="sud" data-lettre="S"></div>
         <div class="bord-salle" data-cote="ouest" data-lettre="O"></div>
         <div class="bord-salle" data-cote="est" data-lettre="E"></div>
-        <div id="carte-ref" hidden></div>
         <!-- Actions de l'élément cliqué : bulle posée à côté de lui (ordinateur) ou bandeau fixe en bas (écran étroit). -->
         <section id="selection" class="selection" aria-live="polite" hidden></section>
       </div>
@@ -341,7 +332,7 @@
       <output id="zoom-pct" aria-live="off" title="Taille de la carte par rapport à la taille réelle">100 %</output>
       <button id="zoom-plus" type="button" class="discret" aria-label="Agrandir la carte" title="Agrandir">+</button>
       <button id="zoom-ajuster" type="button" class="discret" title="La salle remplit la zone de carte">Ajuster</button>
-      <button id="zoom-reel" type="button" class="discret" title="Une case a la taille réglée (calibrage) : échelle réelle pour tes figurines">Taille réelle</button>
+      <button id="zoom-reel" type="button" class="discret" title="Une case a la taille calibrée dans la Présentation : échelle réelle pour tes figurines">Taille réelle</button>
     </div>
     <p id="message-carte" class="message-carte" role="status" hidden></p>
   </div>

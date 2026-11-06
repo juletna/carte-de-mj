@@ -62,12 +62,12 @@ export function creerVuePlan(ctx) {
   function majZoomPlan() {
     const t = etat.planTaille || tailleAfficheePlan();
     $('zoom-pct').textContent = `${Math.round((t / r.taille) * 100)} %`;
-    for (const id of ['zoom-moins', 'zoom-plus', 'zoom-ajuster']) $(id).disabled = false; // le calibrage ne concerne que la salle
+    for (const id of ['zoom-moins', 'zoom-plus', 'zoom-ajuster']) $(id).disabled = false;
     $('zoom').title = '';
     $('zoom-ajuster').setAttribute('aria-pressed', String(!etat.zoomPlan));
   }
 
-  /** La cible du zoom (voir zoom.js) : le plan, sans marge de roche, avec ses bornes ; le calibrage ne le concerne pas. */
+  /** La cible du zoom (voir zoom.js) : le plan, sans marge de roche, avec ses bornes. */
   const cibleZoom = {
     marge: 0,
     taille: () => etat.planTaille || tailleAfficheePlan(),
@@ -100,7 +100,6 @@ export function creerVuePlan(ctx) {
       dessinerPlan();
     } else {
       ctx.carte.redessiner(salle().plan);
-      ctx.carte.majCarteRef();
     }
   }
   $('plan-bouton').addEventListener('click', () => ouvrirPlan(!etat.plan));

@@ -139,8 +139,9 @@ const TESTS = (pages) => [
     egal(tailleCanvasBornee(500, 20, 48, 1).t, 16.38, 'un canvas très long : le côté borne, arrondi au centième inférieur');
     egal(tailleCanvasBornee(100000, 20, 48, 1).t, 1, 'jamais sous 1 px');
   }],
-  ['pages HTML : les curseurs de taille et le champ d’échelle portent les mêmes bornes et défauts', () => {
-    for (const page of ['donjon.html', 'presentation.html']) {
+  ['pages HTML : le curseur de taille (Présentation seulement : on n’y calibre plus dans le Donjon) et le champ d’échelle portent les bonnes bornes et les bons défauts', () => {
+    verifier(!/id="(taille|calibrage)"/.test(pages['donjon.html']), 'donjon.html : ni taille de case ni calibrage');
+    for (const page of ['presentation.html']) {
       const html = pages[page];
       egal(['type', 'min', 'max', 'value'].map((a) => attribut(html, 'taille', a)), ['range', String(TAILLE_MIN), String(TAILLE_MAX), String(TAILLE_PAR_DEFAUT)], `${page} : curseur de taille`);
       verifier(html.includes(`<output id="taille-val">${TAILLE_PAR_DEFAUT} px</output>`), `${page} : valeur affichée du curseur`);

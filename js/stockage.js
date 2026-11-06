@@ -62,7 +62,7 @@ export function chargerReglages(stock = stockParDefaut()) {
     grille: typeof r.grille === 'boolean' ? r.grille : REGLAGES_DEFAUT.grille,
     // Facultatif (écran de table) : absent tant que personne ne l'a réglé, donc le Donjon n'en tient pas compte.
     ...(typeof r.reperes === 'boolean' ? { reperes: r.reperes } : {}),
-    // Facultatifs aussi : `calibre` (posé par le Donjon quand la taille est réglée avec la carte bancaire) et
+    // Facultatifs aussi : `calibre` (posé par la Présentation à la fin du calibrage à la carte bancaire) et
     // `modeTable` (« remplir » ou « reel », choisi dans la régie de la Présentation). Absents tant que personne n'y a touché.
     ...(r.calibre === true ? { calibre: true } : {}),
     ...(MODES_TABLE.includes(r.modeTable) ? { modeTable: r.modeTable } : {}),

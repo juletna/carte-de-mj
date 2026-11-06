@@ -3,7 +3,7 @@
  * vue affichée, la carte de la salle ou le plan du donjon. Un seul calcul pour les deux : chaque vue donne sa « cible de zoom »
  * (`cibleZoom`) ; le zoom ne connaît ni leurs bornes ni leur dessin.
  *
- * Une cible a : `taille()` (côté de case affiché), `peut()` (le zoom est permis : pas pendant le calibrage), `definir(t)` (retient le
+ * Une cible a : `taille()` (côté de case affiché), `peut()` (le zoom est permis), `definir(t)` (retient le
  * zoom, arrondi et borné ; `null` = « ajuster »), `canvas()` et `marge` (cases de roche autour du dessin : le point sous le curseur
  * se mesure dans le canvas), `redessiner()`, `apres()` (facultatif : après avoir recalé le défilement) et `afficher(plan?)`
  * (pourcentage et état des boutons).

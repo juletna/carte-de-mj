@@ -88,7 +88,6 @@ function rendre() {
   ctx.carte.oublierZoomSiAutreCarte();
   if (etat.plan) ctx.plan.dessiner(); // le plan est affiché : toute modification du donjon le redessine
   else ctx.carte.redessiner(s.plan);
-  ctx.carte.majCarteRef();
   $('annuler').hidden = $('annuler-carte').hidden = pile().length === 0;
   if (document.activeElement !== $('json')) $('json').value = JSON.stringify(s.plan, null, 2);
   ctx.bulle.maj();
@@ -319,22 +318,12 @@ if (!voixDisponible) {
 
 // --- Réglages -----------------------------------------------------------------
 $('echelle').value = r.echelle;
-$('taille').value = r.taille;
-$('taille-val').textContent = `${r.taille} px`;
 
 $('echelle').addEventListener('change', (e) => {
   const v = parseFloat(e.target.value);
   if (v > 0) { r.echelle = v; generer(); }
 });
-$('taille').addEventListener('input', (e) => {
-  r.taille = Number(e.target.value);
-  if ($('calibrage').checked) r.calibre = true; // indicateur lu par la Présentation (échelle réelle par défaut), sans effet ici
-  $('taille-val').textContent = `${r.taille} px`;
-  rendre();
-});
 lierReglagesRendu(r, rendre);
-
-$('calibrage').addEventListener('change', (e) => { $('aide-calibrage').hidden = !e.target.checked; rendre(); });
 
 // --- Plein écran (vue table) --------------------------------------------------
 $('plein-ecran').addEventListener('click', () => $('scene').requestFullscreen?.());
@@ -346,7 +335,7 @@ document.addEventListener('fullscreenchange', () => { $('quitter-plein-ecran').h
 // c'est l'observateur de la scène (plus haut) qui s'en charge.
 ctx.onglets = activerOnglets(document.querySelector('.onglets'), {
   defaut: 'texte',
-  onChange: (nom) => { if (nom === 'carte' && $('scene').clientWidth) { ctx.carte.redessiner(salle().plan); ctx.carte.majCarteRef(); } },
+  onChange: (nom) => { if (nom === 'carte' && $('scene').clientWidth) ctx.carte.redessiner(salle().plan); },
 });
 
 // --- Univers : cartes imbriquées, préparation (js/mj/univers-ui.js) ---

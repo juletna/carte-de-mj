@@ -1,17 +1,16 @@
 /**
  * La carte de la salle affichée : taille d'affichage, dessin, repères (portes reliées, élément sélectionné), déplacement et sélection
- * à la souris ou au doigt, pose d'un élément de la palette, zoom, carte bancaire du calibrage. La palette (panneau sur ordinateur,
+ * à la souris ou au doigt, pose d'un élément de la palette, zoom. La palette (panneau sur ordinateur,
  * tiroir sur téléphone) vit ici avec la pose. Fabrique `creerVueCarte(ctx)` ; `ctx` est celui de main-mj.js (`etat`, `donjon`, `salle`,
  * `rendre`, `modifierPlan`, `deselectionner`, `annoncerCarte`, `bulle`, `plan`, `zoom`), lu au moment de l'appel.
  *
  * Renvoie : `taille(plan)`, `apercu(plan, taille?)` (dessin sans rien enregistrer), `redessiner(plan)`, `oublierZoomSiAutreCarte()`,
- * `majCarteRef()`, `cibleZoom` (voir zoom.js), `palette`, `ouvrirTiroir(ouvert)` et `tiroirOuvert()`.
+ * `cibleZoom` (voir zoom.js), `palette`, `ouvrirTiroir(ouvert)` et `tiroirOuvert()`.
  */
-import { virgule } from '../format.js';
 import { dessiner } from '../rendu/moteur.js';
 import { themeParNom } from '../rendu/themes/index.js';
 import { MARGE } from '../rendu/geometrie.js';
-import { tailleRemplir, carteDeCalibrage, CASE_MM_PAR_DEFAUT, optionsRendu } from '../affichage.js';
+import { tailleRemplir, optionsRendu } from '../affichage.js';
 import { ZOOM_MIN, ZOOM_MAX, zoomBorne } from '../mise-en-page.js';
 import { ajouterElement, elementsPalette, GROUPES_PALETTE, SOUS_GROUPES } from '../pose.js';
 import { creerPalette } from '../palette.js';
@@ -48,14 +47,12 @@ export function creerVueCarte(ctx) {
 
   /**
    * Côté de case affiché :
-   *  - pendant le calibrage à la carte bancaire : `r.taille` exact, sans aucune adaptation ;
    *  - après un zoom manuel (temporaire) : le zoom ;
    *  - sinon la salle remplit la scène (tailleRemplir, comme la Présentation en mode « remplir »). Scène masquée (onglet
    *    Texte du téléphone) : `r.taille`, un redessin suit à l'affichage.
-   * `r.taille` est la taille calibrée, lue par la Présentation : rien ici ne l'écrit.
+   * `r.taille` est la taille calibrée dans la Présentation : rien ici ne l'écrit.
    */
   function tailleAffichee(plan) {
-    if ($('calibrage').checked) return r.taille;
     if (etat.zoom) return etat.zoom;
     const scene = $('scene');
     const retrait = 2 * (parseFloat(getComputedStyle($('support')).paddingLeft) || 0); // la place des bandes de dimensions
@@ -85,16 +82,6 @@ export function creerVueCarte(ctx) {
     if (cle === etat.cleAjuste) return;
     etat.cleAjuste = cle;
     etat.zoom = null;
-  }
-
-  // Calibrage : une carte bancaire à l'échelle de la case visée (25 mm, sauf réglage de la Présentation).
-  function majCarteRef() {
-    const ref = $('carte-ref');
-    ref.hidden = !$('calibrage').checked;
-    const { largeur, hauteur } = carteDeCalibrage(r.taille, r.caseMm);
-    ref.style.width = `${largeur}px`;
-    ref.style.height = `${hauteur}px`;
-    $('aide-calibrage-mm').textContent = `${virgule(r.caseMm ?? CASE_MM_PAR_DEFAUT)} mm`;
   }
 
   // --- Palette : catalogue de vignettes (panneau sur ordinateur, tiroir sur téléphone) ------------------------
@@ -181,20 +168,19 @@ export function creerVueCarte(ctx) {
   // --- Zoom : son affichage et sa cible (le calcul est dans zoom.js) ---------------------------------
   /** Affiche le zoom courant (pourcentage de la taille réelle : 100 % = une case à la taille calibrée). */
   function majZoom(plan) {
-    const calibre = $('calibrage').checked;
     const t = tailleAffichee(plan || salle().plan);
     $('zoom-pct').textContent = `${Math.round((t / r.taille) * 100)} %`;
-    for (const id of ['zoom-moins', 'zoom-plus', 'zoom-ajuster', 'zoom-reel']) $(id).disabled = calibre;
-    $('zoom').title = calibre ? 'Calibrage en cours : la taille d’une case est celle du réglage. Décoche le calibrage pour zoomer.' : '';
-    $('zoom-ajuster').setAttribute('aria-pressed', String(!calibre && !etat.zoom));
+    for (const id of ['zoom-moins', 'zoom-plus', 'zoom-ajuster', 'zoom-reel']) $(id).disabled = false;
+    $('zoom').title = '';
+    $('zoom-ajuster').setAttribute('aria-pressed', String(!etat.zoom));
   }
   const cibleZoom = {
     marge: MARGE,
     taille: () => tailleAffichee(salle().plan),
-    peut: () => !$('calibrage').checked,
+    peut: () => true,
     definir: (t) => { etat.zoom = zoomBorne(t, ZOOM_MIN, ZOOM_MAX); },
     canvas: () => $('carte'),
-    redessiner: () => { dessinerCarte(salle().plan); majCarteRef(); },
+    redessiner: () => dessinerCarte(salle().plan),
     apres: () => ctx.bulle.placer(),
     afficher: majZoom,
   };
@@ -209,7 +195,6 @@ export function creerVueCarte(ctx) {
     if (!scene.clientWidth) return; // masquée : le redessin suivra à l'affichage
     if (etat.plan) { ctx.plan.dessiner(); return; }
     dessinerCarte(salle().plan);
-    majCarteRef();
   }).observe($('scene'));
 
   // Un appui dans le vide de la scène ferme le tiroir de la palette. Posé avant l'écouteur de la bulle (même cible, même ordre qu'avant).
@@ -217,5 +202,5 @@ export function creerVueCarte(ctx) {
     if (tiroirOuvert() && (e.target === $('scene') || e.target === $('support'))) ouvrirTiroir(false);
   });
 
-  return { taille: tailleAffichee, apercu: apercuCarte, redessiner: dessinerCarte, oublierZoomSiAutreCarte, majCarteRef, cibleZoom, palette, ouvrirTiroir, tiroirOuvert };
+  return { taille: tailleAffichee, apercu: apercuCarte, redessiner: dessinerCarte, oublierZoomSiAutreCarte, cibleZoom, palette, ouvrirTiroir, tiroirOuvert };
 }

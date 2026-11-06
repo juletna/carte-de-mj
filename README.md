@@ -58,7 +58,7 @@ Au-dessus de 760 px, ni la mise en page ni la carte ne changent. En dessous, le 
   - Ces réglages sont enregistrés (`theme`, `cases`, `relief`, `penombre`, `flammes`) dans `carte-de-mj:reglages-v1` seulement quand ils diffèrent du défaut, et transmis à la table avec l'affichage.
     Le décor d'une salle (décalage des textures, briques) est tiré d'une graine dérivée de son identifiant : la même salle a le même rendu à la régie et à la table, qui ne reçoit
     qu'une empreinte de l'identifiant, jamais l'identifiant lui-même.
-- **Taille de la carte** : réduite **par la taille de case** (jamais par `transform`) pour que la salle entière tienne dans la zone, entre 16 px et le réglage. Le réglage enregistré (`reglages.taille`, `calibre`, `modeTable`) n'est jamais modifié ; dans le Donjon, tant que « Calibrer avec une carte bancaire » est coché, c'est la taille réglée qui s'applique. La géométrie du pointeur suit la même taille.
+- **Taille de la carte** : réduite **par la taille de case** (jamais par `transform`) pour que la salle entière tienne dans la zone, entre 16 px et le réglage. Le réglage enregistré (`reglages.taille`, `calibre`, `modeTable`) n'est jamais modifié . La géométrie du pointeur suit la même taille.
 - **Toucher** : le glisser sur la carte déplace un pion (`touch-action: none`) tant que la carte tient dans sa zone. Si elle dépasse (grande salle à 16 px la case), la classe `defile` rend le défilement au doigt à la zone ; on peut toujours toucher un élément pour le sélectionner, mais plus glisser un pion (passe en paysage, ou réduis la salle).
 
 ## Lancer en local
@@ -309,8 +309,8 @@ ni de la Fiche ni d'un réseau, et n'exige de décrire quoi que ce soit : elle o
     **« Remplir l'écran »** calcule la case pour que la salle et sa marge de roche occupent la fenêtre table (entière, entre 16 et 300 px ;
     recalculée au redimensionnement, au changement de salle et de mode ; repères agrandis avec la case) ;
     **« Échelle réelle (figurines) »** garde exactement la taille calibrée, sans aucune adaptation (une salle trop grande défile).
-    Sans choix explicite, le défaut est l'échelle réelle si la taille a été calibrée (indicateur `calibre` posé par le Donjon quand
-    on règle la taille avec la case « Calibrer avec une carte bancaire », ou à défaut une taille différente de 48 px), sinon « Remplir ».
+    Sans choix explicite, le défaut est l'échelle réelle si la taille a été calibrée (indicateur `calibre` posé par « Terminer le calibrage »,
+    ou à défaut une taille différente de 48 px), sinon « Remplir ».
     Le mode est un simple mot joint aux réglages d'affichage envoyés à la table : il ne passe pas par `vueTable()` et ne contient aucun secret.
 - **Sécurité** : ce que reçoit la table est le résultat de `vueTable()` (`js/vue-publique.js`), construit par liste blanche : salle courante
   uniquement, sans notes, sans nom ni description, sans notes (ni de préparation, ni de partie), sans élément caché non révélé (portes comprises), sans élément masqué, sans `cache`,
@@ -348,7 +348,7 @@ ni de la Fiche ni d'un réseau, et n'exige de décrire quoi que ce soit : elle o
     intacts. Le `texte` des salles de la copie est la description de préparation, figée au démarrage et non utilisée en partie (déplacer un
     pion ne le réécrit pas non plus) ; seule une salle créée en jeu reçoit un texte, écrit par `decrire(plan)`.
 - **Réglages** (`carte-de-mj:reglages-v1`, partagés avec le Donjon ; clés facultatives `reperes`, `calibre`, `modeTable`, `cases`, `theme`, `relief`, `penombre`, `flammes`) : taille d'une case
-  (le calibrage à la carte bancaire se fait dans le Donjon), thème, cases, relief, pénombre, flammes animées (voir « Apparence de la carte »), repères, mode de taille de la table. « Adapter la carte de la régie à la fenêtre » ne change que la régie.
+  (calibrée une fois pour toutes à la carte bancaire dans « Régler l'écran de table »), thème, cases, relief, pénombre, flammes animées (voir « Apparence de la carte »), repères, mode de taille de la table. « Adapter la carte de la régie à la fenêtre » ne change que la régie.
 - **Carte plus grande que l'écran de la table** : la table défile à la molette ou au doigt, et la régie propose des flèches
   (« Faire défiler la vue table ») ; on peut aussi réduire la taille d'une case.
 
@@ -445,7 +445,7 @@ js/mj/salles-liste.js  Donjon : onglets et liste des salles, liaisons orphelines
 js/mj/menu-donjon.js  Donjon : menu du donjon (choix, nouveau, modèles, au hasard, suppression), rapport, fichiers (export, import, copier, coller, plan JSON)
 js/mj/salle-forme.js  Donjon : forme, sol et dimensions de la salle (boutons, curseurs, bandes autour de la carte)
 js/mj/bulle.js    Donjon : bulle d'actions de l'élément sélectionné (relier, créer la salle derrière, cacher, supprimer) et sa position
-js/mj/vue-carte.js  Donjon : la carte de la salle (taille, dessin, déplacement, pose, zoom, palette et tiroir, carte bancaire du calibrage)
+js/mj/vue-carte.js  Donjon : la carte de la salle (taille, dessin, déplacement, pose, zoom, palette et tiroir)
 js/mj/vue-plan.js  Donjon : la vue Plan (tout le donjon d'un coup : dessin, survol, liste clavier, zoom du plan)
 js/mj/zoom.js     Donjon : le zoom de la scène (boutons, molette), un seul calcul pour la carte de la salle et pour le plan
 js/historique.js     historique d'annulation du Donjon : une pile par salle (pur, sans DOM)
@@ -534,8 +534,9 @@ d'OpenAI, vous montre l'image, puis l'ajoute à `bibliotheque/catalogue.json` si
 
 - **Dictée vocale** : disponible dans Chrome, Edge et Safari, pas dans Firefox. Dans Chrome et Edge,
   la reconnaissance passe par les serveurs de Google : elle demande une connexion et votre voix quitte la machine.
-- **Calibrage** : cochez « Calibrer avec une carte bancaire », posez une carte sur l'écran et ajustez la taille
-  des cases jusqu'à ce que le rectangle corresponde. Une case fait alors 2,5 cm.
+- **Calibrage** : dans la Présentation, « Régler l'écran de table » → « Calibrer sur la table » : posez une carte bancaire
+  sur le rectangle affiché à la table et ajustez la taille jusqu'à ce qu'il corresponde. Une case fait alors 2,5 cm, pour
+  tous les donjons et tous les lieux.
 
 ## Licence
 
