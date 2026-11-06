@@ -60,12 +60,8 @@ export const SUITES = [
   executerThemes, executerReferences, executerOutils, executerMurs, executerCoordonnees, executerSchema,
   executerGeometrie, executerAffichage, executerVisibilite, executerParseurCommun, executerMesuresImpression,
   executerHistorique, executerMiseEnPage, executerRegie, executerStockage, executerContratFiche, executerCatalogue,
-<<<<<<< HEAD
   executerVuePublique, executerProtocoleTable, executerFicheDes, executerFicheJeu, executerFicheBase, executerRail, executerPeint, executerLumiere, executerAmbiance, executerObjetsNouveaux, executerEscaliers,
-  executerUnivers,
-=======
-  executerVuePublique, executerProtocoleTable, executerFicheDes, executerFicheJeu, executerFicheBase, executerRail, executerPeint, executerLumiere, executerAmbiance, executerObjetsNouveaux, executerEscaliers, executerOutilsCartes,
->>>>>>> 7b303e4 (Skill generer-carte : style peint-v1, scripts de génération et d'ajout au catalogue, tests, README [skip ci])
+  executerUnivers, executerOutilsCartes,
 ];
 
 /** Joue toutes les suites ; renvoie les résultats { phrase, ecarts, resultat? } à la suite les uns des autres. */
