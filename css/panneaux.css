@@ -202,3 +202,9 @@
 #regie .regie-entete { display: flex; flex-direction: column; gap: 3px; padding: 14px var(--esp-4) var(--esp-3); border-bottom: 1px solid var(--p-filet-fort); }
 #regie .regie-entete > p { margin: 0; }
 #regie .regie-entete-nom { font-size: 18px; font-weight: 650; line-height: 1.25; color: var(--p-texte-1); overflow-wrap: anywhere; }
+
+/* Calage de la grille (js/mj/univers-calage.js) : Enregistrer / Quitter en tête, puis ses sections. */
+.atelier-inspecteur-corps:has(.p-section) .univers-insp > .univers-calage { margin: 0; display: flex; flex-direction: column; }
+.univers-calage > .calage-enregistrer { margin: 0; padding: var(--esp-3) var(--esp-4); border-bottom: 1px solid var(--p-filet); }
+.p-section-corps .calage-champ, .p-section-corps .calage-geste { margin: 0; }
+.p-section-corps .calage-nom { font-size: 12.5px; font-weight: 500; color: var(--p-texte-3); }

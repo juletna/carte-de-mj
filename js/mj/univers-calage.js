@@ -14,7 +14,7 @@
  */
 import { h } from '../dom.js';
 import { btn } from '../univers-boutons.js';
-import { aide } from './univers-menu.js';
+import { creerSection } from '../atelier/section.js';
 import * as g from '../univers-grille.js';
 
 const OPACITE_REGLAGE = 0.75; // pendant le calage, la grille se voit bien quel que soit le réglage « Cases » de la table
@@ -134,25 +134,25 @@ export function creerCalage({ carte, enregistrer, quitter, surMarqueurs }) {
       aucune: 'Cette carte est réglée « pas de grille ».',
       ambiance: 'Cette carte n’a pas de grille : c’est une carte d’ambiance. Pose-en une si tu veux jouer dessus à l’échelle.',
     }[origine];
-    panneau = h('section', { className: 'univers-calage', 'aria-label': 'Caler la grille' },
-      h('h3', { textContent: 'Caler la grille' }),
-      h('p', { className: 'note', textContent: enonce }),
-      aide('Règle la taille de case et le décalage jusqu’à ce que les lignes tombent sur une porte ou un pilier.'),
-      curseur('Taille de case', 'case', { min: g.CASE_MIN, max: g.caseMax(s.dims), step: 0.5, apres: reglerCase }),
-      curseur('Décalage horizontal', 'dx', { min: 0, max: 100, step: 0.5, apres: dec('dx') }),
-      curseur('Décalage vertical', 'dy', { min: 0, max: 100, step: 0.5, apres: dec('dy') }),
-      champs.resume,
-      h('div', { className: 'calage-geste', role: 'group', 'aria-label': 'Geste sur la carte' },
-        champs.glisser, champs.mesurer,
-        h('label', { className: 'calage-n' }, 'sur ', champs.n, ' cases')),
-      champs.etatMesure,
-      aide('Au clavier : sélectionne la carte, puis les flèches décalent d’un pixel (Maj : dix), + et − changent la case. Les points du lieu restent visibles en transparence, sans pouvoir être touchés.'),
-      h('div', { className: 'actions' },
+    // Sections du panneau (js/atelier/section.js, docs/design-panneaux.md) ; le titre « Grille » est dans l'en-tête de l'inspecteur.
+    const section = (cle, titre, enfants, options = {}) => creerSection({ cle: `calage:${cle}`, titre, enfants, ...options }).element;
+    panneau = h('div', { className: 'univers-calage', 'aria-label': 'Caler la grille' },
+      h('div', { className: 'actions calage-enregistrer' },
         btn('Enregistrer', () => enregistrer(s.courante, s.dims), { icone: 'sauvegarde', classe: 'btn-primaire' }),
         btn('Quitter sans enregistrer', () => quitter(), { icone: 'fermer', classe: 'btn-discret' })),
-      h('div', { className: 'actions' },
-        revenir,
-        btn('Pas de grille', () => enregistrer(null, s.dims), { classe: 'btn-discret' })));
+      section('reglage', 'Taille et décalage', [
+        h('p', { className: 'note', textContent: enonce }),
+        curseur('Taille de case', 'case', { min: g.CASE_MIN, max: g.caseMax(s.dims), step: 0.5, apres: reglerCase }),
+        curseur('Décalage horizontal', 'dx', { min: 0, max: 100, step: 0.5, apres: dec('dx') }),
+        curseur('Décalage vertical', 'dy', { min: 0, max: 100, step: 0.5, apres: dec('dy') }),
+        champs.resume], { aide: 'Règle la taille de case et le décalage jusqu’à ce que les lignes tombent sur une porte ou un pilier.' }),
+      section('geste', 'Geste sur la carte', [
+        h('div', { className: 'calage-geste', role: 'group', 'aria-label': 'Geste sur la carte' },
+          champs.glisser, champs.mesurer,
+          h('label', { className: 'calage-n' }, 'sur ', champs.n, ' cases')),
+        champs.etatMesure], { aide: 'Au clavier : sélectionne la carte, puis les flèches décalent d’un pixel (Maj : dix), + et − changent la case. Les points du lieu restent visibles en transparence, sans pouvoir être touchés.' }),
+      section('autres', 'Autres choix', [
+        h('div', { className: 'actions' }, revenir, btn('Pas de grille', () => enregistrer(null, s.dims), { classe: 'btn-discret' }))], { repliee: true }));
     mode('glisser');
   }
 
