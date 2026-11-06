@@ -437,7 +437,7 @@ export function demarrerRegie() {
   });
   const microCommande = creerMicro({
     onTexte: (texte) => { $('commande').value = texte; },
-    onEtat: (actif) => { iconeEtTexte($('micro-commande'), 'micro', actif ? 'Arrêter' : 'Dicter'); $('micro-commande').setAttribute('aria-pressed', String(actif)); },
+    onEtat: (actif) => { iconeEtTexte($('micro-commande'), actif ? 'stop' : 'micro', actif ? 'Arrêter' : 'Dicter'); $('micro-commande').setAttribute('aria-pressed', String(actif)); },
     onErreur: (texte) => { etat.messageCommande = { texte, ok: false }; majCommande(); },
   });
   if (!microCommande) {

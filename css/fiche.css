@@ -13,7 +13,7 @@ button:disabled{opacity:.45;cursor:default}
 .btn{min-height:44px;font-weight:700}
 .btn-icone{width:44px}
 .btn-primaire{font-weight:700}
-.grid2>.btn,.grid3>.btn{min-width:0;padding:0 8px;white-space:normal;line-height:1.15}
+.grid2>.btn,.grid3>.btn{padding:0 8px}
 .qty button,.step button,.keys button,.x{display:inline-flex;align-items:center;justify-content:center}
 button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:var(--focus);outline-offset:var(--focus-decalage)}
 button:active{transform:scale(.97)}

@@ -311,7 +311,7 @@ const micro = creerMicro({
   onEtat: (actif) => {
     $('micro').classList.toggle('actif', actif);
     $('micro').setAttribute('aria-pressed', String(actif));
-    $('micro').replaceChildren(icone('micro'), actif ? 'Arrêter' : 'Dicter');
+    $('micro').replaceChildren(icone(actif ? 'stop' : 'micro'), actif ? 'Arrêter' : 'Dicter');
   },
   onErreur: (msg) => { messageMicro.hidden = false; messageMicro.textContent = msg; },
 });

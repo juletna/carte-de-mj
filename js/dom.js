@@ -27,6 +27,13 @@ export function bouton(texte, onClick, classe = '') {
   return b;
 }
 
+/** Change le libellé texte d'un bouton sans toucher à son icône : seul le dernier nœud texte est réécrit (ajouté s'il manque). */
+function poserLibelle(bouton, texte) {
+  if (!bouton.children?.length) { bouton.textContent = texte; return; }
+  const noeud = [...bouton.childNodes].reverse().find((n) => n.nodeType === 3);
+  if (noeud) noeud.nodeValue = texte; else bouton.append(texte);
+}
+
 /**
  * Bouton qui demande confirmation au second clic, dans les 4 secondes. Renvoie la fonction qui le remet à son état de repos.
  * `annonce` (facultatif) : { zone, texte() } affiche, dans une zone à part, ce qui va être supprimé.
@@ -34,11 +41,14 @@ export function bouton(texte, onClick, classe = '') {
  */
 export function deuxTemps(bouton, libelle, confirmation, action, annonce) {
   let attente;
+  // État armé : .btn-danger pour un bouton du système visuel (.btn), l'ancienne classe .danger sinon ; un bouton déjà .btn-danger au repos le reste.
+  const classeArmee = bouton.classList.contains('btn') ? 'btn-danger' : 'danger';
+  const dejaDanger = bouton.classList.contains(classeArmee);
   const reinitialiser = () => {
     clearTimeout(attente);
     bouton.dataset.confirme = '';
-    bouton.textContent = libelle;
-    bouton.classList.remove('danger');
+    poserLibelle(bouton, libelle);
+    if (!dejaDanger) bouton.classList.remove(classeArmee);
     if (annonce) { bouton.style.minWidth = ''; annonce.zone.hidden = true; annonce.zone.textContent = ''; }
   };
   reinitialiser();
@@ -46,8 +56,8 @@ export function deuxTemps(bouton, libelle, confirmation, action, annonce) {
     if (bouton.dataset.confirme === '1') { reinitialiser(); action(); return; }
     bouton.dataset.confirme = '1';
     if (annonce) bouton.style.minWidth = `${bouton.offsetWidth}px`;
-    bouton.textContent = confirmation;
-    bouton.classList.add('danger');
+    poserLibelle(bouton, confirmation);
+    bouton.classList.add(classeArmee);
     if (annonce) { annonce.zone.textContent = annonce.texte(); annonce.zone.hidden = false; }
     attente = setTimeout(reinitialiser, 4000);
   });

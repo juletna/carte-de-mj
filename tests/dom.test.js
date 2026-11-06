@@ -2,7 +2,7 @@
  * Tests des outils communs : format.js (pur) et dom.js (avec des éléments simulés, donc sans navigateur).
  * Sans dépendance : marche sous Node et dans tests.html.
  */
-import { pluriel, virgule, sansAccents, estObjet, libelleMicro, LIBELLE_FERMER } from '../js/format.js';
+import { pluriel, virgule, sansAccents, estObjet } from '../js/format.js';
 import { h, bouton, deuxTemps, fichierChoisi } from '../js/dom.js';
 import { verifier, egal, executerSuite } from './mini-test.js';
 
@@ -96,6 +96,27 @@ const TESTS = (pages) => [
       egal([actions, b.style.minWidth, zone.hidden, zone.textContent], [1, '', true, ''], 'après le second');
     });
   }],
+  ['deuxTemps sur un bouton .btn : .btn-danger à l’armement, retiré au repos (sauf s’il y était déjà) ; l’icône reste', () => {
+    avecFaux(() => {
+      const noeud = (nodeValue) => ({ nodeType: 3, nodeValue });
+      const fabrique = (classes) => {
+        const b = fauxElement('button');
+        for (const c of classes) b.classList.add(c);
+        b.children = [{ nodeType: 1 }]; b.childNodes = [{ nodeType: 1 }, noeud('Supprimer')];
+        return b;
+      };
+      const b = fabrique(['btn']);
+      deuxTemps(b, 'Supprimer', 'Confirmer ?', () => {});
+      b.emettre('click');
+      egal([b.classList.contains('btn-danger'), b.classList.contains('danger'), b.childNodes[1].nodeValue, b.childNodes.length], [true, false, 'Confirmer ?', 2], 'armé, icône gardée');
+      b.emettre('blur');
+      egal([b.classList.contains('btn-danger'), b.childNodes[1].nodeValue, b.childNodes[0].nodeType], [false, 'Supprimer', 1], 'au repos');
+      const d = fabrique(['btn', 'btn-danger']);
+      deuxTemps(d, 'Supprimer', 'Sûr ?', () => {});
+      d.emettre('click'); d.emettre('blur');
+      verifier(d.classList.contains('btn-danger'), 'un bouton déjà .btn-danger le reste');
+    });
+  }],
   ['sansAccents : minuscules, sans accents ni espaces de bord ; rien ou null donne le texte vide', () => {
     egal(['  Élémentaire ', 'ÀÉÎÔÛ ç œ', 'déjà', '', null, undefined].map(sansAccents), ['elementaire', 'aeiou c œ', 'deja', '', '', ''], 'textes');
     egal(sansAccents(0), '0', 'un nombre est un texte');
@@ -103,8 +124,7 @@ const TESTS = (pages) => [
   ['estObjet : un objet JSON au sens strict, ni null ni tableau', () => {
     egal([{}, { a: 1 }, null, undefined, [], [1], 'x', 3, true].map(estObjet), [true, true, false, false, false, false, false, false, false], 'valeurs');
   }],
-  ['libellés communs : le micro et le bouton fermer ; les boutons micro des pages HTML portent le libellé de repos', () => {
-    egal([libelleMicro(false), libelleMicro(true), LIBELLE_FERMER], ['🎙️ Dicter', '⏹ Arrêter', '✕ Fermer'], 'libellés');
+  ['libellés du micro : les boutons micro des pages HTML portent le libellé de repos (icône du socle, pas d’emoji)', () => {
     for (const [page, id] of [['donjon.html', 'micro']]) {
       const texte = pages[page].match(new RegExp(`<button id="${id}"[^>]*>([\\s\\S]*?)</button>`))?.[1];
       // Le Donjon porte l'icône du micro (<span data-icone>, remplacée par le SVG commun) : seul le mot compte.

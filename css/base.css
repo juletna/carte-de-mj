@@ -87,7 +87,10 @@
 .btn-discret { background: transparent; border-color: transparent; color: var(--texte-doux); font-weight: 500; }
 .btn-discret:hover { background: var(--champ); border-color: transparent; color: var(--texte); }
 .btn-danger { background: transparent; color: var(--erreur); border-color: var(--erreur); }
-.btn-danger:hover { background: var(--erreur); border-color: var(--erreur); color: #fff; }
+.btn-danger:hover, .btn-danger[data-confirme="1"] { background: var(--erreur); border-color: var(--erreur); color: #fff; }
+/* Un bouton ne déborde jamais son conteneur ; dans une grille étroite (ou avec .btn-souple) son texte peut passer à la ligne. */
+.btn { max-width: 100%; }
+.grid2 > .btn, .grid3 > .btn, .btn-souple { min-width: 0; white-space: normal; line-height: 1.15; }
 .btn-icone { width: var(--btn-h); padding: 0; flex: none; font-size: 16px; }
 .btn-icone .icone { width: 20px; height: 20px; vertical-align: 0; }
 summary.btn { list-style: none; }
