@@ -21,7 +21,20 @@ Chaque outil est complet seul : il a ses propres données (dans le navigateur) e
 
 ## Navigation et feuille commune
 
-Chaque page commence par le même en-tête, écrit en HTML statique (aucun script) : « Carte de MJ » (accueil), Fiche, Donjon, Présentation, la page courante portant `aria-current="page"`. Il vient de `css/base.css`, qui porte aussi les jetons partagés des pages sombres (couleurs, couleurs de rôle, police, rayons, espacements, focus, `--cible` : 44 px sous 760 px, aucune exigence au-dessus). Il n'apparaît ni sur la vue table (`?vue=table`), ni à l'impression. La Fiche utilise les mêmes jetons (thème sombre unique, police du système, mêmes rayons) ; seul le fond de son en-tête est le sien.
+Chaque page commence par la même barre, tout en haut et sur toute la largeur : à gauche « Carte de MJ » (accueil), Monde (`donjon.html#monde`), Donjons, Jouer (`presentation.html`), Bibliothèque ; à droite « Fiche joueur » et « Sauvegarde » (dialogue Tout sauvegarder / Tout restaurer, voir plus bas). Sous 760 px, elle se réduit au nom et à un bouton ☰ qui ouvre les mêmes liens. Chaque page n'a qu'un `<header class="menu-site" data-navigation></header>` : `js/navigation.js` le remplit (liens et page courante dans `js/navigation-donnees.js`, pur et testé ; `aria-current="page"`, Monde quand le hash est `#monde`). Elle n'est montée ni sur la vue table (`?vue=table`), ni à l'impression. Sa hauteur est `--h-barre` (aussi `--hauteur-barre`, lue par la régie). Le style vient de `css/base.css`, qui porte aussi les jetons partagés des pages sombres (couleurs, couleurs de rôle, police, rayons, espacements, focus, `--cible` : 44 px sous 760 px, aucune exigence au-dessus). La Fiche utilise les mêmes jetons.
+
+## Vocabulaire
+
+- **Monde** : l'ensemble des cartes imbriquées (poupées russes) que le MJ prépare.
+- **Continent** : un niveau de carte du monde (une carte qui en contient d'autres) ; la bibliothèque dit aussi région, zone, localité…
+- **Lieu** : un point posé sur une carte (village, ruine…) qui mène à une carte plus petite ou à un donjon.
+- **Donjon** : un ensemble de salles reliées, préparé dans « Donjons ».
+- **Salle** : une pièce du donjon, décrite en français (le parseur comprend toujours « pièce »). La **Vue d'ensemble** montre toutes les salles d'un coup ; l'outil **Salles** les liste.
+- **Jouer** : la page `presentation.html` : la régie du MJ et l'écran des joueurs.
+- **Table** : l'écran des joueurs (`?vue=table`), qui ne montre que ce qui est révélé.
+- **Caché / Révéler** : ce que le MJ garde secret, et le geste qui le montre à la table.
+- **Sauvegarde complète** : le fichier .zip de tout ce que garde le navigateur (bouton « Sauvegarde » de la barre).
+- **Bibliothèque** : les cartes illustrées du dossier `bibliotheque/` et les images importées, page `bibliotheque.html`.
 
 ## Sur téléphone (sous 760 px)
 
@@ -397,13 +410,13 @@ L'impression ne s'ouvre que depuis un donjon : le bouton **Imprimer ce donjon**,
 
 Choisir une carte image (monde, région, zone, localité, bâtiment, souterrain) parmi celles du dossier local `bibliotheque/` (ignoré par git, rempli par le skill `generer-carte`) ou parmi les images importées dans le navigateur (IndexedDB, elles restent après rechargement). Fenêtre de choix : vignettes, filtre par niveau et par milieux, recherche sans accents ni casse (titre, tags, description, milieux), crédit affiché quand il existe, utilisable au clavier et sur téléphone.
 
-- Essai : `node outils/demo-bibliotheque.mjs` (7 cartes SVG de démonstration, sans rien écraser), puis `python3 outils/serveur.py` et `bibliotheque.html`.
+- Essai : `node outils/demo-bibliotheque.mjs` (7 cartes SVG de démonstration, sans rien écraser), puis `python3 outils/serveur.py` et `bibliotheque.html`. La page affiche le catalogue et « Mes images » (`js/page-bibliotheque.js`).
 - Sans `bibliotheque/catalogue.json` (ou sur le site publié), la bibliothèque est vide avec un message ; l'import reste possible.
 - Interface pour les autres modules : `js/bibliotheque/index.js` (`choisirCarte`, `urlImage`, `infosImage`). Une carte se désigne par `{ source: 'bibliotheque' | 'navigateur', id }`, jamais par une URL. Format du catalogue : `docs/conception-univers.md`.
 
 ## Sauvegarder et restaurer tout
 
-Donjon, menu du donjon, bloc « Tout mon univers » : **Sauvegarder tout** télécharge un seul `sauvegarde-carte-de-mj-AAAA-MM-JJ.zip` (toutes les clés `carte-de-mj:*`, `dd-fiche-*` et `jdr-carte:*` du navigateur, telles quelles, plus les images importées) ; **Restaurer…** relit un tel zip, en montre le contenu, puis « Tout remplacer » → « Confirmer » remplace tout (une sauvegarde `avant-restauration-…zip` de l'état actuel est téléchargée d'abord ; si l'espace manque, rien n'est modifié). Les images de la bibliothèque (dossier `bibliotheque/`) ne sont pas dans le zip : leurs identifiants sont cités et la restauration signale celles qui manquent. Code : `js/zip.js`, `js/sauvegarde.js` (purs, testés), `js/mj/sauvegarde-ui.js`.
+Bouton « Sauvegarde » de la barre (toutes les pages) : **Tout sauvegarder** télécharge un seul `sauvegarde-carte-de-mj-AAAA-MM-JJ.zip` (toutes les clés `carte-de-mj:*`, `dd-fiche-*` et `jdr-carte:*` du navigateur, telles quelles, plus les images importées) ; **Tout restaurer…** relit un tel zip, en montre le contenu, puis « Tout remplacer » → « Confirmer » remplace tout (une sauvegarde `avant-restauration-…zip` de l'état actuel est téléchargée d'abord ; si l'espace manque, rien n'est modifié). Les images de la bibliothèque (dossier `bibliotheque/`) ne sont pas dans le zip : leurs identifiants sont cités et la restauration signale celles qui manquent. Code : `js/zip.js`, `js/sauvegarde.js` (purs, testés), `js/mj/sauvegarde-ui.js` (`ouvrirSauvegarde`, chargé à la demande par `js/navigation.js`).
 
 ## Univers : des cartes qui s'emboîtent
 
