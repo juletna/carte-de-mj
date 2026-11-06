@@ -77,8 +77,8 @@ export function creerArbreVue({ mode = 'preparer', surChoix, pastille = null, ti
     }
     const image = vignette?.(n) ?? null;
     const ligne = h('div', { className: 'atelier-ligne', title: [n.nom, ...(n.aussiDepuis?.length ? [`aussi depuis ${n.aussiDepuis.join(', ')}`] : [])].join(' · ') }, bascule, image ?? h('span', { className: 'atelier-icone', 'aria-hidden': 'true' }, icone(ICONE[n.type] ?? 'donjon')), texte);
-    if (n.depart) ligne.append(h('span', { className: 'atelier-badge', textContent: 'départ', title: 'Lieu de départ du monde' }));
-    if (n.nonRelie) ligne.append(h('span', { className: 'atelier-badge discret', textContent: 'non relié', title: 'Aucun chemin depuis le lieu de départ' }));
+    if (n.depart) ligne.append(h('span', { className: 'atelier-badge', textContent: 'départ', title: 'Ici, la partie commence' }));
+    if (n.nonRelie) ligne.append(h('span', { className: 'atelier-badge discret', textContent: 'non relié', title: 'Aucun chemin depuis la carte du monde' }));
     if (mode === 'jouer' && pastille && n.type !== 'groupe') {
       const etat = pastille(n);
       ligne.append(h('span', { className: `atelier-pastille ${etat}`, title: LIBELLE_PASTILLE[etat] ?? '', 'aria-label': LIBELLE_PASTILLE[etat] ?? '' }));

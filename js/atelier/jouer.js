@@ -39,8 +39,8 @@ export function creerJouer({ racine, donnees, partie, surChoix, affichage }) {
     },
   });
 
-  // Les lieux de l'arbre montrent leur carte en vignette (comme dans le Monde), pas le globe.
-  coquille.arbre.vue.definirVignette((n) => (n.type === 'lieu' ? vignetteLieu(donnees().univers?.[n.contexte?.monde]?.lieux?.[n.id]?.image, '') : null));
+  // Les lieux de l'arbre montrent leur carte en vignette (comme dans le Monde), pas le globe ; le monde, celle de sa carte.
+  coquille.arbre.vue.definirVignette((n) => (n.type === 'lieu' || n.racine ? vignetteLieu(donnees().univers?.[n.contexte?.monde]?.lieux?.[n.racine ?? n.id]?.image, '') : null));
 
   // Le cartouche d'échelle (js/atelier/cartouche.js) : en haut à gauche de la carte, sous le bandeau d'état. Une ancre sans hauteur, posée juste avant la scène
   // du donjon (et donc avant la carte du monde, qui la remplace), porte le cartouche sans rien décaler. regie.js et regie-univers.js le renseignent.

@@ -31,6 +31,24 @@ const TESTS = [
     egal(pa, { univers: univ.id, lieuCourant: m.id, chemin: [], decouverts: [m.id], reveles: {} }, 'départ');
     egal(p.creerPartieUnivers(u.creerUnivers()).lieuCourant, null, 'univers vide');
   }],
+  ['la partie commence au lieu de départ, pas forcément à la carte du monde', () => {
+    const { univ, m, r, pr } = monde();
+    u.definirDepart(univ, r.id);
+    const pa = p.creerPartieUnivers(univ);
+    egal(pa, { univers: univ.id, lieuCourant: r.id, chemin: [], decouverts: [r.id], reveles: {} }, 'départ dans la région');
+    egal(p.remonter(pa), false, 'Remonter : on est au départ, le chemin est vide');
+    egal(p.filDAriane(pa, univ).map((e) => e.nom), ['Région'], 'le fil part du départ');
+    egal(univ.racine, m.id, 'la carte du monde ne bouge pas');
+    univ.depart = 'l-disparu';
+    egal(p.creerPartieUnivers(univ).lieuCourant, m.id, 'un départ disparu : la carte du monde');
+    delete univ.depart;
+    p.franchir(pa, univ, pr.id); // la région n’a pas ce point : rien ne bouge
+    // Le lieu où se trouvait la table disparaît : retour au lieu de départ (pas à la racine).
+    u.definirDepart(univ, r.id);
+    const pb = p.creerPartieUnivers(univ);
+    pb.lieuCourant = 'l-parti';
+    egal(p.reconcilier(pb, univ).length > 0 && pb.lieuCourant, r.id, 'reconcilier revient au lieu de départ');
+  }],
   ['monde → région → zone → donjon, puis Remonter jusqu’à la racine', () => {
     const { univ, m, r, z, d, salle, pr, pz, pd, donjons } = monde();
     const pa = p.creerPartieUnivers(univ);

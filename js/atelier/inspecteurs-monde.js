@@ -1,8 +1,10 @@
 /**
  * Les inspecteurs du Monde dans l'atelier (lot C) : les types `monde`, `lieu` et `point` de la colonne de droite (panneau bas sous 760 px).
  * Ils reprennent ce que faisaient le panneau « Ce lieu », la bulle d'un point et la barre du monde, sur le contrat de js/atelier/inspecteur.js :
- *   - monde : nom, résumé ; action Ajouter un lieu (Jouer est dans la barre de la scène) ; ⋯ Exporter, Supprimer ce monde ;
- *   - lieu  : nom, notes, lieu de départ, grille (l'outil Calage de la barre ouvre le calage, dont les réglages remplacent ce panneau),
+ *   - monde : nom, résumé (lieux, départ de la partie s'il n'est pas la carte du monde) ; le nœud monde PORTE la carte du monde (le lieu racine) :
+ *             son panneau montre ce que montre un lieu (points, notes, carte), ou « Choisir la carte du monde » s'il n'en a pas ; action Ajouter un lieu
+ *             (Jouer est dans la barre de la scène) ; ⋯ Exporter, Retirer la carte du monde (annulable), Supprimer ce monde ;
+ *   - lieu  : nom, notes, départ de la partie, grille (l'outil Calage de la barre ouvre le calage, dont les réglages remplacent ce panneau),
  *             image, liste des points ; ⋯ Supprimer ce lieu (annulable) ;
  *   - point : nom, Carte | Donjon | Rien, liste déroulante à vignettes (js/mj/univers-liste.js), Visible / Caché ; action Entrer ; ⋯ Supprimer ce point.
  * L'en-tête (type, nom modifiable, résumé, « ⋯ ») est celui de tous les types. Une suppression se confirme en deux temps dans le menu « ⋯ » ; celle d'un lieu s'annule ensuite.
@@ -58,9 +60,12 @@ export function enregistrerInspecteursMonde(coquille, U) {
   /** Une section du panneau (js/atelier/section.js) : bandeau repliable, puis son contenu. `cle` garde le pli pour la session. */
   const section = (cle, titre, enfants, options = {}) => creerSection({ cle: `monde:${cle}`, titre, enfants, ...options }).element;
   const soustitre = (nom) => h('p', { className: 'note', textContent: nom });
+  /** La carte du monde est-elle celle que la scène affiche ? (Le panneau du monde est alors celui de cette carte.) */
+  const carteAffichee = (u) => !!u && U.lieu() !== null && U.lieu() === modele.carteDuMonde(u);
 
   // --- Monde -----------------------------------------------------------------------------------------------------------------
   insp.enregistrer('monde', {
+    etiquette: (sel, c) => (carteAffichee(mondeDe(sel, c)) && U.calage.actif() ? 'Calage' : 'Monde'),
     titre: (sel, c) => mondeDe(sel, c)?.nom ?? '?',
     renommer: (_sel, valeur) => U.renommerMonde(valeur),
     nomCle: 'monde-nom',
@@ -68,24 +73,45 @@ export function enregistrerInspecteursMonde(coquille, U) {
     resume: (sel, c) => {
       const u = mondeDe(sel, c);
       if (!u) return '';
+      if (U.calage.actif() && carteAffichee(u)) return '';
       const lieux = Object.keys(u.lieux).length;
-      const depart = u.lieux[u.racine]?.nom;
-      return lieux ? `${pluriel(lieux, 'lieu', 'lieux')}${depart ? ` · départ : ${depart}` : ''}` : 'Aucun lieu';
+      const depart = modele.lieuDeDepart(u);
+      const ailleurs = depart && depart !== modele.carteDuMonde(u) ? u.lieux[depart]?.nom : ''; // le départ n'est dit que s'il n'est pas la carte du monde
+      return lieux ? `${pluriel(lieux, 'lieu', 'lieux')}${ailleurs ? ` · départ : ${ailleurs}` : ''}` : 'Aucune carte';
     },
-    actions: (sel) => [
-      { libelle: 'Ajouter un lieu', icone: 'plus', executer: () => U.ajouterLieuLibre() },
-    ],
-    menu: () => [{ libelle: 'Exporter', icone: 'exporter', executer: () => { U.exporterMonde(); } }],
-    destructives: (sel, c) => [{
-      libelle: 'Supprimer ce monde', confirmation: `Supprimer « ${mondeDe(sel, c)?.nom ?? '?'} » ?`,
-      titre: 'Supprime le monde et sa partie en cours. Ses donjons restent intacts, mais ce monde ne se rouvre que depuis un fichier exporté.',
-      executer: () => U.supprimerLeMonde(),
-    }],
+    actions: (sel, c) => (modele.carteDuMonde(mondeDe(sel, c) ?? { lieux: {} }) && !U.calage.actif() ? [{ libelle: 'Ajouter un lieu', icone: 'plus', executer: () => U.ajouterLieuLibre() }] : []),
+    menu: () => (U.calage.actif() ? [] : [{ libelle: 'Exporter', icone: 'exporter', executer: () => { U.exporterMonde(); } }]),
+    destructives: (sel, c) => {
+      const u = mondeDe(sel, c);
+      const carte = u && !U.calage.actif() ? modele.carteDuMonde(u) : null;
+      return [
+        ...(carte && carteAffichee(u) ? [{
+          libelle: 'Retirer la carte du monde', confirmation: `Retirer « ${u.lieux[carte].nom} » ?`,
+          titre: 'Retire cette carte du monde ; tu pourras annuler juste après',
+          executer: () => U.supprimerLeLieu(),
+        }] : []),
+        {
+          libelle: 'Supprimer ce monde', confirmation: `Supprimer « ${u?.nom ?? '?'} » ?`,
+          titre: 'Supprime le monde et sa partie en cours. Ses donjons restent intacts, mais ce monde ne se rouvre que depuis un fichier exporté.',
+          executer: () => U.supprimerLeMonde(),
+        }];
+    },
     rendre(corps, sel, c) {
       const conteneur = preparer(corps);
       const u = mondeDe(sel, c);
       if (!u) { conteneur.append(soustitre('Ce monde n’existe plus.')); return; }
-      retrouverFocus();
+      const idCarte = modele.carteDuMonde(u);
+      const l = idCarte ? u.lieux[idCarte] : null;
+      if (!l) { // un monde sans carte : la première est celle du monde (elle prend son nom)
+        conteneur.append(section('monde-carte', 'Carte du monde', [
+          h('p', { className: 'note', textContent: 'Ce monde n’a pas encore de carte. Choisis celle qui le contient tout entier : l’archipel, le continent, la région…' }),
+          h('div', { className: 'actions' }, avecCle(btn('Choisir la carte du monde', () => U.ajouterLieuLibre(), { icone: 'bibliotheque', classe: 'btn-discret' }), 'carte-du-monde'))]));
+        retrouverFocus();
+        return;
+      }
+      if (U.lieu() !== l.id) { conteneur.append(soustitre('Ouvre la carte du monde dans l’arbre pour la modifier.')); return; }
+      if (U.calage.actif()) { conteneur.append(U.calage.panneau()); return; }
+      contenuCarte(conteneur, u, l);
     },
   });
 
@@ -101,7 +127,7 @@ export function enregistrerInspecteursMonde(coquille, U) {
       if (!l || (U.calage.actif() && U.lieu() === sel.id)) return '';
       const info = U.infosEnCache(l.image);
       const taille = resumeTailleLieu(grilleEffective(l, info ?? null).grille, info?.largeur, info?.hauteur, chargerReglages().echelle);
-      return [taille, l.points.length ? pluriel(l.points.length, 'point', 'points') : 'Aucun point', mondeDe(sel, c).racine === l.id ? 'départ du monde' : ''].filter(Boolean).join(' · ');
+      return [taille, l.points.length ? pluriel(l.points.length, 'point', 'points') : 'Aucun point', modele.lieuDeDepart(mondeDe(sel, c)) === l.id ? 'départ de la partie' : ''].filter(Boolean).join(' · ');
     },
     destructives: (sel, c) => {
       if (U.calage.actif()) return [];
@@ -121,28 +147,35 @@ export function enregistrerInspecteursMonde(coquille, U) {
       if (!l) { conteneur.append(soustitre('Ce lieu n’existe plus.')); return; }
       if (U.lieu() !== l.id) { conteneur.append(soustitre('Ouvre ce lieu dans l’arbre pour le modifier.')); return; }
       if (U.calage.actif()) { conteneur.append(U.calage.panneau()); return; } // l'outil Calage : ses réglages prennent la place du lieu
-      const orph = modele.orphelins(u, U.donjons()).filter((o) => o.lieu === l.id);
-      const notes = avecCle(h('textarea', { rows: 3, maxLength: 20000, value: l.notes, spellcheck: true, placeholder: 'Ce que les joueurs savent, ce qui se cache ici…', 'aria-label': 'Notes du lieu' }), 'lieu-notes');
-      notes.addEventListener('change', () => U.notesDuLieu(notes.value));
-      const depart = h('label', { className: 'ligne case' }, avecCle(h('input', { type: 'checkbox', checked: u.racine === l.id }), 'lieu-depart'), ' Lieu de départ du monde');
-      depart.firstChild.addEventListener('change', (e) => { if (e.target.checked) U.lieuDeDepart(); else e.target.checked = true; });
-      const info = U.infosEnCache(l.image);
-      if (info === undefined) U.infosDe(l.image).then(() => { if (U.lieu() === l.id && coquille.selection()?.id === l.id) redessiner(); }); // le niveau de la carte arrive avec ses informations
-      const eff = grilleEffective(l, info ?? null);
-      const taille = String(eff.grille?.case).replace('.', ',');
-      const etatGrille = { lieu: `Grille calée : cases de ${taille} px`, catalogue: `Grille du catalogue : cases de ${taille} px`, aucune: 'Pas de grille', ambiance: 'Carte d’ambiance, sans grille' }[eff.origine];
-      const peutCaler = !info || calagePossible(info.niveau);
-      conteneur.append(
-        ...(orph.length ? [h('p', { className: 'note erreur' }, icone('alerte'), ` ${pluriel(orph.length, 'point mène', 'points mènent')} vers une destination qui n’existe plus : ils sont signalés, rien n’a été retiré.`)] : []),
-        listePoints(u, l),
-        section('lieu-notes', 'Notes', [notes]),
-        section('lieu-carte', 'Carte', [
-          depart,
-          ...(peutCaler ? [h('div', { className: 'ligne' }, h('span', { className: 'univers-etat-grille doux', textContent: etatGrille }), avecCle(btn('Caler la grille', () => U.definirMode('grille'), { icone: 'grille', classe: 'btn-discret' }), 'caler'))] : []),
-          h('div', { className: 'actions' }, btn('Changer l’image', () => U.changerImage(), { icone: 'bibliotheque', classe: 'btn-discret' }))]));
-      retrouverFocus();
+      contenuCarte(conteneur, u, l);
     },
   });
+
+  /** Le corps d'un lieu, et de la carte du monde dans le panneau du monde : orphelins, points, notes, carte (départ de la partie, grille, image). */
+  function contenuCarte(conteneur, u, l) {
+    const orph = modele.orphelins(u, U.donjons()).filter((o) => o.lieu === l.id);
+    const notes = avecCle(h('textarea', { rows: 3, maxLength: 20000, value: l.notes, spellcheck: true, placeholder: 'Ce que les joueurs savent, ce qui se cache ici…', 'aria-label': 'Notes du lieu' }), 'lieu-notes');
+    notes.addEventListener('change', () => U.notesDuLieu(notes.value));
+    const departCoche = avecCle(h('input', { type: 'checkbox', checked: modele.lieuDeDepart(u) === l.id, role: 'switch' }), 'lieu-depart');
+    departCoche.addEventListener('change', () => { if (departCoche.checked) U.definirDepart(); else departCoche.checked = true; }); // on change de départ en le cochant ailleurs
+    const depart = h('label', { className: 'univers-interrupteur', title: 'La partie commence sur ce lieu (par défaut, la carte du monde). Pour changer, coche un autre lieu.' }, departCoche, h('span', { className: 'univers-glissiere', 'aria-hidden': 'true' }),
+      h('span', { textContent: 'Départ de la partie' }));
+    const info = U.infosEnCache(l.image);
+    if (info === undefined) U.infosDe(l.image).then(() => { if (U.lieu() === l.id && [l.id, u.id].includes(coquille.selection()?.id)) redessiner(); }); // le niveau de la carte arrive avec ses informations
+    const eff = grilleEffective(l, info ?? null);
+    const taille = String(eff.grille?.case).replace('.', ',');
+    const etatGrille = { lieu: `Grille calée : cases de ${taille} px`, catalogue: `Grille du catalogue : cases de ${taille} px`, aucune: 'Pas de grille', ambiance: 'Carte d’ambiance, sans grille' }[eff.origine];
+    const peutCaler = !info || calagePossible(info.niveau);
+    conteneur.append(
+      ...(orph.length ? [h('p', { className: 'note erreur' }, icone('alerte'), ` ${pluriel(orph.length, 'point mène', 'points mènent')} vers une destination qui n’existe plus : ils sont signalés, rien n’a été retiré.`)] : []),
+      listePoints(u, l),
+      section('lieu-notes', 'Notes', [notes]),
+      section('lieu-carte', 'Carte', [
+        depart,
+        ...(peutCaler ? [h('div', { className: 'ligne' }, h('span', { className: 'univers-etat-grille doux', textContent: etatGrille }), avecCle(btn('Caler la grille', () => U.definirMode('grille'), { icone: 'grille', classe: 'btn-discret' }), 'caler'))] : []),
+        h('div', { className: 'actions' }, btn('Changer l’image', () => U.changerImage(), { icone: 'bibliotheque', classe: 'btn-discret' }))]));
+    retrouverFocus();
+  }
 
   function listePoints(u, l) {
     const choisi = U.pointId();

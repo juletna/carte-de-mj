@@ -38,6 +38,14 @@ export function creerUnivers({ nom = 'Univers' } = {}) {
 
 export const listerLieux = (u) => Object.values(u.lieux);
 
+/** La carte du monde : le lieu `racine` (le haut de l'arbre), ou à défaut le premier lieu ; null si le monde n'a aucun lieu. */
+export const carteDuMonde = (u) => (typeof u.racine === 'string' && u.racine in u.lieux ? u.racine : Object.keys(u.lieux)[0] ?? null);
+/**
+ * Le lieu où la partie commence : `depart` s'il désigne un lieu qui existe, sinon la carte du monde (c'est le cas de tout monde sans `depart`).
+ * Le départ n'est pas le haut de l'arbre : un monde commence souvent dans un port, sur la carte d'un archipel.
+ */
+export const lieuDeDepart = (u) => (typeof u.depart === 'string' && u.depart in u.lieux ? u.depart : carteDuMonde(u));
+
 /** Ajoute un lieu (carte image). Le premier devient la racine. Lève une Error en français si la limite est atteinte. */
 export function ajouterLieu(u, { nom, image, notes = '', grille } = {}) {
   if (Object.keys(u.lieux).length >= MAX_LIEUX) throw new Error(`un univers compte ${MAX_LIEUX} lieux au plus`);
@@ -54,7 +62,14 @@ export function ajouterLieu(u, { nom, image, notes = '', grille } = {}) {
 const lieuOu = (u, id) => { const l = u.lieux[id]; if (!l) throw new Error('lieu inconnu'); return l; };
 const pointOu = (lieu, id) => { const p = lieu.points.find((q) => q.id === id); if (!p) throw new Error('point inconnu'); return p; };
 
-export function renommerUnivers(u, nom) { u.nom = coupe(nom, LIMITES.nom).trim() || u.nom; return u; }
+/** Renomme le monde. Sa carte (le lieu racine) le suit tant qu'elle porte le même nom que lui ; un nom donné à part à la carte est respecté. */
+export function renommerUnivers(u, nom) {
+  const ancien = u.nom;
+  u.nom = coupe(nom, LIMITES.nom).trim() || u.nom;
+  const carte = u.lieux[u.racine];
+  if (carte && carte.nom === ancien) carte.nom = u.nom;
+  return u;
+}
 export function renommerLieu(u, id, nom) { const l = lieuOu(u, id); l.nom = coupe(nom, LIMITES.nom).trim() || l.nom; return l; }
 export function definirNotesLieu(u, id, notes) { const l = lieuOu(u, id); l.notes = coupe(notes, LIMITES.notes); return l; }
 /** Change l'image d'un lieu ; ses points gardent leurs fractions. */
@@ -76,21 +91,32 @@ export function definirGrilleLieu(u, id, grille, dims) {
   return l;
 }
 export function definirRacine(u, id) { lieuOu(u, id); u.racine = id; return u; }
+/** Choisit le lieu où la partie commence. La carte du monde est le départ par défaut : la choisir retire `depart`. */
+export function definirDepart(u, id) {
+  lieuOu(u, id);
+  if (id === carteDuMonde(u)) delete u.depart; else u.depart = id;
+  return u;
+}
 
 /**
- * Retire un lieu. Les points qui y menaient deviennent orphelins (ils restent, signalés). Si c'était la racine, un autre lieu la remplace.
+ * Retire un lieu. Les points qui y menaient deviennent orphelins (ils restent, signalés). Si c'était la racine, un autre lieu la remplace ; si c'était le départ, le départ redevient la carte du monde.
  * @returns {object} le lieu retiré (pour pouvoir l'annuler avec `retablirLieu`)
  */
 export function supprimerLieu(u, id) {
   const l = lieuOu(u, id);
   delete u.lieux[id];
   if (u.racine === id) u.racine = Object.keys(u.lieux)[0] ?? null;
+  if (u.depart === id) delete u.depart;
   return l;
 }
-/** Remet un lieu retiré (annulation). Il redevient le lieu de départ s'il l'était (`racine`) ou s'il n'y en a plus. */
-export function retablirLieu(u, lieu, { racine = false } = {}) {
+/**
+ * Remet un lieu retiré (annulation). Il redevient la carte du monde s'il l'était (`racine`) ou s'il n'y en a plus, et le lieu de départ
+ * s'il l'était (`depart` : `lieuDeDepart` valait ce lieu avant le retrait, qu'il soit la racine ou un autre lieu).
+ */
+export function retablirLieu(u, lieu, { racine = false, depart = false } = {}) {
   u.lieux[lieu.id] = lieu;
   if (racine || !u.racine || !(u.racine in u.lieux)) u.racine = lieu.id;
+  if (depart) definirDepart(u, lieu.id);
   return lieu;
 }
 

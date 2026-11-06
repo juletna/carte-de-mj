@@ -86,6 +86,59 @@ const TESTS = [
     u.retablirLieu(univ, f, { racine: false });
     egal(univ.racine, monde.id, 'un lieu qui n’était pas le départ ne le devient pas');
   }],
+  ['le départ de la partie est distinct de la carte du monde ; sans `depart`, c’est la racine', () => {
+    const { univ, monde, foret, zone } = exemple();
+    egal([u.carteDuMonde(univ), u.lieuDeDepart(univ)], [monde.id, monde.id], 'vieux monde sans depart : la racine');
+    u.definirDepart(univ, foret.id);
+    egal([univ.racine, univ.depart, u.lieuDeDepart(univ), u.carteDuMonde(univ)], [monde.id, foret.id, foret.id, monde.id], 'départ ailleurs, la carte du monde ne bouge pas');
+    u.definirDepart(univ, monde.id);
+    verifier(!('depart' in univ), 'choisir la carte du monde retire le réglage');
+    univ.depart = 'l-disparu';
+    egal(u.lieuDeDepart(univ), monde.id, 'un départ qui désigne un lieu disparu vaut la racine');
+    let erreur = '';
+    try { u.definirDepart(univ, 'l-inconnu'); } catch (e) { erreur = e.message; }
+    egal(erreur, 'lieu inconnu', 'départ inconnu refusé');
+    egal(u.lieuDeDepart(u.creerUnivers()), null, 'monde sans lieu : pas de départ');
+    verifier(zone.id, 'zone');
+  }],
+  ['supprimer le lieu de départ le retire ; l’annuler le rétablit (racine ou autre lieu)', () => {
+    const { univ, monde, foret } = exemple();
+    u.definirDepart(univ, foret.id);
+    const f = u.supprimerLieu(univ, foret.id);
+    verifier(!('depart' in univ), 'le départ est retiré avec son lieu');
+    egal(u.lieuDeDepart(univ), monde.id, 'la partie recommence sur la carte du monde');
+    u.retablirLieu(univ, f, { depart: true });
+    egal([univ.racine, univ.depart], [monde.id, foret.id], 'rétabli comme départ, sans toucher la racine');
+    const g = u.supprimerLieu(univ, foret.id);
+    u.retablirLieu(univ, g, { depart: false });
+    verifier(!('depart' in univ), 'sans l’indication, il ne redevient pas le départ');
+    // La racine qui était aussi le départ (cas des vieux mondes).
+    const m = u.supprimerLieu(univ, monde.id);
+    verifier(univ.racine !== monde.id && u.lieuDeDepart(univ) === univ.racine, 'la racine suivante porte aussi le départ');
+    u.retablirLieu(univ, m, { racine: true, depart: true });
+    egal([univ.racine, u.lieuDeDepart(univ)], [monde.id, monde.id], 'rétablis tous deux');
+    verifier(!('depart' in univ), 'départ = carte du monde : rien d’écrit');
+    // La racine retirée alors que le départ est ailleurs : le départ ne bouge pas.
+    const { univ: v, monde: m2, foret: f2 } = exemple();
+    u.definirDepart(v, f2.id);
+    const retiree = u.supprimerLieu(v, m2.id);
+    egal(u.lieuDeDepart(v), f2.id, 'le départ reste');
+    u.retablirLieu(v, retiree, { racine: true, depart: false });
+    egal([v.racine, v.depart], [m2.id, f2.id], 'rétablie comme carte du monde, départ intact');
+  }],
+  ['renommer le monde renomme sa carte tant qu’elle porte son nom', () => {
+    const univ = u.creerUnivers({ nom: 'Archipel' });
+    u.renommerUnivers(univ, 'Sans carte');
+    egal(univ.nom, 'Sans carte', 'monde sans lieu');
+    const carte = u.ajouterLieu(univ, { nom: univ.nom, image: IMG() });
+    u.renommerUnivers(univ, 'Archipel des Clochers');
+    egal([univ.nom, carte.nom], ['Archipel des Clochers', 'Archipel des Clochers'], 'la carte suit');
+    u.renommerLieu(univ, carte.id, 'Carte générale');
+    u.renommerUnivers(univ, 'Clochers d’or');
+    egal([univ.nom, carte.nom], ['Clochers d’or', 'Carte générale'], 'un nom donné à part est respecté');
+    u.renommerUnivers(univ, '   ');
+    egal([univ.nom, carte.nom], ['Clochers d’or', 'Carte générale'], 'nom vide : rien ne change');
+  }],
   ['les destinations vers un donjon sont vérifiées dans les donjons du navigateur', () => {
     const { univ, monde } = exemple();
     const d = creerDonjon({ nom: 'Crypte' });
@@ -149,8 +202,25 @@ const TESTS = [
     egal(v.univers.lieux[foret.id].notes.length, 20000, 'notes coupées');
     egal(v.univers.racine, monde.id, 'racine remplacée par le premier lieu');
     const texte = v.avertissements.join(' | ');
-    for (const m of ['Sans image', 'sans position', 'pas un objet', 'destination du point', 'ramené', 'notes coupées', 'lieu de départ']) verifier(texte.includes(m), `avertissement « ${m} » absent : ${texte}`);
+    for (const m of ['Sans image', 'sans position', 'pas un objet', 'destination du point', 'ramené', 'notes coupées', 'carte du monde']) verifier(texte.includes(m), `avertissement « ${m} » absent : ${texte}`);
     egal(u.orphelins(v.univers).map((o) => o.point), ['p-c'], 'l’orphelin reste signalé');
+  }],
+  ['validation : `depart` facultatif, relu s’il désigne un lieu, ignoré en le disant sinon', () => {
+    const { univ, monde, foret } = exemple();
+    const copie = (m) => JSON.parse(JSON.stringify({ ...univ, ...m }));
+    const sans = validerUnivers(copie({}));
+    verifier(sans.ok && !('depart' in sans.univers), 'un vieux fichier sans depart se relit comme avant');
+    const bon = validerUnivers(copie({ depart: foret.id }));
+    verifier(bon.ok, 'départ valide, aucun avertissement');
+    egal([bon.univers.racine, bon.univers.depart], [monde.id, foret.id], 'départ gardé');
+    verifier(!('depart' in validerUnivers(copie({ depart: monde.id })).univers), 'départ = carte du monde : rien de gardé');
+    for (const mauvais of ['l-disparu', 42, {}]) {
+      const v = validerUnivers(copie({ depart: mauvais }));
+      verifier(!v.ok && !('depart' in v.univers) && v.avertissements.join().includes('lieu de départ'), `départ ${JSON.stringify(mauvais)} ignoré avec avertissement`);
+      egal(u.lieuDeDepart(v.univers), monde.id, 'la partie commence sur la carte du monde');
+    }
+    verifier(validerUnivers(copie({ depart: null })).ok, 'null : comme absent');
+    egal(lireUnivers(JSON.stringify(copie({ depart: foret.id }))).univers.depart, foret.id, 'lireUnivers');
   }],
   ['validation : identifiants de point en double, trop de lieux, ni HTML ni prototype interprétés', () => {
     const { univ, monde } = exemple();

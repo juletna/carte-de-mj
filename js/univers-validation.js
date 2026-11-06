@@ -81,9 +81,14 @@ export function validerUnivers(brut) {
     lieux[id] = lieu;
   }
   if (entrees.length && !Object.keys(lieux).length) return refus('aucun lieu exploitable dans ce fichier');
-  let racine = typeof brut.racine === 'string' && brut.racine in lieux ? brut.racine : (Object.keys(lieux)[0] ?? null);
-  if (brut.racine != null && racine !== brut.racine) avertissements.push('lieu de départ introuvable : le premier lieu le remplace');
+  const racine = typeof brut.racine === 'string' && brut.racine in lieux ? brut.racine : (Object.keys(lieux)[0] ?? null);
+  if (brut.racine != null && racine !== brut.racine) avertissements.push('carte du monde introuvable : le premier lieu la remplace');
   const univers = { format: FORMAT, version: VERSION, id: brut.id, nom: coupe(brut.nom, LIMITES.nom).trim() || 'Univers', racine, lieux };
+  // Le lieu de départ de la partie (facultatif) : écarté s'il ne désigne aucun lieu ; il vaut alors la carte du monde. Le départ sur la carte du monde n'est pas écrit.
+  if (brut.depart != null) {
+    if (typeof brut.depart === 'string' && brut.depart in lieux) { if (brut.depart !== racine) univers.depart = brut.depart; }
+    else avertissements.push('lieu de départ de la partie introuvable : la partie commence sur la carte du monde');
+  }
   return { ok: !avertissements.length, erreurs: [], avertissements, univers };
 }
 

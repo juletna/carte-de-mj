@@ -126,7 +126,7 @@ export function creerUniversUI(ctx) {
     saisie.cle = 'monde-nom';
     rendre();
     ctx.coquille?.naviguer({ page: 'monde', monde: u.id }); // l'arbre, l'adresse et l'inspecteur (le nom à saisir) suivent
-    dire('Monde créé. Nomme-le, puis ajoute sa première carte (le continent, la région…).');
+    dire('Monde créé. Nomme-le, puis choisis la carte du monde (l’archipel, le continent, la région…).');
     return u;
   }
   function renommerMonde(nomMonde) {
@@ -140,7 +140,7 @@ export function creerUniversUI(ctx) {
     delete reserve.univers[u.id];
     stockage.supprimerPartieUnivers(u.id);
     reserve.actif = Object.keys(reserve.univers)[0] ?? null;
-    allerA(univ()?.racine ?? null);
+    allerA(univ() ? modele.carteDuMonde(univ()) : null);
     sauver();
     rendre();
     dire(`« ${u.nom} » est supprimé (ses donjons, eux, sont intacts). Une copie reste dans le fichier exporté si tu l’avais exporté.`);
@@ -178,7 +178,7 @@ export function creerUniversUI(ctx) {
     if (u.id in reserve.univers) u.id = idUnique('u', Object.keys(reserve.univers)); // un monde déjà là n'est jamais écrasé
     reserve.univers[u.id] = u;
     reserve.actif = u.id;
-    allerA(u.racine);
+    allerA(modele.carteDuMonde(u));
     sauver();
     rendre();
     dire(`« ${u.nom} » importé${avertissements.length ? ` · ${avertissements.join(' · ')}` : ''}.`);
@@ -211,29 +211,31 @@ export function creerUniversUI(ctx) {
   }
   async function ajouterLieuLibre() {
     if (!univ()) { dire('Crée d’abord un monde : un lieu est une carte de ce monde.', { erreur: true }); return null; }
-    const l = await creerLieu();
+    const premier = !Object.keys(univ().lieux).length; // la première carte est celle du monde : elle prend son nom
+    const l = await creerLieu(premier ? univ().nom : '');
     if (!l) return null;
     entrerDansLieu(l.id); fil = [l.id];
     sauver(); rendre();
-    dire(`Lieu « ${l.nom} » ajouté. Choisis l’outil Point, puis clique sur la carte pour relier un point à un autre lieu ou à un donjon.`);
+    dire(`${premier ? 'Carte du monde choisie' : `Lieu « ${l.nom} » ajouté`}. Choisis l’outil Point, puis clique sur la carte pour relier un point à un autre lieu ou à un donjon.`);
     return l;
   }
   function renommerLieu(nomLieu) { modele.renommerLieu(univ(), lieuId, nomLieu); sauver(); rendre({ inspecteur: false }); }
   function notesDuLieu(texte) { modele.definirNotesLieu(univ(), lieuId, texte); sauver(); }
-  function lieuDeDepart() { modele.definirRacine(univ(), lieuId); sauver(); rendre(); }
+  /** Le lieu affiché devient le départ de la partie (la carte du monde l'est par défaut : la choisir retire le réglage). */
+  function definirDepart() { modele.definirDepart(univ(), lieuId); sauver(); rendre(); }
   function supprimerLeLieu() {
     const l = lieu();
     const entrees = modele.pointsVers(univ(), l.id).length;
-    const etaitDepart = univ().racine === l.id;
+    const etaitRacine = univ().racine === l.id, etaitDepart = modele.lieuDeDepart(univ()) === l.id;
     const retire = modele.supprimerLieu(univ(), l.id);
-    retraits = [{ univers: univ().id, lieu: retire, racine: etaitDepart }];
+    retraits = [{ univers: univ().id, lieu: retire, racine: etaitRacine, depart: etaitDepart }];
     fil = fil.filter((id) => id !== l.id);
-    allerA(fil.at(-1) ?? univ().racine, { nouveauFil: !fil.length });
+    allerA(fil.at(-1) ?? modele.carteDuMonde(univ()), { nouveauFil: !fil.length });
     sauver(); rendre();
     dire(`« ${l.nom} » est retiré${entrees ? ` ; ${pluriel(entrees, 'point y menait', 'points y menaient')} et reste${entrees > 1 ? 'nt' : ''} signalé${entrees > 1 ? 's' : ''} comme orphelin${entrees > 1 ? 's' : ''}` : ''}.`, {
       action: { libelle: 'Annuler', faire: () => {
         const r = retraits.pop();
-        if (r && reserve.univers[r.univers]) { modele.retablirLieu(reserve.univers[r.univers], r.lieu, { racine: r.racine }); allerA(r.lieu.id); sauver(); rendre(); dire('Lieu rétabli.'); }
+        if (r && reserve.univers[r.univers]) { modele.retablirLieu(reserve.univers[r.univers], r.lieu, { racine: r.racine, depart: r.depart }); allerA(r.lieu.id); sauver(); rendre(); dire('Lieu rétabli.'); }
       } },
     });
   }
@@ -345,7 +347,7 @@ export function creerUniversUI(ctx) {
     vide.hidden = !!lieu();
     if (lieu()) return;
     vide.replaceChildren(...(u
-      ? [h('p', { className: 'note', textContent: 'Aucun lieu : ajoute la première carte (le continent, la région, le village…).' }), btn('Ajouter un lieu', () => ajouterLieuLibre(), { icone: 'plus' })]
+      ? [h('p', { className: 'note', textContent: 'Ce monde n’a pas encore de carte : choisis celle du monde (l’archipel, le continent, la région…).' }), btn('Choisir la carte du monde', () => ajouterLieuLibre(), { icone: 'plus' })]
       : [h('p', { className: 'note', textContent: 'Un monde rassemble des cartes qui s’emboîtent : le continent mène à une région, puis à un village, puis à un donjon.' }), btn('Créer un monde', () => creerMondeNeuf(), { icone: 'plus', classe: 'btn-primaire' })]));
   }
 
@@ -386,7 +388,7 @@ export function creerUniversUI(ctx) {
   /** Redessine la scène puis prévient l'atelier. `inspecteur: false` : le champ qu'on vient de quitter ne doit pas faire perdre un clic en redessinant le panneau. */
   function rendre(options = {}) {
     const u = univ();
-    if (u && (!lieuId || !u.lieux[lieuId])) allerA(u.racine && u.lieux[u.racine] ? u.racine : Object.keys(u.lieux)[0] ?? null);
+    if (u && (!lieuId || !u.lieux[lieuId])) allerA(modele.carteDuMonde(u));
     if (pointId && !point()) selectionner(null);
     rendreFil();
     rendreVide();
@@ -397,10 +399,10 @@ export function creerUniversUI(ctx) {
   }
 
   // --- Ouverture : la scène du lieu remplace celle du Donjon (l'adresse et la barre sont à la coquille) ----------------------------------------------------
-  /** Affiche la scène « lieu » : sur le monde `id` (le monde actif par défaut), au lieu `lieu` (celui de départ par défaut). */
+  /** Affiche la scène « lieu » : sur le monde `id` (le monde actif par défaut), au lieu `lieu` (la carte du monde par défaut). */
   function ouvrirEcran({ id = null, lieu: voulu = null } = {}) {
     if (id && id in reserve.univers) reserve.actif = id;
-    allerA(voulu && univ()?.lieux[voulu] ? voulu : univ()?.racine ?? null);
+    allerA(voulu && univ()?.lieux[voulu] ? voulu : univ() ? modele.carteDuMonde(univ()) : null);
     ouvertEcran = true;
     scene.hidden = false;
     document.body.classList.add('univers-ouvert');
@@ -425,7 +427,7 @@ export function creerUniversUI(ctx) {
     const phrase = stockage.phraseMiseDeCote(charge.miseDeCote).replace('données', 'mondes');
     ctx.annoncerCarte?.(phrase, !charge.miseDeCote.ok, 15000);
   }
-  allerA(univ()?.racine ?? null);
+  allerA(univ() ? modele.carteDuMonde(univ()) : null);
   return {
     ouvrir: ouvrirEcran, fermer: fermerEcran, ouvert: () => ouvertEcran,
     // Pour la coquille de l'atelier (js/atelier/coquille.js) : les mondes, le lieu affiché, et un abonnement aux changements.
@@ -448,7 +450,7 @@ export function creerUniversUI(ctx) {
       if (ouvertEcran) rendreCarte();
     },
     creerMondeNeuf, renommerMonde, supprimerLeMonde, exporterMonde, importerMonde, importerMondeLu,
-    ajouterLieuLibre, renommerLieu, notesDuLieu, lieuDeDepart, supprimerLeLieu, changerImage,
+    ajouterLieuLibre, renommerLieu, notesDuLieu, definirDepart, supprimerLeLieu, changerImage,
     poserPoint, modifierPoint, changerDestination, destinationNouvelleCarte, supprimerPoint, entrerDansPoint,
     selectionnerPoint: (id) => { modeLocal = 'selection'; selectionner(id); rendre(); },
     rendreCarte, rendre,

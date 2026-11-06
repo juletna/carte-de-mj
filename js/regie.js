@@ -291,7 +291,7 @@ export function demarrerRegie() {
     if (noeud.type === 'salle' && etat.p && noeud.contexte.donjon === etat.p.donjon.id) { consulter(noeud.id); return; }
     if (noeud.type === 'lieu' && univers.versLeLieu(noeud.id)) return;
     if (noeud.type === 'donjon' && etat.p && noeud.id === etat.p.donjon.id) return;
-    if (noeud.type === 'monde') return;
+    if (noeud.type === 'monde' && (!noeud.racine || univers.versLeLieu(noeud.racine))) return; // le nœud monde est la carte du monde
     annoncer('Pour aller là, passe par la carte : l’arbre montre où en est la partie, il ne déplace pas la table.', 6000);
   }
 

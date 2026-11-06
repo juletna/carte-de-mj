@@ -38,10 +38,10 @@ const TESTS = [
     egal(a.mondes.length, 1, 'un monde');
     const m = a.mondes[0];
     egal([m.type, m.nom, m.cle, m.contexte], ['monde', 'Marches', `m:${e.univ.id}`, { monde: e.univ.id }], 'monde');
-    egal(noms(m), ['Continent', 'Lieu perdu'], 'racine puis lieu non relié');
-    const continent = m.enfants[0];
-    egal([continent.type, continent.depart], ['lieu', true], 'racine');
-    const foret = continent.enfants[0];
+    egal(noms(m), ['Forêt', 'Lieu perdu'], 'le monde porte la carte racine : ses enfants sont ceux du continent, puis le lieu non relié');
+    egal(m.racine, e.continent.id, 'le nœud monde dit quelle carte il porte');
+    egal([...parcourir(a)].some((n) => n.type === 'lieu' && n.id === e.continent.id), false, 'pas de nœud lieu pour la racine');
+    const foret = m.enfants[0];
     egal(foret.contexte, { monde: e.univ.id, lieu: e.foret.id }, 'contexte du lieu');
     egal(noms(foret), ['Clairière', 'Crypte'], 'lieux puis donjons');
     const crypte = foret.enfants[1];
@@ -50,6 +50,31 @@ const TESTS = [
     egal(noms(crypte), Object.values(e.crypte.salles).map((s) => s.nom), 'salles dans l’ordre du donjon');
     egal(crypte.enfants[0].contexte, { ...crypte.contexte, salle: Object.keys(e.crypte.salles)[0] }, 'contexte de salle');
     egal(crypte.enfants.every((s) => s.type === 'salle' && s.enfants.length === 0), true, 'les salles sont des feuilles');
+  }],
+  ['départ de la partie ailleurs que sur la carte du monde : le badge est sur ce lieu, jamais sur le nœud monde', () => {
+    const e = exemple();
+    const a0 = arbreAtelier({ univers: e.univ, donjons: e.donjons });
+    egal([...parcourir(a0)].filter((n) => n.depart).length, 0, 'vieux monde sans depart : aucun badge (le départ est la carte du monde)');
+    u.definirDepart(e.univ, e.clairiere.id);
+    const a = arbreAtelier({ univers: e.univ, donjons: e.donjons, actif: { monde: e.univ.id, lieu: e.clairiere.id } });
+    egal([...parcourir(a)].filter((n) => n.depart).map((n) => n.nom), ['Clairière'], 'badge sur la clairière seule');
+    egal(a.mondes[0].racine, e.continent.id, 'la carte du monde ne bouge pas');
+    egal(a.actif.cle, `l:${e.univ.id}:${e.clairiere.id}`, 'le lieu de départ reste choisissable');
+    u.definirDepart(e.univ, e.perdu.id);
+    egal([...parcourir(arbreAtelier({ univers: e.univ, donjons: e.donjons }))].filter((n) => n.depart).map((n) => n.nom), ['Lieu perdu'], 'un départ non relié porte aussi le badge');
+  }],
+  ['monde sans carte : un nœud sans `racine` ; la carte posée, le nœud la porte', () => {
+    const univ = u.creerUnivers({ nom: 'Archipel' });
+    const sans = arbreAtelier({ univers: univ }).mondes[0];
+    egal([sans.racine, sans.enfants], [undefined, []], 'monde vide');
+    egal(arbreAtelier({ univers: univ, actif: { monde: univ.id } }).actif.cle, `m:${univ.id}`, 'choisissable');
+    const carte = u.ajouterLieu(univ, { nom: univ.nom, image: IMG() });
+    const port = u.ajouterLieu(univ, { nom: 'Port-Bourdon', image: IMG('p') });
+    u.ajouterPoint(univ, carte.id, { vers: { lieu: port.id } });
+    u.definirDepart(univ, port.id);
+    const a = arbreAtelier({ univers: univ, actif: { monde: univ.id, lieu: carte.id } });
+    egal([a.mondes[0].racine, noms(a.mondes[0]), a.actif], [carte.id, ['Port-Bourdon'], { cle: `m:${univ.id}`, chemin: [] }], 'un seul niveau pour l’archipel et sa carte');
+    egal(a.mondes[0].enfants[0].depart, true, 'badge sur le port');
   }],
   ['donjon relié par deux lieux : une seule fois, l’autre lieu cité', () => {
     const e = exemple();
@@ -89,9 +114,9 @@ const TESTS = [
     const a = arbreAtelier({ univers: e.univ, donjons: e.donjons });
     const f = filtrerAtelier(a, 'ossuaire');
     egal(f.mondes.length, 1, 'le monde reste');
-    const crypte = f.mondes[0].enfants[0].enfants[0].enfants[0];
+    const crypte = f.mondes[0].enfants[0].enfants[0];
     egal([crypte.nom, noms(crypte)], ['Crypte', ['Ossuaire']], 'salle trouvée sous ses ancêtres');
-    egal(noms(filtrerAtelier(a, 'CLAIRIERE').mondes[0].enfants[0].enfants[0]), ['Clairière'], 'lieu, sans accents ni casse');
+    egal(noms(filtrerAtelier(a, 'CLAIRIERE').mondes[0].enfants[0]), ['Clairière'], 'lieu, sans accents ni casse');
     egal(filtrerAtelier(a, 'cave').horsMonde.enfants.map((n) => n.nom), ['Cave libre'], 'donjon hors monde');
     egal(filtrerAtelier(a, 'marches').mondes.map((n) => n.nom), ['Marches'], 'monde');
     const rien = filtrerAtelier(a, 'zzz');
@@ -104,11 +129,13 @@ const TESTS = [
     const ctx = { monde: e.univ.id, lieu: e.foret.id, donjon: e.crypte.id, salle: s1 };
     const a = arbreAtelier({ univers: e.univ, donjons: e.donjons, actif: ctx });
     egal(a.actif.cle, `s:${e.foret.id}:${e.crypte.id}:${s1}`, 'salle');
-    egal(a.actif.chemin, [`m:${e.univ.id}`, `l:${e.univ.id}:${e.continent.id}`, `l:${e.univ.id}:${e.foret.id}`, `d:${e.foret.id}:${e.crypte.id}`], 'ancêtres');
+    egal(a.actif.chemin, [`m:${e.univ.id}`, `l:${e.univ.id}:${e.foret.id}`, `d:${e.foret.id}:${e.crypte.id}`], 'ancêtres');
     egal(trouverActif(a, { ...ctx, salle: 'fantome' }).cle, `d:${e.foret.id}:${e.crypte.id}`, 'salle disparue : le donjon');
     egal(trouverActif(a, { donjon: 'fantome', lieu: e.foret.id, monde: e.univ.id }).cle, `l:${e.univ.id}:${e.foret.id}`, 'donjon disparu : le lieu');
     egal(trouverActif(a, { donjon: e.crypte.id }).cle, `d:${e.foret.id}:${e.crypte.id}`, 'donjon relié, sans lieu cité');
     egal(trouverActif(a, { donjon: e.libre.id }).chemin, ['hors-monde'], 'hors monde');
+    egal(trouverActif(a, { monde: e.univ.id, lieu: e.continent.id }), { cle: `m:${e.univ.id}`, chemin: [] }, 'la carte du monde est le nœud monde');
+    egal(trouverActif(a, { lieu: e.continent.id }).cle, `m:${e.univ.id}`, 'même sans monde cité');
     egal(trouverActif(a, { monde: 'x' }), { cle: null, chemin: [] }, 'monde inconnu');
     egal(noeudParCle(a, 'hors-monde').nom, 'Donjons hors monde', 'noeudParCle');
     egal(noeudParCle(a, 'nope'), null, 'clé inconnue');
@@ -123,10 +150,17 @@ const TESTS = [
     };
     const etat = (cle) => etatJeu(noeudParCle(a, cle), partie);
     egal(etat(`l:${e.univ.id}:${e.foret.id}`), 'table', 'lieu courant');
-    egal(etat(`l:${e.univ.id}:${e.continent.id}`), 'decouvert', 'lieu découvert');
+    egal(etat(`m:${e.univ.id}`), 'decouvert', 'le monde est sa carte : déjà montrée');
+    egal(etat(`l:${e.univ.id}:${e.perdu.id}`), 'cache', 'lieu jamais montré');
     egal(etat(`l:${e.univ.id}:${e.clairiere.id}`), 'cache', 'lieu caché');
     egal(etat(`d:${e.foret.id}:${e.crypte.id}`), 'decouvert', 'donjon commencé');
     egal(etat(`d:${e.libre.id}`), 'cache', 'donjon jamais joué');
+    partie.univers.decouverts = [e.foret.id];
+    egal(etat(`m:${e.univ.id}`), 'cache', 'carte du monde pas encore montrée (la partie commence ailleurs)');
+    partie.univers.decouverts = [e.continent.id, e.foret.id];
+    partie.univers.lieuCourant = e.continent.id;
+    egal(etat(`m:${e.univ.id}`), 'table', 'la table est sur la carte du monde');
+    partie.univers.lieuCourant = e.foret.id;
     partie.univers.dans = { donjon: e.crypte.id };
     egal(etat(`d:${e.foret.id}:${e.crypte.id}`), 'table', 'donjon où est la table');
     egal(etat(`s:${e.foret.id}:${e.crypte.id}:${sa}`), 'table', 'salle courante');

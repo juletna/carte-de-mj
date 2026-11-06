@@ -4,9 +4,12 @@
  * sous chaque donjon ses salles, dans l'ordre du donjon.
  *
  * Nœud : { cle, type: 'monde'|'lieu'|'donjon'|'salle'|'groupe', id, nom, enfants, contexte, ... }
+ *   - le nœud monde PORTE la carte du monde (le lieu racine) : il n'y a pas de nœud lieu pour la racine, ses enfants (lieux et donjons
+ *     qu'elle relie) sont ceux du monde, suivis des lieux non reliés ; le nœud monde porte `racine` (l'identifiant de ce lieu, absent d'un monde
+ *     sans carte) et choisir le monde ouvre cette carte. Une position { monde, lieu: racine } désigne donc le nœud monde ;
  *   - `cle` est stable (monde `m:<id>`, lieu `l:<monde>:<id>`, donjon `d:<lieu>:<id>` ou `d:<id>` hors monde, salle `s:<donjon>:<id>`,
  *     groupe `hors-monde`) ; `contexte` = le chemin { monde?, lieu?, donjon?, salle? } qui retrouve l'objet ;
- *   - un lieu porte `depart`, `aussiDepuis`, `nonRelie` ; un donjon porte `aussiDepuis` (les autres lieux d'où l'on y va) et `salleVisee`
+ *   - un lieu porte `depart` (la partie y commence ; jamais sur la carte du monde, c'est le cas par défaut), `aussiDepuis`, `nonRelie` ; un donjon porte `aussiDepuis` (les autres lieux d'où l'on y va) et `salleVisee`
  *     (la salle d'arrivée du point, s'il en a une).
  * Un donjon n'apparaît qu'une fois dans tout l'arbre : sous le premier lieu qui y mène (dans l'ordre des mondes), les autres lieux
  * sont cités dans `aussiDepuis`. Un donjon qu'aucun point ne mène à lui va dans `horsMonde`.
@@ -43,6 +46,7 @@ export function arbreAtelier({ univers, donjons = {}, actif = {} } = {}) {
     const { racine, nonRelies } = arbreLieux(u, donjons);
     const contexteMonde = { monde: u.id };
     const lieux = [racine, ...nonRelies].filter(Boolean);
+    if (racine) racine.depart = false; // la carte du monde est le nœud monde : le badge « départ » ne marque qu'un autre lieu
     // Clés et contextes d'abord, puis les donjons par lieu en largeur : le donjon reste sous le lieu le plus proche de la racine.
     const habiller = (n) => { n.cle = `l:${u.id}:${n.id}`; n.contexte = { ...contexteMonde, lieu: n.id }; n.enfants.filter((e) => e.type === 'lieu').forEach(habiller); };
     lieux.forEach(habiller);
@@ -61,7 +65,8 @@ export function arbreAtelier({ univers, donjons = {}, actif = {} } = {}) {
       }).filter(Boolean);
     }
     for (const l of nonRelies) l.nonRelie = true;
-    return { cle: `m:${u.id}`, type: 'monde', id: u.id, nom: u.nom ?? u.id, enfants: lieux, contexte: contexteMonde };
+    const enfants = [...(racine?.enfants ?? []), ...nonRelies];
+    return { cle: `m:${u.id}`, type: 'monde', id: u.id, nom: u.nom ?? u.id, ...(racine ? { racine: racine.id } : {}), enfants, contexte: contexteMonde };
   });
   const horsMonde = {
     cle: 'hors-monde', type: 'groupe', id: 'hors-monde', nom: 'Donjons hors monde', contexte: {},
@@ -105,7 +110,10 @@ export function trouverActif(arbre, ctx = {}) {
       trouve = s ? { n: s, chemin: [...d.chemin, d.n.cle] } : d;
     }
   }
-  if (!trouve && ctx.lieu) trouve = cherche((n) => n.type === 'lieu' && n.id === ctx.lieu && (!ctx.monde || n.contexte.monde === ctx.monde));
+  if (!trouve && ctx.lieu) {
+    trouve = cherche((n) => n.type === 'lieu' && n.id === ctx.lieu && (!ctx.monde || n.contexte.monde === ctx.monde))
+      || cherche((n) => n.type === 'monde' && n.racine === ctx.lieu && (!ctx.monde || n.id === ctx.monde)); // la carte du monde, c'est le nœud monde
+  }
   if (!trouve && ctx.monde) trouve = cherche((n) => n.type === 'monde' && n.id === ctx.monde);
   return trouve ? { cle: trouve.n.cle, chemin: trouve.chemin } : { cle: null, chemin: [] };
 }
@@ -130,7 +138,10 @@ export function etatJeu(noeud, partie = {}) {
   const pu = partie.univers ?? null;
   const pres = partie.presentations ?? {};
   switch (noeud.type) {
-    case 'monde': return pu && pu.univers === noeud.id ? 'decouvert' : 'cache';
+    case 'monde': // le nœud monde est aussi la carte du monde
+      if (!pu || pu.univers !== noeud.id) return 'cache';
+      if (noeud.racine && pu.lieuCourant === noeud.racine && !pu.dans) return 'table';
+      return !noeud.racine || pu.decouverts?.includes(noeud.racine) ? 'decouvert' : 'cache';
     case 'lieu':
       if (!pu || pu.univers !== noeud.contexte.monde) return 'cache';
       if (pu.lieuCourant === noeud.id && !pu.dans) return 'table';

@@ -49,7 +49,7 @@ const nettoyer = (t) => String(t ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '')
 
 /**
  * L'arbre des lieux d'un monde, construit depuis ses points. Un lieu est l'enfant de la carte d'où part un point qui y mène ;
- * les donjons sont des feuilles (un par donjon et par lieu qui y mène). La racine est le lieu de départ. Un lieu atteint par plusieurs
+ * les donjons sont des feuilles (un par donjon et par lieu qui y mène). La racine est la carte du monde (le haut de l'arbre) ; `depart` marque le lieu où la partie commence (la racine, sauf si le monde en désigne un autre). Un lieu atteint par plusieurs
  * points n'apparaît qu'une fois, sous le premier parent trouvé en largeur depuis la racine, avec `aussiDepuis` (les autres lieux d'où
  * l'on y va, sans compter ses ancêtres : un point de retour n'est pas une seconde entrée) ; il n'y a donc jamais de boucle.
  * Les lieux qu'aucun chemin depuis la racine n'atteint sont rendus à part, dans `nonRelies` (à plat, avec leurs donjons).
@@ -61,6 +61,7 @@ export function arbreLieux(univers, donjons = {}) {
   const lieux = univers?.lieux ?? {};
   const ids = Object.keys(lieux);
   const racineId = univers?.racine in lieux ? univers.racine : ids[0];
+  const departId = typeof univers?.depart === 'string' && univers.depart in lieux ? univers.depart : racineId;
   const noeuds = new Map();
   const feuillesDonjon = (id, chemin) => {
     const vus = new Set();
@@ -75,7 +76,7 @@ export function arbreLieux(univers, donjons = {}) {
     return feuilles;
   };
   const creer = (id, chemin) => {
-    const n = { cle: `l:${id}`, type: 'lieu', id, nom: lieux[id].nom, depart: id === racineId, aussiDepuis: [], chemin, enfants: [] };
+    const n = { cle: `l:${id}`, type: 'lieu', id, nom: lieux[id].nom, depart: id === departId, aussiDepuis: [], chemin, enfants: [] };
     noeuds.set(id, n);
     return n;
   };
@@ -109,7 +110,6 @@ export function arbreLieux(univers, donjons = {}) {
   }
   const nonRelies = ids.filter((id) => !noeuds.has(id)).map((id) => {
     const n = creer(id, []);
-    n.depart = false;
     n.enfants.push(...feuillesDonjon(id, [n.cle]));
     return n;
   });

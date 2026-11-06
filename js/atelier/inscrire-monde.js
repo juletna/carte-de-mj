@@ -4,7 +4,7 @@
  * Le Monde n'est plus un écran par-dessus la page : c'est une scène de l'atelier.
  *   - inspecteurs monde, lieu et point (js/atelier/inspecteurs-monde.js) ;
  *   - barre d'outils Sélection · Point · Calage (js/atelier/barre-lieu.js) ;
- *   - arbre : vignettes des lieux, « Ajouter un lieu » en fin de branche de chaque monde, « Monde » dans son menu « + Nouveau » ;
+ *   - arbre : vignettes des lieux (le monde porte celle de sa carte), « Ajouter un lieu » en fin de branche de chaque monde, « Monde » dans son menu « + Nouveau » ;
  *   - « Jouer ce monde » (le seul bouton doré de l'écran) au bout de la ligne d'outils, à la place de « Jouer » du donjon ; pas d'en-tête « Monde · nom » ;
  *   - le point choisi est la sélection commune (type 'point') ; sur téléphone, l'inspecteur se déplie quand on choisit un point.
  */
@@ -12,6 +12,7 @@ import { $, h } from '../dom.js';
 import { icone } from '../icones.js';
 import { lienBtn } from '../univers-boutons.js';
 import { lienJouer } from '../univers-vue.js';
+import { carteDuMonde } from '../univers.js';
 import { selection } from '../atelier-selection.js';
 import { telephone } from '../telephone.js';
 import { enregistrerInspecteursMonde, vignetteLieu } from './inspecteurs-monde.js';
@@ -27,9 +28,14 @@ export function inscrireMonde(coquille, ctx) {
 
   // --- Le point choisi est la sélection commune ----------------------------------------------------------------------
   const contexte = () => ({ monde: U.donnees().actif, lieu: U.lieu() });
+  /** La sélection du lieu affiché : le monde si c'est sa carte (le nœud monde la porte), sinon le lieu. */
+  const selectionDuLieu = () => {
+    const monde = U.donnees().actif;
+    return U.lieu() === carteDuMonde(U.monde()) ? selection('monde', monde, { monde }) : selection('lieu', U.lieu(), contexte());
+  };
   U.surPoint((id) => {
     if (id) coquille.selectionner(selection('point', id, contexte()));
-    else if (coquille.selection()?.type === 'point' && U.lieu()) coquille.selectionner(selection('lieu', U.lieu(), contexte()));
+    else if (coquille.selection()?.type === 'point' && U.lieu()) coquille.selectionner(selectionDuLieu());
   });
   /** Sous 760 px, choisir un point sur la carte déplie le panneau bas (replié, il ne montrerait que son titre). */
   const bascule = (plie) => {
@@ -41,8 +47,8 @@ export function inscrireMonde(coquille, ctx) {
   coquille.surSelection((sel) => {
     U.synchroniser(sel);
     if (!telephone()) return; // (un monde, un lieu ou un point ne se choisissent que dans le Monde : il est ouvert ou sur le point de l'être)
-    if (sel?.type === 'point' || sel?.type === 'monde') deplier();
-    else if (sel?.type === 'lieu' && !U.calage.actif()) bascule(true);
+    if (sel?.type === 'point' || (sel?.type === 'monde' && !carteDuMonde(U.monde()))) deplier(); // un monde sans carte propose d'en choisir une
+    else if ((sel?.type === 'lieu' || sel?.type === 'monde') && !U.calage.actif()) bascule(true);
   });
   U.surChangement((options = {}) => {
     if (U.ouvert()) coquille.rafraichir({ inspecteur: options.inspecteur !== false });
@@ -50,14 +56,16 @@ export function inscrireMonde(coquille, ctx) {
   });
 
   // --- Arbre : vignettes et « ⋯ » -------------------------------------------------------------------------------------
-  coquille.arbre.vue.definirVignette((n) => (n.type === 'lieu' ? vignetteLieu(U.donnees().univers[n.contexte?.monde]?.lieux[n.id]?.image, '') : null));
+  // (Le nœud monde porte la carte du monde : sa vignette est celle de cette carte.)
+  coquille.arbre.vue.definirVignette((n) => (n.type === 'lieu' || n.racine ? vignetteLieu(U.donnees().univers[n.contexte?.monde]?.lieux[n.racine ?? n.id]?.image, '') : null));
   coquille.arbre.vue.maj({ arbre: coquille.donneesArbre() });
 
   // (Importer un monde : l'entrée commune « Importer un fichier… », js/atelier/importer.js.)
   coquille.arbre.ajouterAction({ groupe: 'creer', ordre: 1, libelle: 'Monde', icone: 'monde', aide: 'Nouveau monde', executer: () => { U.creerMondeNeuf(); } });
   // Un lieu appartient à un monde : on l'ajoute sous ce monde, par la dernière ligne de sa branche (choisit une carte dans la bibliothèque).
+  // Un monde sans carte commence par celle-ci : la carte du monde, qui prend son nom.
   coquille.arbre.vue.definirAjout((n) => (n.type !== 'monde' ? null : {
-    libelle: 'Ajouter un lieu',
+    libelle: n.racine ? 'Ajouter un lieu' : 'Choisir la carte du monde',
     executer: async () => {
       if (!U.ouvert() || U.donnees().actif !== n.id) coquille.naviguer({ page: 'monde', monde: n.id });
       if (telephone()) coquille.fermerTiroir({ rendreFocus: false });

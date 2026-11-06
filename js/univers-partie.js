@@ -9,14 +9,14 @@
  * La partie ne copie rien de l'univers : un lieu ou un point disparu est repéré par `reconcilier`, jamais corrigé en silence.
  */
 import { estObjet } from './format.js';
-import { destinationValide, copieDestination } from './univers.js';
+import { destinationValide, copieDestination, lieuDeDepart } from './univers.js';
 
 const RE_ID = /^[A-Za-z0-9_-]{1,64}$/;
 const MAX_CHEMIN = 200;
 
 export function creerPartieUnivers(univers) {
-  const racine = univers.racine && univers.racine in univers.lieux ? univers.racine : Object.keys(univers.lieux)[0] ?? null;
-  return { univers: univers.id, lieuCourant: racine, chemin: [], decouverts: racine ? [racine] : [], reveles: {} };
+  const depart = lieuDeDepart(univers);
+  return { univers: univers.id, lieuCourant: depart, chemin: [], decouverts: depart ? [depart] : [], reveles: {} };
 }
 
 const ajouteUnique = (liste, id) => { if (!liste.includes(id)) liste.push(id); };
@@ -63,7 +63,7 @@ export function franchir(partie, univers, idPoint, donjons = {}) {
   return { donjon: d.id, ...(salle ? { salle } : {}) };
 }
 
-/** Remonte d'un cran : sort du donjon si la table y est, sinon revient au lieu d'où l'on vient. Faux si on est déjà à la racine. */
+/** Remonte d'un cran : sort du donjon si la table y est, sinon revient au lieu d'où l'on vient. Faux si on est déjà au lieu de départ (le chemin est vide). */
 export function remonter(partie) {
   if (partie.dans) { delete partie.dans; return true; }
   if (!partie.chemin.length) return false;
@@ -92,7 +92,7 @@ export function allerAuLieu(partie, univers, idLieu) {
   return true;
 }
 
-/** Le fil d'Ariane : [{ id, nom }] de la racine au lieu courant (un lieu disparu garde son identifiant comme nom). */
+/** Le fil d'Ariane : [{ id, nom }] du lieu de départ au lieu courant (un lieu disparu garde son identifiant comme nom). */
 export const filDAriane = (partie, univers) => [...partie.chemin, partie.lieuCourant].map((id) => ({ id, nom: univers.lieux[id]?.nom ?? '(lieu disparu)' }));
 
 /** Les points du lieu courant que la table voit, dans l'ordre du lieu : [{ id, x, y, nom? }]. Sans nom si le MJ a masqué les noms. */
@@ -121,9 +121,8 @@ export function reconcilier(partie, univers, donjons = {}) {
   const notes = [];
   const existe = (id) => id in univers.lieux;
   if (!existe(partie.lieuCourant)) {
-    const racine = univers.racine && existe(univers.racine) ? univers.racine : Object.keys(univers.lieux)[0] ?? null;
     notes.push('Le lieu où se trouvait la table n’existe plus : retour au lieu de départ.');
-    partie.lieuCourant = racine;
+    partie.lieuCourant = lieuDeDepart(univers);
     partie.chemin = [];
     delete partie.dans;
   }

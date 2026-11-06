@@ -146,7 +146,7 @@ par leur identifiant : un univers ne copie pas ses donjons.
 ```json
 {
   "format": "carte-de-mj-univers", "version": 1,
-  "id": "u-a1b2c3", "nom": "Les Marches du Nord", "racine": "l-monde1",
+  "id": "u-a1b2c3", "nom": "Les Marches du Nord", "racine": "l-monde1", "depart": "l-foret1",
   "lieux": {
     "l-monde1": {
       "id": "l-monde1", "nom": "Le continent", "type": "carte",
@@ -161,6 +161,11 @@ par leur identifiant : un univers ne copie pas ses donjons.
 }
 ```
 
+- `racine` est **la carte du monde** : le haut de l'arbre (le premier lieu ajouté). Dans l'atelier, le monde et sa carte tiennent sur une seule
+  ligne de l'arbre ; un monde sans lieu n'a pas encore de carte. `depart` (facultatif) est le **lieu où la partie commence** : sans lui, ou s'il
+  désigne un lieu disparu, le départ est la racine (`lieuDeDepart(u)` dans `js/univers.js` ; les mondes d'avant ce champ se comportent donc comme
+  avant). Supprimer le lieu de départ retire `depart` ; l'annuler le rétablit. La validation ignore un `depart` sans lieu, avec un avertissement.
+  Renommer le monde renomme aussi sa carte tant qu'elle porte le même nom que lui.
 - Un **lieu** est une carte image (`type: "carte"`). Un donjon n'est pas un lieu recopié : un point mène à un donjon par `vers.donjon`
   (et une salle d'arrivée facultative).
 - `x`, `y` d'un point : **fractions de 0 à 1** de la largeur et de la hauteur de l'image, indépendantes de sa résolution.
