@@ -54,6 +54,7 @@ export function creerSalleForme(ctx) {
     for (const [champ, id] of Object.entries(SELECTEURS_AMBIANCE)) $(id).value = plan[champ] ?? CHAMPS_AMBIANCE[champ][0];
     $('salle-largeur').value = String(plan.largeur);
     $('salle-longueur').value = String(plan.longueur);
+    for (const id of ['salle-sol', ...Object.values(SELECTEURS_AMBIANCE)]) $(id).dispatchEvent(new Event('synchro')); // les rangées de l'inspecteur (js/atelier/champ-choix.js) relisent
     const forme = plan.forme || 'rectangle';
     for (const b of $('formes').children) b.setAttribute('aria-pressed', String(b.dataset.forme === forme));
     const max = brasMax(plan);

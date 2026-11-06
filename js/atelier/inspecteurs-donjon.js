@@ -21,6 +21,7 @@ import { pluriel } from '../format.js';
 import { resumeTaille, tailleEnMetres } from './dimensions.js';
 import { creerSection } from './section.js';
 import { creerListe } from './liste.js';
+import { creerChampChoix } from './champ-choix.js';
 import { libelleSelection } from '../coordonnees.js';
 import { descripteur } from '../donjon.js';
 import { telephone } from '../telephone.js';
@@ -57,6 +58,12 @@ export function enregistrerInspecteursDonjon(coquille, ctx) {
     }
     return creerSection({ cle: `donjon:${cle}`, titre, enfants: blocsSection, ...options }).element;
   };
+
+  // Apparence de la salle : quatre rangées à popover (sol, ambiance, état, éclairage) devant les <select> d'origine, qui restent la source.
+  const COULEURS_SOL = { pierre: '#55555c', bois: '#7a5a36', terre: '#6b4e35', sable: '#cdb98a', herbe: '#4f7a3f', marbre: '#d8d6d2', glace: '#a8d4e6' };
+  const blocApparence = $('bloc-apparence');
+  blocApparence.append(...[['salle-sol', 'sol', 'Sol', COULEURS_SOL], ['salle-ambiance', 'ambiance', 'Ambiance'], ['salle-etat', 'état', 'État'], ['salle-eclairage', 'éclairage', 'Éclairage']]
+    .map(([id, detail, titre, couleurs]) => creerChampChoix({ select: $(id), detail, titre, couleurs }).element));
 
   const donjonDe = (sel) => etat.donjons[sel.contexte?.donjon ?? sel.id] ?? ctx.donjon();
   /** Le nom de l'en-tête écrit dans le champ historique (dont les écouteurs enregistrent, nettoient et sauvegardent). */

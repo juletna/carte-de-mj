@@ -19,6 +19,8 @@ import { variantesDe, varianteDe, varianteParDefaut, nomVariante } from '../cata
 import { selection as creerSelection, selectionElement, meme, TYPES_ELEMENT } from '../atelier-selection.js';
 import { creerSection } from '../atelier/section.js';
 import { creerVignette } from '../vignettes.js';
+import { icone } from '../icones.js';
+import { nomAffiche } from '../parseur/lexique.js';
 
 export function creerBulle(ctx) {
   const { etat } = ctx;
@@ -109,11 +111,7 @@ export function creerBulle(ctx) {
         }
       }
     }
-    // Cacher : sur toute la sélection ; supprimer : un seul clic (« Annuler » rattrape une erreur), sauf une porte reliée qui demande confirmation.
-    actions.push({
-      libelle: el.cache === true ? 'Rendre visible' : 'Marquer comme caché', icone: 'oeil',
-      executer: () => { const nouveau = modele.basculerCache(s.plan, etat.selection); if (nouveau) ctx.modifierPlan(nouveau, { garderSelection: true }); },
-    });
+    // Cacher : une rangée « Visibilité » du corps (interrupteur) ; supprimer : un seul clic (« Annuler » rattrape une erreur), sauf une porte reliée qui demande confirmation.
     destructives.push(lien
       ? { libelle: 'Supprimer', confirmation: 'Retirer la liaison et supprimer ?', titre: `Supprime ${escalier ? 'cet escalier' : 'cette porte'} et retire sa liaison (annulable)`, executer: supprimerSelection }
       : { libelle: 'Supprimer', titre: 'Supprime cet élément (annulable)', executer: supprimerSelection });
@@ -179,23 +177,45 @@ export function creerBulle(ctx) {
     // Une variante (torche éteinte, flamme bleue…) : une liste de l'aspect de l'objet, annulable comme tout changement du plan.
     const variantes = trouve.genre === 'objet' ? variantesDe(el.type) : [];
     if (variantes.length > 1) {
-      // Des vignettes (les mêmes dessins que la carte et le catalogue) plutôt qu'une liste : on voit à quoi ressemble chaque aspect.
+      // Une rangée (aperçu · aspect actuel) ; un clic ouvre les vignettes (les mêmes dessins que la carte et le catalogue) en popover ancré dessous.
       const courant = varianteDe(el);
       const maj = (id) => modifierObjet(el, (o) => {
         const { variante: _, ...sans } = o;
         return id === varianteParDefaut(o.type) ? sans : { ...sans, variante: id };
       });
-      const grille = h('div', { className: 'aspect-grille', role: 'group', 'aria-label': 'Aspect de l’objet' },
-        ...variantes.map((v) => {
+      const vignette = (id) => creerVignette({ genre: 'objet', type: el.type, ...(id === varianteParDefaut(el.type) ? {} : { variante: id }) });
+      const majuscule = (t) => t.charAt(0).toUpperCase() + t.slice(1);
+      const popover = h('div', { className: 'popover-aspect', role: 'group', 'aria-label': 'Aspect de l’objet', hidden: true },
+        h('p', { className: 'popover-titre', textContent: `Aspect · ${nomAffiche(el.type)}` }),
+        h('div', { className: 'aspect-grille' }, ...variantes.map((v) => {
           const nom = nomVariante(el.type, v.id);
           const b = h('button', { type: 'button', className: 'palette-item palette-aspect', title: nom, 'aria-label': nom, 'aria-pressed': String(v.id === courant), 'data-variante': v.id },
-            h('span', { className: 'palette-vignette' }, creerVignette({ genre: 'objet', type: el.type, ...(v.id === varianteParDefaut(el.type) ? {} : { variante: v.id }) })),
-            h('span', { className: 'palette-nom', textContent: nom.charAt(0).toUpperCase() + nom.slice(1) }));
-          b.addEventListener('click', () => { if (v.id !== courant) maj(v.id); });
+            h('span', { className: 'palette-vignette' }, vignette(v.id)), h('span', { className: 'palette-nom', textContent: majuscule(nom) }));
+          b.addEventListener('click', () => { if (v.id !== courant) maj(v.id); else popover.hidden = true; });
           return b;
-        }));
-      contenu.push(creerSection({ cle: 'element:aspect', titre: 'Aspect', enfants: [grille] }).element);
+        })));
+      const rangee = h('button', { type: 'button', className: 'rang-champ', 'aria-haspopup': 'true', 'aria-expanded': 'false', title: 'Choisir l’aspect' },
+        h('span', { className: 'rang-aperce' }, vignette(courant)),
+        h('span', { className: 'rang-texte' }, h('span', { className: 'rang-valeur', textContent: majuscule(nomVariante(el.type, courant)) }), h('span', { className: 'rang-etiquette', textContent: ' · aspect' })),
+        h('span', { className: 'rang-fin', 'aria-hidden': 'true', textContent: '▾' }));
+      const basculer = (ouvert) => { popover.hidden = !ouvert; rangee.setAttribute('aria-expanded', String(ouvert)); };
+      rangee.addEventListener('click', () => basculer(popover.hidden));
+      const hote = h('div', { className: 'rang-hote' }, rangee, popover);
+      // Un clic ailleurs, ou Échap, referme le popover (l'écouteur disparaît avec l'inspecteur redessiné).
+      const dehors = (e) => { if (!hote.isConnected) { document.removeEventListener('pointerdown', dehors, true); return; } if (!popover.hidden && !hote.contains(e.target)) basculer(false); };
+      document.addEventListener('pointerdown', dehors, true);
+      hote.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !popover.hidden) { e.preventDefault(); e.stopPropagation(); basculer(false); rangee.focus(); } });
+      contenu.push(creerSection({ cle: 'element:aspect', titre: 'Aspect', enfants: [hote] }).element);
     }
+
+    // Visibilité : visible aux joueurs ou caché (annulable comme tout changement du plan).
+    const visible = el.cache !== true;
+    const interrupteur = h('button', { type: 'button', className: 'rang-champ rang-interrupteur', role: 'switch', 'aria-checked': String(visible), title: visible ? 'Cacher aux joueurs' : 'Rendre visible aux joueurs' },
+      h('span', { className: 'rang-aperce rang-icone' }, icone('oeil')),
+      h('span', { className: 'rang-texte' }, h('span', { className: 'rang-valeur', textContent: visible ? 'Visible aux joueurs' : 'Caché aux joueurs' })),
+      h('span', { className: 'interrupteur', 'aria-hidden': 'true' }));
+    interrupteur.addEventListener('click', () => { const nouveau = modele.basculerCache(s.plan, etat.selection); if (nouveau) ctx.modifierPlan(nouveau, { garderSelection: true }); });
+    contenu.push(creerSection({ cle: 'element:visibilite', titre: 'Visibilité', enfants: [interrupteur] }).element);
 
     if (etat.message) contenu.push(h('p', { className: 'note', role: 'status', textContent: etat.message }));
     conteneur.append(...contenu);
