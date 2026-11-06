@@ -7,6 +7,7 @@
  * Touche indexedDB et le DOM (dimensions de l'image) : pas pour Node. Toute erreur est rendue, jamais avalée en silence.
  */
 import { validerCarte } from './catalogue.js';
+import { migrerEntree } from './vocabulaire.js';
 import { cadrageCentre } from './prompt.js';
 
 const BASE = 'carte-de-mj';
@@ -96,7 +97,7 @@ export async function importerImage(fichier, meta = {}) {
   const type = typeImage(fichier);
   if (!type) throw new Error('format non pris en charge (webp, png, jpg ou svg)');
   if (fichier.size > TAILLE_MAX) throw new Error('image trop lourde (25 Mo au plus)');
-  const verif = validerCarte({ titre: meta.titre || fichier.name.replace(/\.[^.]+$/, ''), niveau: meta.niveau, milieux: meta.milieux, tags: meta.tags, description: meta.description, credit: meta.credit, licence: meta.licence, origine: meta.origine }, { avecFichier: false });
+  const verif = validerCarte({ titre: meta.titre || fichier.name.replace(/\.[^.]+$/, ''), niveau: meta.niveau, sousType: meta.sousType, milieux: meta.milieux, tags: meta.tags, description: meta.description, credit: meta.credit, licence: meta.licence, origine: meta.origine }, { avecFichier: false });
   if (verif.erreur) throw new Error(verif.erreur);
   const blob = fichier.slice(0, fichier.size, type);
   const { largeur, hauteur } = await dimensions(blob);
@@ -108,12 +109,12 @@ export async function importerImage(fichier, meta = {}) {
 
 /** Toutes les images importées, les plus récentes d'abord. */
 export async function listerImages() {
-  const toutes = await transaction('readonly', (s) => s.getAll());
+  const toutes = (await transaction('readonly', (s) => s.getAll()))?.map(migrerEntree); // anciens niveaux convertis à la lecture
   return (toutes ?? []).sort((a, b) => String(b.ajoute).localeCompare(String(a.ajoute)));
 }
 
-/** Une image importée, ou undefined. */
-export const lireImage = (id) => transaction('readonly', (s) => s.get(id));
+/** Une image importée (ancien niveau converti), ou undefined. */
+export const lireImage = async (id) => migrerEntree(await transaction('readonly', (s) => s.get(id)));
 
 /** Supprime une image (la confirmation en deux clics est dans l'interface) ; le dossier de travail la retirera aussi. */
 export const supprimerImage = (id) => transaction('readwrite', (s) => s.delete(id), { detail: { supprimees: [id] } });

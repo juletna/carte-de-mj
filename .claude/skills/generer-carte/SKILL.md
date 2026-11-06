@@ -1,6 +1,6 @@
 ---
 name: generer-carte
-description: Génère une carte illustrée (monde, région, zone, village, bâtiment, souterrain) pour carte-de-mj à partir de la description du MJ, avec gpt-image-1, puis l'ajoute à la liste de cartes de l'appli après validation. À utiliser quand le MJ demande de « générer », « dessiner », « créer » une carte, une image de forêt, de village, de monde, ou veut enrichir sa bibliothèque.
+description: Génère une carte illustrée (monde, lieu, plateau extérieur, intérieur ou souterrain) pour carte-de-mj à partir de la description du MJ, avec gpt-image-1, puis l'ajoute à la liste de cartes de l'appli après validation. À utiliser quand le MJ demande de « générer », « dessiner », « créer » une carte, une image de forêt, de village, de monde, ou veut enrichir sa bibliothèque.
 ---
 
 # Générer une carte
@@ -37,16 +37,16 @@ Si la clé est absente, rappelle-lui cette voie.
 
 ## Déroulé
 
-1. **Comprendre la demande.** Il te faut le *niveau* (`monde`, `region`, `zone` = lieu extérieur à l'échelle des figurines, `localite` = village/ville/port,
-   `batiment` = intérieur, `souterrain`) et la *scène* ; le style et le format ont des valeurs par défaut (dessin animé, paysage 16:9), ne les demande
-   que si le MJ en parle (« façon vieille carte », « pour imprimer »). Si le niveau manque, déduis-le (« une forêt avec des ruines » → `zone`) et dis-le ;
-   ne pose une question que si c'est vraiment ambigu. Un monde ou une région n'ont pas de grille ; les autres ont une grille demandée, qui dépend du format.
+1. **Comprendre la demande.** Il te faut le *zoom*, classé par phase de jeu (`--niveau monde` : vue d'ensemble, voyage ; `lieu` : un endroit à explorer,
+   désert, forêt, village vu en entier, île ; `plateau` : jeu en cases avec figurines, 1 case = 1,5 m, avec `--sous-type exterieur|interieur|souterrain`) et la *scène* ; le style et le format ont des valeurs par défaut (dessin animé, paysage 16:9), ne les demande
+   que si le MJ en parle (« façon vieille carte », « pour imprimer »). Si le niveau manque, déduis-le (« une clairière avec un sanctuaire où se battre » → `plateau` extérieur ; « la forêt des ruines » → `lieu`) et dis-le ;
+   ne pose une question que si c'est vraiment ambigu. La vue est imposée par le zoom (cavalière à 45° pour monde et lieu, dessus en trois-quarts pour le plateau) : ne la demande pas dans la scène. Monde et lieu n'ont pas de grille ; le plateau a une grille demandée, qui dépend du format. Les anciens niveaux (`region`, `localite`, `zone`, `batiment`, `souterrain`) sont encore compris et convertis.
 2. **Écrire la scène** en anglais, concrète et à l'échelle : ce qu'il y a, où, en quelle taille (« a circular shrine 6 squares across in the east »,
    « a path 2 squares wide crossing from north to south »). Pas de texte, pas de personnages ni de créatures, pas de rose des vents : le style les interdit déjà,
    ne les demande pas dans la scène. Les noms de lieux peuvent y figurer pour situer les choses : le rappel final interdit de les écrire sur l'image.
    Choisis un `id` (minuscules, chiffres, tirets, ex. `foret-ruines-01` ; si le fichier existe déjà, ajoute un suffixe).
 3. **Montrer ce qui va partir.** Lance d'abord :
-   `node outils/cartes/generer.mjs --niveau zone --id foret-ruines-01 --scene "…" [--style …] [--format …] --essai`
+   `node outils/cartes/generer.mjs --niveau plateau --sous-type exterieur --id foret-ruines-01 --scene "…" [--style …] [--format …] --essai`
    (montre le prompt complet, les références retenues, le fichier de sortie, sans appeler l'API). Résume en une phrase pour le MJ ; une génération coûte de l'argent,
    alors demande son accord si la demande est floue. Si le MJ a donné la scène complète, enchaîne.
 4. **Générer.** Même commande sans `--essai`. Options : `--ref chemin` (répétable) pour imposer des références,
@@ -61,18 +61,18 @@ Si la clé est absente, rappelle-lui cette voie.
    - **Varier** : garde la scène et change un point (saison, heure, état : « at night », « after a fire »), ou passe l'image validée en `--ref` pour une variante cohérente.
    - **Corriger** : ajoute la correction à la scène (« no bridge », « bigger trees ») ; ne modifie pas le fichier de style.
 6. **Proposer les métadonnées** une fois l'image validée, et laisser le MJ les corriger :
-   - `titre` court en français ; `niveau` ; `milieux` (plusieurs, parmi `foret plaine montagne desert eau cote marais neige ville ruines souterrain`) ;
+   - `titre` court en français ; `niveau` (et `sousType` pour un plateau) ; `milieux` (plusieurs, parmi `foret plaine montagne desert eau cote marais neige ville ruines souterrain`) ;
    - `tags` : 5 à 8 mots français (éléments visibles, ambiance, moment : `chemin`, `colonnes`, `sanctuaire`, `nuit`…) ;
    - `description` : une ou deux phrases en français, utiles pour retrouver la carte.
 7. **Ajouter à la liste de l'appli.** Écris l'entrée dans un fichier temporaire (hors dépôt, ex. dossier temporaire de la session) :
    ```json
    { "id": "foret-ruines-01", "titre": "Clairière aux ruines", "fichier": "generees/foret-ruines-01.png",
-     "largeur": 1536, "hauteur": 864, "niveau": "zone", "milieux": ["foret","ruines"],
+     "largeur": 1536, "hauteur": 864, "niveau": "plateau", "sousType": "exterieur", "milieux": ["foret","ruines"],
      "tags": ["chemin","colonnes"], "description": "…", "grille": { "case": 48, "dx": 0, "dy": 0 },
      "origine": { "type": "generee", "outil": "gpt-image-1", "style": "peint-v2", "le": "2026-11-06" } }
    ```
    `fichier` est le brouillon (chemin relatif au dossier de travail, ou absolu) ; `largeur`, `hauteur` et `grille` viennent du JSON affiché par le générateur
-   (omets `grille` pour `monde` et `region`) ; mets dans `origine.style` le style utilisé. Sans `origine`, le style par défaut et la date du jour sont posés ;
+   (omets `grille` pour `monde` et `lieu`) ; mets dans `origine.style` le style utilisé. Sans `origine`, le style par défaut et la date du jour sont posés ;
    `licence` (`libre`) et `credit` aussi. Puis : `node outils/cartes/ajouter.mjs entree.json`. Le script copie l'image vers `images/<id>.<ext>`,
    ajoute l'entrée complète à `images/index.json` (créé s'il manque), refuse un id déjà pris, un fichier existant ou une entrée invalide en disant pourquoi
    (corrige et relance), et n'écrase rien. L'index est relu juste avant l'écriture, puis écrit de façon atomique.

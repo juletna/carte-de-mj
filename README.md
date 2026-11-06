@@ -52,7 +52,7 @@ Socle commun dans `css/base.css` (documenté en tête du fichier) et `js/icones.
 ## Vocabulaire
 
 - **Monde** : l'ensemble des cartes imbriquées (poupées russes) que le MJ prépare.
-- **Continent** : un niveau de carte du monde (une carte qui en contient d'autres) ; la bibliothèque dit aussi région, zone, localité…
+- **Continent** : un niveau de carte du monde (une carte qui en contient d'autres) ; la bibliothèque dit « monde » (puis « lieu » et « plateau »)
 - **Lieu** : une carte du monde, c’est-à-dire une image avec ses points (continent, région, village, bâtiment…).
 - **Point** : un endroit cliquable posé sur un lieu, qui mène à un autre lieu ou à un donjon.
 - **Donjon** : un ensemble de salles reliées, préparé dans Préparer.
@@ -437,11 +437,11 @@ L'impression ne s'ouvre que depuis un donjon : le bouton **Imprimer ce donjon**,
 
 ## Bibliothèque de cartes
 
-Choisir une carte image (monde, région, zone, localité, bâtiment, souterrain) dans **une seule liste** : les images gardées par le navigateur (IndexedDB, elles restent après rechargement), que la sauvegarde recopie dans le dossier de travail (`images/` + `images/index.json`). Fenêtre de choix : une grille de vignettes, recherche sans accents ni casse (titre, tags, description, milieux), filtre par niveau et par milieux, « Importer une image… », crédit affiché quand il existe, utilisable au clavier et sur téléphone.
+Choisir une carte image (zoom monde, lieu ou plateau extérieur, intérieur, souterrain) dans **une seule liste** : les images gardées par le navigateur (IndexedDB, elles restent après rechargement), que la sauvegarde recopie dans le dossier de travail (`images/` + `images/index.json`). Fenêtre de choix : une grille de vignettes, recherche sans accents ni casse (titre, tags, description, milieux), filtre par zoom (monde, lieu, plateau et ses sous-types) et par milieux, « Importer une image… », crédit affiché quand il existe, utilisable au clavier et sur téléphone.
 
 - Essai : `CARTE_DE_MJ_DOSSIER=/chemin/du/dossier node outils/demo-bibliotheque.mjs` (7 cartes SVG de démonstration ajoutées à la liste du dossier de travail, sans rien écraser), puis ouvrir `bibliotheque.html`.
-- **Importer une image…** : le formulaire demande titre, niveau, milieux, tags, description, crédit et licence ; la description et le crédit sont affichés dans le détail de la carte.
-- **Générer une illustration IA** (volet de `bibliotheque.html`, ouvert par un bouton à côté de « Importer une image… », sans clé ni serveur ; il prend la colonne de l'aperçu, ou monte du bas sur téléphone ; trois sections : décrire l'illustration, copier le prompt, importer l'image ; le brouillon est gardé dans le navigateur et, après la copie, le volet rouvre sur l'import ; l'image se dépose par glisser-déposer ou par clic ; la carte ajoutée porte l'étiquette « Illustration IA ») : le MJ choisit le niveau, le style (dessin animé coloré par défaut, vieille carte sur parchemin, aquarelle : `assets/styles-cartes/`) et le format (paysage 16:9 par défaut, pour l'écran et la table ; portrait 2:3 ; carré), puis décrit la scène ; la page compose le prompt avec le même code que le skill (`js/bibliotheque/prompt.js`), format et nombre de cases en clair, rappel « pas de texte, vue de dessus » en dernier. « Copier le prompt », coller dans ChatGPT ou un autre générateur d'images, puis l'image déposée dans le volet : l'image est recadrée au centre au format choisi (le 16:9 est demandé en 3:2), rejoint la liste avec niveau, description, origine (`generee`, style) et grille déjà remplis (case = largeur réelle ÷ cases demandées, à caler ensuite dans l'atelier).
+- **Importer une image…** : le formulaire demande titre, zoom (et sous-type d’un plateau), milieux, tags, description, crédit et licence ; la description et le crédit sont affichés dans le détail de la carte.
+- **Générer une illustration IA** (volet de `bibliotheque.html`, ouvert par un bouton à côté de « Importer une image… », sans clé ni serveur ; il prend la colonne de l'aperçu, ou monte du bas sur téléphone ; trois sections : décrire l'illustration, copier le prompt, importer l'image ; le brouillon est gardé dans le navigateur et, après la copie, le volet rouvre sur l'import ; l'image se dépose par glisser-déposer ou par clic ; la carte ajoutée porte l'étiquette « Illustration IA ») : le MJ choisit le zoom (monde, lieu, plateau + sous-type extérieur / intérieur / souterrain, qui impose la vue) et le style (dessin animé coloré par défaut, vieille carte sur parchemin, aquarelle : `assets/styles-cartes/`) sur des **cartes cliquables illustrées** (vignette de `assets/exemples-cartes/<cle>.webp` si elle existe, sinon un dessin de repli, `js/bibliotheque/vignettes.js`) et le format (paysage 16:9 par défaut, pour l'écran et la table ; portrait 2:3 ; carré), puis décrit la scène ; la page compose le prompt avec le même code que le skill (`js/bibliotheque/prompt.js`), format et nombre de cases en clair, rappel « pas de texte, vue de dessus » en dernier. « Copier le prompt », coller dans ChatGPT ou un autre générateur d'images, puis l'image déposée dans le volet : l'image est recadrée au centre au format choisi (le 16:9 est demandé en 3:2), rejoint la liste avec niveau, description, origine (`generee`, style) et grille déjà remplis (case = largeur réelle ÷ cases demandées, à caler ensuite dans l'atelier).
 - Interface pour les autres modules : `js/bibliotheque/index.js` (`choisirCarte`, `urlImage`, `infosImage`). Une carte se désigne par `{ source: 'navigateur', id }`, jamais par une URL. `{ source: 'bibliotheque', id }` est l'ancien format : il reste valable dans les mondes existants. Format de la liste : `docs/conception-univers.md`.
 
 ## Sauvegarder et restaurer tout
@@ -605,14 +605,14 @@ outils/serveur.py   serveur local sans cache
 
 ## Générer des cartes
 
-Pour remplir la liste de cartes (monde, région, village, souterrain…) avec des images peintes, demandez à Claude Code
+Pour remplir la liste de cartes (monde, lieu, plateau…) avec des images peintes, demandez à Claude Code
 dans ce dépôt : « génère une carte de forêt avec des ruines » (skill `.claude/skills/generer-carte/`). Il compose le prompt, appelle `gpt-image-1`
 d'OpenAI, écrit un brouillon dans `generees/` de votre dossier de travail, vous montre l'image, puis, si vous la validez, la copie dans `images/` et l'ajoute à `images/index.json`.
 L'appli la voit au retour sur son onglet ou au rechargement.
 
 - Il faut votre propre clé : `export OPENAI_API_KEY=…` avant de lancer Claude Code. Elle n'est jamais écrite ni affichée.
 - Il faut aussi le dossier de travail de l'appli : `export CARTE_DE_MJ_DOSSIER=/chemin/du/dossier` (voir « Dossier de travail »). Les images et vos références de style (`references/<style>/`) restent sur votre disque, hors de git. `CARTE_DE_MJ_BIBLIOTHEQUE` (ancienne variable, chemin du sous-dossier `bibliotheque/`) est encore comprise, avec un avertissement.
-- À la main : `node outils/cartes/generer.mjs --niveau zone --id foret-01 --scene "…" [--essai]` puis `node outils/cartes/ajouter.mjs entree.json`.
+- À la main : `node outils/cartes/generer.mjs --niveau plateau --sous-type exterieur --id foret-01 --scene "…" [--essai]` puis `node outils/cartes/ajouter.mjs entree.json`.
   `--essai` montre la requête sans rien envoyer (et marche sans dossier de travail).
 
 ## Bon à savoir

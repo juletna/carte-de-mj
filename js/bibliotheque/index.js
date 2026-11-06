@@ -13,8 +13,8 @@
 import { h, deuxTemps, fichierChoisi } from '../dom.js';
 import { btn } from '../univers-boutons.js';
 import { validerCatalogue, selectionner } from './catalogue.js';
-import { NIVEAUX, MILIEUX, libelleNiveau } from './vocabulaire.js';
-import { ficheCarte, champsImport, metaImport, MESSAGE_VIDE } from './fiche.js';
+import { MILIEUX, libelleZoom } from './vocabulaire.js';
+import { ficheCarte, champsImport, metaImport, menuFiltreZoom, filtreDepuis, MESSAGE_VIDE } from './fiche.js';
 import { importerImage, listerImages, lireImage, supprimerImage } from './images.js';
 import { lireFichierBibliotheque, urlBibliotheque } from './source.js';
 
@@ -36,7 +36,7 @@ function urlDepuisBlob(entree) {
 }
 const liberer = (id) => { const u = urlsCreees.get(id); if (u) { URL.revokeObjectURL(u); urlsCreees.delete(id); } };
 
-const infosDe = (c) => ({ titre: c.titre, niveau: c.niveau, milieux: c.milieux, tags: c.tags, description: c.description, largeur: c.largeur, hauteur: c.hauteur, grille: c.grille, credit: c.credit ?? '', licence: c.licence ?? '' });
+const infosDe = (c) => ({ titre: c.titre, niveau: c.niveau, sousType: c.sousType, milieux: c.milieux, tags: c.tags, description: c.description, largeur: c.largeur, hauteur: c.hauteur, grille: c.grille, credit: c.credit ?? '', licence: c.licence ?? '' });
 
 async function trouver(ref) {
   if (!ref || typeof ref !== 'object' || typeof ref.id !== 'string') return null;
@@ -78,9 +78,9 @@ export function choisirCarte(options = {}) {
 
     const champRecherche = h('input', { type: 'search', placeholder: 'Rechercher (titre, tag, milieu…)', 'aria-label': 'Rechercher une carte', className: 'bib-recherche' });
     champRecherche.addEventListener('input', () => { etat.requete = champRecherche.value; choisi = null; dessinerListe(); });
-    const choixNiveau = h('select', { 'aria-label': 'Niveau' }, h('option', { value: '', textContent: 'Tous les niveaux' }), ...NIVEAUX.map((n) => h('option', { value: n.id, textContent: n.libelle })));
-    choixNiveau.value = etat.niveau;
-    choixNiveau.addEventListener('change', () => { etat.niveau = choixNiveau.value; choisi = null; dessinerListe(); });
+    const choixNiveau = menuFiltreZoom(etat.niveau);
+
+    choixNiveau.addEventListener('change', () => { etat.niveau = choixNiveau.value; choisi = null; dessinerListe(); }); // « plateau/exterieur » : zoom et sous-type
     const puces = MILIEUX.map((m) => {
       const b = h('button', { type: 'button', textContent: m.libelle, className: 'bib-puce', 'aria-pressed': 'false' });
       b.addEventListener('click', () => {
@@ -102,7 +102,7 @@ export function choisirCarte(options = {}) {
       const b = h('button', { type: 'button', className: 'bib-tuile', role: 'listitem', 'aria-pressed': String(choisi?.ref.id === ref.id) },
         h('span', { className: 'bib-vignette' }, img),
         h('span', { className: 'bib-nom', textContent: entree.titre }),
-        h('span', { className: 'bib-sous', textContent: libelleNiveau(entree.niveau) }),
+        h('span', { className: 'bib-sous', textContent: libelleZoom(entree) }),
       );
       b.dataset.id = ref.id;
       b.addEventListener('click', () => { choisi = { ref, entree, url }; dessinerListe(); grille.querySelector(`[data-id="${CSS.escape(ref.id)}"]`)?.focus(); });
@@ -125,7 +125,7 @@ export function choisirCarte(options = {}) {
     }
 
     function dessinerListe() {
-      const visibles = selectionner(images, { niveau: etat.niveau, milieux: [...etat.milieux], requete: etat.requete });
+      const visibles = selectionner(images, { ...filtreDepuis(etat.niveau), milieux: [...etat.milieux], requete: etat.requete });
       grille.replaceChildren(...visibles.map(tuile));
       const msgs = [];
       if (erreurImages) msgs.push(erreurImages);
@@ -148,7 +148,7 @@ export function choisirCarte(options = {}) {
 
     function ouvrirFormulaire(fichier) {
       formulaireOuvert = true;
-      const champs = champsImport(fichier, { niveau: etat.niveau || options?.niveau || 'zone' });
+      const champs = champsImport(fichier, { ...filtreDepuis(etat.niveau), niveau: filtreDepuis(etat.niveau).niveau || options?.niveau || 'lieu' });
       const erreur = h('p', { className: 'bib-erreur', role: 'alert' });
       const ajouter = btn('Ajouter', null, { icone: 'plus' });
       ajouter.addEventListener('click', async () => {

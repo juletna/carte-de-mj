@@ -4,16 +4,18 @@
  * Volet « Générer une illustration IA » (bouton à côté de l'import ; docs/maquettes/generer-carte.html) : il prend la colonne de l'aperçu
  * (un tiroir bas sur téléphone) et la grille ne bouge pas. Trois sections-accordéon : décrire l'illustration, copier le prompt
  * (style et format au choix, assets/styles-cartes/, js/bibliotheque/prompt.js, le même que le skill generer-carte) à coller dans un
- * générateur d'images externe, importer l'image obtenue, recadrée au format choisi, avec son niveau et sa grille déjà remplis.
- * Le brouillon (scène, niveau, style, format, prompt copié) est gardé dans ce navigateur. Sans clé ni serveur.
+ * générateur d'images externe, importer l'image obtenue, recadrée au format choisi, avec son zoom et sa grille déjà remplis.
+ * Le zoom (monde, lieu, plateau + sous-type) et le style se choisissent sur des cartes illustrées (js/bibliotheque/cartes-choix.js).
+ * Le brouillon (scène, zoom, style, format, prompt copié) est gardé dans ce navigateur. Sans clé ni serveur.
  * Elle réutilise js/bibliotheque/ (vocabulaire, images, fiche d'une carte).
  */
 import { h, deuxTemps, fichierChoisi } from './dom.js';
 import { btn, remplirBouton } from './univers-boutons.js';
 import { creerSection } from './atelier/section.js';
 import { selectionner } from './bibliotheque/catalogue.js';
-import { NIVEAUX, MILIEUX, NIVEAUX_AIDE, libelleNiveau } from './bibliotheque/vocabulaire.js';
-import { ficheCarte, champsImport, metaImport, MESSAGE_VIDE } from './bibliotheque/fiche.js';
+import { NIVEAUX, SOUS_TYPES, MILIEUX, NIVEAUX_AIDE, SOUS_TYPES_AIDE, SOUS_TYPE_PAR_DEFAUT, libelleZoom, normaliserNiveau } from './bibliotheque/vocabulaire.js';
+import { ficheCarte, champsImport, metaImport, menuFiltreZoom, filtreDepuis, MESSAGE_VIDE } from './bibliotheque/fiche.js';
+import { groupeCartes } from './bibliotheque/cartes-choix.js';
 import { importerImage, listerImages, supprimerImage, recadrerImage } from './bibliotheque/images.js';
 import { promptACopier, formatCarte, STYLES, FORMATS, STYLE_PAR_DEFAUT, FORMAT_PAR_DEFAUT } from './bibliotheque/prompt.js';
 
@@ -42,9 +44,8 @@ function ecrireBrouillon(b) {
 // --- Filtres ---
 const champRecherche = h('input', { type: 'search', placeholder: 'Rechercher (titre, tag, milieu…)', 'aria-label': 'Rechercher une carte', className: 'bib-recherche' });
 champRecherche.addEventListener('input', () => { etat.requete = champRecherche.value; choisi = null; dessinerListe(); });
-const choixNiveau = h('select', { 'aria-label': 'Niveau' }, h('option', { value: '', textContent: 'Tous les niveaux' }),
-  ...NIVEAUX.map((n) => h('option', { value: n.id, textContent: `${n.libelle} (${NIVEAUX_AIDE[n.id]})` })));
-choixNiveau.addEventListener('change', () => { etat.niveau = choixNiveau.value; choisi = null; dessinerListe(); });
+const choixNiveau = menuFiltreZoom();
+choixNiveau.addEventListener('change', () => { etat.niveau = choixNiveau.value; choisi = null; dessinerListe(); }); // « plateau/exterieur » : zoom et sous-type
 const puces = MILIEUX.map((m) => {
   const b = h('button', { type: 'button', textContent: m.libelle, className: 'bib-puce', 'aria-pressed': 'false' });
   b.addEventListener('click', () => {
@@ -69,10 +70,18 @@ racine.append(zoneImport, zoneFiltres, zoneMessage, corps, fond);
 
 // --- Volet « Générer une illustration IA » ---
 const champ = (id, libelle, control) => h('div', { className: 'bib-champ' }, h('label', { htmlFor: id, textContent: libelle }), control);
-const genNiveau = h('select', { id: 'gen-niveau' }, ...NIVEAUX.map((n) => h('option', { value: n.id, textContent: n.libelle, title: NIVEAUX_AIDE[n.id] })));
-genNiveau.value = 'zone';
-const genStyle = h('select', { id: 'gen-style' }, ...STYLES.map((s) => h('option', { value: s.id, textContent: s.libelle, title: s.aide })));
-genStyle.value = STYLE_PAR_DEFAUT;
+// Zoom, sous-type du plateau et style : des cartes cliquables illustrées (js/bibliotheque/cartes-choix.js), pas des menus.
+const ZOOMS_CARTES = NIVEAUX.map((n) => ({ id: n.id, libelle: n.libelle, aide: NIVEAUX_AIDE[n.id], cle: `zoom-${n.id}` }));
+const SOUS_TYPES_CARTES = SOUS_TYPES.map((t) => ({ id: t.id, libelle: t.libelle, aide: SOUS_TYPES_AIDE[t.id] }));
+const STYLES_CARTES = STYLES.map((x) => ({ id: x.id, libelle: x.libelle, aide: x.aide, cle: `style-${x.id}` }));
+const apresChoix = () => { genEtat.textContent = ''; copie = false; remplirBouton(copier, 'Copier le prompt', { icone: 'copier' }); majSousType(); enregistrer(); majPrompt(); };
+const genNiveau = groupeCartes({ legende: 'Zoom', options: ZOOMS_CARTES, valeur: 'lieu', surChoix: () => apresChoix() });
+const genSousType = groupeCartes({ legende: 'Sous-type du plateau', options: SOUS_TYPES_CARTES, valeur: SOUS_TYPE_PAR_DEFAUT, surChoix: () => apresChoix(), classe: 'bib-cartes-fines' });
+const genStyle = groupeCartes({ legende: 'Style', options: STYLES_CARTES, valeur: STYLE_PAR_DEFAUT, surChoix: () => apresChoix() });
+const zoneSousType = h('div', { className: 'bib-champ' }, h('span', { className: 'bib-etiq', textContent: 'Le plateau est…' }), genSousType.element);
+const majSousType = () => { zoneSousType.hidden = genNiveau.valeur() !== 'plateau'; };
+/** Le zoom choisi, avec son sous-type quand c'est un plateau. */
+const zoomGen = () => ({ niveau: genNiveau.valeur(), sousType: genNiveau.valeur() === 'plateau' ? genSousType.valeur() : undefined });
 const genFormat = h('select', { id: 'gen-format' }, ...FORMATS.map((f) => h('option', { value: f.id, textContent: f.libelle, title: f.aide })));
 genFormat.value = FORMAT_PAR_DEFAUT;
 const genScene = h('textarea', { id: 'gen-scene', rows: 5, maxLength: 2000, placeholder: 'Une clairière dans une forêt de chênes, avec un petit sanctuaire en ruine de 6 cases à l’est et un chemin de 2 cases qui la traverse du nord au sud.' });
@@ -111,11 +120,11 @@ function recevoirImage(f) {
   if (!f) return;
   erreurDepot.textContent = '';
   if (!/^image\/(webp|png|jpeg)$/.test(f.type) && !/\.(webp|png|jpe?g)$/i.test(f.name)) { erreurDepot.textContent = 'Format non pris en charge : choisis une image webp, png ou jpg.'; return; }
-  const format = formatCarte(genFormat.value, genNiveau.value);
+  const format = formatCarte(genFormat.value, genNiveau.valeur());
   preremplir = {
-    niveau: genNiveau.value, description: genScene.value.trim().slice(0, 600), colonnes: format.grille?.colonnes,
+    ...zoomGen(), description: genScene.value.trim().slice(0, 600), colonnes: format.grille?.colonnes,
     cadre: { largeur: format.largeur, hauteur: format.hauteur, libelle: FORMATS.find((x) => x.id === genFormat.value).libelle },
-    origine: { type: 'generee', style: genStyle.value, le: new Date().toISOString().slice(0, 10) },
+    origine: { type: 'generee', style: genStyle.valeur(), le: new Date().toISOString().slice(0, 10) },
   };
   ouvrirFormulaire(f);
 }
@@ -133,22 +142,25 @@ function lireStyle(id) {
 function majPrompt() {
   const scene = genScene.value.trim();
   copier.disabled = true;
-  const { largeur, hauteur, recadre, grille: g } = formatCarte(genFormat.value, genNiveau.value);
+  const { largeur, hauteur, recadre, grille: g } = formatCarte(genFormat.value, genNiveau.valeur());
   genGrille.textContent = `${largeur} × ${hauteur} px${recadre ? ' (demandée en 3:2, recadrée à l’import)' : ''} · `
-    + (g ? `grille ${g.colonnes} × ${g.lignes} cases (1 case = 1,5 m), posée à l’import` : 'pas de grille à ce niveau');
-  const style = styles.get(genStyle.value);
+    + (g ? `grille ${g.colonnes} × ${g.lignes} cases (1 case = 1,5 m), posée à l’import` : 'pas de grille à ce zoom');
+  const style = styles.get(genStyle.valeur());
   genPrompt.placeholder = 'Décris l’illustration à l’étape 1 pour voir le prompt.';
   genPrompt.value = '';
-  if (!style) { genEtat.textContent = 'Chargement du style…'; lireStyle(genStyle.value); }
+  if (!style) { genEtat.textContent = 'Chargement du style…'; lireStyle(genStyle.valeur()); }
   else if (style instanceof Error) genEtat.textContent = `Le style n’a pas pu être lu (${style.message}). Ouvre l’appli par « python3 outils/serveur.py » ou depuis le site.`;
-  else if (scene) { genPrompt.value = promptACopier({ style, niveau: genNiveau.value, scene, format: genFormat.value }); copier.disabled = false; }
+  else if (scene) { genPrompt.value = promptACopier({ style, ...zoomGen(), scene, format: genFormat.value }); copier.disabled = false; }
   genPrompt.classList.toggle('vide', !genPrompt.value);
   majEtapes();
 }
 
 const section1 = creerSection({ cle: 'bib-gen:1', titre: '1 · Décrire l’illustration', compte: pastille1, enfants: [
   champ('gen-scene', 'Scène', genScene),
-  h('div', { className: 'bib-trois' }, champ('gen-niveau', 'Niveau', genNiveau), champ('gen-style', 'Style', genStyle), champ('gen-format', 'Format', genFormat)),
+  h('div', { className: 'bib-champ' }, h('span', { className: 'bib-etiq', textContent: 'Zoom' }), genNiveau.element),
+  zoneSousType,
+  h('div', { className: 'bib-champ' }, h('span', { className: 'bib-etiq', textContent: 'Style' }), genStyle.element),
+  champ('gen-format', 'Format', genFormat),
   genGrille,
   h('p', { className: 'bib-note', textContent: 'En français ou en anglais : ce qu’il y a, où, et en quelle taille (une porte fait 1 case, un arbre 2 à 3, un chemin 2). Inutile de demander l’absence de texte ou de personnages : le style s’en charge.' }),
 ] }, { replis: sansMemoire() });
@@ -159,7 +171,7 @@ const section2 = creerSection({ cle: 'bib-gen:2', titre: '2 · Copier le prompt'
   ] }, { replis: sansMemoire() });
 const section3 = creerSection({ cle: 'bib-gen:3', titre: '3 · Importer l’image', compte: pastille3, repliee: true, enfants: [
   depot, entreeGen, erreurDepot, zoneFormGen,
-  h('p', { className: 'bib-note', textContent: 'Recadrée au centre si les proportions diffèrent. Niveau, description et grille sont déjà remplis.' }),
+  h('p', { className: 'bib-note', textContent: 'Recadrée au centre si les proportions diffèrent. Zoom, description et grille sont déjà remplis.' }),
 ] }, { replis: sansMemoire() });
 const sections = [section1, section2, section3];
 
@@ -180,8 +192,8 @@ function ouvrirEtape(n) { sections.forEach((x, i) => (i + 1 === n ? x.deplier() 
 /** Pastilles de résumé et coches des étapes. */
 function majEtapes() {
   const scene = genScene.value.trim();
-  const style = STYLES.find((x) => x.id === genStyle.value)?.libelle ?? '';
-  pastille1.textContent = `${libelleNiveau(genNiveau.value)} · ${style} · ${FORMATS.find((x) => x.id === genFormat.value)?.libelle ?? ''}`;
+  const style = STYLES.find((x) => x.id === genStyle.valeur())?.libelle ?? '';
+  pastille1.textContent = `${libelleZoom(zoomGen())} · ${style} · ${FORMATS.find((x) => x.id === genFormat.value)?.libelle ?? ''}`;
   pastille2.textContent = !scene ? 'en attente de la scène' : copie ? 'copié' : 'prêt';
   pastille3.textContent = zoneFormGen.childElementCount ? 'à valider' : 'pas encore';
   section1.element.classList.toggle('bib-fait', !!scene);
@@ -190,18 +202,20 @@ function majEtapes() {
 }
 
 function enregistrer() {
-  ecrireBrouillon({ scene: genScene.value, niveau: genNiveau.value, style: genStyle.value, format: genFormat.value, copie });
+  ecrireBrouillon({ scene: genScene.value, ...zoomGen(), style: genStyle.valeur(), format: genFormat.value, copie });
 }
 function restaurerBrouillon() {
   const b = lireBrouillon();
   if (typeof b.scene === 'string') genScene.value = b.scene.slice(0, 2000);
-  if (NIVEAUX.some((n) => n.id === b.niveau)) genNiveau.value = b.niveau;
-  if (STYLES.some((x) => x.id === b.style)) genStyle.value = b.style;
+  const zoom = normaliserNiveau({ niveau: b.niveau, sousType: b.sousType }); // un brouillon d'avant (zone, localité…) est converti
+  if (zoom) { genNiveau.definir(zoom.niveau); if (zoom.sousType) genSousType.definir(zoom.sousType); }
+  if (STYLES.some((x) => x.id === b.style)) genStyle.definir(b.style);
+  majSousType();
   if (FORMATS.some((x) => x.id === b.format)) genFormat.value = b.format;
   copie = b.copie === true && !!genScene.value.trim();
   if (copie) remplirBouton(copier, 'Copié', { icone: 'coche' });
 }
-for (const c of [genNiveau, genStyle, genFormat]) c.addEventListener('change', () => { genEtat.textContent = ''; copie = false; remplirBouton(copier, 'Copier le prompt', { icone: 'copier' }); enregistrer(); majPrompt(); });
+genFormat.addEventListener('change', () => apresChoix());
 genScene.addEventListener('input', () => {
   genEtat.textContent = ''; if (copie) { copie = false; remplirBouton(copier, 'Copier le prompt', { icone: 'copier' }); }
   enregistrer(); majPrompt();
@@ -229,7 +243,7 @@ function tuile(entree) {
   const b = h('button', { type: 'button', className: 'bib-tuile', role: 'listitem', 'aria-pressed': String(choisi?.ref.id === ref.id) },
     h('span', { className: 'bib-vignette' }, img),
     h('span', { className: 'bib-nom', textContent: entree.titre }),
-    h('span', { className: 'bib-sous', textContent: libelleNiveau(entree.niveau) }));
+    h('span', { className: 'bib-sous', textContent: libelleZoom(entree) }));
   b.dataset.id = ref.id;
   b.addEventListener('click', () => { choisi = { ref, entree, url }; etat.generer = false; dessiner(); grille.querySelector(`[data-id="${CSS.escape(ref.id)}"]`)?.focus(); });
   return b;
@@ -253,7 +267,7 @@ function dessinerDetail() {
 }
 
 function dessinerListe() {
-  const visibles = selectionner(images, { niveau: etat.niveau, milieux: [...etat.milieux], requete: etat.requete });
+  const visibles = selectionner(images, { ...filtreDepuis(etat.niveau), milieux: [...etat.milieux], requete: etat.requete });
   grille.replaceChildren(...visibles.map(tuile));
   const msgs = [];
   if (erreurImages) msgs.push(erreurImages);
@@ -278,7 +292,7 @@ function dessinerImport() {
 function ouvrirFormulaire(fichier) {
   const pre = preremplir; preremplir = null;
   const hote = pre ? zoneFormGen : zoneImport; // une image venue du volet s'importe dans le volet
-  const champs = champsImport(fichier, { niveau: pre?.niveau || etat.niveau || 'zone', description: pre?.description });
+  const champs = champsImport(fichier, { niveau: pre?.niveau || filtreDepuis(etat.niveau).niveau || 'lieu', sousType: pre?.sousType || filtreDepuis(etat.niveau).sousType, description: pre?.description });
   const erreur = h('p', { className: 'bib-erreur', role: 'alert' });
   const ajouter = btn('Ajouter', null, { icone: 'plus', classe: 'btn-primaire' });
   ajouter.addEventListener('click', async () => {

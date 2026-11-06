@@ -101,6 +101,21 @@ dialog.bib .btn-danger.danger, #bibliotheque .btn-danger.danger { background: va
 .bib-trois { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--esp-2); }
 .bib-trois select { padding-inline: var(--esp-2) 2px; text-overflow: ellipsis; }
 .bib-etiquette { margin: 0; width: fit-content; max-width: 100%; padding: 5px 9px; border-radius: 6px; background: var(--p-surface-1); color: var(--p-texte-3); font-size: 12.5px; }
+.bib-etiq { font-size: 12.5px; color: var(--p-texte-3); }
+/* Cartes de choix illustrées (zoom, sous-type du plateau, style) : js/bibliotheque/cartes-choix.js */
+.bib-cartes { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: var(--esp-2); }
+.bib-carte { display: flex; flex-direction: column; gap: 4px; min-width: 0; padding: 6px; text-align: left; font: inherit; color: var(--p-texte-1);
+  background: var(--p-surface-1); border: 1px solid var(--p-filet-fort); border-radius: 8px; cursor: pointer; }
+.bib-carte:hover { border-color: var(--p-texte-3); }
+.bib-carte:focus-visible { outline: var(--focus); outline-offset: var(--focus-decalage); }
+.bib-carte[aria-pressed="true"] { border-color: var(--accent); outline: 1.5px solid var(--accent); background: var(--p-choisi); }
+.bib-carte-img { display: block; position: relative; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 5px; background: var(--p-surface-2, var(--champ)); }
+.bib-carte-img img, .bib-carte-img svg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.bib-carte-nom { font-size: 13.5px; font-weight: 600; line-height: 1.25; }
+.bib-carte[aria-pressed="true"] .bib-carte-nom { color: var(--accent); }
+.bib-carte-aide { font-size: 12px; line-height: 1.3; color: var(--p-texte-3); }
+.bib-cartes-fines { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.bib-carte.sans-image { padding: 8px; }
 .bib-note { margin: 0; font-size: 12.5px; color: var(--p-texte-3); }
 .bib-note:empty { display: none; }
 .bib-prompt { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px !important; line-height: 1.5; color: var(--p-texte-2) !important; }
@@ -125,5 +140,10 @@ dialog.bib .btn-danger.danger, #bibliotheque .btn-danger.danger { background: va
   .bib-poignee { display: block; flex: none; width: 38px; height: 4px; margin: 8px auto 0; border-radius: 2px; background: var(--p-filet-fort); }
   .bib-volet-tete { padding-top: 8px; }
   .bib-trois { grid-template-columns: 1fr; }
+  .bib-cartes { grid-template-columns: 1fr; }
+  .bib-carte:not(.sans-image) { display: grid; grid-template-columns: 112px minmax(0, 1fr); grid-template-rows: auto 1fr; column-gap: var(--esp-3); align-items: start; min-height: 44px; }
+  .bib-carte:not(.sans-image) .bib-carte-img { grid-row: 1 / 3; }
+  .bib-cartes-fines { grid-template-columns: 1fr; }
+  .bib-carte { min-height: 44px; }
   .bib-volet .btn { min-height: 44px; }
 }

@@ -38,8 +38,8 @@ export function construireEntree(brut, { extension, largeur, hauteur, maintenant
   else if (brut.grille !== undefined && !carte.grille) p.push('grille : { case entre 4 et 2000, dx, dy }');
   else if (brut.origine !== undefined && !carte.origine) p.push('origine.type : generee, importee ou externe');
   if (p.length) return { problemes: p };
-  const { titre, niveau, milieux, tags, description, licence, credit, grille, origine } = carte;
-  const entree = { id: brut.id, nom: `${brut.id}.${extension}`, type: TYPES_PAR_EXTENSION[extension], largeur: l, hauteur: h, ajoute: maintenant.toISOString(), titre, niveau, milieux, tags, description, licence, credit };
+  const { titre, niveau, sousType, milieux, tags, description, licence, credit, grille, origine } = carte;
+  const entree = { id: brut.id, nom: `${brut.id}.${extension}`, type: TYPES_PAR_EXTENSION[extension], largeur: l, hauteur: h, ajoute: maintenant.toISOString(), titre, niveau, ...(sousType ? { sousType } : {}), milieux, tags, description, licence, credit };
   if (grille) entree.grille = grille;
   entree.origine = origine;
   entree.fichier = `images/${brut.id}.${extension}`;

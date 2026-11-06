@@ -2,14 +2,16 @@
  * Petites règles pures de l'écran Monde (js/mj/univers-ui.js) : adresse d'ouverture directe, niveaux où l'on cale une grille,
  * genre d'une destination, nom d'un lieu créé depuis un point, durée d'une notification. Aucun DOM ici : testé sous Node.
  */
+import { normaliserNiveau } from './bibliotheque/vocabulaire.js';
 
-/** Niveaux de carte (identifiants de la bibliothèque) à l'échelle des figurines : seuls ceux-là reçoivent une grille calée. */
-export const NIVEAUX_AVEC_GRILLE = ['zone', 'localite', 'batiment', 'souterrain'];
+/** Niveaux de carte (identifiants de la bibliothèque) à l'échelle des figurines : seul le plateau reçoit une grille calée. */
+export const NIVEAUX_AVEC_GRILLE = ['plateau'];
 
-/** Peut-on caler une grille sur cette carte ? Un niveau absent (image importée) : oui ; continent et région : non. */
+/** Peut-on caler une grille sur cette carte ? Un niveau absent ou inconnu (image importée) : oui ; monde et lieu : non. Un ancien niveau est converti. */
 export function calagePossible(niveau) {
   if (niveau === undefined || niveau === null || niveau === '') return true;
-  return NIVEAUX_AVEC_GRILLE.includes(niveau);
+  const zoom = normaliserNiveau({ niveau });
+  return zoom ? NIVEAUX_AVEC_GRILLE.includes(zoom.niveau) : true;
 }
 
 /** `#monde` → { id: null } ; `#monde=<id>` → { id } (un `&lieu=<id>` à la suite est ignoré ici : voir js/atelier-route.js) ; toute autre adresse → null. */

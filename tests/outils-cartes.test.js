@@ -2,17 +2,18 @@
  * Tests des fonctions pures de outils/cartes/ : composition du prompt (styles × formats), format par niveau, cadrage,
  * recadrage PNG, construction et ajout d'une entrée de images/index.json, choix du dossier de travail. Les styles sont lus par `lire` (assets/styles-cartes/).
  */
-import { composerPrompt, extraireSections, formatCarte, promptACopier, cadrageCentre, STYLES, FORMATS, STYLE_PAR_DEFAUT } from '../outils/cartes/prompt.js';
+import { composerPrompt, extraireSections, formatCarte, promptACopier, cadrageCentre, VUES, STYLES, FORMATS, STYLE_PAR_DEFAUT } from '../outils/cartes/prompt.js';
 import { recadrerPng, taillePng } from '../outils/cartes/png.js';
 import { crc32 } from '../js/zip.js';
 import { construireEntree, ajouterALIndex, extensionDe, indexVide } from '../outils/cartes/entree.js';
 import { dossierTravail, VARIABLE_DOSSIER, VARIABLE_ANCIENNE } from '../outils/cartes/dossier.js';
-import { NIVEAUX } from '../outils/cartes/vocabulaire.js';
+import { NIVEAUX, SOUS_TYPES } from '../outils/cartes/vocabulaire.js';
+import { svgVignette, CLES_VIGNETTES } from '../js/bibliotheque/vignettes.js';
 import { verifier, egal, executerSuite } from './mini-test.js';
 
 const MAINTENANT = new Date('2026-11-06T10:00:00.000Z');
 const lance = (f) => { try { f(); return false; } catch { return true; } };
-const entree = (o = {}) => ({ id: 'foret-01', titre: 'Forêt', fichier: 'generees/foret-01.webp', largeur: 1024, hauteur: 1536, niveau: 'zone', milieux: ['foret'], tags: ['chemin'], description: 'Un chemin.', grille: { case: 51.2, dx: 0, dy: 0 }, ...o });
+const entree = (o = {}) => ({ id: 'foret-01', titre: 'Forêt', fichier: 'generees/foret-01.webp', largeur: 1024, hauteur: 1536, niveau: 'plateau', sousType: 'exterieur', milieux: ['foret'], tags: ['chemin'], description: 'Un chemin.', grille: { case: 51.2, dx: 0, dy: 0 }, ...o });
 
 /** PNG RGB de `l` × `h` dont le pixel (x, y) vaut [x, y, 7], filtre Sub sur chaque ligne (pour tester le défiltrage). */
 async function pngDeTest(l, h) {
@@ -57,41 +58,73 @@ export async function executer({ lire }) {
   const recadre = await recadrerPng(await pngDeTest(6, 4), { x: 1, y: 1, largeur: 4, hauteur: 2 });
   const pixels = await idatBrut(recadre);
   return executerSuite('outils cartes : ', [
-    ['chaque style × format × niveau donne un prompt complet, sans texte écrit ni repère oublié', () => {
-      for (const s of STYLES) for (const f of FORMATS) for (const n of NIVEAUX) {
-        const p = composerPrompt({ style: styles[s.id], niveau: n, scene: 'une clairière', format: f.id });
-        verifier(p.includes('une clairière') && p.includes('top-down') && p.includes('1.5 meters') && p.includes('No text of any kind')
-          && p.includes('Image format:') && !/\{(scene|cases)\}/.test(p), `prompt incomplet : ${s.id} ${f.id} ${n}`);
+    ['chaque style × format × zoom (× sous-type) donne un prompt complet, avec la bonne vue et jamais l’ancienne consigne', () => {
+      const ZOOMS = [['monde'], ['lieu'], ...SOUS_TYPES.map((t) => ['plateau', t])];
+      for (const s of STYLES) for (const f of FORMATS) for (const [n, t] of ZOOMS) {
+        const p = composerPrompt({ style: styles[s.id], niveau: n, sousType: t, scene: 'une clairière', format: f.id });
+        const quoi = `${s.id} ${f.id} ${n} ${t ?? ''}`;
+        verifier(p.includes('une clairière') && p.includes('No text of any kind') && p.includes('Image format:') && !/\{(scene|cases)\}/.test(p), `prompt incomplet : ${quoi}`);
+        verifier(p.includes(VUES[n].vue) && p.includes(VUES[n].rappel), `vue du zoom absente : ${quoi}`);
+        verifier(!/isometric|top-down orthographic|straight down|straight from above|never at an angle/i.test(p.replace(VUES[n].vue, '').replace(VUES[n].rappel, '')), `ancienne consigne de vue : ${quoi}`);
+        verifier(!/no isometric angle/i.test(p), `« no isometric angle » : ${quoi}`);
+        if (n === 'plateau') verifier(p.includes('1.5 meters') && p.includes('three-quarter') && p.includes('squares wide'), `plateau : échelle et trois-quarts ${quoi}`);
+        else verifier(p.includes('bird\'s-eye oblique view') && p.includes('45 degrees') && !p.includes('1.5 meters') && !p.includes('squares wide') && !p.includes('The picture covers'), `monde/lieu : cavalière, sans grille ${quoi}`);
       }
+    }],
+    ['le sous-type du plateau ne change que le gabarit ; monde et lieu ont leurs gabarits', () => {
+      const p = (o) => composerPrompt({ style, scene: 'x', ...o });
+      verifier(p({ niveau: 'plateau', sousType: 'exterieur' }).includes('outdoor place'), 'extérieur');
+      verifier(p({ niveau: 'plateau', sousType: 'interieur' }).includes('roof removed'), 'intérieur');
+      verifier(p({ niveau: 'plateau', sousType: 'souterrain' }).includes('Dungeon, cave or crypt'), 'souterrain');
+      egal(p({ niveau: 'plateau' }), p({ niveau: 'plateau', sousType: 'exterieur' }), 'plateau sans sous-type : extérieur');
+      verifier(p({ niveau: 'monde' }).includes('whole fantasy world') && p({ niveau: 'monde' }).includes('very high above'), 'monde');
+      verifier(p({ niveau: 'lieu' }).includes('place to explore'), 'lieu');
+      egal(p({ niveau: 'zone' }), p({ niveau: 'plateau', sousType: 'exterieur' }), 'un ancien niveau est converti (zone)');
+      egal(p({ niveau: 'localite' }), p({ niveau: 'lieu' }), 'un ancien niveau est converti (localité)');
     }],
     ['niveau, format inconnus ou scène vide : refusés', () => {
       let leve = 0;
-      for (const a of [{ niveau: 'lune', scene: 'x' }, { niveau: 'zone', scene: '  ' }, { niveau: 'zone', scene: 'x', format: 'rond' }]) { try { composerPrompt({ style, ...a }); } catch { leve++; } }
+      for (const a of [{ niveau: 'lune', scene: 'x' }, { niveau: 'lieu', scene: '  ' }, { niveau: 'lieu', scene: 'x', format: 'rond' }]) { try { composerPrompt({ style, ...a }); } catch { leve++; } }
       egal(leve, 3, 'refus');
     }],
-    ['paysage par défaut : 3:2 demandé puis 16:9, cases écrites, rappel final en dernier', () => {
-      const z = composerPrompt({ style, niveau: 'zone', scene: 'une clairière' });
-      verifier(z.includes('1536 × 1024') && z.includes('16:9') && z.includes('about 32 squares wide and 18 squares tall') && z.includes('32 × 18 squares'), 'zone');
-      verifier(z.trim().endsWith('never at an angle.'), 'le rappel final n’est pas en dernier');
+    ['paysage par défaut : 3:2 demandé puis 16:9, cases écrites seulement au plateau, rappels en dernier', () => {
+      const z = composerPrompt({ style, niveau: 'plateau', sousType: 'exterieur', scene: 'une clairière' });
+      verifier(z.includes('1536 × 1024') && z.includes('16:9') && z.includes('about 32 squares wide and 18 squares tall') && z.includes('32 × 18 squares'), 'plateau');
+      verifier(z.trim().endsWith(VUES.plateau.rappel), 'le rappel de vue n’est pas en dernier');
+      verifier(z.indexOf('absolutely no text') < z.indexOf(VUES.plateau.rappel) && z.indexOf('absolutely no text') > z.indexOf('Image format:'), 'le rappel final suit le format');
       const m = composerPrompt({ style, niveau: 'monde', scene: 'un archipel' });
       verifier(m.includes('1536 × 1024') && !m.includes('The picture covers'), 'monde');
-      egal(promptACopier({ style, niveau: 'zone', scene: 'x' }), composerPrompt({ style, niveau: 'zone', scene: 'x' }), 'skill et appli : même prompt');
+      egal(promptACopier({ style, niveau: 'plateau', sousType: 'interieur', scene: 'x' }), composerPrompt({ style, niveau: 'plateau', sousType: 'interieur', scene: 'x' }), 'skill et appli : même prompt');
     }],
-    ['styles : les sections attendues existent, plus de format écrit dans un style', () => {
+    ['styles : les sections attendues existent (cinq gabarits), plus de format ni de vue écrits dans un style', () => {
       for (const [id, texte] of Object.entries(styles)) {
         const s = extraireSections(texte);
         verifier(s['Bloc de style'] && s['Échelle'] && !s.Format, `sections de ${id}`);
+        for (const g of ['monde', 'lieu', 'plateau-exterieur', 'plateau-interieur', 'plateau-souterrain']) verifier(s[`Gabarit : ${g}`], `gabarit ${g} de ${id}`);
+        for (const ancien of ['region', 'zone', 'localite', 'batiment', 'souterrain']) verifier(!s[`Gabarit : ${ancien}`], `ancien gabarit ${ancien} dans ${id}`);
+        verifier(!/top-down|isometric|straight down|from directly above|horizon/i.test(texte.split('\n').filter((l) => !l.startsWith('Le 7 novembre') && !l.startsWith('la vue est')).join('\n')), `consigne de vue restée dans ${id}`);
       }
     }],
-    ['formats : grilles, taille demandée et image finale', () => {
+    ['vignettes de repli : une pour chaque zoom et chaque style, en SVG', () => {
+      egal(CLES_VIGNETTES, ['zoom-monde', 'zoom-lieu', 'zoom-plateau', 'style-peint-v2', 'style-parchemin-v1', 'style-peint-v1'], 'clés');
+      for (const n of NIVEAUX) verifier(CLES_VIGNETTES.includes(`zoom-${n}`), `zoom-${n}`);
+      for (const s of STYLES) verifier(CLES_VIGNETTES.includes(`style-${s.id}`), `style-${s.id}`);
+      for (const c of CLES_VIGNETTES) { const v = svgVignette(c); verifier(v && v.startsWith('<svg') && v.endsWith('</svg>') && v.includes('viewBox="0 0 160 90"'), `vignette ${c}`); }
+      egal(svgVignette('zoom-inconnu'), null, 'clé inconnue');
+    }],
+    ['formats : seul le plateau a une grille ; taille demandée et image finale', () => {
       egal(formatCarte('paysage', 'monde').grille, null, 'monde');
-      egal(formatCarte('paysage', 'region').grille, null, 'region');
-      egal(formatCarte('paysage', 'zone').grille, { case: 48, colonnes: 32, lignes: 18 }, 'zone paysage');
-      egal([formatCarte('paysage', 'zone').taille, formatCarte('paysage', 'zone').largeur, formatCarte('paysage', 'zone').hauteur, formatCarte('paysage', 'zone').recadre], ['1536x1024', 1536, 864, true], 'paysage');
-      egal(formatCarte('portrait', 'zone').grille, { case: 51.2, colonnes: 20, lignes: 30 }, 'zone portrait');
-      egal(formatCarte('carre', 'localite').recadre, false, 'carré');
-      for (const f of FORMATS) for (const [n, [c, l]] of Object.entries(f.grilles)) {
-        verifier(Math.abs(c / l - f.finale.largeur / f.finale.hauteur) < 0.01, `grille ${f.id} ${n} aux proportions de l’image`);
+      egal(formatCarte('paysage', 'lieu').grille, null, 'lieu');
+      egal(formatCarte('paysage', 'plateau').grille, { case: 48, colonnes: 32, lignes: 18 }, 'plateau paysage');
+      egal(formatCarte('paysage', 'zone').grille, { case: 48, colonnes: 32, lignes: 18 }, 'ancien niveau zone');
+      egal(formatCarte('paysage', 'localite').grille, null, 'ancien niveau localité : lieu, sans grille');
+      egal([formatCarte('paysage', 'plateau').taille, formatCarte('paysage', 'plateau').largeur, formatCarte('paysage', 'plateau').hauteur, formatCarte('paysage', 'plateau').recadre], ['1536x1024', 1536, 864, true], 'paysage');
+      egal(formatCarte('portrait', 'plateau').grille, { case: 51.2, colonnes: 20, lignes: 30 }, 'plateau portrait');
+      egal(formatCarte('carre', 'plateau').grille, { case: 51.2, colonnes: 20, lignes: 20 }, 'plateau carré');
+      egal(formatCarte('carre', 'lieu').recadre, false, 'carré');
+      for (const f of FORMATS) {
+        egal(Object.keys(f.grilles), ['plateau'], `grilles de ${f.id}`);
+        for (const [n, [c, l]] of Object.entries(f.grilles)) verifier(Math.abs(c / l - f.finale.largeur / f.finale.hauteur) < 0.01, `grille ${f.id} ${n} aux proportions de l’image`);
       }
     }],
     ['cadrage centré : 3:2 → 16:9 retire une bande en haut et en bas ; déjà aux proportions → rien', () => {
@@ -107,7 +140,7 @@ export async function executer({ lire }) {
     }],
     ['entrée : champs complets dans l\'ordre de l\'appli, type et fichier déduits, valeurs par défaut', () => {
       const { entree: e } = construireEntree(entree({ fichier: 'generees/foret-01.jpeg' }), { extension: extensionDe('a.jpeg'), maintenant: MAINTENANT });
-      egal(Object.keys(e), ['id', 'nom', 'type', 'largeur', 'hauteur', 'ajoute', 'titre', 'niveau', 'milieux', 'tags', 'description', 'licence', 'credit', 'grille', 'origine', 'fichier'], 'champs');
+      egal(Object.keys(e), ['id', 'nom', 'type', 'largeur', 'hauteur', 'ajoute', 'titre', 'niveau', 'sousType', 'milieux', 'tags', 'description', 'licence', 'credit', 'grille', 'origine', 'fichier'], 'champs');
       egal([e.nom, e.type, e.fichier, e.ajoute, e.licence, e.credit], ['foret-01.jpg', 'image/jpeg', 'images/foret-01.jpg', '2026-11-06T10:00:00.000Z', 'libre', ''], 'valeurs');
       egal(e.origine, { type: 'generee', outil: 'gpt-image-1', style: STYLE_PAR_DEFAUT, le: '2026-11-06' }, 'origine par défaut');
       const sans = construireEntree({ id: 'a', titre: 'A', niveau: 'monde', milieux: [] }, { extension: 'png', largeur: 10, hauteur: 5, maintenant: MAINTENANT }).entree;

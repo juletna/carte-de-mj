@@ -1,4 +1,4 @@
-// Génère une image de carte : node outils/cartes/generer.mjs --niveau zone --id foret-ruines-01 --scene "…" [--style …] [--format paysage|portrait|carre] [--ref image]… [--essai]
+// Génère une image de carte : node outils/cartes/generer.mjs --niveau plateau --sous-type exterieur --id foret-ruines-01 --scene "…" [--style …] [--format paysage|portrait|carre] [--ref image]… [--essai]
 // Même prompt que le panneau « Générer une carte » de la Bibliothèque (js/bibliotheque/prompt.js : STYLES, FORMATS).
 // Écrit le brouillon <dossier de travail>/generees/<id>.<type> (+ <id>.prompt.txt) sans jamais écraser : il n'entre dans la liste de l'appli qu'avec ajouter.mjs. La clé OPENAI_API_KEY n'est jamais affichée.
 // Quand le format recadre (paysage : 3:2 demandé, 16:9 gardé), l'image est demandée en PNG, recadrée au centre et écrite en PNG.
@@ -9,7 +9,7 @@ import path from 'node:path';
 import { composerPrompt, formatCarte, cadrageCentre, STYLES, FORMATS, STYLE_PAR_DEFAUT, FORMAT_PAR_DEFAUT } from './prompt.js';
 import { recadrerPng, taillePng } from './png.js';
 import { construireRequete, appeler } from './fournisseur-openai.js';
-import { NIVEAUX } from './vocabulaire.js';
+import { NIVEAUX, SOUS_TYPES, SOUS_TYPE_PAR_DEFAUT } from './vocabulaire.js';
 import { dossierTravail } from './dossier.js';
 
 const racine = fileURLToPath(new URL('../../', import.meta.url));
@@ -29,7 +29,8 @@ const AIDE = `Génère le brouillon d'une carte dans <dossier de travail>/genere
 Usage : node outils/cartes/generer.mjs --niveau <${NIVEAUX.join('|')}> --id <id> --scene "<description>" [options]
 
 Options :
-  --niveau <niveau>     niveau de la carte (obligatoire)
+  --niveau <niveau>     zoom de la carte (obligatoire) : monde (voyage), lieu (exploration), plateau (jeu en cases)
+  --sous-type <type>    d'un plateau seulement : ${SOUS_TYPES.join(', ')} ; défaut : ${SOUS_TYPE_PAR_DEFAUT}
   --id <id>             identifiant et nom de fichier : minuscules, chiffres, tirets (obligatoire)
   --scene "<texte>"     ce que la carte montre, de préférence en anglais (obligatoire)
   --style <id>          ${STYLES.map((s) => `${s.id} (${s.libelle})`).join(', ')} ; défaut : ${STYLE_PAR_DEFAUT}
@@ -42,12 +43,12 @@ Options :
   --help, -h            cette aide
 
 Exemple :
-  node outils/cartes/generer.mjs --niveau zone --id foret-ruines-01 --scene "forest clearing with a broken-column shrine" --essai`;
+  node outils/cartes/generer.mjs --niveau plateau --sous-type exterieur --id foret-ruines-01 --scene "forest clearing with a broken-column shrine" --essai`;
 
 let o;
 try {
   ({ values: o } = parseArgs({ options: {
-    niveau: { type: 'string' }, scene: { type: 'string' }, id: { type: 'string' }, style: { type: 'string', default: STYLE_PAR_DEFAUT },
+    niveau: { type: 'string' }, 'sous-type': { type: 'string' }, scene: { type: 'string' }, id: { type: 'string' }, style: { type: 'string', default: STYLE_PAR_DEFAUT },
     format: { type: 'string', default: FORMAT_PAR_DEFAUT }, type: { type: 'string' },
     ref: { type: 'string', multiple: true }, 'sans-reference': { type: 'boolean' },
     qualite: { type: 'string', default: 'high' }, essai: { type: 'boolean' }, help: { type: 'boolean', short: 'h' }, aide: { type: 'boolean' },
@@ -61,6 +62,7 @@ if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(o.id) || o.id.length > 64) sortir('id : min
 if (!STYLES.some((s) => s.id === o.style)) sortir(`style : ${STYLES.map((s) => s.id).join(', ')}.`);
 if (!FORMATS.some((f) => f.id === o.format)) sortir(`format : ${FORMATS.map((f) => f.id).join(', ')} (le type de fichier se choisit avec --type).`);
 if (o.type && !['webp', 'png'].includes(o.type)) sortir('type : webp ou png.');
+if (o['sous-type'] && !SOUS_TYPES.includes(o['sous-type'])) sortir(`sous-type : ${SOUS_TYPES.join(', ')}.`);
 
 /** Références explicites, sinon les premières images de <dossier>/references/<style>/ (point de départ du style). */
 async function lireReferences() {
@@ -80,7 +82,7 @@ async function lireReferences() {
 let style;
 try { style = await readFile(FICHIER_STYLE(o.style), 'utf8'); } catch { sortir(`Style illisible : ${o.style}`); }
 let prompt;
-try { prompt = composerPrompt({ style, niveau: o.niveau, scene: o.scene, format: o.format }); } catch (e) { sortir(e.message); }
+try { prompt = composerPrompt({ style, niveau: o.niveau, sousType: o['sous-type'], scene: o.scene, format: o.format }); } catch (e) { sortir(e.message); }
 const format = formatCarte(o.format, o.niveau);
 if (format.recadre && o.type === 'webp') sortir(`Le format ${o.format} recadre l'image en ${format.largeur} × ${format.hauteur} : la sortie est en png (le webp ne se recadre pas sans dépendance).`);
 o.type ??= format.recadre ? 'png' : 'webp';
@@ -110,4 +112,4 @@ if (format.recadre) {
 await mkdir(dossierSortie, { recursive: true });
 await writeFile(sortie, octets, { flag: 'wx' });
 await writeFile(path.join(dossierSortie, `${o.id}.prompt.txt`), prompt + '\n', { flag: 'wx' });
-console.log(JSON.stringify({ brouillon: sortie, fichier: path.relative(dossier, sortie), style: o.style, format: o.format, largeur: format.largeur, hauteur: format.hauteur, grille: format.grille ? { case: format.grille.case, dx: 0, dy: 0 } : null, references: references.map((r) => r.nom), octets: octets.length }, null, 2));
+console.log(JSON.stringify({ brouillon: sortie, fichier: path.relative(dossier, sortie), niveau: o.niveau, ...(o['sous-type'] ? { sousType: o['sous-type'] } : {}), style: o.style, format: o.format, largeur: format.largeur, hauteur: format.hauteur, grille: format.grille ? { case: format.grille.case, dx: 0, dy: 0 } : null, references: references.map((r) => r.nom), octets: octets.length }, null, 2));

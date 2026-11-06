@@ -131,7 +131,7 @@ export function entreeDuDossier(meta) {
   if (typeof meta.fichier !== 'string' || !RE_FICHIER_IMAGE.test(meta.fichier) || !Object.hasOwn(TYPES_IMAGES, meta.type)) return null;
   const v = validerCarte(meta, { avecFichier: false });
   if (v.erreur) return null;
-  const { fichier, largeur, hauteur, grille, origine, ...reste } = meta; // repris de v.carte seulement s'ils sont valides
+  const { fichier, largeur, hauteur, grille, origine, sousType, ...reste } = meta; // repris de v.carte seulement s'ils sont valides
   return {
     ...reste, ...v.carte, id: meta.id, type: meta.type,
     nom: typeof meta.nom === 'string' && meta.nom ? meta.nom.slice(0, 200) : fichier.slice('images/'.length),

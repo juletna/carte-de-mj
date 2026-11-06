@@ -13,8 +13,8 @@ const sources = {};
 
 const TESTS = [
   ['calage : proposé à l’échelle des figurines ou sans niveau connu, pas pour un continent ni une région', () => {
-    for (const n of ['zone', 'localite', 'batiment', 'souterrain', undefined, null, '']) verifier(v.calagePossible(n), `calage possible : ${n}`);
-    for (const n of ['monde', 'region']) verifier(!v.calagePossible(n), `calage refusé : ${n}`);
+    for (const n of ['plateau', 'zone', 'batiment', 'souterrain', 'inconnu', undefined, null, '']) verifier(v.calagePossible(n), `calage possible : ${n}`);
+    for (const n of ['monde', 'lieu', 'region', 'localite']) verifier(!v.calagePossible(n), `calage refusé : ${n}`);
   }],
   ['adresse d’ouverture : #monde, #monde=<id>, rien d’autre', () => {
     egal(v.analyserHash('#monde'), { id: null }, '#monde');

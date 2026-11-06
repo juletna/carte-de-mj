@@ -443,7 +443,7 @@ export function creerUniversUI(ctx) {
     if (!dims) { dire('La carte n’est pas encore chargée (ou introuvable) : on ne peut pas y caler une grille.', { erreur: true }); return false; }
     selectionner(null);
     const infos = await infosDe(l.image);
-    if (!calagePossible(infos?.niveau)) { dire('Une carte de continent ou de région n’a pas de grille de case : le calage se fait sur une zone, une localité, un bâtiment ou un souterrain.'); rendre(); return false; }
+    if (!calagePossible(infos?.niveau)) { dire('Une carte de monde ou de lieu n’a pas de grille de case : le calage se fait sur un plateau (extérieur, intérieur ou souterrain).'); rendre(); return false; }
     if (!calage.ouvrir({ lieu: l, infos, dims })) return false;
     rendre();
     calage.focaliser();

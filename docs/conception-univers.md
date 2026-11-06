@@ -87,7 +87,8 @@ Un tableau JSON, écrit par l'appli avec `JSON.stringify(index, null, 1)` :
     "largeur": 1536, "hauteur": 864,
     "ajoute": "2026-11-06T10:00:00.000Z",
     "titre": "Clairière aux ruines",
-    "niveau": "zone",
+    "niveau": "plateau",
+    "sousType": "exterieur",
     "milieux": ["foret", "ruines"],
     "tags": ["chemin", "colonnes", "sanctuaire", "fleurs", "jour"],
     "description": "Clairière traversée par un chemin, colonnes brisées, petit sanctuaire circulaire à l'est.",
@@ -102,8 +103,12 @@ Un tableau JSON, écrit par l'appli avec `JSON.stringify(index, null, 1)` :
 
 - `id` : minuscules, chiffres, tirets, au plus 64 caractères, unique. Le nom du fichier en dérive.
 - `fichier` : `images/<id>.<ext>` (`webp`, `png`, `jpg` ou `svg`), le nom que l'appli donne elle-même à la copie. `type` : le MIME qui va avec.
-- `niveau` (une valeur, pour les poupées russes) : `monde`, `region`, `zone` (lieu extérieur à l'échelle des figurines),
-  `localite` (village, ville, port), `batiment` (intérieur), `souterrain`.
+- `niveau` (une valeur) : le **zoom**, classé par phase de jeu et non par échelle géographique. `monde` (vue d'ensemble, voyage ; mappemonde,
+  continent, archipel, pays), `lieu` (exploration racontée, choisir où entrer ; désert, forêt, village vu en entier, île) et `plateau` (jeu en cases avec
+  figurines, 1 case = 1,5 m, seul niveau avec une grille). `sousType` (seulement sur un plateau) : `exterieur`, `interieur` ou `souterrain` (absent : extérieur) ;
+  il ne change que le prompt. **Anciens niveaux, convertis à la lecture** (catalogue, images importées, fichiers importés, entrées du skill, brouillons) :
+  `monde` → `monde`, `region` → `lieu`, `localite` → `lieu`, `zone` → `plateau` extérieur, `batiment` → `plateau` intérieur,
+  `souterrain` → `plateau` souterrain (`normaliserNiveau` et `migrerEntree`, `js/bibliotheque/vocabulaire.js`).
 - `milieux` (plusieurs) : `foret`, `plaine`, `montagne`, `desert`, `eau`, `cote`, `marais`, `neige`, `ville`, `ruines`, `souterrain`.
   Les listes vivent dans un module pur unique (`js/bibliotheque/vocabulaire.js`, session B) que le skill recopie dans son prompt.
 - `tags` : mots libres, en français, sans accents obligatoires (la recherche ignore accents et casse, voir `sansAccents` de `js/format.js`).
@@ -112,7 +117,7 @@ Un tableau JSON, écrit par l'appli avec `JSON.stringify(index, null, 1)` :
 - `origine.type` : `generee`, `importee` ou `externe`. `licence` et `credit` : à afficher avec la carte quand `credit` n'est pas vide.
 - La validation des champs descriptifs est `validerCarte` (`js/bibliotheque/catalogue.js`), la même pour l'appli et pour les scripts du skill. Un champ inconnu est ignoré.
 
-Recherche et filtres (session B) : filtre par `niveau`, par `milieux` (cumulables), recherche texte sur `titre`, `tags`,
+Recherche et filtres (session B) : filtre par `niveau` (et `sousType`), par `milieux` (cumulables), recherche texte sur `titre`, `tags`,
 `description` et les noms des milieux.
 
 ## 3. Le skill de génération (F2, session A)
@@ -122,7 +127,7 @@ Rangé **dans le dépôt** (`.claude/skills/generer-carte/`) pour servir à tous
 - `SKILL.md` : le déroulé (demande du MJ → prompt → génération → brouillon dans `generees/` → validation par le MJ → tags → ajout à `images/index.json`).
 - `assets/styles-cartes/<style>.md` (sortis du skill le 6 novembre 2026 pour que la page Bibliothèque les lise aussi, panneau « Générer une carte ») :
   un fichier par style (`peint-v2` dessin animé coloré, par défaut ; `parchemin-v1` vieille carte ; `peint-v1` aquarelle), avec le bloc de style,
-  les règles d'échelle (repères : une porte = 1 case, une table = 1 × 2 cases, un arbre adulte = 2 à 3 cases), un gabarit par niveau et un rappel final.
+  les règles d'échelle (repères : une porte = 1 case, une table = 1 × 2 cases, un arbre adulte = 2 à 3 cases), cinq gabarits (`monde`, `lieu`, `plateau-exterieur`, `plateau-interieur`, `plateau-souterrain`) et un rappel final. Le style ne dit rien de la vue : elle est imposée par le zoom (`VUES` de `js/bibliotheque/prompt.js` : vue cavalière à 45° pour monde et lieu, dessus en trois-quarts pour le plateau).
   Une nouvelle version de style = un nouveau fichier, jamais une réécriture.
 - `js/bibliotheque/prompt.js` : **le seul composeur de prompt**, partagé par le skill et la page. Il déclare les styles (`STYLES`) et les formats
   (`FORMATS` : paysage 16:9 par défaut, portrait 2:3, carré, avec leurs grilles). Le format n'est plus dans le style depuis le 6 novembre 2026 :

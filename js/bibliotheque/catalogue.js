@@ -3,7 +3,7 @@
  * filtres par niveau et milieux, recherche texte. Format : docs/conception-univers.md, section 2.
  */
 import { sansAccents } from '../format.js';
-import { IDS_NIVEAUX, IDS_MILIEUX, libelleMilieu, libelleNiveau } from './vocabulaire.js';
+import { IDS_NIVEAUX, IDS_MILIEUX, libelleMilieu, libelleNiveau, normaliserNiveau } from './vocabulaire.js';
 
 export const FORMAT_CATALOGUE = 'carte-de-mj-bibliotheque';
 const EXTENSIONS = ['webp', 'png', 'jpg', 'jpeg', 'svg'];
@@ -26,13 +26,14 @@ export const idValide = (id) => typeof id === 'string' && /^[a-z0-9-]{1,64}$/.te
 
 /**
  * Valide une entrée de carte (du catalogue ou des métadonnées d'une image importée, qui n'a pas de `fichier`).
- * Rend { carte } ou { erreur }. Les champs inconnus sont ignorés ; niveau et milieux inconnus sont refusés.
+ * Rend { carte } ou { erreur }. Les champs inconnus sont ignorés ; niveau et milieux inconnus sont refusés ; un ancien niveau est converti (vocabulaire.js).
  */
 export function validerCarte(brut, { avecFichier = true } = {}) {
   if (!brut || typeof brut !== 'object' || Array.isArray(brut)) return { erreur: 'entrée qui n\u2019est pas un objet' };
   if (avecFichier && !idValide(brut.id)) return { erreur: `identifiant « ${texte(String(brut.id ?? ''), 40)} » invalide (minuscules, chiffres, tirets, 64 caractères au plus)` };
   if (avecFichier && !fichierValide(brut.fichier)) return { erreur: `fichier « ${texte(String(brut.fichier ?? ''), 60)} » refusé (chemin dans bibliotheque/, extension ${EXTENSIONS.join(', ')})` };
-  if (!IDS_NIVEAUX.includes(brut.niveau)) return { erreur: `niveau « ${texte(String(brut.niveau ?? ''), 30)} » inconnu (${IDS_NIVEAUX.join(', ')})` };
+  const zoom = normaliserNiveau({ niveau: brut.niveau, sousType: brut.sousType }); // un ancien niveau (six échelles) est converti sans rien dire
+  if (!zoom) return { erreur: `niveau « ${texte(String(brut.niveau ?? ''), 30)} » inconnu (${IDS_NIVEAUX.join(', ')})` };
   const titre = texte(brut.titre, 120);
   if (!titre) return { erreur: 'titre absent' };
   const milieuxBruts = Array.isArray(brut.milieux) ? brut.milieux : [];
@@ -40,7 +41,7 @@ export function validerCarte(brut, { avecFichier = true } = {}) {
   if (inconnu !== undefined) return { erreur: `milieu « ${texte(String(inconnu), 30)} » inconnu (${IDS_MILIEUX.join(', ')})` };
   const carte = {
     titre,
-    niveau: brut.niveau,
+    ...zoom,
     milieux: [...new Set(milieuxBruts)],
     tags: (Array.isArray(brut.tags) ? brut.tags : []).map((t) => texte(t, 40)).filter(Boolean).slice(0, MAX_TAGS),
     description: texte(brut.description, 600),
@@ -85,8 +86,8 @@ export function validerCatalogue(brut) {
 }
 
 /** Garde les cartes du niveau demandé (aucun niveau : toutes) qui ont TOUS les milieux demandés. */
-export function filtrer(cartes, { niveau, milieux = [] } = {}) {
-  return cartes.filter((c) => (!niveau || c.niveau === niveau) && milieux.every((m) => c.milieux.includes(m)));
+export function filtrer(cartes, { niveau, sousType, milieux = [] } = {}) {
+  return cartes.filter((c) => (!niveau || c.niveau === niveau) && (!sousType || c.sousType === sousType) && milieux.every((m) => c.milieux.includes(m)));
 }
 
 /** Le texte où chercher : titre, tags, description, noms des milieux (et libellé du niveau). */
@@ -100,8 +101,8 @@ export function chercher(cartes, requete) {
 }
 
 /** Filtres puis recherche. */
-export function selectionner(cartes, { niveau, milieux, requete } = {}) {
-  return chercher(filtrer(cartes, { niveau, milieux }), requete ?? '');
+export function selectionner(cartes, { niveau, sousType, milieux, requete } = {}) {
+  return chercher(filtrer(cartes, { niveau, sousType, milieux }),requete ?? '');
 }
 
 /** Ligne de crédit à afficher avec une carte (vide si rien à créditer). */
