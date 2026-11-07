@@ -140,6 +140,8 @@ textarea { width: 100%; min-height: 70px; background: var(--champ); border: 1px 
 .zoombar .btn { min-height: 30px; padding: 0 10px; }
 .zoombar span.v { min-width: 46px; text-align: center; color: var(--t1); font-size: 13px; }
 
+
+
 /* popover « Affichage » v2 : lisible, gros pour les doigts, un contrôle adapté à chaque réglage */
 .pop2 { width: 372px; background: #2a2930; border: 1px solid var(--filet-fort); border-radius: 12px; box-shadow: 0 14px 34px rgba(0,0,0,.6); padding: 6px 0; color: var(--t2); font-size: 14px; }
 .pop2 .grp { padding: 10px 16px 12px; }
@@ -162,8 +164,11 @@ textarea { width: 100%; min-height: 70px; background: var(--champ); border: 1px 
 .step { display: inline-flex; align-items: center; background: #1b1a20; border: 1px solid var(--filet-fort); border-radius: 10px; }
 .step .ib { border: 0; background: transparent; border-radius: 10px; }
 .step .v { min-width: 66px; text-align: center; color: var(--t1); font-variant-numeric: tabular-nums; }
-.prev { width: 76px; height: 54px; flex: none; border-radius: 8px; background: #121116; border: 1px solid var(--filet-fort); display: grid; place-items: center; overflow: hidden; }
-.prev .ecran { width: 38px; height: 26px; border: 2px solid var(--t3); border-radius: 4px; display: grid; place-items: center; color: var(--accent); font-size: 15px; font-weight: 700; transition: none; }
+.prev { width: 104px; height: 68px; flex: none; border-radius: 8px; background: #121116; border: 1px solid var(--filet-fort); display: grid; place-items: center; }
+.prev .cadre { width: 84px; height: 52px; border: 2px solid var(--t3); border-radius: 4px; display: grid; place-items: center; background: #1c1b21; overflow: hidden; }
+.prev .F { display: inline-block; font: 800 38px/1 Georgia, serif; color: var(--accent); }
+.duo { display: inline-flex; gap: 8px; }
+.pop2 .r + .r { margin-top: 4px; }
 .lien { color: var(--accent); font-size: 12.5px; font-weight: 600; }
 </style>
 </head>
@@ -307,14 +312,14 @@ textarea { width: 100%; min-height: 70px; background: var(--champ); border: 1px 
             </div>
             <div class="grp">
               <h3>Écran de la table <small>réglé une fois</small></h3>
-              <div class="r" style="min-height:64px">
-                <div class="prev"><div class="ecran" style="transform: rotate(90deg) scaleX(-1)">↑</div></div>
-                <span class="lib">Orientation<small>90° à droite, en miroir</small></span>
-                <span class="ib" title="Tourner à gauche">↺</span><span class="ib" title="Tourner à droite">↻</span>
+              <div class="r" style="min-height:84px; gap:14px">
+                <div class="prev" title="Comment la carte apparaît à la table"><div class="cadre"><span class="F" style="transform: rotate(90deg) scaleX(-1)">F</span></div></div>
+                <span class="lib">Orientation<small>90° à droite</small></span>
+                <div class="duo"><span class="ib" title="Tourner à gauche">↺</span><span class="ib" title="Tourner à droite">↻</span></div>
               </div>
-              <div class="r"><span class="lib">Image en miroir</span><span class="ib on" title="Miroir">⇋</span></div>
+              <div class="r"><span class="lib">Image en miroir</span><span class="interrupteur"></span></div>
               <div class="r"><span class="lib">Taille réelle d'une case</span><div class="step"><span class="ib">−</span><span class="v">25 mm</span><span class="ib">+</span></div></div>
-              <div class="r" style="margin-top:4px"><span class="btn" style="flex:1;justify-content:center;min-height:38px">Calibrer sur la table</span></div>
+              <div class="r" style="margin-top:8px"><span class="btn" style="flex:1;justify-content:center;min-height:40px">⌖ Calibrer sur la table</span></div>
             </div>
           </div>
         </div>
