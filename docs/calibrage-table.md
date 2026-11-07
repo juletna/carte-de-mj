@@ -28,3 +28,4 @@ On ne calibre pas un donjon, on calibre une grille. Aujourd'hui le calibrage est
 3. Premier lancement : menu « Ouvrir la table », bandeau, pastille.
 4. Parcours dans le popover Affichage (reste ouvert pendant le calibrage).
 5. Tests : sans présentation, monde, donjon, reprise du contenu, première ouverture, changement d'écran.
+6. **Livraison : supprimer ce document et sa maquette** (le code devient la référence).
