@@ -18,7 +18,7 @@ export function creerVuesRegie({ scene, barre, avant = null, doc = document }) {
   let cadre = null;
   const boutons = {};
   const fabriquer = (cle, libelle, titre) => {
-    const b = h('button', { type: 'button', className: 'btn btn-discret regie-vue', role: 'tab', 'aria-selected': 'false', title: titre, textContent: libelle });
+    const b = h('button', { type: 'button', className: `btn btn-discret regie-vue vue-${cle === 'table' ? 'a-la-table' : 'en-regie'}`, role: 'tab', 'aria-selected': 'false', title: titre, textContent: libelle });
     b.addEventListener('click', () => afficher(cle));
     boutons[cle] = b;
     return b;

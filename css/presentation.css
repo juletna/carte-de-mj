@@ -290,6 +290,12 @@ details.bloc > .aide, .defilement > .aide { display: block; margin-bottom: 6px; 
 .regie-vues { display: inline-flex; gap: 2px; padding: 2px; background: var(--p-surface-1); border-radius: var(--rayon); }
 .regie-vues .regie-vue { min-height: 30px; padding: 0 var(--esp-3); font-size: 13px; font-weight: 600; color: var(--p-texte-3); border: 0; }
 .regie-vues .regie-vue[aria-selected="true"] { background: var(--p-surface-survol); color: var(--p-texte-1); }
+/* « À la table » : vert (la couleur de « ce que voient les joueurs »), avec une pastille « en direct » ; et un liseré vert autour de toute la zone, pour savoir à tout moment sur quelle vue on est. */
+.regie-vues .regie-vue.vue-a-la-table[aria-selected="true"] { background: var(--succes); color: #06140a; display: inline-flex; align-items: center; gap: 7px; }
+.regie-vues .regie-vue.vue-a-la-table[aria-selected="true"]::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: #06140a; animation: en-direct 1.8s ease-in-out infinite; }
+@keyframes en-direct { 50% { opacity: 0.3; } }
+@media (prefers-reduced-motion: reduce) { .regie-vues .regie-vue.vue-a-la-table[aria-selected="true"]::before { animation: none; } }
+.apercu-scene::after { content: ""; position: absolute; inset: 0; border: 3px solid var(--succes); pointer-events: none; z-index: 2; }
 .apercu-scene { flex: 1; position: relative; min-height: 0; overflow: hidden; background: #000; }
 .apercu-scene[hidden] { display: none; }
 .apercu-scene iframe { position: absolute; left: 0; top: 0; border: 0; transform-origin: 0 0; }
