@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bibliothèque · maquette</title>
+<style>
+/* Maquette : la page Bibliothèque reprend la coquille de Préparer (js/atelier/coquille.js, css/atelier.css) :
+   arbre 260 px à gauche, barre d'outils 44 px, scène au centre, inspecteur 330 px à droite (docs/design-panneaux.md). */
+:root {
+  color-scheme: dark;
+  --fond: #16151a; --panneau: #1f1e24; --bord: #34323b; --texte: #e8e4dc; --texte-doux: #a29d94;
+  --accent: #d9a929; --accent-texte: #1a1508; --champ: #121116; --scene: #0c0b0e; --danger: #e0705c;
+  --p-texte-1: #ece8e0; --p-texte-2: #c3beb4; --p-texte-3: #97928a; --p-texte-4: #67635d;
+  --p-surface-1: #26252c; --p-surface-survol: #2d2c34; --p-filet: #2f2d35; --p-filet-fort: #3d3a44;
+  --p-choisi: rgba(217, 169, 41, 0.13);
+  --police: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --rayon: 6px;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--fond); color: var(--texte); font: 15px/1.5 var(--police); padding: 40px 16px 80px; }
+.page { max-width: 1320px; margin: 0 auto; display: flex; flex-direction: column; gap: 48px; }
+h1, h2, h3, p { margin: 0; }
+h1 { font-size: 30px; line-height: 1.15; }
+h2 { font-size: 21px; }
+.sur { font-size: 12px; text-transform: uppercase; letter-spacing: .1em; color: var(--accent); font-weight: 600; margin-bottom: 8px; }
+.chapeau { max-width: 70ch; color: var(--p-texte-2); margin-top: 10px; }
+.bloc { display: flex; flex-direction: column; gap: 16px; }
+.legende { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
+.legende div { background: var(--panneau); border: 1px solid var(--bord); border-radius: 8px; padding: 14px 16px; font-size: 14px; color: var(--p-texte-2); }
+.legende strong { display: block; color: var(--p-texte-1); margin-bottom: 4px; }
+.legende b { color: var(--accent); }
+ul.liste { margin: 0; padding-left: 20px; color: var(--p-texte-2); font-size: 14px; display: flex; flex-direction: column; gap: 6px; max-width: 80ch; }
+ul.liste strong { color: var(--p-texte-1); }
+
+/* ---------- L'écran ---------- */
+.defile { overflow-x: auto; border-radius: 10px; }
+.ecran { min-width: 1180px; height: 780px; border: 1px solid var(--bord); border-radius: 10px; background: var(--fond); overflow: hidden; display: flex; flex-direction: column; }
+.ecran.petit { min-width: 0; width: 330px; height: 700px; flex: none; }
+.nav { flex: none; height: 52px; display: flex; align-items: center; gap: 22px; padding: 0 16px; background: #141318; border-bottom: 1px solid var(--bord); font-size: 15px; color: var(--p-texte-2); }
+.nav .marque { color: var(--accent); font-weight: 700; font-size: 17px; margin-right: 8px; }
+.nav span { display: inline-flex; align-items: center; gap: 7px; height: 52px; }
+.nav .actif { color: var(--p-texte-1); font-weight: 650; box-shadow: inset 0 -2px var(--accent); }
+.nav .fin { margin-left: auto; }
+.coquille { flex: 1; min-height: 0; display: grid; grid-template-columns: 260px minmax(0, 1fr) 330px; }
+
+/* Icônes */
+.ic { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Boutons */
+.btn { font: inherit; font-size: 13.5px; font-weight: 500; color: var(--p-texte-1); background: transparent; border: 1px solid var(--p-filet-fort); border-radius: var(--rayon); height: 32px; padding: 0 11px; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.btn.discret { border-color: transparent; color: var(--p-texte-2); }
+.btn.icone { width: 32px; padding: 0; justify-content: center; }
+.btn.primaire { background: var(--accent); color: var(--accent-texte); border-color: var(--accent); font-weight: 650; }
+
+/* ---------- Arbre (gauche) ---------- */
+.arbre { background: var(--panneau); border-right: 1px solid var(--bord); display: flex; flex-direction: column; min-height: 0; }
+.tete-44 { flex: none; height: 44px; display: flex; align-items: center; gap: 4px; padding: 0 8px 0 12px; border-bottom: 1px solid var(--bord); }
+.tete-44 .pousse { margin-left: auto; }
+.arbre-corps { flex: 1; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 4px; }
+.filtre { height: 34px; border: 1px solid var(--p-filet-fort); border-radius: var(--rayon); background: var(--champ); color: var(--p-texte-4); font-size: 14px; display: flex; align-items: center; gap: 8px; padding: 0 10px; margin-bottom: 6px; }
+.groupe { font-size: 11px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--p-texte-4); padding: 12px 8px 4px; }
+.ligne { height: 34px; display: flex; align-items: center; gap: 8px; padding: 0 8px; border-radius: var(--rayon); font-size: 14px; color: var(--p-texte-2); }
+.ligne .n { margin-left: auto; font-size: 12px; color: var(--p-texte-4); font-variant-numeric: tabular-nums; }
+.ligne.parent { color: var(--p-texte-1); font-weight: 600; }
+.ligne.choisie { background: var(--p-choisi); color: var(--accent); }
+.ligne.choisie .n { color: var(--accent); }
+.ligne .ic { color: var(--p-texte-3); }
+.ligne.choisie .ic { color: var(--accent); }
+.sous-lignes { margin-left: 15px; padding-left: 6px; border-left: 1px solid var(--bord); }
+.case { width: 15px; height: 15px; flex: none; border: 1.5px solid var(--p-texte-4); border-radius: 4px; display: grid; place-items: center; }
+.ligne.coche { color: var(--p-texte-1); }
+.ligne.coche .case { background: var(--accent); border-color: var(--accent); }
+.ligne.coche .case::after { content: ""; width: 4px; height: 8px; border: solid var(--accent-texte); border-width: 0 2px 2px 0; transform: translateY(-1px) rotate(45deg); }
+
+/* ---------- Centre : barre + scène ---------- */
+.centre { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.barre { flex: none; height: 44px; display: flex; align-items: center; gap: 8px; padding: 0 12px; background: var(--panneau); border-bottom: 1px solid var(--bord); font-size: 13.5px; color: var(--p-texte-2); }
+.barre .titre { color: var(--p-texte-1); font-weight: 600; }
+.barre .doux { color: var(--p-texte-3); }
+.puce { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 6px 0 10px; border-radius: 999px; background: var(--p-surface-1); color: var(--p-texte-1); font-size: 12.5px; }
+.puce .ic { width: 13px; height: 13px; color: var(--p-texte-3); }
+.barre .fin { margin-left: auto; display: flex; gap: 6px; align-items: center; }
+.scene { flex: 1; min-height: 0; overflow: hidden; background: var(--scene); padding: 20px; }
+.grille { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 16px; align-content: start; }
+.tuile { border-radius: 8px; background: var(--panneau); border: 1px solid var(--p-filet); padding: 6px 6px 9px; display: flex; flex-direction: column; gap: 3px; }
+.tuile.choisie { border-color: var(--accent); outline: 1.5px solid var(--accent); }
+.vignette { aspect-ratio: 3 / 2; border-radius: 5px; overflow: hidden; background: #2a2930; margin-bottom: 4px; }
+.vignette svg { width: 100%; height: 100%; display: block; }
+.tuile .nom { font-size: 14px; font-weight: 500; color: var(--p-texte-1); padding: 0 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tuile.choisie .nom { color: var(--accent); }
+.tuile .zoom { font-size: 12.5px; color: var(--p-texte-3); padding: 0 3px; }
+
+/* ---------- Inspecteur (droite) ---------- */
+.inspecteur { background: var(--panneau); border-left: 1px solid var(--bord); display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+.ecran.petit .inspecteur { border-left: 0; flex: 1; }
+.insp-tete { flex: none; padding: 14px 16px 12px; border-bottom: 1px solid var(--p-filet-fort); display: flex; gap: 8px; align-items: flex-start; }
+.insp-tete > div { flex: 1; min-width: 0; }
+.type { font-size: 11px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--accent); }
+.nom-insp { font-size: 18px; font-weight: 650; color: var(--p-texte-1); line-height: 1.25; margin-top: 2px; }
+.meta { font-size: 12.5px; color: var(--p-texte-3); margin-top: 2px; }
+.sections { flex: 1; min-height: 0; overflow: hidden; }
+.section { border-bottom: 1px solid var(--p-filet); }
+.s-tete { height: 40px; display: flex; align-items: center; gap: 8px; padding: 0 12px; font-size: 13px; font-weight: 650; color: var(--p-texte-1); }
+.s-tete .chev { width: 6px; height: 6px; margin: 0 3px; border-right: 1.75px solid var(--p-texte-4); border-bottom: 1.75px solid var(--p-texte-4); transform: translateY(-2px) rotate(45deg); }
+.section.repliee .s-tete { color: var(--p-texte-2); font-weight: 600; }
+.section.repliee .chev { transform: rotate(-45deg); }
+.s-tete .apercu { font-weight: 400; color: var(--p-texte-3); font-size: 12.5px; }
+.s-tete .outil { margin-left: auto; color: var(--p-texte-3); }
+.s-corps { padding: 0 16px 16px; display: flex; flex-direction: column; gap: 12px; }
+.apercu-img { border-radius: 6px; overflow: hidden; aspect-ratio: 3 / 2; }
+.apercu-img svg { width: 100%; height: 100%; display: block; }
+.props { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 8px 12px; align-items: center; }
+.props .et { font-size: 13px; font-weight: 500; color: var(--p-texte-3); }
+.menu { height: 34px; border: 1px solid var(--p-filet-fort); border-radius: var(--rayon); background: var(--champ); color: var(--p-texte-1); font-size: 14px; display: flex; align-items: center; padding: 0 10px; justify-content: space-between; }
+.menu::after { content: ""; width: 6px; height: 6px; border-right: 1.5px solid var(--p-texte-3); border-bottom: 1.5px solid var(--p-texte-3); transform: translateY(-2px) rotate(45deg); }
+.champ { display: flex; flex-direction: column; gap: 5px; }
+.champ .et { font-size: 12.5px; color: var(--p-texte-3); }
+.saisie { min-height: 34px; border: 1px solid var(--p-filet-fort); border-radius: var(--rayon); background: var(--champ); color: var(--p-texte-1); font-size: 14px; padding: 6px 10px; line-height: 1.45; }
+.saisie.vide { color: var(--p-texte-4); }
+.pastilles { display: flex; flex-wrap: wrap; gap: 6px; }
+.pastille { height: 28px; display: inline-flex; align-items: center; padding: 0 10px; border-radius: 999px; border: 1px solid var(--p-filet-fort); font-size: 13px; color: var(--p-texte-2); }
+.pastille.on { border-color: var(--accent); background: var(--p-choisi); color: var(--accent); }
+.note { font-size: 12.5px; color: var(--p-texte-3); }
+
+/* Vue dédiée (Générer) */
+.vue-barre { flex: none; height: 44px; display: flex; align-items: center; gap: 6px; padding: 0 12px; border-bottom: 1px solid var(--p-filet-fort); font-size: 13.5px; color: var(--p-texte-3); }
+.vue-barre b { color: var(--p-texte-1); font-weight: 600; }
+.cartes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.carte { border: 1px solid var(--p-filet-fort); border-radius: 7px; background: var(--p-surface-1); padding: 4px; font-size: 12.5px; font-weight: 600; color: var(--p-texte-1); display: flex; flex-direction: column; gap: 3px; }
+.carte .vignette { aspect-ratio: 16 / 9; margin: 0; border-radius: 4px; }
+.carte.on { border-color: var(--accent); outline: 1.5px solid var(--accent); background: var(--p-choisi); color: var(--accent); }
+.pied { flex: none; padding: 12px 16px; border-top: 1px solid var(--p-filet); display: flex; gap: 8px; }
+.duo { display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start; }
+.duo .texte { flex: 1; min-width: 260px; display: flex; flex-direction: column; gap: 12px; }
+.depot { border: 1.5px dashed var(--p-filet-fort); border-radius: 8px; padding: 18px 12px; text-align: center; font-size: 13.5px; color: var(--p-texte-2); }
+.depot small { display: block; color: var(--p-texte-3); font-size: 12.5px; }
+.menu-ouvert { position: relative; }
+.popover { position: absolute; left: 12px; top: 40px; z-index: 2; width: 236px; background: var(--panneau); border: 1px solid var(--bord); border-radius: var(--rayon); box-shadow: 0 8px 24px rgba(0,0,0,.55); padding: 4px; display: flex; flex-direction: column; gap: 2px; }
+.popover div { height: 36px; display: flex; align-items: center; gap: 8px; padding: 0 10px; border-radius: 4px; font-size: 14px; color: var(--p-texte-1); }
+.popover div:first-child { background: var(--p-surface-survol); }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></symbol>
+  <symbol id="i-replier" viewBox="0 0 24 24"><path d="M7 4l5 5 5-5M7 20l5-5 5 5"/></symbol>
+  <symbol id="i-cherche" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></symbol>
+  <symbol id="i-biblio" viewBox="0 0 24 24"><path d="M5 4v16M9 4v16M13 5l4 15M19 4"/></symbol>
+  <symbol id="i-monde" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M4 12h16M12 4c3 3 3 13 0 16M12 4c-3 3-3 13 0 16"/></symbol>
+  <symbol id="i-lieu" viewBox="0 0 24 24"><path d="M12 21s-6-5.5-6-11a6 6 0 0 1 12 0c0 5.5-6 11-6 11z"/><circle cx="12" cy="10" r="2"/></symbol>
+  <symbol id="i-plateau" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="1"/><path d="M4 9.3h16M4 14.6h16M9.3 4v16M14.6 4v16"/></symbol>
+  <symbol id="i-fermer" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="i-plus-actions" viewBox="0 0 24 24"><circle cx="6" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="18" cy="12" r="1"/></symbol>
+  <symbol id="i-importer" viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></symbol>
+  <symbol id="i-etoile" viewBox="0 0 24 24"><path d="M12 4l2 5.5 5.5 2-5.5 2L12 19l-2-5.5L4.5 11.5l5.5-2z"/></symbol>
+  <symbol id="i-retour" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></symbol>
+  <symbol id="i-aide" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M9.8 9.6a2.3 2.3 0 0 1 4.4.9c0 1.5-2.2 1.9-2.2 3.3M12 16.6v.1"/></symbol>
+</svg>
+
+<main class="page">
+  <header>
+    <div class="sur">Maquette · à valider</div>
+    <h1>Bibliothèque, sur le gabarit de Préparer</h1>
+    <p class="chapeau">La page reprend la coquille de Préparer et de Jouer : la barre de navigation, l'arbre à gauche (ici, les filtres), la scène au centre (les vignettes) et l'inspecteur à droite sur toute la hauteur (la carte choisie). Rien de nouveau à apprendre : mêmes largeurs, même en-tête, mêmes sections.</p>
+  </header>
+
+  <!-- ================= Écran principal ================= -->
+  <section class="bloc">
+    <h2>L'écran : une carte choisie</h2>
+    <div class="defile">
+    <div class="ecran">
+      <div class="nav">
+        <span class="marque">Carte de MJ</span>
+        <span>Préparer</span><span>Jouer</span><span class="actif">Bibliothèque</span>
+        <span class="fin">Fiche joueur</span>
+      </div>
+      <div class="coquille">
+        <!-- Arbre -->
+        <aside class="arbre">
+          <div class="tete-44">
+            <span class="btn discret"><svg class="ic"><use href="#i-plus"/></svg>Ajouter</span>
+            <span class="btn discret icone pousse" title="Replier le panneau"><svg class="ic"><use href="#i-chev"/></svg></span>
+          </div>
+          <div class="arbre-corps">
+            <div class="filtre"><svg class="ic"><use href="#i-cherche"/></svg>Chercher (titre, tag…)</div>
+            <div class="groupe">Zoom</div>
+            <div class="ligne parent choisie"><svg class="ic"><use href="#i-biblio"/></svg>Toutes les cartes<span class="n">14</span></div>
+            <div class="ligne"><svg class="ic"><use href="#i-monde"/></svg>Monde<span class="n">2</span></div>
+            <div class="ligne"><svg class="ic"><use href="#i-lieu"/></svg>Lieu<span class="n">7</span></div>
+            <div class="ligne"><svg class="ic"><use href="#i-plateau"/></svg>Plateau<span class="n">5</span></div>
+            <div class="sous-lignes">
+              <div class="ligne">Extérieur<span class="n">2</span></div>
+              <div class="ligne">Intérieur<span class="n">2</span></div>
+              <div class="ligne">Souterrain<span class="n">1</span></div>
+            </div>
+            <div class="groupe">Milieux</div>
+            <div class="ligne"><span class="case"></span>Forêt<span class="n">4</span></div>
+            <div class="ligne"><span class="case"></span>Plaine<span class="n">1</span></div>
+            <div class="ligne"><span class="case"></span>Montagne<span class="n">2</span></div>
+            <div class="ligne"><span class="case"></span>Désert<span class="n">0</span></div>
+            <div class="ligne"><span class="case"></span>Eau<span class="n">3</span></div>
+            <div class="ligne"><span class="case"></span>Côte<span class="n">5</span></div>
+            <div class="ligne"><span class="case"></span>Marais<span class="n">0</span></div>
+            <div class="ligne"><span class="case"></span>Neige<span class="n">0</span></div>
+            <div class="ligne"><span class="case"></span>Ville<span class="n">4</span></div>
+            <div class="ligne"><span class="case"></span>Ruines<span class="n">2</span></div>
+            <div class="ligne"><span class="case"></span>Souterrain<span class="n">1</span></div>
+          </div>
+        </aside>
+        <!-- Centre -->
+        <div class="centre">
+          <div class="barre">
+            <span class="titre">Toutes les cartes</span><span class="doux">· 14</span>
+          </div>
+          <div class="scene"><div class="grille" id="grille"></div></div>
+        </div>
+        <!-- Inspecteur -->
+        <aside class="inspecteur">
+          <div class="insp-tete">
+            <div>
+              <div class="type">Lieu</div>
+              <div class="nom-insp">Marché médiéval du port ensoleillé</div>
+              <div class="meta">1536 × 1024 px · Illustration IA · 5 nov.</div>
+            </div>
+            <span class="btn discret icone"><svg class="ic"><use href="#i-plus-actions"/></svg></span>
+          </div>
+          <div class="sections">
+            <div class="section">
+              <div class="s-tete"><span class="chev"></span>Aperçu</div>
+              <div class="s-corps"><div class="apercu-img" data-cle="zoom-lieu" data-teinte="0"></div></div>
+            </div>
+            <div class="section">
+              <div class="s-tete"><span class="chev"></span>Zoom<span class="outil"><svg class="ic"><use href="#i-aide"/></svg></span></div>
+              <div class="s-corps">
+                <div class="props">
+                  <span class="et">Zoom</span><span class="menu">Lieu</span>
+                </div>
+              </div>
+            </div>
+            <div class="section">
+              <div class="s-tete"><span class="chev"></span>Milieux</div>
+              <div class="s-corps">
+                <div class="pastilles">
+                  <span class="pastille">Forêt</span><span class="pastille">Plaine</span><span class="pastille">Montagne</span><span class="pastille">Désert</span>
+                  <span class="pastille">Eau</span><span class="pastille on">Côte</span><span class="pastille">Marais</span><span class="pastille">Neige</span>
+                  <span class="pastille on">Ville</span><span class="pastille">Ruines</span><span class="pastille">Souterrain</span>
+                </div>
+              </div>
+            </div>
+            <div class="section">
+              <div class="s-tete"><span class="chev"></span>Description</div>
+              <div class="s-corps">
+                <div class="saisie">Étals colorés, fontaine et quai de bois : on y débarque en arrivant à Port-Bourdon.</div>
+                <div class="champ"><span class="et">Tags</span><div class="saisie">port, marché, départ</div></div>
+              </div>
+            </div>
+            <div class="section repliee">
+              <div class="s-tete"><span class="chev"></span>Crédit<span class="apercu">· Moi</span></div>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+    </div>
+    <div class="legende">
+      <div><strong>À gauche : les filtres, comme l'arbre</strong>Le menu « Tous les zooms » et la rangée de puces disparaissent. Les zooms (avec les sous-types du plateau dessous) et les milieux deviennent des rangées avec leur nombre de cartes. Un clic choisit un zoom ; les milieux se cochent et se cumulent. La recherche est en tête, comme le filtre de l'arbre. Le panneau se replie comme dans Préparer.</div>
+      <div><strong>En haut à gauche : « + Ajouter »</strong>À la place de « + Nouveau » : un menu avec « Importer une image… » et « Générer une illustration IA… ». Les deux gros boutons du haut de page disparaissent, avec le titre et la phrase d'introduction (l'onglet « Bibliothèque » suffit).</div>
+      <div><strong>Au centre : la scène</strong>La barre d'outils (44 px) dit ce qu'on regarde et combien de cartes. Les vignettes passent en paysage (3:2) au lieu de portrait : les cartes sont presque toutes plus larges que hautes, on les voit sans les rogner.</div>
+      <div><strong>À droite : l'inspecteur, toute la hauteur</strong>Même en-tête que celui d'un lieu : type en or, nom, une ligne de méta, « ⋯ ». Les sections suivent <b>design-panneaux.md</b>. Le zoom est un menu dans « Zoom » ; si c'est un plateau, une deuxième ligne « Plateau » (Extérieur, Intérieur, Souterrain) apparaît dessous.</div>
+      <div><strong>On modifie sur place, comme un lieu</strong>Plus de bouton « Modifier » ni « Enregistrer » : le nom se change dans l'en-tête, le zoom, les milieux, la description et les tags dans leurs sections. Tout est gardé aussitôt, comme dans Préparer. « Supprimer cette carte » passe dans le menu « ⋯ ».</div>
+      <div><strong>Sur téléphone</strong>Comme Préparer : les filtres deviennent un tiroir (bouton dans la barre), l'inspecteur devient le panneau du bas, qui ne montre que l'en-tête une fois replié.</div>
+    </div>
+  </section>
+
+  <!-- ================= États de l'inspecteur ================= -->
+  <section class="bloc">
+    <h2>Deux autres états de l'inspecteur</h2>
+    <div class="duo">
+      <div class="ecran petit">
+        <aside class="inspecteur">
+          <div class="vue-barre"><svg class="ic"><use href="#i-retour"/></svg>Bibliothèque · <b>Illustration IA</b></div>
+          <div class="insp-tete">
+            <div><div class="type">Illustration IA</div><div class="nom-insp">Nouvelle illustration</div><div class="meta">Brouillon gardé dans ce navigateur</div></div>
+          </div>
+          <div class="sections">
+            <div class="section">
+              <div class="s-tete"><span class="chev"></span>1 · Décrire l'illustration</div>
+              <div class="s-corps">
+                <div class="champ"><span class="et">Zoom</span>
+                  <div class="cartes">
+                    <div class="carte"><div class="vignette" data-cle="zoom-monde"></div>Monde</div>
+                    <div class="carte"><div class="vignette" data-cle="zoom-lieu"></div>Lieu</div>
+                    <div class="carte on"><div class="vignette" data-cle="zoom-plateau"></div>Plateau</div>
+                  </div>
+                </div>
+                <div class="props"><span class="et">Plateau</span><span class="menu">Souterrain</span><span class="et">Style</span><span class="menu">Peint, coloré</span><span class="et">Format</span><span class="menu">Paysage 3:2</span></div>
+                <div class="champ"><span class="et">La scène</span><div class="saisie" style="min-height:64px">Crypte sous le saule, racines dans les murs, trois sarcophages…</div></div>
+              </div>
+            </div>
+            <div class="section repliee"><div class="s-tete"><span class="chev"></span>2 · Copier le prompt</div></div>
+            <div class="section repliee"><div class="s-tete"><span class="chev"></span>3 · Importer l'image</div></div>
+          </div>
+        </aside>
+      </div>
+      <div class="ecran petit">
+        <aside class="inspecteur">
+          <div class="insp-tete">
+            <div><div class="type">Toutes les cartes</div><div class="nom-insp">14 cartes</div><div class="meta">2 mondes · 7 lieux · 5 plateaux</div></div>
+          </div>
+          <div class="sections">
+            <div class="section">
+              <div class="s-tete"><span class="chev"></span>Ajouter une carte</div>
+              <div class="s-corps">
+                <div class="depot"><strong style="color:var(--p-texte-1)">Dépose une image ici</strong><small>ou n'importe où sur la scène · webp, png, jpg, svg</small></div>
+                <div class="note">Elle arrive tout de suite dans la bibliothèque, choisie : son nom vient du fichier, son zoom du filtre en cours. On la complète ensuite ici, comme une autre carte.</div>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </div>
+      <div class="texte">
+        <div class="legende" style="grid-template-columns:1fr">
+          <div><strong>« Générer une illustration IA » : une vue dédiée</strong>C'est le volet d'aujourd'hui, mêmes trois étapes, mais dans l'inspecteur, comme « Au hasard » dans une salle : une barre « ← Bibliothèque · Illustration IA » en haut ramène à la carte choisie. Le zoom garde ses cartes illustrées ; sous-type, style et format deviennent des lignes de propriétés pour tenir dans 330 px.</div>
+          <div><strong>Rien de choisi : l'inspecteur parle de la sélection</strong>Il dit ce que montre la scène (le filtre, le nombre de cartes) et propose de déposer une image. L'import ne passe plus par un formulaire : l'image est rangée aussitôt et choisie, et on la complète dans l'inspecteur.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="bloc">
+    <h2>À trancher ensemble</h2>
+    <ul class="liste">
+      <li><strong>Modifier sur place, sans « Enregistrer » :</strong> c'est la règle de Préparer. La contrepartie : une faute de frappe est gardée aussitôt (on la corrige de même).</li>
+      <li><strong>Importer sans formulaire :</strong> plus rapide (glisser, c'est rangé), mais on ne règle plus le zoom avant l'import. D'où le zoom pris dans le filtre en cours.</li>
+      <li><strong>La fenêtre « Choisir une carte » (depuis Préparer) :</strong> elle garde pour l'instant son ancienne fiche. On peut la passer sur la même grille ensuite.</li>
+    </ul>
+  </section>
+</main>
+
+<script type="module">
+// Les vignettes : les dessins de repli de l'appli (js/bibliotheque/vignettes.js), teintés pour varier.
+import { svgVignette } from '../../js/bibliotheque/vignettes.js';
+const CARTES = [
+  ['Marché médiéval du port ensoleillé', 'Lieu', 'zoom-lieu', 0, true],
+  ['Port-Bourdon', 'Lieu', 'zoom-lieu', 30],
+  ['Archipel coloré des clochers d’or', 'Monde', 'zoom-monde', 0],
+  ['Ruines oubliées dans la forêt automnale', 'Lieu', 'zoom-lieu', -40],
+  ['Village automnal au bord du lac', 'Lieu', 'zoom-lieu', 60],
+  ['Crypte des Saules', 'Plateau · Souterrain', 'zoom-plateau', 190],
+  ['Taverne du Gué', 'Plateau · Intérieur', 'zoom-plateau', 120],
+  ['Clairière aux pierres levées', 'Plateau · Extérieur', 'zoom-plateau', 0],
+  ['Les Dents-de-Sel', 'Lieu', 'zoom-lieu', 160],
+  ['Mer des Brumes', 'Monde', 'zoom-monde', 200],
+  ['Gué du moulin', 'Plateau · Extérieur', 'zoom-plateau', 40],
+  ['Brasierre', 'Lieu', 'zoom-lieu', -80],
+];
+const svg = (cle, teinte) => {
+  const s = svgVignette(cle) ?? '';
+  return s.replace('<svg', `<svg preserveAspectRatio="xMidYMid slice" style="filter:hue-rotate(${teinte}deg)"`);
+};
+document.getElementById('grille').innerHTML = CARTES.map(([nom, zoom, cle, t, choisie]) =>
+  `<div class="tuile${choisie ? ' choisie' : ''}"><div class="vignette">${svg(cle, t)}</div><div class="nom">${nom}</div><div class="zoom">${zoom}</div></div>`).join('');
+for (const el of document.querySelectorAll('[data-cle]')) el.innerHTML = svg(el.dataset.cle, Number(el.dataset.teinte ?? 0));
+</script>
+</body>
+</html>
