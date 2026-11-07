@@ -260,32 +260,36 @@ textarea { width: 100%; min-height: 70px; background: var(--champ); border: 1px 
     </section>
 
     <section class="vue" style="grid-column: 1 / -1">
-      <h2>« Affichage » puis « Régler l'écran de table… » <span class="num">6</span></h2>
-      <div style="display:flex; gap:18px; align-items:flex-start; flex-wrap:wrap">
-        <div class="pop" style="width:340px">
-          <h3>Régie</h3>
-          <div class="ligne"><span>Thème</span><span class="champ">Dessiné ▾</span></div>
-          <div class="ligne"><span>Détails</span><span class="champ">Riches ▾</span></div>
-          <div class="ligne"><span>Relief</span><span class="interrupteur"></span></div>
-          <div class="ligne"><span>Repères</span><span class="interrupteur"></span></div>
-          <div class="ligne"><span>Taille d'une case</span><span class="curseur"></span></div>
-          <div class="ligne"><span>Adapter la carte à la fenêtre</span><span class="interrupteur"></span></div>
-          <h3 style="margin-top:12px">À la table</h3>
-          <div class="ligne"><span>Pénombre</span><span class="curseur"></span></div>
-          <div class="ligne"><span>Flammes animées</span><span class="interrupteur"></span></div>
-          <div class="ligne" style="margin-top:12px"><span class="btn" style="width:100%;justify-content:center;border-color:var(--accent);color:var(--accent)">⚙ Régler l'écran de table…</span></div>
-        </div>
-        <div style="align-self:flex-end; margin-bottom:34px; color:var(--accent); font-size:26px; line-height:1">→<div style="font-size:11px; color:var(--t3)">ouvre</div></div>
-        <div class="pop" style="width:380px; padding:0; overflow:hidden">
-          <div style="display:flex; align-items:center; padding:10px 14px; border-bottom:1px solid var(--filet-fort)"><b style="color:var(--t1); font-size:14px">Régler l'écran de table</b><span style="margin-left:auto; color:var(--t3); font-size:18px">×</span></div>
-          <div style="padding:12px 14px">
-            <h3>Matériel de la table</h3>
-            <div class="champ2" style="margin:6px 0"><span>Rotation</span><span class="champ" style="color:var(--t1)">Aucune ▾</span></div>
-            <div class="rang" style="margin:6px 0"><span style="flex:1">Image en miroir</span><span class="interrupteur off"></span></div>
-            <div class="champ2" style="margin:6px 0"><span>Taille réelle d'une case (mm)</span><span class="champ" style="color:var(--t1)">25</span></div>
-            <span class="btn" style="margin-top:6px">Calibrer sur la table</span>
+      <h2>Popover « Affichage », groupe « À la table » <span class="num">6</span></h2>
+      <div style="display:flex; gap:20px; align-items:flex-start; flex-wrap:wrap">
+        <div>
+          <p class="etat">Au repos</p>
+          <div class="pop" style="width:340px">
+            <h3>Régie</h3>
+            <div class="ligne"><span>Thème</span><span class="champ">Dessiné ▾</span></div>
+            <div class="ligne"><span>Détails</span><span class="champ">Riches ▾</span></div>
+            <div class="ligne"><span>Relief</span><span class="interrupteur"></span></div>
+            <div class="ligne"><span>Repères</span><span class="interrupteur"></span></div>
+            <div class="ligne"><span>Taille d'une case</span><span class="curseur"></span></div>
+            <div class="ligne"><span>Adapter la carte à la fenêtre</span><span class="interrupteur"></span></div>
+            <h3 style="margin-top:14px">À la table</h3>
+            <div class="ligne"><span>Pénombre</span><span class="curseur"></span></div>
+            <div class="ligne"><span>Flammes animées</span><span class="interrupteur"></span></div>
+            <div class="ligne"><span>Rotation</span><span class="champ">Aucune ▾</span></div>
+            <div class="ligne"><span>Image en miroir</span><span class="interrupteur off"></span></div>
+            <div class="ligne"><span>Taille réelle d'une case</span><span class="champ">25 mm</span></div>
+            <div class="ligne" style="margin-top:10px"><span class="btn" style="width:100%;justify-content:center">Calibrer sur la table</span></div>
           </div>
-          <div style="display:flex; justify-content:flex-end; padding:10px 14px; border-top:1px solid var(--filet-fort)"><span class="btn dore">Terminer</span></div>
+        </div>
+        <div>
+          <p class="etat">Pendant le calibrage : le popover reste ouvert et se déplie</p>
+          <div class="pop" style="width:340px">
+            <h3>À la table</h3>
+            <div class="ligne"><span>Taille réelle d'une case</span><span class="champ">25 mm</span></div>
+            <p class="note" style="margin:8px 0">Pose une carte bancaire sur la table et ajuste jusqu'à ce que la case la recouvre.</p>
+            <div class="ligne" style="justify-content:center; gap:6px"><span class="btn mini">−1</span><span class="btn mini">−0,1</span><b style="color:var(--t1); min-width:56px; text-align:center">48 px</b><span class="btn mini">+0,1</span><span class="btn mini">+1</span></div>
+            <div class="ligne" style="margin-top:12px; justify-content:flex-end"><span class="btn dore">Terminer le calibrage</span></div>
+          </div>
         </div>
       </div>
     </section>
@@ -309,7 +313,7 @@ textarea { width: 100%; min-height: 70px; background: var(--champ); border: 1px 
       <li><span class="num">3</span> <span><b>Joueurs partout</b>, dans un monde comme dans un donjon.</span></li>
       <li><span class="num">4</span> <span><b>Un popover sur la carte</b> remplace le bloc « Point choisi » et le panneau « Sélection » : mêmes actions, à côté de l'élément touché.</span></li>
       <li><span class="num">5</span> <span><b>Cadrage sur la carte</b>, dans la vue « À la table » : glisser pour décaler, molette ou pincer pour zoomer, <b>− / + / Remplir / Réel</b>. « Remplir l'écran » et « Échelle réelle » sont deux cadrages de zoom, plus des réglages de panneau ; « Réel » est grisé tant que la carte n'a pas de grille, et toucher + ou − en sort. Nouveau : la table n'a pas de zoom aujourd'hui.</span></li>
-      <li><span class="num">6</span> <span><b>Plus d'onglet « Table » ni « Écran »</b> : le matériel de la table (rotation, miroir, taille réelle, calibrage) est réglé une fois, dans une fenêtre ouverte depuis « Affichage », qui reçoit aussi les préférences de la régie (taille d'une case, adapter à la fenêtre).</span></li>
+      <li><span class="num">6</span> <span><b>Plus d'onglet « Table » ni « Écran »</b> : le matériel de la table (rotation, miroir, taille réelle, calibrage) est réglé une fois, directement dans le groupe « À la table » du popover « Affichage », qui reçoit aussi les préférences de la régie (taille d'une case, adapter à la fenêtre). Le calibrage se déplie dans le popover, qui reste ouvert.</span></li>
       <li><span class="num">7</span> <span><b>« Reprendre la main »</b> et « Consultation » ne vivent que dans les bandeaux au-dessus de la carte.</span></li>
     </ol>
   </div>
