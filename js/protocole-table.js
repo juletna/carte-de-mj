@@ -55,7 +55,7 @@ export function lireEtat(m, affichageActuel) {
 // Le message ne porte ni plan ni partie : l'étape, la taille d'une case (px), la taille visée (mm), la rotation et le miroir. Tant qu'il
 // dure, la table montre une grille seule ; `etape: null` (messageFinCalibrage) la rend à ce qu'elle montrait.
 
-export const ETAPES_CALIBRAGE = ['orienter', 'mesurer', 'verifier', 'termine'];
+export const ETAPES_CALIBRAGE = ['orienter', 'mesurer', 'termine'];
 
 /** Un état de calibrage, à envoyer à la table (et à sa vue d'aperçu dans la régie). */
 export const messageCalibrage = ({ etape, taille, caseMm = CASE_MM_PAR_DEFAUT, rotation = 0, miroir = false }) => ({ type: MESSAGES.CALIBRAGE, etape, taille, caseMm, rotation, miroir });

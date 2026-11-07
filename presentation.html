@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="css/univers.css?v=e15bf1d6">
   <link rel="stylesheet" href="css/atelier.css?v=8261827d">
   <link rel="stylesheet" href="css/panneaux.css?v=21fca64a">
-  <link rel="stylesheet" href="css/presentation.css?v=6d53b1fd">
+  <link rel="stylesheet" href="css/presentation.css?v=c6c0f253">
   <!-- versions:debut (généré par outils/versions.mjs, ne pas modifier à la main) -->
   <script type="importmap">
   {
@@ -21,9 +21,9 @@
       "./js/atelier-arbre.js": "./js/atelier-arbre.js?v=91968e1e",
       "./js/atelier-route.js": "./js/atelier-route.js?v=c99de008",
       "./js/atelier-selection.js": "./js/atelier-selection.js?v=8ac4a04a",
-      "./js/atelier/affichage-popover.js": "./js/atelier/affichage-popover.js?v=b07c5a5f",
+      "./js/atelier/affichage-popover.js": "./js/atelier/affichage-popover.js?v=8f50db61",
       "./js/atelier/arbre-vue.js": "./js/atelier/arbre-vue.js?v=4b08cda1",
-      "./js/atelier/calibrage-parcours.js": "./js/atelier/calibrage-parcours.js?v=5edfe78e",
+      "./js/atelier/calibrage-parcours.js": "./js/atelier/calibrage-parcours.js?v=aa8080ce",
       "./js/atelier/cartouche.js": "./js/atelier/cartouche.js?v=54b8c854",
       "./js/atelier/coquille.js": "./js/atelier/coquille.js?v=502c744c",
       "./js/atelier/dimensions.js": "./js/atelier/dimensions.js?v=4b8c8867",
@@ -54,7 +54,7 @@
       "./js/donjon.js": "./js/donjon.js?v=52ddf63c",
       "./js/dossier-travail-logique.js": "./js/dossier-travail-logique.js?v=3ebf235b",
       "./js/dossier-travail.js": "./js/dossier-travail.js?v=b8ce52db",
-      "./js/ecran-table.js": "./js/ecran-table.js?v=36e7af0b",
+      "./js/ecran-table.js": "./js/ecran-table.js?v=fdc7a244",
       "./js/fiche/format.js": "./js/fiche/format.js?v=9477ccaf",
       "./js/fiche/regles.js": "./js/fiche/regles.js?v=01711471",
       "./js/format.js": "./js/format.js?v=c7e074dc",
@@ -92,7 +92,7 @@
       "./js/popover-element.js": "./js/popover-element.js?v=38102338",
       "./js/pose.js": "./js/pose.js?v=3caab815",
       "./js/presentation.js": "./js/presentation.js?v=f615a0fc",
-      "./js/protocole-table.js": "./js/protocole-table.js?v=315f8216",
+      "./js/protocole-table.js": "./js/protocole-table.js?v=1e8504b6",
       "./js/regie-depart.js": "./js/regie-depart.js?v=63b2ff4a",
       "./js/regie-icones.js": "./js/regie-icones.js?v=55f2e08b",
       "./js/regie-panneau.js": "./js/regie-panneau.js?v=85d10ec1",
@@ -369,7 +369,6 @@
         <div id="calibrage-scene">
           <div id="calibrage-orienter" hidden><span id="calibrage-haut">HAUT</span><span id="calibrage-f" aria-hidden="true">F</span></div>
           <div id="carte-calibrage" hidden></div>
-          <div id="calibrage-verifier" hidden><div id="calibrage-cases"><span id="calibrage-pion"></span></div></div>
           <div id="calibrage-termine" hidden aria-hidden="true">✓</div>
         </div>
         <p id="texte-calibrage" role="status"></p>

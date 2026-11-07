@@ -149,7 +149,7 @@ const TESTS = [
   ['calibrage : chaque champ invalide reprend sa valeur sûre', () => {
     egal(lireCalibrage({ type: 'calibrage', etape: 'mesurer', taille: 9999, caseMm: 3, rotation: 45, miroir: 'oui' }, { ...AFFICHAGE_PAR_DEFAUT, taille: 61 }),
       { etape: 'mesurer', taille: 61, caseMm: 25, rotation: 0, miroir: false }, 'taille de l’affichage actuel, 25 mm, aucune rotation, pas de miroir');
-    egal(lireCalibrage({ etape: 'verifier', taille: '50', caseMm: NaN }, AFFICHAGE_PAR_DEFAUT), { etape: 'verifier', taille: 48, caseMm: 25, rotation: 0, miroir: false }, 'chaînes et NaN');
+    egal(lireCalibrage({ etape: 'termine', taille: '50', caseMm: NaN }, AFFICHAGE_PAR_DEFAUT), { etape: 'termine', taille: 48, caseMm: 25, rotation: 0, miroir: false }, 'chaînes et NaN');
     egal(lireCalibrage(messageCalibrage({ etape: 'orienter' }), AFFICHAGE_PAR_DEFAUT).taille, 48, 'taille absente');
   }],
   ['calibrage : la fin, une étape inconnue ou un message vide rendent la table à la présentation', () => {

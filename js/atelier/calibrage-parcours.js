@@ -1,7 +1,7 @@
 /**
  * Le PARCOURS de calibrage de l'écran de la table, dans le popover « Affichage » (groupe « Écran de la table », bouton « Calibrer l'écran… »).
- * Quatre étapes : Orienter (rotation, miroir), Mesurer (taille du rectangle au dixième de pixel,
- * « Une case vaut » en mm), Vérifier (texte), Terminé (Remplir / Échelle réelle). Un aperçu de la table (« Ce que voient les joueurs ») reste en haut :
+ * Trois étapes : Orienter (rotation, miroir), Mesurer (taille du rectangle au dixième de pixel,
+ * « Une case vaut » en mm), Terminé (Remplir / Échelle réelle). Un aperçu de la table (« Ce que voient les joueurs ») reste en haut :
  * c'est la vue table en mode aperçu (`presentation.html?vue=table&apercu=1`, comme la vue « À la table » de la régie), qui reçoit les mêmes messages
  * `calibrage` que la fenêtre, donc montre la même chose sans second rendu.
  *
@@ -18,7 +18,7 @@ import { accrocherMm, graduationsMm, standardGrise, caseMmDe, appliquerCaseMm, a
 
 /** Taille (px) à laquelle l'aperçu de la table est dessiné avant d'être réduit à la place disponible (ratio 16 : 10). */
 const ECRAN = { largeur: 1600, hauteur: 1000 };
-const TITRES = { orienter: 'Orienter', mesurer: 'Mesurer', verifier: 'Vérifier', termine: 'Table calibrée' };
+const TITRES = { orienter: 'Orienter', mesurer: 'Mesurer', termine: 'Table calibrée' };
 
 /** Le texte « n mm » (virgule française, un chiffre après la virgule seulement s'il le faut). */
 export const texteMm = (mm) => `${String(Math.round(mm * 10) / 10).replace('.', ',')} mm`;
@@ -67,10 +67,6 @@ export function creerParcours({ calibrage, lire, surReglage, fermer = () => {}, 
     h('div', { className: 'pop-reglette' }, curseurMm, graduations),
     h('p', { className: 'pop-note', textContent: 'La poignée s’accroche à 25 mm, la case standard (1 pouce ≈ 25,4 mm). À changer seulement avec un tapis ou des figurines hors norme.' }));
 
-  // --- Étape Vérifier ---
-  const verifier = h('div', { className: 'pop-parcours-etape', 'data-etape': 'verifier' },
-    h('p', { className: 'pop-note', textContent: 'Trois cases et un pion de test à l’échelle : c’est ce que verront les joueurs. Pose une figurine sur une case : elle doit y tenir, ni trop à l’étroit ni trop au large. Sinon, reviens à l’étape précédente.' }));
-
   // --- Étape Terminé ---
   const choix = ['remplir', 'reel'].map((v) => h('button', { type: 'button', role: 'radio', 'aria-checked': 'false', 'data-valeur': v, textContent: v === 'reel' ? 'Échelle réelle' : 'Remplir' }));
   const choixSeg = h('div', { className: 'pop-seg', role: 'radiogroup', 'aria-label': 'Taille à la table' }, ...choix);
@@ -79,7 +75,7 @@ export function creerParcours({ calibrage, lire, surReglage, fermer = () => {}, 
     h('p', { className: 'pop-note', textContent: 'Échelle réelle est choisi pour toi : c’est ce qu’on vient de calibrer, les salles sont à la bonne taille pour les figurines (une grande salle défile). Remplir adapte la carte à l’écran.' }),
     h('p', { className: 'pop-note', textContent: 'Enregistré à la fermeture.' }));
 
-  const etapes = { orienter, mesurer, verifier, termine };
+  const etapes = { orienter, mesurer, termine };
 
   // --- Actions ---
   const annulerBtn = bouton('Annuler', 'btn-discret pop-gauche', () => annuler());
@@ -92,7 +88,7 @@ export function creerParcours({ calibrage, lire, surReglage, fermer = () => {}, 
   const actions = h('div', { className: 'pop-rang pop-parcours-actions' }, annulerBtn, retourBtn, recommencerBtn, suivantBtn);
 
   const element = h('div', { className: 'atelier-affichage-groupe pop-parcours', id: 'parcours-calibrage', hidden: true, role: 'group', 'aria-label': 'Calibrage de l’écran de la table' },
-    h('div', { className: 'pop-parcours-tete' }, titre, compteur), progres, zoneApercu, orienter, mesurer, verifier, termine, actions);
+    h('div', { className: 'pop-parcours-tete' }, titre, compteur), progres, zoneApercu, orienter, mesurer, termine, actions);
 
   /**
    * Abandonne le parcours et referme le popover. Rien ne reste de ce qui a été touché : la taille en pixels n'est qu'un brouillon, et la rotation, le miroir
@@ -174,7 +170,7 @@ export function creerParcours({ calibrage, lire, surReglage, fermer = () => {}, 
     for (const b of choix) b.setAttribute('aria-checked', String(b.dataset.valeur === choisi));
     retourBtn.hidden = i === 0 || etape === 'termine';
     recommencerBtn.hidden = etape !== 'termine';
-    suivantBtn.textContent = etape === 'termine' ? 'Fermer' : etape === 'verifier' ? 'C’est bon' : 'Suivant';
+    suivantBtn.textContent = etape === 'termine' ? 'Fermer' : 'Suivant';
     return true;
   }
   return { element, maj, annuler, actif: () => cal()?.actif() === true, aApercu: () => apercu !== null };

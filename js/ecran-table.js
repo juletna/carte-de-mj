@@ -53,14 +53,13 @@ export function creerEcranTable({ affichage = { ...AFFICHAGE_PAR_DEFAUT } } = {}
     o.classList.toggle('couche', rotation === 90 || rotation === 270);
   }
 
-  const ETAPES = [['orienter', 'calibrage-orienter'], ['mesurer', 'carte-calibrage'], ['verifier', 'calibrage-verifier'], ['termine', 'calibrage-termine']];
+  const ETAPES = [['orienter', 'calibrage-orienter'], ['mesurer', 'carte-calibrage'], ['termine', 'calibrage-termine']];
   const CONSIGNES = {
     orienter: 'Mets la lettre dans le sens où tu veux lire la carte.',
     mesurer: 'Pose une carte bancaire sur le rectangle. Ajuste jusqu’à ce qu’elle coïncide.',
-    verifier: 'Pose une figurine sur une case. Elle doit y tenir sans déborder.',
   };
   /**
-   * Le mode calibrage (message `calibrage`) : fond uni et grille seule à la taille calibrée, par étape (orienter, mesurer, verifier,
+   * Le mode calibrage (message `calibrage`) : fond uni et grille seule à la taille calibrée, par étape (orienter, mesurer,
    * termine). Prioritaire sur la salle et sur une carte d'univers, qu'il ne défait pas : `ecran.plan` et le reste sont gardés tels quels.
    */
   function montrerCalibrage() {

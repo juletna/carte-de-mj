@@ -621,10 +621,10 @@ L'appli la voit au retour sur son onglet ou au rechargement.
 - **Dictée vocale** : disponible dans Chrome, Edge et Safari, pas dans Firefox. Dans Chrome et Edge,
   la reconnaissance passe par les serveurs de Google : elle demande une connexion et votre voix quitte la machine.
 - **Calibrage** : dans la régie, « Affichage » › Écran de la table › « Calibrer l'écran… » (toujours disponible, même sans salle,
-  dans un monde comme dans un donjon). Un parcours en quatre étapes s'ouvre dans le popover, qui reste ouvert : **Orienter** (rotation
+  dans un monde comme dans un donjon). Un parcours en trois étapes s'ouvre dans le popover, qui reste ouvert : **Orienter** (rotation
   par quarts de tour, miroir : ce sont les mêmes réglages que « Écran de la table »), **Mesurer** (posez une carte bancaire sur le
   rectangle de la table, ajustez avec − / + au dixième de pixel, et la taille visée d'une case, de 10 à 50 mm, au curseur gradué qui
-  s'accroche à 25 mm ; « Standard : 25 mm » la remet), **Vérifier** (trois cases et un pion à l'échelle) puis **Terminé** (Remplir ou
+  s'accroche à 25 mm ; « Standard : 25 mm » la remet), puis **Terminé** (Remplir ou
   Échelle réelle, celle-ci présélectionnée). Un aperçu « Ce que voient les joueurs » suit la table pendant tout le parcours.
   « Annuler » (ou Échap) est toujours possible : rien n'est enregistré, la rotation, le miroir et la taille visée reprennent leur valeur
   d'avant, et la table retrouve la présentation. La taille de la case est alors celle calibrée, pour tous les donjons et tous les lieux.

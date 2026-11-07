@@ -118,7 +118,7 @@ export function creerAffichagePopover({ lire, surChangement, regie = false, gard
       rang('Taille réelle d’une case', h('span', { className: 'pop-stepper' }, pasBouton('case-mm-moins', '−', 'Une case de moins'),
         h('input', { id: 'case-mm', type: 'number', inputmode: 'decimal', min: '10', max: '50', step: '0.1', 'aria-label': 'Taille réelle d’une case, en millimètres' }), h('span', { className: 'pop-unite', textContent: 'mm' }),
         pasBouton('case-mm-plus', '+', 'Une case de plus'))),
-      h('button', { id: 'calibrer-table', type: 'button', className: 'btn pop-calibrer', textContent: 'Calibrer l’écran…', title: 'Parcours en quatre étapes : orienter l’image, mesurer avec une carte bancaire, vérifier. Marche aussi sans salle affichée, dans un monde comme dans un donjon.' }))) : null;
+      h('button', { id: 'calibrer-table', type: 'button', className: 'btn pop-calibrer', textContent: 'Calibrer l’écran…', title: 'Parcours en trois étapes : orienter l’image, mesurer avec une carte bancaire, terminer. Marche aussi sans salle affichée, dans un monde comme dans un donjon.' }))) : null;
 
   // Le parcours de calibrage (Jouer seulement) : tant qu'il est en cours, il remplace le contenu du popover, qui reste ouvert (voir `majCalibrage`).
   const parcours = regie ? creerParcours({ calibrage, lire, surReglage: () => surChangement(), fermer: (o) => fermer(o) }) : null;

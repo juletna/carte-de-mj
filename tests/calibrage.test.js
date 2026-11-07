@@ -34,19 +34,19 @@ const TESTS = [
   }],
   ['les messages envoyés se relisent à l’identique côté table, sans rien de la partie', () => {
     const { c, envois } = fabrique({ taille: 61.5, caseMm: 30 });
-    c.demarrer('verifier');
-    egal(lireCalibrage(envois[0], { taille: 48 }), { etape: 'verifier', taille: 61.5, caseMm: 30, rotation: 0, miroir: false }, 'relu');
+    c.demarrer('termine');
+    egal(lireCalibrage(envois[0], { taille: 48 }), { etape: 'termine', taille: 61.5, caseMm: 30, rotation: 0, miroir: false }, 'relu');
   }],
-  ['étapes : suivante et précédente parcourent orienter, mesurer, vérifier, terminé ; précédente bute sur la première', () => {
+  ['étapes : suivante et précédente parcourent orienter, mesurer, terminé ; précédente bute sur la première', () => {
     const { c, envois } = fabrique();
     c.demarrer('orienter');
     c.precedente();
     egal(c.etape(), 'orienter', 'la première reste la première');
     const vues = [];
-    for (let i = 0; i < 3; i++) { c.suivante(); vues.push(c.etape()); }
-    egal(vues, ['mesurer', 'verifier', 'termine'], 'dans l’ordre');
+    for (let i = 0; i < 2; i++) { c.suivante(); vues.push(c.etape()); }
+    egal(vues, ['mesurer', 'termine'], 'dans l’ordre');
     c.precedente();
-    egal(c.etape(), 'verifier', 'retour');
+    egal(c.etape(), 'mesurer', 'retour');
     c.aller('orienter'); c.aller('inconnue');
     egal(c.etape(), 'orienter', 'aller : étape inconnue ignorée');
     egal(envois.at(-1).etape, 'orienter', 'chaque changement est envoyé à la table');
@@ -66,7 +66,7 @@ const TESTS = [
   }],
   ['annuler : rien d’enregistré, la table reçoit la fin du calibrage', () => {
     const { c, r, ecritures, envois } = fabrique({ taille: 48 });
-    c.demarrer(); c.ajuster(5); c.aller('verifier');
+    c.demarrer(); c.ajuster(5); c.aller('termine');
     c.annuler();
     egal([c.actif(), c.taille()], [false, 48], 'plus de calibrage, taille d’origine');
     egal(r, { taille: 48 }, 'réglages intacts (ni calibre ni mode)');
@@ -167,7 +167,7 @@ const TESTS = [
     egal(envois[envois.length - 1], { type: 'calibrage', etape: null }, 'annuler rend la table');
   }],
   ['pages : presentation.html porte le mode calibrage de la table, sans drapeau dans l’affichage', () => {
-    for (const id of ['calibrage-table', 'calibrage-orienter', 'carte-calibrage', 'calibrage-verifier', 'calibrage-termine', 'texte-calibrage']) verifier(sources.html.includes(`id="${id}"`), `#${id}`);
+    for (const id of ['calibrage-table', 'calibrage-orienter', 'carte-calibrage', 'calibrage-termine', 'texte-calibrage']) verifier(sources.html.includes(`id="${id}"`), `#${id}`);
     verifier(sources.html.includes('id="bandeau-calibrage"'), '#bandeau-calibrage');
     verifier(!/calibrage:\s*true/.test(sources.regie), 'regie.js : plus de drapeau calibrage dans l’affichage');
     verifier(!/calibrer-table/.test(sources.univers), 'regie-univers.js : le calibrage n’est plus grisé dans un monde');
