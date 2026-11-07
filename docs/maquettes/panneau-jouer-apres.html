@@ -125,6 +125,20 @@ textarea { width: 100%; min-height: 70px; background: var(--champ); border: 1px 
 .zoombar { position: absolute; right: 12px; bottom: 12px; display: flex; align-items: center; gap: 6px; background: #1f1e24; border: 1px solid var(--bord); border-radius: 8px; padding: 4px 6px; }
 .zoombar .btn { min-height: 30px; padding: 0 10px; }
 .zoombar span.v { min-width: 46px; text-align: center; color: var(--t1); font-size: 13px; }
+
+/* v2 : l'écran final seul ; les annotations sont dans la légende, jamais dans les panneaux */
+.etat { font-size: 12.5px; color: var(--t3); margin: 0 0 8px; }
+.num { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: var(--succes); color: #06140a; font-size: 11px; font-weight: 700; margin-left: 6px; vertical-align: 1px; }
+.vue h2 .num { margin-left: 8px; }
+.sec .aide-bas { color: var(--t3); font-size: 12.5px; margin: 0; }
+.btn.mini { min-height: 26px; padding: 0 10px; font-size: 12px; }
+.grise { opacity: .5; }
+.bande-rouge { background: #3a1a15; border: 1px solid var(--erreur); border-radius: 8px; padding: 10px 12px; font-size: 13px; color: #f1b3a8; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.bande-jaune { background: #33280a; border: 1px solid #8a6d17; border-radius: 8px; padding: 10px 12px; font-size: 13px; color: #e8d28a; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.section-titre { font-size: 14px; color: var(--t2); margin: 34px 0 12px; padding-top: 14px; border-top: 1px solid var(--filet); }
+.zoombar { position: absolute; right: 12px; bottom: 12px; display: flex; align-items: center; gap: 6px; background: #1f1e24; border: 1px solid var(--bord); border-radius: 8px; padding: 4px 6px; }
+.zoombar .btn { min-height: 30px; padding: 0 10px; }
+.zoombar span.v { min-width: 46px; text-align: center; color: var(--t1); font-size: 13px; }
 </style>
 </head>
 <body>
@@ -135,7 +149,7 @@ textarea { width: 100%; min-height: 70px; background: var(--champ); border: 1px 
   <h2 class="section-titre" style="margin-top:0;border-top:0;padding-top:0">La barre d'outils de la scène <span class="num">1</span></h2>
   <div class="barre">
     <div class="vues"><span>En régie</span><span class="v">À la table</span></div>
-    <span class="btn dore ico">⛶ Ouvrir la table</span>
+    <span class="btn dore ico">⛶ Ouvrir la table ▾</span>
     <div class="fin"><span class="btn ico">▦ ▾</span><span class="btn ico">⚙ Affichage</span></div>
   </div>
 
@@ -202,8 +216,6 @@ textarea { width: 100%; min-height: 70px; background: var(--champ); border: 1px 
       <h2>Écran <span class="num">4</span></h2>
       <div class="panneau">
         <div class="onglets"><span>Ici</span><span>Joueurs</span><span class="actif">Écran</span></div>
-        <div class="sec"><div class="bandeau">Fenêtre de table</div>
-          <div class="corps"><div class="rangee"><span class="btn">⛶ Ouvrir la fenêtre</span><span class="btn">⛶ Plein écran ici</span></div></div></div>
         <div class="sec"><div class="bandeau">Cette carte</div>
           <div class="corps">
             <div class="rang"><span class="radio on"></span><span>Remplir l'écran</span></div>
@@ -284,6 +296,14 @@ textarea { width: 100%; min-height: 70px; background: var(--champ); border: 1px 
     </section>
 
     <section class="vue">
+      <h2>Menu « Ouvrir la table » <span class="num">1</span></h2>
+      <div class="pop" style="max-width:320px">
+        <div class="rang" style="margin:4px 0">⛶ <span><b>Dans une fenêtre</b><br><small style="color:var(--t3)">à glisser sur l'écran de la table</small></span></div>
+        <div class="rang" style="margin:4px 0">⛶ <span><b>Plein écran ici</b><br><small style="color:var(--t3)">sur cet écran</small></span></div>
+      </div>
+    </section>
+
+    <section class="vue">
       <h2>Bandeaux au-dessus de la carte <span class="num">8</span></h2>
       <p class="etat">Seulement quand il y a quelque chose à faire. Normalement : aucun bandeau.</p>
       <div style="display:grid;gap:10px">
@@ -297,10 +317,10 @@ textarea { width: 100%; min-height: 70px; background: var(--champ); border: 1px 
   <div class="legende">
     <h2>Ce qui change par rapport à aujourd'hui</h2>
     <ol>
-      <li><span class="num">1</span> <span><b>Deux vues dans la barre d'outils</b> (« En régie » / « À la table », liseré vert) et « Ouvrir la table » qui y monte, accessible depuis n'importe quel onglet.</span></li>
+      <li><span class="num">1</span> <span><b>Deux vues dans la barre d'outils</b> (« En régie » / « À la table », liseré vert) et un <b>seul</b> bouton « Ouvrir la table » (doré), accessible depuis n'importe quel onglet ; son menu propose « Dans une fenêtre » et « Plein écran ici ».</span></li>
       <li><span class="num">2</span> <span><b>« Salle » et « Lieu » deviennent « Ici »</b>, avec les mêmes sections : <i>Visible à la table</i> (interrupteurs), <i>Cachés</i> (la seule liste : Révéler sur chaque ligne et Révéler tout, elle disparaît quand rien n'est caché), <i>Notes</i> (préparation et partie, aussi pour un lieu). Les listes d'éléments, de points et de portes sont supprimées : la carte et l'arbre font déjà ce travail.</span></li>
       <li><span class="num">3</span> <span><b>Joueurs partout</b>, dans un monde comme dans un donjon.</span></li>
-      <li><span class="num">4</span> <span><b>« Table » devient « Écran »</b>, en deux groupes : <i>Cette carte</i> (taille, plan du donjon : ce qu'on retouche en jeu) et <i>Matériel de la table</i> (rotation, miroir, taille réelle, calibrage : réglé une fois, replié). « Mini-carte » s'appelle « Plan du donjon ». La section « Défilement » disparaît.</span></li>
+      <li><span class="num">4</span> <span><b>« Table » devient « Écran »</b>, en deux groupes : <i>Cette carte</i> (taille, plan du donjon : ce qu'on retouche en jeu) et <i>Matériel de la table</i> (rotation, miroir, taille réelle, calibrage : réglé une fois, replié). « Mini-carte » s'appelle « Plan du donjon ». Les sections « Fenêtre de table » (déplacée dans le bouton de la barre d'outils) et « Défilement » disparaissent.</span></li>
       <li><span class="num">5</span> <span><b>Un popover sur la carte</b> remplace le bloc « Point choisi » et le panneau « Sélection » : mêmes actions, à côté de l'élément touché.</span></li>
       <li><span class="num">6</span> <span><b>Défilement et zoom directement sur la carte</b> dans la vue « À la table » : glisser, molette ou pincer, − / + / Ajuster. Nouveau : la table n'a pas de zoom aujourd'hui.</span></li>
       <li><span class="num">7</span> <span><b>« Affichage »</b> reçoit les préférences de la régie (taille d'une case, adapter à la fenêtre) qui étaient dans « Réglages ».</span></li>
