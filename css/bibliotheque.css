@@ -46,7 +46,7 @@ dialog.bib::backdrop { background: rgb(0 0 0 / 0.65); }
 .bib-credit { color: var(--accent); }
 .bib-actions { display: flex; flex-wrap: wrap; gap: var(--esp-2); margin-top: var(--esp-2); }
 /* Dans la fenêtre de choix, « Choisir cette carte » reste visible en bas du détail, même quand celui-ci défile. */
-.bib-detail > .bib-actions { margin-top: auto; position: sticky; bottom: 0; flex: 1 1 100%; padding: var(--esp-2) 0; background: var(--panneau); z-index: 1; }
+.bib-detail > .bib-actions { margin-top: auto; position: sticky; bottom: 0; flex: 0 0 auto; align-content: flex-start; padding: var(--esp-2) 0; background: var(--panneau); z-index: 1; }
 
 .bib-formulaire { display: flex; flex-direction: column; gap: var(--esp-2); padding: var(--esp-3); border: 1px solid var(--bord); border-radius: var(--rayon); max-width: 520px; }
 .bib-formulaire fieldset { border: 1px solid var(--bord); border-radius: var(--rayon); margin: 0; padding: var(--esp-2); }
@@ -61,6 +61,7 @@ dialog.bib :focus-visible { outline: var(--focus); outline-offset: var(--focus-d
   dialog.bib { width: 100vw; height: 100dvh; border-radius: 0; border: 0; }
   .bib-corps { grid-template-columns: 1fr; grid-template-rows: minmax(0, 1fr) auto; }
   .bib-detail { border-left: 0; border-top: 1px solid var(--bord); padding: var(--esp-3) 0 0; max-height: 40vh; flex-direction: row; flex-wrap: wrap; }
+  .bib-detail > .bib-actions { flex: 1 1 100%; } /* détail en rangée : les actions prennent toute la largeur, sous l'aperçu */
   .bib-apercu { width: 100px; flex: none; }
   .bib-apercu img { max-height: 150px; }
   .bib-fiche { flex: 1 1 160px; }
