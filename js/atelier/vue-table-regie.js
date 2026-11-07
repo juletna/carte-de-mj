@@ -1,5 +1,5 @@
 /**
- * Les deux vues de la régie, en haut de la scène : « Régie » (la carte et la commande) et « Table » (ce que voient les joueurs, en grand).
+ * Les deux vues de la régie, en haut de la scène : « En régie » (la carte et la commande) et « À la table » (ce que voient les joueurs, en grand).
  * Le MJ règle l'écran de table dans le panneau de droite et voit tout de suite le résultat, sans tourner la tête vers l'écran de la table.
  *
  *   const vues = creerVuesRegie({ scene, barre, avant });   // `scene` : #principal (colonne), `barre` : la barre d'outils, `avant` : le nœud devant lequel poser le sélecteur
@@ -24,8 +24,8 @@ export function creerVuesRegie({ scene, barre, avant = null, doc = document }) {
     return b;
   };
   const selecteur = h('div', { className: 'regie-vues', role: 'tablist', 'aria-label': 'Vue' },
-    fabriquer('regie', 'Régie', 'La carte et la commande'),
-    fabriquer('table', 'Table', 'Ce que voient les joueurs, en grand : règle l’écran de table et vois le résultat'));
+    fabriquer('regie', 'En régie', 'Ta carte et la commande : ce que tu vois, toi'),
+    fabriquer('table', 'À la table', 'Ce que voient les joueurs, en grand : règle l’écran de table et vois le résultat'));
   barre.insertBefore(selecteur, avant);
 
   const zone = h('div', { id: 'apercu-scene', className: 'apercu-scene', hidden: true });
