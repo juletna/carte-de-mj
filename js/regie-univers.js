@@ -416,7 +416,13 @@ export function creerRegieUnivers(ctx) {
     const nbCaches = lieu.points.filter((q) => q.cache && !pu.pointRevele(partie, lieu.id, q)).length;
     // Sections du panneau (js/atelier/section.js, docs/design-panneaux.md) ; le pli est gardé pour la session.
     const section = (cle, titre, enfants, options = {}) => creerSection({ cle: `regie-lieu:${cle}`, titre, enfants, ...options }).element;
+    // En-tête (comme celui d'une salle) : le lieu dont parle le panneau (notes, cachés), et si c'est celui que la table voit.
+    const entete = h('div', { className: 'regie-entete' },
+      h('p', { className: 'atelier-inspecteur-type', textContent: 'Lieu' }),
+      h('p', { className: 'regie-entete-nom', textContent: lieu.nom || 'Lieu sans nom' }),
+      h('p', { className: 'atelier-inspecteur-resume', textContent: enConsultation() ? `Regardé ici seulement : la table voit ${univers.lieux[partie.lieuCourant]?.nom ?? 'une autre carte'}` : 'À la table' }));
     panneau.replaceChildren(
+      entete,
       section('table', 'Visible à la table', [
         h('p', { className: 'note', textContent: enConsultation() ? 'Tu consultes cette carte : la table ne la voit pas encore. « Afficher à la table » l’y conduit.' : ctx.commande.main ? `La table voit cette carte${nbCaches ? ` sans ${pluriel(nbCaches, 'point caché', 'points cachés')}` : ''}.` : 'Cette régie est en retrait : la table ne voit pas ce que tu fais ici.' }),
         interrupteur('Points', !partie.masquerPoints, basculeChamp('masquerPoints'), 'les points révélés'),
