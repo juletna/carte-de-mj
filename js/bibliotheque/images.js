@@ -116,6 +116,21 @@ export async function listerImages() {
 /** Une image importée (ancien niveau converti), ou undefined. */
 export const lireImage = async (id) => migrerEntree(await transaction('readonly', (s) => s.get(id)));
 
+/**
+ * Change les métadonnées d'une image déjà rangée (titre, zoom, sous-type, milieux, tags, description, crédit, licence) ; le fichier, la grille et l'origine
+ * ne bougent pas. Rend l'entrée mise à jour. Lève une Error au message lisible si l'image a disparu ou si les valeurs sont refusées.
+ */
+export async function mettreAJourImage(id, meta = {}) {
+  const avant = await transaction('readonly', (s) => s.get(id));
+  if (!avant) throw new Error('image introuvable');
+  const verif = validerCarte({ ...migrerEntree(avant), ...meta, sousType: meta.sousType }, { avecFichier: false });
+  if (verif.erreur) throw new Error(verif.erreur);
+  const { sousType, ...reste } = avant; // un plateau devenu lieu ne garde pas son sous-type
+  const entree = { ...reste, ...verif.carte };
+  await transaction('readwrite', (s) => s.put(entree));
+  return entree;
+}
+
 /** Supprime une image (la confirmation en deux clics est dans l'interface) ; le dossier de travail la retirera aussi. */
 export const supprimerImage = (id) => transaction('readwrite', (s) => s.delete(id), { detail: { supprimees: [id] } });
 

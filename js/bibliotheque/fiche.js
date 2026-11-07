@@ -28,10 +28,10 @@ export function ficheCarte(e, { titreDe } = {}) {
 
 /**
  * Les champs du formulaire d'import : { titre, niveau, sousType (d'un plateau), milieux, tags, description, credit, licence, elements }.
- * `elements` : étiquettes et champs dans l'ordre d'affichage. `pre` : valeurs de départ (niveau, description).
+ * `elements` : étiquettes et champs dans l'ordre d'affichage. `pre` : valeurs de départ (niveau, sousType, titre, milieux, tags, description, credit, licence) ; à la modification d'une image, `fichier` n'est que { name }.
  */
 export function champsImport(fichier, pre = {}) {
-  const titre = h('input', { type: 'text', value: fichier.name.replace(/\.[^.]+$/, '').slice(0, 120), maxLength: 120, id: 'bib-f-titre' });
+  const titre = h('input', { type: 'text', value: pre.titre ?? fichier.name.replace(/\.[^.]+$/, '').slice(0, 120), maxLength: 120, id: 'bib-f-titre' });
   const niveau = h('select', { id: 'bib-f-niveau' }, ...NIVEAUX.map((n) => h('option', { value: n.id, textContent: n.libelle })));
   const depart = normaliserNiveau({ niveau: pre.niveau || 'lieu', sousType: pre.sousType }) ?? { niveau: 'lieu' };
   niveau.value = depart.niveau;
@@ -41,11 +41,11 @@ export function champsImport(fichier, pre = {}) {
   const majSousType = () => { sousType.hidden = etiqSousType.hidden = niveau.value !== 'plateau'; };
   niveau.addEventListener('change', majSousType);
   majSousType();
-  const milieux = MILIEUX.map((m) => h('label', { className: 'bib-case' }, h('input', { type: 'checkbox', value: m.id }), ` ${m.libelle}`));
-  const tags = h('input', { type: 'text', placeholder: 'tags séparés par des virgules', id: 'bib-f-tags' });
+  const milieux = MILIEUX.map((m) => h('label', { className: 'bib-case' }, h('input', { type: 'checkbox', value: m.id, checked: !!pre.milieux?.includes(m.id) }), ` ${m.libelle}`));
+  const tags = h('input', { type: 'text', placeholder: 'tags séparés par des virgules', id: 'bib-f-tags', value: (pre.tags ?? []).join(', ') });
   const description = h('textarea', { rows: 2, maxLength: 600, id: 'bib-f-description', value: pre.description ?? '' });
-  const credit = h('input', { type: 'text', maxLength: 200, id: 'bib-f-credit', placeholder: 'auteur ou source, si ce n’est pas toi' });
-  const licence = h('input', { type: 'text', maxLength: 80, id: 'bib-f-licence', placeholder: 'par exemple CC BY 4.0' });
+  const credit = h('input', { type: 'text', maxLength: 200, id: 'bib-f-credit', value: pre.credit ?? '', placeholder: 'auteur ou source, si ce n’est pas toi' });
+  const licence = h('input', { type: 'text', maxLength: 80, id: 'bib-f-licence', value: pre.licence ?? '', placeholder: 'par exemple CC BY 4.0' });
   const elements = [
     h('label', { htmlFor: 'bib-f-titre', textContent: 'Titre' }), titre,
     h('label', { htmlFor: 'bib-f-niveau', textContent: 'Zoom' }), niveau,

@@ -18,7 +18,7 @@ import { selectionner } from './bibliotheque/catalogue.js';
 import { NIVEAUX, SOUS_TYPES, MILIEUX, NIVEAUX_AIDE, SOUS_TYPES_AIDE, SOUS_TYPE_PAR_DEFAUT, libelleZoom, normaliserNiveau } from './bibliotheque/vocabulaire.js';
 import { ficheCarte, champsImport, metaImport, menuFiltreZoom, filtreDepuis, MESSAGE_VIDE } from './bibliotheque/fiche.js';
 import { groupeCartes } from './bibliotheque/cartes-choix.js';
-import { importerImage, listerImages, supprimerImage, recadrerImage } from './bibliotheque/images.js';
+import { importerImage, listerImages, supprimerImage, recadrerImage, mettreAJourImage } from './bibliotheque/images.js';
 import { promptACopier, formatCarte, STYLES, FORMATS, STYLE_PAR_DEFAUT, FORMAT_PAR_DEFAUT } from './bibliotheque/prompt.js';
 
 
@@ -324,8 +324,31 @@ function dessinerDetail() {
     } catch (err) { erreurImages = `Suppression impossible : ${err.message}`; dessiner(); }
   });
   const fiche = ficheCarte(choisi.entree, { titreDe: (ref) => images.find((i) => i.id === ref.id)?.titre });
-  fiche.append(h('div', { className: 'bib-actions' }, sup));
+  const modif = btn('Modifier', () => ouvrirModification(), { icone: 'crayon' });
+  fiche.append(h('div', { className: 'bib-actions' }, modif, sup));
   detail.append(h('div', { className: 'bib-apercu' }, h('img', { src: choisi.url, alt: `Aperçu : ${choisi.entree.titre}` })), fiche);
+}
+
+/** Formulaire de modification (zoom, sous-type, titre, milieux, tags…) d'une image déjà rangée, à la place de sa fiche. */
+function ouvrirModification() {
+  const e = choisi.entree, id = choisi.ref.id;
+  const champs = champsImport({ name: e.nom ?? e.titre }, { titre: e.titre, niveau: e.niveau, sousType: e.sousType, milieux: e.milieux, tags: e.tags, description: e.description, credit: e.credit, licence: e.licence });
+  const erreur = h('p', { className: 'bib-erreur', role: 'alert' });
+  const enregistrer = btn('Enregistrer', null, { icone: 'coche', classe: 'btn-primaire' });
+  enregistrer.addEventListener('click', async () => {
+    enregistrer.disabled = true; erreur.textContent = '';
+    try {
+      await mettreAJourImage(id, metaImport(champs));
+      await recharger();
+      const maj = images.find((i) => i.id === id);
+      if (maj) choisi = { ref: choisi.ref, entree: maj, url: choisi.url };
+      dessiner();
+    } catch (err) { erreur.textContent = `Modification impossible : ${err.message}`; enregistrer.disabled = false; }
+  });
+  detail.replaceChildren(h('div', { className: 'bib-apercu' }, h('img', { src: choisi.url, alt: `Aperçu : ${e.titre}` })),
+    h('form', { className: 'bib-formulaire', onsubmit: (ev) => ev.preventDefault() }, h('strong', { textContent: `Modifier « ${e.titre} »` }), ...champs.elements,
+      erreur, h('div', { className: 'bib-actions' }, enregistrer, btn('Annuler', () => dessiner(), { classe: 'btn-discret' }))));
+  champs.titre.focus();
 }
 
 function dessinerListe() {
