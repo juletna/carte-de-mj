@@ -7,7 +7,7 @@ import { h2, vbp } from '../bruit.js';
 import { PERIODE } from '../tuile.js';
 import { ENCRE, mod, marche, vers, aplats, hachure } from './outils.js';
 
-const LIGNES = 12, LONG = 96; // rangées par période (32 px chacune) ; longueur d'une planche (divise PERIODE)
+const LIGNES = 24, LONG = 96; // rangées par période (16 px chacune : une planche = un tiers de case, comme le bois sobre) ; longueur d'une planche (divise PERIODE)
 const TONS = [[226, 176, 100], [212, 150, 80], [196, 128, 70], [184, 108, 66], [222, 188, 124]];
 const P = { E: 0, bout: 0, yy: 0, xi: 0, id: 0, i: 0, Xp: 0 };
 const C = [0, 0, 0];
@@ -46,8 +46,8 @@ export function bois(X, Y, o, out) {
 
   // Nœud : quelques anneaux d'encre, étirés dans le sens du fil.
   if (h2(id, 6, o.s) < 0.3) {
-    const cx = 22 + 52 * h2(id, 7, o.s), cy = 10 + (H - 20) * h2(id, 10, o.s);
-    const d = Math.hypot((xi - cx) / 2.2, yy - cy);
+    const cx = 22 + 52 * h2(id, 7, o.s), cy = 5 + (H - 10) * h2(id, 10, o.s);
+    const d = Math.hypot((xi - cx) / 2.2, yy - cy) / 0.55; // nœud réduit de moitié : la planche est deux fois moins haute
     if (d < 6.5) {
       vers(C, [t[0] * 0.7, t[1] * 0.6, t[2] * 0.55], 0.8 * (1 - marche(d, 5.6, 0.5)));
       const r = 1 - marche(Math.abs(mod(d / 2.1, 1) - 0.5), 0.12, 0.06);

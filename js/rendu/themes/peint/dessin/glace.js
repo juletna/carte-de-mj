@@ -16,7 +16,7 @@ const F = { f: 0 };
 /** Hauteur : plaques à peine bombées, séparées par un rebord d'une paire de pixels (et les craquelures en creux). */
 function hauteur(X, Y, o) {
   const fx = X / PERIODE, fy = Y / PERIODE;
-  voroP(fx + 0.012 * (fbmp(fx, fy, 6, o.s + 40, 2) - 0.5), fy + 0.012 * (fbmp(fx, fy, 6, o.s + 41, 2) - 0.5), 4, o.s, V);
+  voroP(fx + 0.012 * (fbmp(fx, fy, 6, o.s + 40, 2) - 0.5), fy + 0.012 * (fbmp(fx, fy, 6, o.s + 41, 2) - 0.5), 6, o.s, V); // 6 plaques par côté, comme la glace sobre
   const E = V.e * PERIODE;
   F.f = Math.abs(fbmp(fx, fy, 5, o.s + 50, 3) - 0.5);
   return marche(E, 2.5, 2.2) * 0.8 + 0.1 * h2(V.id, 3, o.s);
