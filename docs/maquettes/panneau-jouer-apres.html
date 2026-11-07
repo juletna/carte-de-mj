@@ -139,6 +139,32 @@ textarea { width: 100%; min-height: 70px; background: var(--champ); border: 1px 
 .zoombar { position: absolute; right: 12px; bottom: 12px; display: flex; align-items: center; gap: 6px; background: #1f1e24; border: 1px solid var(--bord); border-radius: 8px; padding: 4px 6px; }
 .zoombar .btn { min-height: 30px; padding: 0 10px; }
 .zoombar span.v { min-width: 46px; text-align: center; color: var(--t1); font-size: 13px; }
+
+/* popover « Affichage » v2 : lisible, gros pour les doigts, un contrôle adapté à chaque réglage */
+.pop2 { width: 372px; background: #2a2930; border: 1px solid var(--filet-fort); border-radius: 12px; box-shadow: 0 14px 34px rgba(0,0,0,.6); padding: 6px 0; color: var(--t2); font-size: 14px; }
+.pop2 .grp { padding: 10px 16px 12px; }
+.pop2 .grp + .grp { border-top: 1px solid var(--filet-fort); }
+.pop2 .grp > h3 { margin: 0 0 8px; font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--t4); font-weight: 650; display: flex; align-items: baseline; gap: 8px; }
+.pop2 .grp > h3 small { text-transform: none; letter-spacing: 0; font-weight: 400; color: var(--t4); font-size: 12px; }
+.pop2 .r { display: flex; align-items: center; gap: 12px; min-height: 40px; }
+.pop2 .r > .lib { flex: 1; color: var(--t1); }
+.pop2 .r > .lib small { display: block; color: var(--t3); font-size: 12px; margin-top: 1px; }
+.seg { display: inline-flex; padding: 2px; background: #1b1a20; border-radius: 8px; border: 1px solid var(--filet-fort); }
+.seg span { padding: 5px 14px; font-size: 13px; font-weight: 600; color: var(--t3); border-radius: 6px; }
+.seg span.on { background: #3a3842; color: var(--t1); }
+.sl { display: flex; align-items: center; gap: 10px; flex: 1; justify-content: flex-end; }
+.sl .piste { position: relative; flex: 1; max-width: 150px; height: 4px; background: var(--filet-fort); border-radius: 2px; }
+.sl .piste i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--accent); border-radius: 2px; }
+.sl .piste b { position: absolute; top: -6px; width: 16px; height: 16px; margin-left: -8px; border-radius: 50%; background: #f1ead8; box-shadow: 0 1px 3px rgba(0,0,0,.5); }
+.sl .val { min-width: 44px; text-align: right; color: var(--t1); font-variant-numeric: tabular-nums; font-size: 13px; }
+.ib { display: inline-grid; place-items: center; width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--filet-fort); background: #1b1a20; color: var(--t1); font-size: 20px; line-height: 1; }
+.ib.on { background: var(--choisi); border-color: var(--accent); color: var(--accent); }
+.step { display: inline-flex; align-items: center; background: #1b1a20; border: 1px solid var(--filet-fort); border-radius: 10px; }
+.step .ib { border: 0; background: transparent; border-radius: 10px; }
+.step .v { min-width: 66px; text-align: center; color: var(--t1); font-variant-numeric: tabular-nums; }
+.prev { width: 76px; height: 54px; flex: none; border-radius: 8px; background: #121116; border: 1px solid var(--filet-fort); display: grid; place-items: center; overflow: hidden; }
+.prev .ecran { width: 38px; height: 26px; border: 2px solid var(--t3); border-radius: 4px; display: grid; place-items: center; color: var(--accent); font-size: 15px; font-weight: 700; transition: none; }
+.lien { color: var(--accent); font-size: 12.5px; font-weight: 600; }
 </style>
 </head>
 <body>
@@ -260,35 +286,47 @@ textarea { width: 100%; min-height: 70px; background: var(--champ); border: 1px 
     </section>
 
     <section class="vue" style="grid-column: 1 / -1">
-      <h2>Popover « Affichage », groupe « À la table » <span class="num">6</span></h2>
-      <div style="display:flex; gap:20px; align-items:flex-start; flex-wrap:wrap">
+      <h2>Popover « Affichage » <span class="num">6</span></h2>
+      <div style="display:flex; gap:24px; align-items:flex-start; flex-wrap:wrap">
         <div>
-          <p class="etat">Au repos</p>
-          <div class="pop" style="width:340px">
-            <h3>Régie</h3>
-            <div class="ligne"><span>Thème</span><span class="champ">Dessiné ▾</span></div>
-            <div class="ligne"><span>Détails</span><span class="champ">Riches ▾</span></div>
-            <div class="ligne"><span>Relief</span><span class="interrupteur"></span></div>
-            <div class="ligne"><span>Repères</span><span class="interrupteur"></span></div>
-            <div class="ligne"><span>Taille d'une case</span><span class="curseur"></span></div>
-            <div class="ligne"><span>Adapter la carte à la fenêtre</span><span class="interrupteur"></span></div>
-            <h3 style="margin-top:14px">À la table</h3>
-            <div class="ligne"><span>Pénombre</span><span class="curseur"></span></div>
-            <div class="ligne"><span>Flammes animées</span><span class="interrupteur"></span></div>
-            <div class="ligne"><span>Rotation</span><span class="champ">Aucune ▾</span></div>
-            <div class="ligne"><span>Image en miroir</span><span class="interrupteur off"></span></div>
-            <div class="ligne"><span>Taille réelle d'une case</span><span class="champ">25 mm</span></div>
-            <div class="ligne" style="margin-top:10px"><span class="btn" style="width:100%;justify-content:center">Calibrer sur la table</span></div>
+          <p class="etat">Au repos (écran tourné de 90° et en miroir, pour l'exemple)</p>
+          <div class="pop2">
+            <div class="grp">
+              <h3>Régie <small>ce que tu vois, toi</small></h3>
+              <div class="r"><span class="lib">Style</span><div class="seg"><span class="on">Peint</span><span>Vectoriel</span></div></div>
+              <div class="r"><span class="lib">Détails</span><div class="seg"><span class="on">Riches</span><span>Sobres</span></div></div>
+              <div class="r"><span class="lib">Relief</span><span class="interrupteur"></span></div>
+              <div class="r"><span class="lib">Repères <small>A, B… et 1, 2…</small></span><span class="interrupteur"></span></div>
+              <div class="r"><span class="lib">Taille d'une case</span><div class="sl"><div class="piste"><i style="width:42%"></i><b style="left:42%"></b></div><span class="val">48 px</span></div></div>
+              <div class="r"><span class="lib">Adapter la carte à la fenêtre</span><span class="interrupteur"></span></div>
+            </div>
+            <div class="grp">
+              <h3>À la table <small>ce que voient les joueurs</small></h3>
+              <div class="r"><span class="lib">Pénombre</span><div class="sl"><div class="piste"><i style="width:60%"></i><b style="left:60%"></b></div><span class="val">60 %</span></div></div>
+              <div class="r"><span class="lib">Flammes animées</span><span class="interrupteur"></span></div>
+            </div>
+            <div class="grp">
+              <h3>Écran de la table <small>réglé une fois</small></h3>
+              <div class="r" style="min-height:64px">
+                <div class="prev"><div class="ecran" style="transform: rotate(90deg) scaleX(-1)">↑</div></div>
+                <span class="lib">Orientation<small>90° à droite, en miroir</small></span>
+                <span class="ib" title="Tourner à gauche">↺</span><span class="ib" title="Tourner à droite">↻</span>
+              </div>
+              <div class="r"><span class="lib">Image en miroir</span><span class="ib on" title="Miroir">⇋</span></div>
+              <div class="r"><span class="lib">Taille réelle d'une case</span><div class="step"><span class="ib">−</span><span class="v">25 mm</span><span class="ib">+</span></div></div>
+              <div class="r" style="margin-top:4px"><span class="btn" style="flex:1;justify-content:center;min-height:38px">Calibrer sur la table</span></div>
+            </div>
           </div>
         </div>
         <div>
           <p class="etat">Pendant le calibrage : le popover reste ouvert et se déplie</p>
-          <div class="pop" style="width:340px">
-            <h3>À la table</h3>
-            <div class="ligne"><span>Taille réelle d'une case</span><span class="champ">25 mm</span></div>
-            <p class="note" style="margin:8px 0">Pose une carte bancaire sur la table et ajuste jusqu'à ce que la case la recouvre.</p>
-            <div class="ligne" style="justify-content:center; gap:6px"><span class="btn mini">−1</span><span class="btn mini">−0,1</span><b style="color:var(--t1); min-width:56px; text-align:center">48 px</b><span class="btn mini">+0,1</span><span class="btn mini">+1</span></div>
-            <div class="ligne" style="margin-top:12px; justify-content:flex-end"><span class="btn dore">Terminer le calibrage</span></div>
+          <div class="pop2" style="width:372px">
+            <div class="grp">
+              <h3>Calibrage de l'écran de la table</h3>
+              <p class="note" style="margin:0 0 10px">Pose une carte bancaire sur la table et ajuste jusqu'à ce que la case la recouvre.</p>
+              <div class="r" style="justify-content:center; gap:8px"><span class="ib">−1</span><span class="ib" style="font-size:14px">−0,1</span><b style="color:var(--t1); min-width:60px; text-align:center">48 px</b><span class="ib" style="font-size:14px">+0,1</span><span class="ib">+1</span></div>
+              <div class="r" style="justify-content:flex-end; margin-top:6px"><span class="btn dore" style="min-height:38px">Terminer le calibrage</span></div>
+            </div>
           </div>
         </div>
       </div>
