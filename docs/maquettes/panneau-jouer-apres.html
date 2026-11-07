@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Panneau de droite de Jouer : après</title>
+<style>
+/* Maquette « APRÈS » : la proposition de docs/refonte-panneau-jouer.md (Ici · Joueurs · Écran, mêmes dans un monde et dans un donjon).
+   Les pastilles vertes disent quelle incohérence de la maquette « avant » est réglée. */
+:root { color-scheme: dark; --fond: #16151a; --panneau: #1f1e24; --bord: #34323b; --texte: #e8e4dc; --accent: #d9a929; --erreur: #e06c5a; --champ: #121116; --succes: #4f9a5c;
+  --t1: #ece8e0; --t2: #c3beb4; --t3: #97928a; --t4: #67635d; --s1: #26252c; --filet: #2f2d35; --filet-fort: #3d3a44; --choisi: rgba(217, 169, 41, .13);
+  --police: system-ui, -apple-system, "Segoe UI", sans-serif; }
+* { box-sizing: border-box; }
+body { margin: 0; padding: 24px 16px 64px; background: var(--fond); color: var(--texte); font: 15px/1.45 var(--police); }
+main { max-width: 1500px; margin: 0 auto; }
+h1 { font-size: 22px; margin: 0 0 6px; }
+.chapo { color: var(--t3); max-width: 820px; margin: 0 0 22px; }
+.grille { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 20px; align-items: start; }
+.vue h2 { font-size: 13px; letter-spacing: .06em; text-transform: uppercase; color: var(--t3); margin: 0 0 8px; }
+.vue .qui { color: var(--t4); font-size: 12.5px; margin: -4px 0 8px; }
+.panneau { background: var(--panneau); border: 1px solid var(--bord); border-radius: 8px; overflow: hidden; font-size: 14px; color: var(--t2); }
+
+/* onglets */
+.onglets { display: flex; border-bottom: 1px solid var(--filet-fort); padding: 0 8px; height: 44px; }
+.onglets span { flex: 1; display: grid; place-items: center; font-size: 13.5px; font-weight: 600; color: var(--t3); border-bottom: 2px solid transparent; }
+.onglets .actif { color: var(--t1); border-bottom-color: var(--accent); }
+/* en-tête */
+.tete { padding: 12px 16px; border-bottom: 1px solid var(--filet-fort); }
+.tete .type { font-size: 11px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--accent); margin: 0; }
+.tete .nom { font-size: 18px; font-weight: 650; color: var(--t1); margin: 2px 0 0; }
+.tete .meta { font-size: 12.5px; color: var(--t3); margin: 2px 0 0; }
+/* sections */
+.sec { border-bottom: 1px solid var(--filet); }
+.sec > .bandeau { display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 16px; font-size: 13px; font-weight: 650; color: var(--t1); }
+.sec.fermee > .bandeau { color: var(--t2); }
+.sec > .bandeau::before { content: "▾"; color: var(--t4); font-size: 11px; width: 10px; }
+.sec.fermee > .bandeau::before { content: "▸"; }
+.sec .compte { margin-left: auto; background: var(--s1); color: var(--t3); border-radius: 10px; font-size: 11.5px; padding: 0 8px; font-weight: 500; }
+.corps { padding: 2px 16px 14px; display: flex; flex-direction: column; gap: 10px; }
+.note { color: var(--t3); font-size: 12.5px; margin: 0; }
+.btn { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 12px; border: 1px solid var(--filet-fort); border-radius: 6px; background: transparent; color: var(--t1); font-size: 13px; font-weight: 600; width: fit-content; }
+.btn.dore { background: var(--accent); border-color: var(--accent); color: #1a1508; }
+.btn.vert { border-color: #2f6b3a; background: #14281a; color: #7cc47c; }
+.rangee { display: flex; gap: 8px; flex-wrap: wrap; }
+.liste { background: var(--s1); border-radius: 8px; padding: 4px; }
+.liste .l { display: grid; grid-template-columns: 18px 1fr auto; gap: 8px; padding: 7px 8px; align-items: center; border-radius: 6px; }
+.liste .l b { font-weight: 500; color: var(--t1); }
+.liste .l small { display: block; color: var(--t3); font-size: 12.5px; }
+.liste .l .pos { color: var(--t4); font: 11.5px ui-monospace, monospace; }
+.liste .l.choisi { background: var(--choisi); } .liste .l.choisi b { color: var(--accent); }
+.liste .ico { color: var(--t3); font-size: 13px; }
+/* anciens composants (volontairement tels quels) */
+.ligne { display: flex; align-items: center; justify-content: space-between; gap: 10px; color: var(--t2); }
+.ligne.case { justify-content: flex-start; gap: 8px; }
+.champ { background: var(--champ); border: 1px solid var(--bord); border-radius: 6px; padding: 5px 10px; min-width: 110px; color: var(--t1); }
+.case-box { width: 14px; height: 14px; border: 1px solid var(--t3); border-radius: 3px; display: inline-block; flex: none; }
+.case-box.on { background: var(--accent); border-color: var(--accent); }
+.radio { width: 14px; height: 14px; border: 1px solid var(--t3); border-radius: 50%; display: inline-block; flex: none; }
+.radio.on { border: 4px solid var(--accent); }
+fieldset { border: 1px solid var(--filet-fort); border-radius: 6px; margin: 0; padding: 8px 10px 10px; display: flex; flex-direction: column; gap: 6px; }
+legend { padding: 0 6px; font-size: 12.5px; color: var(--t3); }
+textarea { width: 100%; min-height: 70px; background: var(--champ); border: 1px solid var(--bord); border-radius: 6px; color: var(--t3); padding: 8px; font: inherit; resize: none; }
+.lecture { background: var(--s1); border-radius: 6px; padding: 8px 10px; color: var(--t3); font-size: 13px; }
+.alerte { margin: 0 16px; padding: 8px 10px; border: 1px solid var(--erreur); border-radius: 6px; color: var(--erreur); font-size: 12.5px; display: flex; flex-direction: column; gap: 8px; }
+.alerte .btn { color: var(--t1); }
+.aide-orpheline { width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--filet-fort); display: grid; place-items: center; color: var(--t3); font-size: 12px; margin-left: 8px; }
+.fiche { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; padding: 8px; }
+.fiche b { color: var(--t1); font-weight: 500; }
+.pv { color: var(--t3); font-size: 12.5px; }
+
+/* pastilles d'annotation */
+.p { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: var(--succes); color: #06140a; font-size: 11px; font-weight: 700; flex: none; margin-left: 6px; }
+.bandeau .p { margin-left: auto; }
+.legende { margin: 28px 0 0; padding: 16px 18px; background: var(--panneau); border: 1px solid var(--bord); border-radius: 8px; max-width: 920px; }
+.legende h2 { font-size: 15px; margin: 0 0 8px; }
+.legende ol { margin: 0; padding-left: 0; list-style: none; display: grid; gap: 6px; color: var(--t2); font-size: 14px; }
+.legende li { display: flex; gap: 10px; align-items: baseline; }
+.legende li .p { margin: 0; transform: translateY(3px); }
+
+/* barre d'outils et popover (nouveautés) */
+.barre { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; background: var(--panneau); border: 1px solid var(--bord); border-radius: 8px; padding: 6px 10px; min-height: 44px; margin-bottom: 20px; }
+.vues { display: inline-flex; gap: 2px; padding: 2px; background: var(--s1); border-radius: 8px; }
+.vues span { padding: 6px 14px; font-size: 13px; font-weight: 600; color: var(--t3); border-radius: 6px; }
+.vues .v { background: var(--succes); color: #06140a; display: inline-flex; align-items: center; gap: 7px; }
+.vues .v::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: #06140a; }
+.barre .fin { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+.btn.ico { padding: 0 10px; }
+.pop { background: #2a2930; border: 1px solid var(--filet-fort); border-radius: 8px; box-shadow: 0 10px 28px rgba(0,0,0,.55); padding: 12px; }
+.pop h3 { margin: 0 0 8px; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--t3); }
+.pop .ligne { margin: 6px 0; }
+.curseur { width: 120px; height: 4px; background: var(--filet-fort); border-radius: 2px; position: relative; }
+.curseur::after { content: ""; position: absolute; left: 40%; top: -5px; width: 14px; height: 14px; border-radius: 50%; background: var(--accent); }
+.interrupteur { width: 30px; height: 18px; border-radius: 9px; background: var(--accent); position: relative; flex: none; }
+.interrupteur::after { content: ""; position: absolute; right: 2px; top: 2px; width: 14px; height: 14px; border-radius: 50%; background: #1a1508; }
+.interrupteur.off { background: var(--filet-fort); } .interrupteur.off::after { right: auto; left: 2px; background: var(--t3); }
+.rang { display: flex; align-items: center; gap: 10px; background: var(--s1); border-radius: 8px; min-height: 40px; padding: 0 10px; color: var(--t1); }
+.champ2 { display: grid; gap: 5px; } .champ2 > span { font-size: 12.5px; color: var(--t3); }
+.rouge { background: #3a1a15; border: 1px solid var(--erreur); border-radius: 6px; padding: 8px 12px; font-size: 13px; color: #f1b3a8; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+.couplage { margin: 20px 0 0; padding: 12px 16px; background: var(--panneau); border: 1px dashed var(--filet-fort); border-radius: 8px; color: var(--t2); max-width: 920px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Panneau de droite de Jouer : <em>après</em></h1>
+  <p class="chapo">La proposition : <b>trois onglets stables</b>, les mêmes dans un monde et dans un donjon. <b>Ici</b> (où suis-je, que voit la table ?), <b>Joueurs</b> (qui joue ?), <b>Écran</b> (comment la table affiche-t-elle ?). Les pastilles vertes disent quelle incohérence de la maquette « avant » est réglée.</p>
+
+  <div class="barre">
+    <span class="note" style="margin-right:4px">Barre d'outils de la scène :</span>
+    <div class="vues"><span>En régie</span><span class="v">À la table</span></div>
+    <span class="btn dore ico">⛶ Ouvrir la table <span class="p">5</span></span>
+    <div class="fin"><span class="btn ico">▦ ▾</span><span class="btn ico">⚙ Affichage <span class="p">6</span></span></div>
+  </div>
+
+  <div class="rouge"><b>En retrait</b> : une autre régie commande la table. <span class="btn">Reprendre la main</span> <span class="p">7</span><span class="note" style="flex-basis:100%">Bandeau rouge au-dessus de la carte : le seul endroit, plus de doublon dans un onglet.</span></div>
+
+  <div class="grille">
+
+    <section class="vue">
+      <h2>Ici · dans un donjon</h2><p class="qui">La salle regardée</p>
+      <div class="panneau">
+        <div class="onglets"><span class="actif">Ici</span><span>Joueurs</span><span>Écran</span></div>
+        <div class="tete"><p class="type">Salle</p><p class="nom">Cuisine</p><p class="meta">À la table</p></div>
+        <div class="sec"><div class="bandeau">Visible à la table <span class="p">2</span></div>
+          <div class="corps">
+            <div class="rang"><span style="flex:1">Monstres</span><span class="interrupteur"></span></div>
+            <div class="rang"><span style="flex:1">Objets</span><span class="interrupteur"></span></div>
+            <div class="rang"><span style="flex:1;color:var(--t3)">Éléments cachés : aucun</span><span class="btn">Révéler tout</span></div>
+          </div></div>
+        <div class="sec"><div class="bandeau">Éléments <span class="compte">17</span></div>
+          <div class="corps"><div class="liste">
+            <div class="l"><span class="ico">⌂</span><span><b>porte · mur sud, repère H</b><small>vers Salle 2</small></span><span></span></div>
+            <div class="l"><span class="ico">●</span><b>wyverne 1</b><span class="pos">B2</span></div>
+            <div class="l"><span class="ico">▭</span><b>lit</b><span class="pos">C4</span></div>
+          </div></div></div>
+        <div class="sec"><div class="bandeau">Notes <span class="p">4</span></div>
+          <div class="corps"><div class="lecture">Préparation : cuisine enfumée, deux gardes endormis.</div>
+            <div class="champ2"><span>Notes de partie</span><textarea>Ce qui se passe dans cette salle…</textarea></div></div></div>
+      </div>
+    </section>
+
+    <section class="vue">
+      <h2>Ici · dans un monde</h2><p class="qui">Le lieu regardé : mêmes sections, mêmes mots <span class="p">3</span></p>
+      <div class="panneau">
+        <div class="onglets"><span class="actif">Ici</span><span>Joueurs</span><span>Écran</span></div>
+        <div class="tete"><p class="type">Lieu</p><p class="nom">Archipel des clochers d'or</p><p class="meta">À la table</p></div>
+        <div class="sec"><div class="bandeau">Visible à la table <span class="p">2</span></div>
+          <div class="corps">
+            <div class="rang"><span style="flex:1">Points</span><span class="interrupteur"></span></div>
+            <div class="rang"><span style="flex:1">Noms des points</span><span class="interrupteur off"></span></div>
+            <div class="rang"><span style="flex:1;color:var(--t3)">Points cachés : 1</span><span class="btn">Révéler tout</span></div>
+          </div></div>
+        <div class="sec"><div class="bandeau">Points <span class="compte">5</span></div>
+          <div class="corps"><div class="liste">
+            <div class="l choisi"><span class="ico">⌖</span><span><b>Port-Bourdon</b><small>vers Port-Bourdon</small></span><span></span></div>
+            <div class="l"><span class="ico">⌖</span><span><b>La Verte-Écume</b><small>vers La Verte-Écume</small></span><span></span></div>
+            <div class="l"><span class="ico">◌</span><span><b>Brasierre</b><small>caché à la table</small></span><span></span></div>
+          </div>
+          <span class="btn">Entrer dans ce lieu →</span></div></div>
+        <div class="sec"><div class="bandeau">Notes <span class="p">4</span></div>
+          <div class="corps"><div class="lecture">Préparation : un archipel tempéré et lumineux…</div>
+            <div class="champ2"><span>Notes de partie</span><textarea>Ce qui se passe sur cette carte…</textarea></div></div></div>
+      </div>
+    </section>
+
+    <section class="vue">
+      <h2>Joueurs</h2><p class="qui">Partout : monde et donjon <span class="p">5</span></p>
+      <div class="panneau">
+        <div class="onglets"><span>Ici</span><span class="actif">Joueurs</span><span>Écran</span></div>
+        <div class="sec"><div class="bandeau">Personnages <span class="compte">3</span></div>
+          <div class="corps"><div class="liste">
+            <div class="fiche"><b>Aelith · Elfe, Magicienne</b><span class="pv">PV 18 / 22</span><span class="pv">Avec le groupe</span></div>
+            <div class="fiche"><b>Brom · Nain, Guerrier</b><span class="pv">PV 31 / 34</span><span class="pv">Avec le groupe</span></div>
+            <div class="fiche"><b>Ysmé · Humaine, Voleuse</b><span class="pv">PV 14 / 14</span><span class="pv">Avec le groupe</span></div>
+          </div></div></div>
+        <div class="sec fermee"><div class="bandeau">Ajouter un joueur</div></div>
+        <p class="note" style="padding:10px 16px">Dans un donjon, un pion se pose dans la salle ; dans un monde, le groupe est « avec le groupe ».</p>
+      </div>
+    </section>
+
+    <section class="vue">
+      <h2>Écran</h2><p class="qui">Comment la table affiche <span class="p">1</span></p>
+      <div class="panneau">
+        <div class="onglets"><span>Ici</span><span>Joueurs</span><span class="actif">Écran</span></div>
+        <div class="sec"><div class="bandeau">Fenêtre de table</div>
+          <div class="corps"><div class="rangee"><span class="btn">⛶ Ouvrir la fenêtre</span><span class="btn">⛶ Plein écran ici</span></div>
+            <p class="note">Le bouton doré est aussi dans la barre d'outils.</p></div></div>
+        <div class="sec"><div class="bandeau">Taille de la carte <span class="p">6</span></div>
+          <div class="corps">
+            <div class="rang"><span class="radio on"></span><span>Remplir l'écran</span></div>
+            <div class="rang"><span class="radio"></span><span>Échelle réelle (figurines)</span></div>
+            <div class="rang"><span style="flex:1">Mini-carte</span><span class="interrupteur"></span></div>
+            <p class="note">Mini-carte : salles découvertes seulement.</p>
+          </div></div>
+        <div class="sec"><div class="bandeau">Calibrage <span class="p">8</span></div>
+          <div class="corps">
+            <div class="champ2"><span>Rotation</span><span class="champ" style="color:var(--t1)">Aucune ▾</span></div>
+            <div class="rang"><span style="flex:1">Image en miroir</span><span class="interrupteur off"></span></div>
+            <div class="champ2"><span>Taille réelle d'une case (mm)</span><span class="champ" style="color:var(--t1)">25</span></div>
+            <span class="btn">Calibrer sur la table</span>
+          </div></div>
+        <div class="sec fermee"><div class="bandeau">Défilement</div></div>
+      </div>
+    </section>
+
+    <section class="vue">
+      <h2>Popover « Affichage »</h2><p class="qui">Les préférences de la régie, au même endroit <span class="p">6</span></p>
+      <div class="pop">
+        <h3>Régie</h3>
+        <div class="ligne"><span>Thème</span><span class="champ">Dessiné ▾</span></div>
+        <div class="ligne"><span>Détails</span><span class="champ">Riches ▾</span></div>
+        <div class="ligne"><span>Relief</span><span class="interrupteur"></span></div>
+        <div class="ligne"><span>Repères (A, B… et 1, 2…)</span><span class="interrupteur"></span></div>
+        <div class="ligne"><span>Taille d'une case</span><span class="curseur"></span></div>
+        <div class="ligne"><span>Adapter la carte à la fenêtre</span><span class="interrupteur"></span></div>
+        <h3 style="margin-top:12px">À la table</h3>
+        <div class="ligne"><span>Pénombre</span><span class="curseur"></span></div>
+        <div class="ligne"><span>Flammes animées</span><span class="interrupteur"></span></div>
+      </div>
+    </section>
+
+  </div>
+
+  <div class="couplage"><b>Couplage optionnel.</b> Passer à la vue « À la table » (liseré vert) ouvre l'onglet <b>Écran</b> ; revenir à « En régie » ouvre <b>Ici</b>. Tu règles l'écran en voyant le résultat en grand. Un onglet choisi à la main n'est jamais écrasé.</div>
+
+  <div class="legende">
+    <h2>Ce que règlent les pastilles vertes</h2>
+    <ol>
+      <li><span class="p">1</span> Plus de collision : l'onglet « Table » devient « Écran », « À la table » ne désigne plus que la vue des joueurs.</li>
+      <li><span class="p">2</span> Une seule section « Visible à la table », avec les mêmes interrupteurs et les mêmes mots pour une salle et pour un lieu.</li>
+      <li><span class="p">3</span> Salle et Lieu deviennent « Ici » : mêmes sections, mêmes emplacements.</li>
+      <li><span class="p">4</span> Notes de préparation et notes de partie partout, aussi pour un lieu.</li>
+      <li><span class="p">5</span> Joueurs disponible dans un monde ; « Ouvrir la table » monte dans la barre d'outils, accessible depuis n'importe quel onglet.</li>
+      <li><span class="p">6</span> Les réglages de la régie (taille d'une case, adapter) rejoignent « Affichage » ; l'onglet Écran ne parle plus que de l'écran de la table.</li>
+      <li><span class="p">7</span> « Reprendre la main » seulement dans le bandeau rouge.</li>
+      <li><span class="p">8</span> L'onglet Écran suit le design des panneaux : étiquette au-dessus du champ, interrupteurs, plus de « ? » orphelin ni de légende de fieldset.</li>
+    </ol>
+  </div>
+</main>
+</body>
+</html>
