@@ -15,6 +15,7 @@ On ne calibre pas un donjon, on calibre une grille. Aujourd'hui le calibrage est
 5. **Mémorisé pour l'écran** (résolution, rapport de pixels) ; un autre écran redemande le calibrage.
 6. **Fin ou annulation** : la table retrouve la même salle, la même case montrée, le même défilement ; un bandeau de la régie rappelle « Calibrage en cours » pendant ce temps.
 7. **Rotation et miroir restent dans Affichage › Écran de la table**, utilisables à tout moment (y compris pour retourner temporairement la salle pendant le jeu). L'étape 1 du parcours règle les mêmes valeurs, il n'y en a pas deux. Pas de bouton ni de mode « inversion temporaire » : c'est un détournement, le MJ remet lui-même le bon sens. « Taille réelle d'une case » reste aussi dans Affichage ; « Calibrer sur la table » y devient « Calibrer l'écran… », jamais grisé.
+8. **Le popover montre un aperçu de la table** (« Ce que voient les joueurs ») pendant tout le parcours : le MJ est loin de la table et ne la voit pas bien. Réalisation : la vue table en mode aperçu (`?vue=table&apercu=1`, déjà utilisée par la vue « À la table » de la régie) reçoit le même message de calibrage que la fenêtre, donc elle montre exactement la même chose, sans second rendu à écrire.
 
 ## À trancher
 
