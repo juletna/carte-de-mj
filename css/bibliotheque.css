@@ -95,7 +95,24 @@ dialog.bib .btn-danger.danger, #bibliotheque .btn-danger.danger { background: va
 .bib-volet .p-section.bib-fait .p-section-compte::before { content: ""; display: inline-block; width: 4px; height: 8px; margin: 0 7px 1px 2px; border: solid currentColor; border-width: 0 1.75px 1.75px 0; transform: rotate(45deg); }
 .bib-champ { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
 .bib-champ label { font-size: 12.5px; color: var(--p-texte-3); }
-.bib-volet select, .bib-volet textarea, .bib-volet .bib-formulaire input[type="text"] {
+/* Détail d'une carte (page Bibliothèque) : un panneau comme le volet « Générer » (en-tête, sections, pied fixe) ; sa colonne a la même largeur. */
+#bibliotheque .bib-corps { grid-template-columns: minmax(0, 1fr) 420px; }
+#bibliotheque .bib-detail { gap: 0; padding: 0; border: 1px solid var(--p-filet-fort); border-radius: 8px; background: var(--panneau); }
+#bibliotheque .bib-detail > .bib-aide { margin: 0; padding: var(--esp-4); }
+#bibliotheque .bib-detail .bib-volet-sections { flex: 1 0 auto; }
+.bib-valeur { min-width: 0; font-size: 14px; color: var(--p-texte-1); overflow-wrap: anywhere; }
+.bib-valeur.doux { color: var(--p-texte-3); }
+.bib-pied { position: sticky; bottom: 0; z-index: 1; display: flex; flex-direction: column; gap: var(--esp-2); padding: var(--esp-3) var(--esp-4); background: var(--panneau); border-top: 1px solid var(--p-filet); }
+.bib-pied .bib-actions { margin-top: 0; }
+.bib-detail .bib-apercu img { max-height: 260px; }
+.bib-detail .bib-case { min-height: 32px; }
+@media (max-width: 760px) { /* le détail reste un panneau en colonne (la règle « détail en rangée » plus haut ne vaut que pour la fenêtre de choix) */
+  #bibliotheque .bib-detail { flex-direction: column; flex-wrap: nowrap; max-height: none; padding: 0; border: 1px solid var(--p-filet-fort); }
+  #bibliotheque .bib-detail .bib-apercu { width: auto; }
+  #bibliotheque .bib-detail .bib-apercu img { max-height: 220px; }
+}
+.bib-volet select, .bib-volet textarea, .bib-volet .bib-formulaire input[type="text"],
+#bibliotheque .bib-detail select, #bibliotheque .bib-detail textarea, #bibliotheque .bib-detail input[type="text"] {
   background: var(--champ); color: var(--p-texte-1); border: 1px solid var(--p-filet-fort); border-radius: var(--rayon);
   padding: var(--esp-2) var(--esp-3); min-height: max(34px, var(--cible)); font: inherit; font-size: 14px; box-sizing: border-box; width: 100%; resize: vertical;
 }

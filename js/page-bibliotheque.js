@@ -14,8 +14,8 @@
 import { h, deuxTemps, fichierChoisi } from './dom.js';
 import { btn, remplirBouton } from './univers-boutons.js';
 import { creerSection } from './atelier/section.js';
-import { selectionner } from './bibliotheque/catalogue.js';
-import { NIVEAUX, SOUS_TYPES, MILIEUX, NIVEAUX_AIDE, SOUS_TYPES_AIDE, SOUS_TYPE_PAR_DEFAUT, libelleZoom, normaliserNiveau } from './bibliotheque/vocabulaire.js';
+import { selectionner, creditAffiche } from './bibliotheque/catalogue.js';
+import { NIVEAUX, SOUS_TYPES, MILIEUX, NIVEAUX_AIDE, SOUS_TYPES_AIDE, SOUS_TYPE_PAR_DEFAUT, libelleZoom, libelleMilieu, normaliserNiveau } from './bibliotheque/vocabulaire.js';
 import { ficheCarte, champsImport, metaImport, menuFiltreZoom, filtreDepuis, MESSAGE_VIDE } from './bibliotheque/fiche.js';
 import { groupeCartes } from './bibliotheque/cartes-choix.js';
 import { importerImage, listerImages, supprimerImage, recadrerImage, mettreAJourImage } from './bibliotheque/images.js';
@@ -311,9 +311,32 @@ function tuile(entree) {
   return b;
 }
 
+/** Une ligne « étiquette · valeur » de la grille de propriétés (css/panneaux.css, .p-props). */
+const propriete = (etiquette, valeur, doux = false) => [h('span', { className: 'p-props-etiquette', textContent: etiquette }), h('span', { className: `bib-valeur${doux ? ' doux' : ''}`, textContent: valeur })];
+const enteteDetail = (e) => h('div', { className: 'bib-volet-tete' }, h('div', {},
+  h('div', { className: 'bib-type', textContent: libelleZoom(e) }), h('div', { className: 'bib-volet-nom', textContent: e.titre }),
+  h('div', { className: 'bib-volet-meta', textContent: e.largeur && e.hauteur ? `${e.largeur} × ${e.hauteur} px` : 'Carte de ce navigateur' })));
+const apercuDetail = (e, repliee = false) => creerSection({ cle: 'bib-det:apercu', titre: 'Aperçu', repliee, enfants: [h('div', { className: 'bib-apercu' }, h('img', { src: choisi.url, alt: `Aperçu : ${e.titre}` }))] }, { replis: sansMemoire() });
+
+/** Le détail d'une carte : un panneau comme le volet « Générer » (en-tête, sections, pied). */
 function dessinerDetail() {
   detail.replaceChildren();
   if (!choisi) { detail.append(h('p', { className: 'bib-aide', textContent: 'Choisis une vignette pour la voir en grand, avec son crédit.' })); return; }
+  const e = choisi.entree;
+  const infos = [...propriete('Zoom', libelleZoom(e)), ...propriete('Milieux', e.milieux?.length ? e.milieux.map(libelleMilieu).join(', ') : 'aucun', !e.milieux?.length), ...propriete('Tags', e.tags?.length ? e.tags.join(', ') : 'aucun', !e.tags?.length)];
+  if (e.description) infos.push(...propriete('Description', e.description));
+  const origine = [];
+  const credit = creditAffiche(e);
+  if (credit) origine.push(...propriete('Crédit', credit));
+  if (e.licence) origine.push(...propriete('Licence', e.licence));
+  if (e.origine?.type === 'generee') origine.push(...propriete('Origine', `Illustration IA${e.origine.le ? ` · ${e.origine.le}` : ''}`));
+  const ref = e.origine?.reference;
+  if (ref) { const t = images.find((i) => i.id === ref.id)?.titre; origine.push(...propriete('D’après', t ?? 'image disparue', !t)); }
+  const sections = [
+    apercuDetail(e),
+    creerSection({ cle: 'bib-det:infos', titre: 'Informations', action: { libelle: 'Modifier', icone: 'crayon', executer: () => ouvrirModification() }, enfants: [h('div', { className: 'p-props' }, ...infos)] }, { replis: sansMemoire() }),
+    ...(origine.length ? [creerSection({ cle: 'bib-det:origine', titre: 'Crédit et origine', enfants: [h('div', { className: 'p-props' }, ...origine)] }, { replis: sansMemoire() })] : []),
+  ];
   const sup = h('button', { type: 'button', className: 'btn btn-danger' });
   deuxTemps(sup, 'Supprimer cette carte', 'Confirmer la suppression', async () => {
     try {
@@ -323,31 +346,43 @@ function dessinerDetail() {
       choisi = null; await recharger();
     } catch (err) { erreurImages = `Suppression impossible : ${err.message}`; dessiner(); }
   });
-  const fiche = ficheCarte(choisi.entree, { titreDe: (ref) => images.find((i) => i.id === ref.id)?.titre });
-  const modif = btn('Modifier', () => ouvrirModification(), { icone: 'crayon' });
-  fiche.append(h('div', { className: 'bib-actions' }, modif, sup));
-  detail.append(h('div', { className: 'bib-apercu' }, h('img', { src: choisi.url, alt: `Aperçu : ${choisi.entree.titre}` })), fiche);
+  detail.append(enteteDetail(e), h('div', { className: 'bib-volet-sections' }, ...sections.map((x) => x.element)), h('div', { className: 'bib-pied' }, sup));
 }
 
-/** Formulaire de modification (zoom, sous-type, titre, milieux, tags…) d'une image déjà rangée, à la place de sa fiche. */
+/** La modification d'une carte rangée : mêmes sections et mêmes cartes de choix que le volet « Générer », en place du détail. */
 function ouvrirModification() {
   const e = choisi.entree, id = choisi.ref.id;
   const champs = champsImport({ name: e.nom ?? e.titre }, { titre: e.titre, niveau: e.niveau, sousType: e.sousType, milieux: e.milieux, tags: e.tags, description: e.description, credit: e.credit, licence: e.licence });
+  // Le zoom et le sous-type se choisissent sur des cartes ; les menus de champsImport, jamais montrés, gardent la valeur que lit metaImport.
+  const majSous = () => { zoneSous.hidden = champs.niveau.value !== 'plateau'; };
+  const zoom = groupeCartes({ legende: 'Zoom', options: ZOOMS_CARTES, valeur: champs.niveau.value, surChoix: (v) => { champs.niveau.value = v; majSous(); } });
+  const sous = groupeCartes({ legende: 'Sous-type du plateau', options: SOUS_TYPES_CARTES, valeur: champs.sousType.value, surChoix: (v) => { champs.sousType.value = v; }, classe: 'bib-cartes-fines' });
+  const zoneSous = h('div', { className: 'bib-champ' }, h('span', { className: 'bib-etiq', textContent: 'Le plateau est…' }), sous.element);
+  majSous();
   const erreur = h('p', { className: 'bib-erreur', role: 'alert' });
-  const enregistrer = btn('Enregistrer', null, { icone: 'coche', classe: 'btn-primaire' });
-  enregistrer.addEventListener('click', async () => {
-    enregistrer.disabled = true; erreur.textContent = '';
+  const sauver = btn('Enregistrer', null, { icone: 'coche', classe: 'btn-primaire' });
+  sauver.addEventListener('click', async () => {
+    sauver.disabled = true; erreur.textContent = '';
     try {
       await mettreAJourImage(id, metaImport(champs));
       await recharger();
       const maj = images.find((i) => i.id === id);
       if (maj) choisi = { ref: choisi.ref, entree: maj, url: choisi.url };
       dessiner();
-    } catch (err) { erreur.textContent = `Modification impossible : ${err.message}`; enregistrer.disabled = false; }
+    } catch (err) { erreur.textContent = `Modification impossible : ${err.message}`; sauver.disabled = false; }
   });
-  detail.replaceChildren(h('div', { className: 'bib-apercu' }, h('img', { src: choisi.url, alt: `Aperçu : ${e.titre}` })),
-    h('form', { className: 'bib-formulaire', onsubmit: (ev) => ev.preventDefault() }, h('strong', { textContent: `Modifier « ${e.titre} »` }), ...champs.elements,
-      erreur, h('div', { className: 'bib-actions' }, enregistrer, btn('Annuler', () => dessiner(), { classe: 'btn-discret' }))));
+  const sections = [
+    apercuDetail(e, true),
+    creerSection({ cle: 'bib-mod:identite', titre: 'Identité', enfants: [champ('bib-f-titre', 'Titre', champs.titre), h('div', { className: 'bib-champ' }, h('span', { className: 'bib-etiq', textContent: 'Zoom' }), zoom.element), zoneSous] }, { replis: sansMemoire() }),
+    creerSection({ cle: 'bib-mod:details', titre: 'Détails', enfants: [
+      h('div', { className: 'bib-champ' }, h('span', { className: 'bib-etiq', textContent: 'Milieux' }), h('div', { className: 'bib-cases' }, ...champs.milieux)),
+      champ('bib-f-tags', 'Tags', champs.tags), champ('bib-f-description', 'Description', champs.description)] }, { replis: sansMemoire() }),
+    creerSection({ cle: 'bib-mod:credit', titre: 'Crédit', repliee: !e.credit && !e.licence, enfants: [champ('bib-f-credit', 'Crédit', champs.credit), champ('bib-f-licence', 'Licence', champs.licence)] }, { replis: sansMemoire() }),
+  ];
+  detail.replaceChildren(
+    h('div', { className: 'bib-volet-tete' }, h('div', {}, h('div', { className: 'bib-type', textContent: 'Modifier' }), h('div', { className: 'bib-volet-nom', textContent: e.titre }), h('div', { className: 'bib-volet-meta', textContent: 'Les changements s’appliquent à l’enregistrement' }))),
+    h('div', { className: 'bib-volet-sections' }, ...sections.map((x) => x.element)),
+    h('div', { className: 'bib-pied' }, erreur, h('div', { className: 'bib-actions' }, sauver, btn('Annuler', () => dessiner(), { classe: 'btn-discret' }))));
   champs.titre.focus();
 }
 
