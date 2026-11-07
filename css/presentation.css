@@ -286,7 +286,12 @@ details.bloc > .aide, .defilement > .aide { display: block; margin-bottom: 6px; 
 .cartouche-regie { left: var(--esp-3); top: var(--esp-2); }
 @media (max-width: 760px) { .cartouche-regie { left: var(--esp-2); top: var(--esp-1); } }
 
-/* Aperçu de la table dans la régie (js/regie-panneau.js) : la vue table dessinée en 1280 × 800 puis réduite à la largeur du panneau, en lecture seule. */
-.apercu-table { position: relative; width: 100%; overflow: hidden; background: #000; border: 1px solid var(--p-filet-fort); border-radius: var(--rayon); }
-.apercu-table iframe { position: absolute; left: 0; top: 0; border: 0; transform-origin: 0 0; pointer-events: none; }
+/* Les deux vues de la régie, « Régie » et « Table » (js/atelier/vue-table-regie.js) : un sélecteur dans la barre d'outils ; la vue Table est la vue des joueurs, réduite à la place disponible, en lecture seule. */
+.regie-vues { display: inline-flex; gap: 2px; padding: 2px; background: var(--p-surface-1); border-radius: var(--rayon); }
+.regie-vues .regie-vue { min-height: 30px; padding: 0 var(--esp-3); font-size: 13px; font-weight: 600; color: var(--p-texte-3); border: 0; }
+.regie-vues .regie-vue[aria-selected="true"] { background: var(--p-surface-survol); color: var(--p-texte-1); }
+.apercu-scene { flex: 1; position: relative; min-height: 0; overflow: hidden; background: #000; }
+.apercu-scene[hidden] { display: none; }
+.apercu-scene iframe { position: absolute; left: 0; top: 0; border: 0; transform-origin: 0 0; pointer-events: none; }
+#principal.vue-table-active > :not(.atelier-barre):not(#apercu-scene) { display: none; } /* la carte de la régie cède la place à la vue table */
 body.vue-apercu .coin, body.vue-apercu #retour-regie { display: none !important; }

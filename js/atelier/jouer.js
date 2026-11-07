@@ -14,6 +14,7 @@
 import { $, h } from '../dom.js';
 import { telephone } from '../telephone.js';
 import { creerCoquille } from './coquille.js';
+import { creerVuesRegie } from './vue-table-regie.js';
 import { etatJeu } from '../atelier-arbre.js';
 import { creerCartouche } from './cartouche.js';
 import { vignetteLieu } from './vignette-lieu.js';
@@ -38,6 +39,9 @@ export function creerJouer({ racine, donnees, partie, surChoix, affichage }) {
       synchroniser();
     },
   });
+
+  // Deux vues en haut de la scène : « Régie » (carte et commande) et « Table » (ce que voient les joueurs, en grand), pour régler l'écran de table en voyant le résultat.
+  const vues = creerVuesRegie({ scene: $('principal'), barre: coquille.barreOutils, avant: coquille.barreFin });
 
   // Les lieux de l'arbre montrent leur carte en vignette (comme dans le Monde), pas le globe ; le monde, celle de sa carte.
   coquille.arbre.vue.definirVignette((n) => (n.type === 'lieu' || n.racine ? vignetteLieu(donnees().univers?.[n.contexte?.monde]?.lieux?.[n.racine ?? n.id]?.image, '') : null));
