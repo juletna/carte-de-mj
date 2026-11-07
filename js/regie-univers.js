@@ -69,15 +69,18 @@ export function creerRegieUnivers(ctx) {
   }
 
   // --- Réglages et défilement de la table ---------------------------------------------------------------------------
-  // L'onglet Écran est le même pour un donjon et pour une carte de monde ; pour une carte, on masque ce qui ne concerne que les salles.
-  function prendreLesReglages() {
-    $('plein-ici').hidden = true; // « Plein écran ici » ne montre que les salles
-    $('calibrer-table').hidden = true; // le calibrage dessine une carte bancaire sur la salle : mesure-le depuis une salle (Donjon ou donjon d'un univers)
+  // Rien ne disparaît dans une carte de monde : ce qui ne concerne que les salles est grisé, avec la raison en infobulle.
+  const HORS_MONDE = { 'plein-ici': 'Le plein écran ici ne montre que les salles d’un donjon.', 'calibrer-table': 'Le calibrage dessine une carte bancaire sur une salle : mesure-le depuis une salle de donjon.' };
+  function grisees(oui) {
+    for (const [id, raison] of Object.entries(HORS_MONDE)) {
+      const b = $(id);
+      if (!('titreDonjon' in b.dataset)) b.dataset.titreDonjon = b.title;
+      b.disabled = oui;
+      b.title = oui ? raison : b.dataset.titreDonjon;
+    }
   }
-  function rendreLesReglages() {
-    $('plein-ici').hidden = false;
-    $('calibrer-table').hidden = etat.calibrage === true;
-  }
+  function prendreLesReglages() { grisees(true); }
+  function rendreLesReglages() { grisees(false); }
   /** La table change de carte ou de niveau : sa vue se recentre, et la régie regarde de nouveau ce que voit la table. */
   function recentrerTable() { defil = { ...CENTRE }; ordreDefil++; consulte = null; }
 

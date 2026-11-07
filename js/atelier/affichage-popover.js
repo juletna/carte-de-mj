@@ -129,10 +129,9 @@ export function creerAffichagePopover({ lire, surChangement, regie = false, gard
   const carte = [rang('Style', theme), rang('Détails', details, null, 'Sols dessinés et détaillés, ou sols simples (style peint).'), rang('Relief', relief, null, 'Relief des murs')];
   const repereRang = rang('Repères', reperes, 'A, B… et 1, 2…');
   const tailleRegieRang = curseurRang('Taille d’une case', taille, tailleVal, 'Quand la carte n’est pas adaptée à la fenêtre : la taille d’une case à l’écran de la régie. C’est aussi la taille calibrée de la table (à régler avec « Calibrer sur la table »).');
-  tailleRegieRang.hidden = true; // visible seulement quand « Adapter » est éteint
   const penombreRang = curseurRang('Pénombre', penombre, penombreVal, 'Obscurité de la salle : toute à la table, une part seulement à la régie (pour tout voir).');
-  const groupeDonjon = groupe('Carte du donjon', 'régie et table', ...carte, repereRang, penombreRang, rang('Flammes animées', flammes, 'à la table'));
-  groupeDonjon.classList.add('pop-donjon'); // masqué dans un monde (css/atelier.css) : ces réglages ne touchent que les salles de donjon
+  const groupeDonjon = groupe('Donjon', 'régie et table', ...carte, repereRang, penombreRang, rang('Flammes animées', flammes, 'à la table'));
+  groupeDonjon.classList.add('pop-donjon'); // ces réglages ne touchent que les salles de donjon, mais restent toujours là, réglables
   const panneau = h('div', { className: 'atelier-affichage-panneau pop-affichage', role: 'dialog', 'aria-label': 'Affichage', hidden: true },
     h('p', { className: 'atelier-affichage-titre', textContent: 'Affichage' }),
     ...(regie
@@ -196,7 +195,7 @@ export function creerAffichagePopover({ lire, surChangement, regie = false, gard
   penombre.addEventListener('input', () => ecrireRendu('penombre', penombre.value));
   basculer(flammes, (v) => ecrireRendu('flammes', v));
   basculer(reperes, (v) => ecrireRendu('reperes', v));
-  basculer(ajuster, (v) => { regle(ajuster, v); tailleRegieRang.hidden = v; });
+  basculer(ajuster, (v) => { regle(ajuster, v); });
   document.addEventListener('pointerdown', (e) => {
     if (!panneau.hidden && !racine.contains(e.target) && !garderOuvert()) fermer(); // pendant un calibrage, un clic ailleurs ne ferme pas
     if (!panneauGrille.hidden && !racineGrille.contains(e.target)) fermerGrille();

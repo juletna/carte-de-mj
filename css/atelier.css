@@ -153,7 +153,6 @@ body.atelier-avec-inspecteur { --largeur-inspecteur: 330px; }
 .pop-ib { display: inline-grid; place-items: center; min-width: 40px; height: 40px; padding: 0 6px; border: 1px solid var(--bord); border-radius: 10px; background: var(--champ); color: var(--texte); font: inherit; font-size: 20px; line-height: 1; cursor: pointer; }
 .pop-ib:hover { border-color: var(--accent); }
 .pop-bascule[aria-checked="true"] { background: var(--choisi, var(--bord)); border-color: var(--accent); color: var(--accent); }
-#regie[data-regie="monde"] .pop-donjon { display: none; }
 .pop-rang[hidden] { display: none; }
 .pop-duo { display: inline-flex; gap: 6px; }
 .pop-duo .pop-ib { min-width: 38px; height: 38px; }

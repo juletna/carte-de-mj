@@ -94,4 +94,4 @@ Aucun : les six étapes ont passé tests et vérification navigateur.
 
 ## Révision du popover « Affichage » (7 novembre 2026, après retour de Julien)
 
-Trois groupes qui disent à qui s'applique chaque réglage : **Carte du donjon** (régie et table : style, détails, relief, repères, pénombre, flammes ; masqué dans un monde), **Écran de la table** (orientation ↺ ↻ et miroir ⇋ en pictos, taille réelle d'une case en mm, calibrage : tout le matériel au même endroit), **Régie** (adapter la carte à la fenêtre ; le curseur « Taille d'une case » n'apparaît que quand « Adapter » est éteint, car c'est aussi la taille calibrée de la table).
+Trois groupes qui disent à qui s'applique chaque réglage : **Donjon** (régie et table : style, détails, relief, repères, pénombre, flammes ; toujours visible et réglable, même dans un monde : ce sont des réglages de préparation), **Écran de la table** (orientation ↺ ↻ et miroir ⇋ en pictos, taille réelle d'une case en mm, calibrage : tout le matériel au même endroit), **Régie** (adapter la carte à la fenêtre et « Taille d'une case », toujours visibles ; ce curseur est aussi la taille calibrée de la table).
