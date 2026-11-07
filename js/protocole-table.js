@@ -30,6 +30,7 @@ export const MESSAGES = {
   TABLE_ZOOM: 'table-zoom',
   TABLE_CADRER: 'table-cadrer',
   CADRAGE: 'cadrage',
+  TABLE_ELEMENT: 'table-element',
 };
 
 // --- Régie → table ----------------------------------------------------------------------------------------
@@ -85,4 +86,15 @@ export const messageCadrage = (x, y) => ({ type: MESSAGES.CADRAGE, x, y });
 export function lireCadrage(m) {
   const x = borne01(m?.x), y = borne01(m?.y);
   return x === null || y === null ? null : { x, y };
+}
+
+// --- Sélection d'un élément dans la vue « Table » de la régie -------------------------------------------------
+
+const GENRES_ELEMENT = ['creature', 'objet', 'porte'];
+/** Un pion, un objet ou une porte touché dans la vue « Table » : son genre, son identifiant, et où (fractions du cadre, facultatif). */
+export const messageElement = (genre, id, x, y) => ({ type: MESSAGES.TABLE_ELEMENT, genre, id, ...(Number.isFinite(x) && Number.isFinite(y) ? { x, y } : {}) });
+/** Côté régie : relit un message `table-element` ; null si le genre ou l'identifiant sont invalides. */
+export function lireElement(m) {
+  if (!GENRES_ELEMENT.includes(m?.genre) || typeof m.id !== 'string' || !m.id || m.id.length > 64) return null;
+  return { genre: m.genre, id: m.id, position: lirePosition(m) };
 }

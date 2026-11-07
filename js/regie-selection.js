@@ -118,8 +118,9 @@ export function creerSelection(ctx) {
   }
 
   /** Sélectionne un élément. `clavier` : on vient d'une liste, le focus passe au panneau pour agir sans souris. */
-  function selectionner(genre, id, { clavier = false } = {}) {
+  function selectionner(genre, id, { clavier = false, ancre = null } = {}) {
     etat.selection = { genre, id };
+    etat.ancreSelection = ancre;
     etat.focusSelection = clavier;
     etat.message = '';
     ctx.jouer?.replier(); // sous 760 px : la bulle de sélection se pose au-dessus des onglets, elle ne recouvre pas l'onglet ouvert
@@ -192,7 +193,8 @@ export function creerSelection(ctx) {
       }
     }
     zone.replaceChildren(...contenu);
-    placerPopover(zone, etat.ancreSelection, $('scene'));
+    const vue = $('apercu-scene');
+    placerPopover(zone, etat.ancreSelection, vue && !vue.hidden ? vue : $('scene')); // dans la vue « À la table », la bulle reste sur la carte montrée
     if (etat.focusSelection) { etat.focusSelection = false; zone.focus({ preventScroll: true }); }
   }
 

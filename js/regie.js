@@ -30,7 +30,7 @@ import { telephone, marquerDefilement, tailleQuiTient } from './telephone.js';
 import { $, h, bouton } from './dom.js';
 import { icone } from './icones.js';
 import { pluriel } from './format.js';
-import { ouvrirCanal, messageEtat, messageCadrage, lirePosition, lireFacteurZoom, lireCadrage, MESSAGES } from './protocole-table.js';
+import { ouvrirCanal, messageEtat, messageCadrage, lirePosition, lireFacteurZoom, lireCadrage, lireElement, MESSAGES } from './protocole-table.js';
 import { creerEcranTable } from './ecran-table.js';
 import { creerDepart } from './regie-depart.js';
 import { creerSelection } from './regie-selection.js';
@@ -173,8 +173,12 @@ export function demarrerRegie() {
       else if (action === 'appliquer' && m.type === MESSAGES.TABLE_DEPLACER) deplacerDepuisTable(m.id, m.x, m.y);
       else if (action === 'appliquer' && m.type === MESSAGES.TABLE_ZOOM) { const f = lireFacteurZoom(m); if (f) cadrage.zoomer(f); }
       else if (action === 'appliquer' && m.type === MESSAGES.TABLE_CADRER) { const p = lireCadrage(m); if (p) cadrerTable(p); }
+      else if (action === 'appliquer' && m.type === MESSAGES.TABLE_ELEMENT) {
+        const e = lireElement(m);
+        if (e && etat.p) { etat.consultee = etat.p.salleCourante; selection.selectionner(e.genre, e.id, { ancre: jouer.vues.ancre(e.position) }); } // la table voit la salle courante : c'est elle qu'on regarde
+      }
       else if (action === 'appliquer' && m.type === MESSAGES.TABLE_POINT) univers.choisirPoint(m.id, jouer.vues.ancre(lirePosition(m)));
-      else if (action === 'appliquer' && etat.p) viserCase(etat.p.salleCourante, m.x, m.y);
+      else if (action === 'appliquer' && etat.p) { etat.selection = null; viserCase(etat.p.salleCourante, m.x, m.y); } // une case vide touchée referme la sélection
     };
   }
   // Le retrait retient la partie de donjon ouverte, sinon le monde dont la carte est affichée (`univers:<id>`) : un rechargement les rouvre.

@@ -125,7 +125,7 @@ export function creerEcranTable({ affichage = { ...AFFICHAGE_PAR_DEFAUT }, surCo
    * À la souris, le MJ agit aussi depuis l'écran de table : glisser un pion, montrer une case. Un doigt de joueur sur la carte
    * ne déclenche rien. L'écran de table ne décide de rien : il demande à la régie, qui seule a le plan complet.
    */
-  function activerActions({ deplacer, viser, glisser = null, tactile = false }) {
+  function activerActions({ deplacer, viser, glisser = null, tactile = false, selectionner = null }) {
     activerDeplacement($('carte-table'), {
       plan: () => ecran.plan,
       taille: () => tailleEcranTable(),
@@ -134,7 +134,10 @@ export function creerEcranTable({ affichage = { ...AFFICHAGE_PAR_DEFAUT }, surCo
         const pion = nouveau.creatures.find((k, i) => k.x !== ecran.plan.creatures[i].x || k.y !== ecran.plan.creatures[i].y);
         if (pion) deplacer(pion.id, pion.x, pion.y);
       },
-      cliquer: (touche, caseVide) => { if (!touche && caseVide) viser(caseVide[0], caseVide[1]); },
+      cliquer: (touche, caseVide, position) => {
+        if (touche) selectionner?.(touche.genre, touche.element.id, position); // vue « Table » de la régie : le MJ choisit l'élément comme sur sa carte
+        else if (caseVide) viser(caseVide[0], caseVide[1]);
+      },
       deplacables: ['creature'],
       filtre: (e) => e.pointerType === 'mouse' || tactile, // un doigt de joueur ne déclenche rien ; dans la vue « Table » de la régie (`tactile`), le MJ touche aussi
       glisserVide: glisser ? { deplacer: (dx, dy) => $('vue-table').scrollBy({ left: dx, top: dy }), fin: () => glisser(positionFractions($('vue-table'))) } : null,

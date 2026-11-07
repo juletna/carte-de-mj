@@ -8,7 +8,7 @@
 import * as stockage from './stockage.js';
 import * as table from './commande-table.js';
 import { creerEcranTable } from './ecran-table.js';
-import { MESSAGES, ouvrirCanal, lireEtat, lireDefilement, messageDemandeEtat, messageDeplacer, messageViser, messagePoint, messageZoom, messageCadrer, lireCadrage } from './protocole-table.js';
+import { MESSAGES, ouvrirCanal, lireEtat, lireDefilement, messageDemandeEtat, messageDeplacer, messageViser, messagePoint, messageZoom, messageCadrer, messageElement, lireCadrage } from './protocole-table.js';
 import { affichageDeReglages } from './affichage.js';
 import { activerZoomGestes } from './cadrage-table.js';
 import { TYPE_UNIVERS, lireVueUnivers } from './univers-protocole.js';
@@ -58,7 +58,8 @@ export function demarrerTable() {
   ecran.activerActions({
     deplacer: (id, x, y) => canal.postMessage(messageDeplacer(id, x, y)),
     viser: (x, y) => canal.postMessage(messageViser(x, y)),
-    ...(apercu ? { glisser: (p) => canal.postMessage(messageCadrer(p.x, p.y)), tactile: true } : {}), // la vue « Table » de la régie : glisser décale la carte, molette et pincer zooment
+    ...(apercu ? { glisser: (p) => canal.postMessage(messageCadrer(p.x, p.y)), tactile: true,
+      selectionner: (genre, id, pos) => canal.postMessage(messageElement(genre, id, pos && pos.x / innerWidth, pos && pos.y / innerHeight)) } : {}), // la vue « Table » de la régie : glisser décale la carte, molette et pincer zooment
   });
   if (apercu) {
     activerZoomGestes($('ecran-table'), { surZoom: (facteur) => canal.postMessage(messageZoom(facteur)) });

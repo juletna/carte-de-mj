@@ -1,6 +1,6 @@
 /**
  * La régie (presentation.html) sur la coquille de l'atelier, mode « jouer » : l'arbre en lecture à gauche (pastilles : à la table, découvert,
- * pas encore montré), la carte au centre, et à droite les onglets Ici · Joueurs (Ici seul pour une carte de monde : la rangée d'onglets est alors invisible, sans changer de hauteur).
+ * pas encore montré), la carte au centre, et à droite les onglets Ici · Joueurs (Ici seul pour une carte de monde : l'onglet reste affiché).
  * Voir docs/conception-atelier.md, lot D. Ce module ne contient aucune logique de partie : regie.js et regie-univers.js lui disent où l'on est
  * (`synchroniser`) et lui demandent de réagir au clic sur l'arbre (`surChoix`).
  *
@@ -76,8 +76,6 @@ export function creerJouer({ racine, donnees, partie, surChoix, affichage, ouvri
     const visibles = ONGLETS[modeCourant];
     for (const [id] of defs) { bouton(id).hidden = !visibles.includes(id); }
     if (!visibles.includes(coquille.onglets.courant())) coquille.onglets.choisir(visibles[0]);
-    // Un seul onglet : la rangée reste (même hauteur, même filet : le panneau reste aligné sur la barre d'outils) mais ses boutons ne se voient plus.
-    colonne.querySelector('.atelier-onglets')?.classList.toggle('onglet-unique', visibles.length < 2);
   }
 
   /** La composition : donjon (Ici · Joueurs) ou monde (Ici). Les deux partagent l'arbre et le bandeau. */

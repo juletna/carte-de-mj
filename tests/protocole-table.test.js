@@ -4,7 +4,7 @@
  */
 import * as p from '../js/presentation.js';
 import * as t from '../js/commande-table.js';
-import { MESSAGES, CANAL, messageEtat, lireEtat, messageDefiler, lireDefilement, messageDemandeEtat, messageDeplacer, messageViser, messagePoint, lirePosition, messageZoom, lireFacteurZoom, messageCadrer, messageCadrage, lireCadrage } from '../js/protocole-table.js';
+import { MESSAGES, CANAL, messageEtat, lireEtat, messageDefiler, lireDefilement, messageDemandeEtat, messageDeplacer, messageViser, messagePoint, lirePosition, messageZoom, lireFacteurZoom, messageCadrer, messageCadrage, lireCadrage, messageElement, lireElement } from '../js/protocole-table.js';
 import { AFFICHAGE_PAR_DEFAUT } from '../js/affichage.js';
 import { verifier, egal, executerSuite } from './mini-test.js';
 
@@ -38,6 +38,11 @@ const affichage = ({ mode, taille, grille, reperes }) => ({ mode, taille, grille
 const ids = (m) => ['portes', 'objets', 'creatures'].flatMap((l) => m.plan[l].map((e) => e.id)).sort();
 
 const TESTS = [
+  ['un élément touché dans la vue « Table » : genre, identifiant et position relus, le reste refusé', () => {
+    egal(lireElement(messageElement('creature', 'k1', 0.5, 0.25)), { genre: 'creature', id: 'k1', position: { x: 0.5, y: 0.25 } }, 'avec position');
+    egal(lireElement(messageElement('porte', 'q2')), { genre: 'porte', id: 'q2', position: null }, 'sans position');
+    egal([lireElement({ genre: 'salle', id: 'x' }), lireElement({ genre: 'objet', id: '' }), lireElement({ genre: 'objet', id: 3 }), lireElement(null)], [null, null, null, null], 'invalide');
+  }],
   ['cadrage : le facteur de zoom d’un geste est borné, la position relue en fractions 0–1', () => {
     egal([lireFacteurZoom(messageZoom(1.1)), lireFacteurZoom(messageZoom(9)), lireFacteurZoom(messageZoom(0.01)), lireFacteurZoom({ facteur: 'x' }), lireFacteurZoom(null)], [1.1, 2, 0.5, null, null], 'facteur');
     egal(lireCadrage(messageCadrer(0.25, 1)), { x: 0.25, y: 1 }, 'position relue');
@@ -50,7 +55,7 @@ const TESTS = [
     egal([lirePosition({ x: 2, y: 0.5 }), lirePosition({ x: 'a', y: 0 }), lirePosition(null), lirePosition({})], [null, null, null, null], 'hors bornes ou absente : null');
   }],
   ['les types de messages : distincts, et ceux que commande-table.js lit sont les mêmes', () => {
-    egal(MESSAGES, { ETAT: 'etat', DEFILER: 'defiler', DEMANDE_ETAT: 'demande-etat', TABLE_DEPLACER: 'table-deplacer', TABLE_VISER: 'table-viser', TABLE_POINT: 'table-point', TABLE_ZOOM: 'table-zoom', TABLE_CADRER: 'table-cadrer', CADRAGE: 'cadrage' }, 'types sur le canal');
+    egal(MESSAGES, { ETAT: 'etat', DEFILER: 'defiler', DEMANDE_ETAT: 'demande-etat', TABLE_DEPLACER: 'table-deplacer', TABLE_VISER: 'table-viser', TABLE_POINT: 'table-point', TABLE_ZOOM: 'table-zoom', TABLE_CADRER: 'table-cadrer', CADRAGE: 'cadrage', TABLE_ELEMENT: 'table-element' }, 'types sur le canal');
     egal(CANAL, 'carte-de-mj-presentation', 'nom du canal');
     egal(new Set(Object.values(MESSAGES)).size, Object.keys(MESSAGES).length, 'aucun type en double');
     const main = t.creerCommande('a'), libre = t.creerCommande('b');
