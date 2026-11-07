@@ -624,9 +624,14 @@ export function demarrerRegie() {
 
   // --- Fenêtre table et plein écran ici -------------------------------------------------------------
   const messageTable = (texte) => annoncer(texte, 10000);
+  let veilleFenetre = null;
   function ouvrirFenetreTable() {
     const w = window.open(new URL('presentation.html?vue=table', location.href).href, 'carte-de-mj-table', 'popup,width=1024,height=768');
-    if (w) { w.focus(); messageTable('Fenêtre table ouverte : glisse-la sur l’écran de la table, puis son bouton « Plein écran » (au survol, en haut à droite).'); }
+    if (w) {
+      w.focus();
+      jouer.boutonTable?.ouverte(true); // discret tant que la fenêtre est ouverte, doré de nouveau à sa fermeture
+      clearInterval(veilleFenetre);
+      veilleFenetre = setInterval(() => { if (w.closed) { clearInterval(veilleFenetre); jouer.boutonTable?.ouverte(false); } }, 1000); messageTable('Fenêtre table ouverte : glisse-la sur l’écran de la table, puis son bouton « Plein écran » (au survol, en haut à droite).'); }
     else messageTable('Le navigateur a bloqué la fenêtre. Autorise les fenêtres pour ce site, ou ouvre presentation.html?vue=table dans un nouvel onglet.');
   }
 

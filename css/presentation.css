@@ -288,8 +288,9 @@ body.vue-apercu .coin, body.vue-apercu #retour-regie { display: none !important;
 
 /* « Ouvrir la table ▾ » (js/atelier/ouvrir-table.js) : bouton doré dans la barre d'outils de la scène, et son menu. */
 .ouvrir-table { position: relative; }
+.ouvrir-table-bouton.btn-discret { font-weight: 500; color: var(--texte-doux); }
 .ouvrir-table-bouton { min-height: 30px; padding: 0 var(--esp-3); font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
-.ouvrir-table-menu { position: absolute; left: 0; top: calc(100% + 4px); z-index: 45; min-width: 12rem; display: flex; flex-direction: column; gap: 2px; padding: var(--esp-2); background: var(--panneau); border: 1px solid var(--bord); border-radius: var(--rayon); box-shadow: 0 8px 24px rgba(0, 0, 0, .55); }
+.ouvrir-table-menu { position: absolute; right: 0; top: calc(100% + 4px); z-index: 45; min-width: 12rem; display: flex; flex-direction: column; gap: 2px; padding: var(--esp-2); background: var(--panneau); border: 1px solid var(--bord); border-radius: var(--rayon); box-shadow: 0 8px 24px rgba(0, 0, 0, .55); }
 .ouvrir-table-menu[hidden] { display: none; }
 .ouvrir-table-entree { justify-content: flex-start; min-height: var(--cible); font-size: 13px; }
 .ouvrir-table-entree[hidden] { display: none; }

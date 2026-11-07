@@ -5,13 +5,14 @@
  * « Plein écran ici », voir regie-univers.js).
  *
  *   const o = creerOuvrirTable({ barre, avant, fenetre, pleinIci });   // `barre` : la barre d'outils, `avant` : le nœud devant lequel poser le bouton
+ *   o.ouverte(true | false)   la fenêtre de table est ouverte : le bouton doré devient discret (« Table ouverte »), et redevient doré à sa fermeture
  */
 import { h } from '../dom.js';
 import { icone } from '../icones.js';
 
 export function creerOuvrirTable({ barre, avant = null, fenetre, pleinIci }) {
   const bouton = h('button', { type: 'button', id: 'ouvrir-table-bouton', className: 'btn btn-primaire ouvrir-table-bouton', 'aria-haspopup': 'menu', 'aria-expanded': 'false', title: 'Ouvre la table : dans une fenêtre à glisser sur l’écran des joueurs, ou en plein écran ici' },
-    icone('plein-ecran'), h('span', { textContent: 'Ouvrir la table' }), h('span', { className: 'ouvrir-table-chevron', 'aria-hidden': 'true', textContent: '▾' }));
+    icone('plein-ecran'), h('span', { className: 'ouvrir-table-texte', textContent: 'Ouvrir la table' }), h('span', { className: 'ouvrir-table-chevron', 'aria-hidden': 'true', textContent: '▾' }));
   const entree = (id, texte, titre, action) => {
     const b = h('button', { type: 'button', id, role: 'menuitem', className: 'btn btn-discret ouvrir-table-entree', title: titre, textContent: texte });
     b.addEventListener('click', () => { fermer(); action(); });
@@ -33,5 +34,11 @@ export function creerOuvrirTable({ barre, avant = null, fenetre, pleinIci }) {
   document.addEventListener('pointerdown', (e) => { if (!racine.contains(e.target)) fermer(); });
   racine.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !menu.hidden) { e.preventDefault(); e.stopPropagation(); fermer({ rendreFocus: true }); } });
   barre.insertBefore(racine, avant);
-  return { element: racine, fermer };
+  /** La table est ouverte dans une fenêtre : le bouton se fait discret (le MJ n'a plus besoin de le chercher) ; fermée, il revient en doré. */
+  function ouverte(oui) {
+    bouton.classList.toggle('btn-primaire', !oui);
+    bouton.classList.toggle('btn-discret', oui);
+    bouton.querySelector('.ouvrir-table-texte').textContent = oui ? 'Table ouverte' : 'Ouvrir la table';
+  }
+  return { element: racine, fermer, ouverte };
 }

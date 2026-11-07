@@ -45,7 +45,8 @@ export function creerJouer({ racine, donnees, partie, surChoix, affichage, ouvri
   // Deux vues en haut de la scène : « Régie » (carte et commande) et « Table » (ce que voient les joueurs, en grand), pour régler l'écran de table en voyant le résultat.
   const vues = creerVuesRegie({ scene: $('principal'), barre: coquille.barreOutils, avant: coquille.barreFin, cadrage });
   // « Ouvrir la table ▾ » : la fenêtre des joueurs, ou le plein écran ici. Un seul endroit.
-  if (ouvrirTable) creerOuvrirTable({ barre: coquille.barreOutils, avant: coquille.barreFin, ...ouvrirTable });
+  // À droite de la barre, avec la grille et « Affichage ».
+  const boutonTable = ouvrirTable ? creerOuvrirTable({ barre: coquille.barreFin, avant: coquille.barreFin.firstChild, ...ouvrirTable }) : null;
 
   // Les lieux de l'arbre montrent leur carte en vignette (comme dans le Monde), pas le globe ; le monde, celle de sa carte.
   coquille.arbre.vue.definirVignette((n) => (n.type === 'lieu' || n.racine ? vignetteLieu(donnees().univers?.[n.contexte?.monde]?.lieux?.[n.racine ?? n.id]?.image, '') : null));
@@ -101,5 +102,5 @@ export function creerJouer({ racine, donnees, partie, surChoix, affichage, ouvri
   /** Sous 760 px : replie le panneau bas (la carte et la bulle de sélection reprennent la place). */
   function replier() { if (telephone() && !colonne.classList.contains('replie')) plier.click(); }
 
-  return { coquille, vues, cartouche, mode, replier, synchroniser, choisirOnglet: (id) => coquille.onglets.choisir(id), position: () => derniere };
+  return { coquille, vues, boutonTable, cartouche, mode, replier, synchroniser, choisirOnglet: (id) => coquille.onglets.choisir(id), position: () => derniere };
 }
