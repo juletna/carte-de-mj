@@ -143,7 +143,7 @@ export function ajouterPoint(u, idLieu, { nom = '', x, y, vers, cache = false } 
   l.points.push(p);
   return p;
 }
-/** Modifie un point : `nom`, `x`, `y`, `vers` (null l'efface), `cache`. Les champs absents ne changent pas. */
+/** Modifie un point : `nom`, `x`, `y`, `vers` (null l'efface), `cache`, `depart` (vrai : les autres points du lieu le perdent). Les champs absents ne changent pas. */
 export function modifierPoint(u, idLieu, idPoint, champs) {
   const p = pointOu(lieuOu(u, idLieu), idPoint);
   if ('nom' in champs) p.nom = coupe(champs.nom, LIMITES.nom).trim();
@@ -155,7 +155,23 @@ export function modifierPoint(u, idLieu, idPoint, champs) {
     else throw new Error('destination invalide');
   }
   if ('cache' in champs) { if (champs.cache) p.cache = true; else delete p.cache; }
+  if ('depart' in champs) {
+    if (champs.depart) { for (const q of lieuOu(u, idLieu).points) delete q.depart; p.depart = true; } // un seul point de départ par carte
+    else delete p.depart;
+  }
   return p;
+}
+/** Le point où l'on atterrit en découvrant cette carte (coché « Point de départ de la carte »), ou null. */
+export const pointDepartCarte = (lieu) => lieu?.points?.find((p) => p.depart === true) ?? null;
+/**
+ * Où la table atterrit en arrivant dans ce lieu : d'abord le point qui mène à l'endroit d'où l'on vient (`origine` : { lieu } ou { donjon }),
+ * sinon le point de départ de la carte, sinon null (la table reste centrée). Renvoie { x, y } en fractions de l'image.
+ */
+export function pointAtterrissage(lieu, origine = null) {
+  if (!lieu) return null;
+  const lien = origine && lieu.points.find((p) => p.vers && ((origine.lieu !== undefined && p.vers.lieu === origine.lieu) || (origine.donjon !== undefined && p.vers.donjon === origine.donjon)));
+  const p = lien || pointDepartCarte(lieu);
+  return p ? { x: p.x, y: p.y } : null;
 }
 export const deplacerPoint = (u, idLieu, idPoint, x, y) => modifierPoint(u, idLieu, idPoint, { x, y });
 export function supprimerPoint(u, idLieu, idPoint) {

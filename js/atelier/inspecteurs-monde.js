@@ -284,7 +284,7 @@ export function enregistrerInspecteursMonde(coquille, U) {
       conteneur.append(
         section('point-destination', 'Destination', destination(p, u)),
         ...noteOrphelin(p),
-        section('point-table', 'À la table', [interrupteur(p)]));
+        section('point-table', 'À la table', [interrupteur(p), departCarte(p)]));
       retrouverFocus();
     },
   });
@@ -295,6 +295,12 @@ export function enregistrerInspecteursMonde(coquille, U) {
     cache.addEventListener('change', () => { U.modifierPoint({ cache: cache.checked }); U.saisie.cle = 'cache'; U.rendre(); });
     return h('label', { className: 'univers-interrupteur', title: 'Caché : le point n’apparaît à la table qu’une fois révélé en jeu' }, cache, h('span', { className: 'univers-glissiere', 'aria-hidden': 'true' }),
       h('span', { textContent: p.cache ? 'Caché' : 'Visible' }));
+  }
+  /** « Point de départ de la carte » : là où la table atterrit en découvrant la carte (un seul par carte ; cocher un autre décoche celui-ci). */
+  function departCarte(p) {
+    const depart = avecCle(h('input', { type: 'checkbox', checked: !!p.depart }), 'depart');
+    depart.addEventListener('change', () => { U.modifierPoint({ depart: depart.checked }); U.saisie.cle = 'depart'; U.rendre(); });
+    return h('label', { className: 'univers-case', title: 'À la table, la carte s’ouvre sur ce point quand elle dépasse l’écran. Un seul point par carte.' }, depart, h('span', { textContent: 'Point de départ de la carte' }));
   }
   function noteOrphelin(p) {
     const orph = U.orphelinDe(p);
@@ -315,7 +321,8 @@ export function enregistrerInspecteursMonde(coquille, U) {
         h('p', { className: 'univers-bulle-titre', textContent: 'Mène vers' }),
         ...destination(p, u),
         ...noteOrphelin(p),
-        interrupteur(p)),
+        interrupteur(p),
+        departCarte(p)),
       h('div', { className: 'univers-bulle-pied' },
         ...(p.vers ? [btn('Entrer', () => U.entrerDansPoint(), { classe: 'btn-discret', titre: 'Va à la destination (double-clic sur le point : même chose)' })] : []),
         supprimer));

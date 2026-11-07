@@ -305,6 +305,36 @@ const TESTS = [
     b.lieux[monde.id].grille = { case: 70, dx: 5, dy: 0 };
     egal(validerUnivers(b).univers.lieux[monde.id].grille, { case: 70, dx: 5, dy: 0 }, 'grille gardée');
   }],
+  ['point de départ de la carte : un seul par lieu, atterrissage par le lien d’origine d’abord', () => {
+    const { univ, monde, foret } = exemple();
+    const [versForet] = monde.points;
+    const a = u.ajouterPoint(univ, monde.id, { nom: 'Port', x: 0.9, y: 0.8 });
+    const b = u.ajouterPoint(univ, monde.id, { nom: 'Gué', x: 0.1, y: 0.2 });
+    egal(u.pointAtterrissage(monde), null, 'aucun départ : null (la table reste centrée)');
+    u.modifierPoint(univ, monde.id, a.id, { depart: true });
+    u.modifierPoint(univ, monde.id, b.id, { depart: true });
+    verifier(!a.depart && b.depart === true, 'cocher un autre point décoche le précédent');
+    egal(u.pointDepartCarte(monde).id, b.id, 'le point de départ est le dernier coché');
+    egal(u.pointAtterrissage(monde), { x: 0.1, y: 0.2 }, 'sans origine : le point de départ');
+    egal(u.pointAtterrissage(monde, { lieu: 'inconnu' }), { x: 0.1, y: 0.2 }, 'origine sans lien : le point de départ');
+    egal(u.pointAtterrissage(monde, { lieu: foret.id }), { x: versForet.x, y: versForet.y }, 'au retour de la forêt : le point qui y mène, pas le départ');
+    u.modifierPoint(univ, monde.id, b.id, { depart: false });
+    verifier(!('depart' in b), 'décocher retire le champ');
+    egal(u.pointAtterrissage(monde, { lieu: foret.id }), { x: versForet.x, y: versForet.y }, 'le lien d’origine marche sans point de départ');
+    const don = u.ajouterPoint(univ, monde.id, { nom: 'Donjon', x: 0.7, y: 0.7, vers: { donjon: 'd1' } });
+    egal(u.pointAtterrissage(monde, { donjon: 'd1' }), { x: don.x, y: don.y }, 'au retour d’un donjon : le point qui y mène');
+    egal(u.pointAtterrissage(null), null, 'pas de lieu : null');
+  }],
+  ['relecture : depart conservé, un seul par lieu (le surplus est retiré en le disant)', () => {
+    const { univ, monde } = exemple();
+    const a = u.ajouterPoint(univ, monde.id, { nom: 'A', x: 0.1, y: 0.1 });
+    const b = u.ajouterPoint(univ, monde.id, { nom: 'B', x: 0.2, y: 0.2 });
+    a.depart = true; b.depart = true; // un fichier à la main, avec deux départs
+    const v = validerUnivers(JSON.parse(JSON.stringify(univ)));
+    verifier(v.univers.lieux[monde.id].points.filter((q) => q.depart).length === 1, 'un seul départ gardé');
+    verifier(v.avertissements.some((t) => t.includes('un seul point de départ')), 'dit à l’utilisateur');
+    verifier(v.univers.lieux[monde.id].points.find((q) => q.id === a.id).depart === true, 'le premier est gardé');
+  }],
 ];
 
 export const executer = () => executerSuite('univers : ', TESTS);

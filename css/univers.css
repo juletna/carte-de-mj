@@ -204,3 +204,6 @@ h3 .aide, h2 .aide { margin-left: var(--esp-1); font-weight: 400; }
 .univers-calage .calage-geste { display: flex; flex-wrap: wrap; align-items: center; gap: var(--esp-2); margin: var(--esp-2) 0; }
 .univers-calage .calage-n { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; }
 .univers-calage .calage-n input { width: 64px; }
+.univers-case { display: flex; align-items: center; gap: var(--esp-2); margin: 0; min-height: var(--cible); cursor: pointer; }
+.univers-case input { width: 18px; height: 18px; margin: 0; accent-color: var(--arcane); }
+.univers-point.depart .univers-pastille { border-radius: 4px; transform: rotate(45deg); } /* le point de départ de la carte : un losange au lieu d'un rond */

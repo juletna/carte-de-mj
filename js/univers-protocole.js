@@ -29,8 +29,21 @@ export const decalerDefilement = (d, dx, dy, pas = PAS_DEFILEMENT) => bornerDefi
 /** Position de défilement en pixels pour une fraction et une course (contenu moins fenêtre, jamais négative). */
 export const positionDefilement = (fraction, course) => Math.round(borner01(fraction) * Math.max(0, Number.isFinite(course) ? course : 0));
 
+/**
+ * Défilement (en px) qui amène le point `fraction` (0–1 de l'image) au milieu de la fenêtre, borné à la course.
+ * `debut`, `taille` : position et taille de l'image dans le contenu ; `fenetre`, `contenu` : tailles visible et totale, sur le même axe.
+ */
+export function positionPourCentrer(fraction, debut, taille, fenetre, contenu) {
+  const brut = (Number.isFinite(debut) ? debut : 0) + borner01(fraction) * (Number.isFinite(taille) ? taille : 0) - (Number.isFinite(fenetre) ? fenetre : 0) / 2;
+  const course = Math.max(0, (Number.isFinite(contenu) ? contenu : 0) - (Number.isFinite(fenetre) ? fenetre : 0));
+  return Math.round(Math.min(course, Math.max(0, brut)));
+}
+/** Un point à amener au milieu de la table (`centre`, fractions de l'image) : { x, y } valide, ou null. */
+export const lireCentre = (c) => (estObjet(c) && Number.isFinite(c.x) && Number.isFinite(c.y) ? bornerDefilement(c) : null);
+
 /** @param {{image?:object, nom?:string, points:object[]}} vue  le résultat de vueDeLaTable() ; `defilement` : voir CENTRE */
-export const messageUnivers = (vue, affichage, defilement = CENTRE, ordre = 0) => ({ type: TYPE_UNIVERS, vue, affichage, defilement: { ...bornerDefilement(defilement), ordre } });
+/** `centre` (facultatif) : un point de l'image que la table amène au milieu de son écran, à la place de `defilement`. */
+export const messageUnivers = (vue, affichage, defilement = CENTRE, ordre = 0, centre = null) => ({ type: TYPE_UNIVERS, vue, affichage, defilement: { ...bornerDefilement(defilement), ordre, ...(lireCentre(centre) ? { centre: lireCentre(centre) } : {}) } });
 /** `ordre` : compteur de la régie, qui change à chaque commande de défilement (même « recentrer » deux fois de suite) ; entier positif, sinon 0. */
 const entierOrdre = (v) => (Number.isSafeInteger(v) && v > 0 ? v : 0);
 
@@ -49,5 +62,5 @@ export function lireVueUnivers(m, affichageActuel) {
   const grille = normaliserGrille(m.vue.grille);
   if (grille) vue.grille = grille;
   if (typeof m.vue.nom === 'string' && m.vue.nom) vue.nom = m.vue.nom.slice(0, LIMITES.nom);
-  return { vue, affichage: validerAffichage(m.affichage, affichageActuel), defilement: { ...bornerDefilement(estObjet(m.defilement) ? m.defilement : CENTRE), ordre: entierOrdre(estObjet(m.defilement) ? m.defilement.ordre : 0) } };
+  return { vue, affichage: validerAffichage(m.affichage, affichageActuel), defilement: { ...bornerDefilement(estObjet(m.defilement) ? m.defilement : CENTRE), ordre: entierOrdre(estObjet(m.defilement) ? m.defilement.ordre : 0), ...(estObjet(m.defilement) && lireCentre(m.defilement.centre) ? { centre: lireCentre(m.defilement.centre) } : {}) } };
 }

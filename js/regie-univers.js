@@ -32,6 +32,7 @@ export function creerRegieUnivers(ctx) {
   let consulte = null;  // le lieu que la régie regarde sans que la table y soit (jamais enregistré) ; null : la régie regarde le lieu de la table
   let sequence = 0;
   let defil = { ...CENTRE }; // la partie de la carte montrée à la table quand elle dépasse son écran (voir univers-protocole.js)
+  let centreDefil = null;    // le point d'arrivée que la table amène au milieu (fractions de l'image), ou null : défilement ci-dessus
   let ordreDefil = 0;        // change à chaque commande, même « recentrer » deux fois de suite : la table n'applique que ce qui est nouveau
   const donjons = () => stockage.chargerDonjons()?.donjons ?? {};
   const universEnregistres = () => stockage.chargerUnivers().etat?.univers ?? {};
@@ -64,14 +65,19 @@ export function creerRegieUnivers(ctx) {
     if (lieu) carte.majGrille(grilleDuLieu(lieu), opacite()); // le réglage « Cases » a pu changer
     if (!ctx.commande.main) return true; // en retrait : on ne parle pas à la table, et on ne lui envoie pas non plus un plan vide
     const v = vue();
-    if (v) ctx.canal?.postMessage(messageUnivers(v, ctx.affichageTable(), defil, ordreDefil));
+    if (v) ctx.canal?.postMessage(messageUnivers(v, ctx.affichageTable(), defil, ordreDefil, centreDefil));
     return true;
   }
 
   // --- Réglages et défilement de la table ---------------------------------------------------------------------------
   // Rien n'est grisé dans une carte de monde : le calibrage de la table est un mode de la table, sans salle (js/calibrage.js).
   /** La table change de carte ou de niveau : sa vue se recentre, et la régie regarde de nouveau ce que voit la table. */
-  function recentrerTable() { defil = { ...CENTRE }; ordreDefil++; consulte = null; }
+  /** `origine` : d'où l'on vient ({ lieu } ou { donjon }) ; la table atterrit sur le point qui y mène, sinon sur le point de départ de la carte, sinon au centre. */
+  function recentrerTable(origine = null) {
+    defil = { ...CENTRE }; ordreDefil++; consulte = null;
+    const lieu = courant?.univers.lieux[courant.partie.lieuCourant];
+    centreDefil = modele.pointAtterrissage(lieu, origine);
+  }
 
   // --- Départ -----------------------------------------------------------------------------------------------
   function listerDepart() {
@@ -145,11 +151,12 @@ export function creerRegieUnivers(ctx) {
       if (q?.vers?.lieu !== undefined && q.vers.lieu in courant.univers.lieux) { consulte = q.vers.lieu; pointId = null; rendre(); }
       return;
     }
+    const avant = courant.partie.lieuCourant;
     const but = pu.franchir(courant.partie, courant.univers, id, donjons());
     if (!but) { ctx.annoncer('Cette destination n’existe plus : le point est signalé comme orphelin. Rien n’a été retiré.', 8000); return; }
     sauver();
     pointId = null;
-    recentrerTable();
+    recentrerTable({ lieu: avant });
     if (but.donjon) entrerDonjon(but); else rendre();
   }
   /** De retour d'un donjon : sa partie reste enregistrée telle quelle ; la régie quitte la partie de donjon et revient à la carte. */
@@ -161,15 +168,17 @@ export function creerRegieUnivers(ctx) {
     afficherEcran();
   }
   /** Après un changement de lieu ou de niveau : on enregistre, on sort du donjon si l'on y était, et on redessine la carte. */
-  function apres() {
+  function apres(origine = null) {
     sauver();
     pointId = null;
-    recentrerTable();
+    recentrerTable(origine);
     if (ecran.hidden) quitterLeDonjon();
     rendre();
   }
-  const remonter = () => { if (pu.remonter(courant.partie)) apres(); };
-  const versLe = (index) => { if (pu.allerAuChemin(courant.partie, index)) apres(); };
+  /** D'où l'on part, avant un changement de lieu : le donjon qu'on quitte, sinon le lieu qu'on quitte (la table atterrit sur le point qui y mène). */
+  const origineActuelle = () => (courant.partie.dans ? { donjon: courant.partie.dans.donjon } : { lieu: courant.partie.lieuCourant });
+  const remonter = () => { const o = origineActuelle(); if (pu.remonter(courant.partie)) apres(o); };
+  const versLe = (index) => { const o = origineActuelle(); if (pu.allerAuChemin(courant.partie, index)) apres(o); };
 
   // --- Fil d'Ariane (carte et donjon) ---------------------------------------------------------------------------
   function remplirFil(conteneur, partie, univers, dernier, { aller = versLe, remonterVers = remonter, etiquette = null } = {}) {
@@ -224,6 +233,7 @@ export function creerRegieUnivers(ctx) {
     const m = monde();
     if (!m || !m.univers.lieux[but.lieu]) return false;
     courant = m;
+    const origine = origineActuelle();
     if (!pu.conduireAuLieu(m.partie, m.univers, but.lieu)) return false;
     if (but.donjon) {
       const d = donjons()[but.donjon];
@@ -232,7 +242,7 @@ export function creerRegieUnivers(ctx) {
     }
     sauver();
     pointId = null;
-    recentrerTable();
+    recentrerTable(origine);
     if (m.partie.dans) { entrerDonjon(m.partie.dans, { aLaTable: true }); return true; }
     if (ecran.hidden) quitterLeDonjon();
     rendre();
@@ -455,7 +465,7 @@ export function creerRegieUnivers(ctx) {
   /** Le lieu à la table a-t-il une grille ? « Réel » n'a de sens qu'avec elle. */
   const grilleDisponible = () => { const l = courant?.univers.lieux[courant.partie.lieuCourant]; return !!l && !!grilleDuLieu(l); };
   /** Le glissement dans la vue « Table » : la position (fractions de la course) que la carte montrée à la table doit avoir. */
-  function cadrer({ x, y }) { defil = pu_borner({ x, y }); ordreDefil++; diffuser(); }
+  function cadrer({ x, y }) { defil = pu_borner({ x, y }); centreDefil = null; ordreDefil++; diffuser(); }
   function choisirPoint(id, ancre = null) {
     const lieu = courant && !ecran.hidden ? courant.univers.lieux[courant.partie.lieuCourant] : null;
     if (!lieu || typeof id !== 'string' || !lieu.points.some((q) => q.id === id)) return;

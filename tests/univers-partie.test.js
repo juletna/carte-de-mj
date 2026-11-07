@@ -4,7 +4,7 @@
 import * as u from '../js/univers.js';
 import * as p from '../js/univers-partie.js';
 import { creerDonjon } from '../js/donjon.js';
-import { messageUnivers, lireVueUnivers, TYPE_UNIVERS, CENTRE, decalerDefilement, bornerDefilement, positionDefilement } from '../js/univers-protocole.js';
+import { messageUnivers, lireVueUnivers, TYPE_UNIVERS, CENTRE, decalerDefilement, bornerDefilement, positionDefilement, positionPourCentrer } from '../js/univers-protocole.js';
 import { AFFICHAGE_PAR_DEFAUT } from '../js/affichage.js';
 import { chargerUnivers, sauverUnivers, chargerPartiesUnivers, enregistrerPartieUnivers, supprimerPartieUnivers, misDeCote, CLE_UNIVERS, CLE_UNIVERS_PARTIES } from '../js/stockage.js';
 import { verifier, egal, fauxStock, executerSuite } from './mini-test.js';
@@ -271,6 +271,19 @@ const TESTS = [
     egal(lireVueUnivers(messageUnivers(vue, {}, { x: 0.2, y: 1 }, 3), AFFICHAGE_PAR_DEFAUT).defilement, { x: 0.2, y: 1, ordre: 3 }, 'transmis');
     egal(lireVueUnivers({ type: TYPE_UNIVERS, vue, defilement: { x: 99, y: -1, ordre: -4 } }, AFFICHAGE_PAR_DEFAUT).defilement, { x: 1, y: 0, ordre: 0 }, 'borné à la lecture');
     egal(lireVueUnivers({ type: TYPE_UNIVERS, vue, defilement: 'x' }, AFFICHAGE_PAR_DEFAUT).defilement, { x: 0.5, y: 0.5, ordre: 0 }, 'illisible');
+  }],
+  ['centrer un point à la table : position bornée, message relu avec son centre', () => {
+    egal(positionPourCentrer(0.5, 12, 2000, 800, 2024), 612, 'le milieu de l’image au milieu de la fenêtre');
+    egal(positionPourCentrer(0, 12, 2000, 800, 2024), 0, 'au bord gauche : borné à 0');
+    egal(positionPourCentrer(1, 12, 2000, 800, 2024), 1224, 'au bord droit : borné à la course');
+    egal(positionPourCentrer(0.5, 12, 500, 800, 524), 0, 'carte plus petite que la fenêtre : pas de course');
+    const vue = { points: [] };
+    const avec = lireVueUnivers(JSON.parse(JSON.stringify(messageUnivers(vue, { ...AFFICHAGE_PAR_DEFAUT }, CENTRE, 3, { x: 0.8, y: 2 }))), AFFICHAGE_PAR_DEFAUT);
+    egal(avec.defilement.centre, { x: 0.8, y: 1 }, 'le centre est relu et borné');
+    egal(avec.defilement.ordre, 3, 'l’ordre est gardé');
+    const sans = lireVueUnivers(JSON.parse(JSON.stringify(messageUnivers(vue, { ...AFFICHAGE_PAR_DEFAUT }))), AFFICHAGE_PAR_DEFAUT);
+    verifier(!('centre' in sans.defilement), 'sans centre : rien de plus dans le message');
+    verifier(!('centre' in lireVueUnivers({ type: TYPE_UNIVERS, vue, defilement: { x: 0.5, y: 0.5, centre: 'oups' } }, AFFICHAGE_PAR_DEFAUT).defilement), 'un centre mal formé est ignoré');
   }],
 ];
 

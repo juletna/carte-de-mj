@@ -10,7 +10,7 @@ import { creerCarteUnivers } from './univers-carte.js';
 import * as images from './univers-images.js';
 import { urlFondNeutre } from './univers-fond.js';
 import { dimensionsTable } from './univers-grille.js';
-import { CENTRE, positionDefilement } from './univers-protocole.js';
+import { CENTRE, positionDefilement, positionPourCentrer } from './univers-protocole.js';
 import { casesDeReglages, TAILLE_PAR_DEFAUT } from './affichage.js';
 import { $, h } from './dom.js';
 import { poserPosition, activerGlisser } from './cadrage-table.js';
@@ -42,8 +42,14 @@ export function creerTableUnivers({ surPoint = null } = {}) {
     img.style.height = `${Math.round(d.hauteur)}px`;
     zone.classList.toggle('defile', d.defile);
     if (d.defile && aPlacer) {
-      zone.scrollLeft = positionDefilement(defilement.x, zone.scrollWidth - zone.clientWidth);
-      zone.scrollTop = positionDefilement(defilement.y, zone.scrollHeight - zone.clientHeight);
+      if (defilement.centre) { // un point d'arrivée : il passe au milieu de l'écran
+        const bi = img.getBoundingClientRect(), bz = zone.getBoundingClientRect(); // l'image est dans un cadre : on la situe par rapport à la zone qui défile
+        zone.scrollLeft = positionPourCentrer(defilement.centre.x, bi.left - bz.left + zone.scrollLeft, bi.width, zone.clientWidth, zone.scrollWidth);
+        zone.scrollTop = positionPourCentrer(defilement.centre.y, bi.top - bz.top + zone.scrollTop, bi.height, zone.clientHeight, zone.scrollHeight);
+      } else {
+        zone.scrollLeft = positionDefilement(defilement.x, zone.scrollWidth - zone.clientWidth);
+        zone.scrollTop = positionDefilement(defilement.y, zone.scrollHeight - zone.clientHeight);
+      }
     }
     aPlacer = false;
   }
@@ -66,7 +72,7 @@ export function creerTableUnivers({ surPoint = null } = {}) {
       const refCle = image ? `${image.source}:${image.id}` : `fond:${nom ?? ''}`; // sans image (lieu à illustrer) : le fond neutre, nommé d'après le lieu
       const cle = `${refCle}:${affichage.mode}:${grille ? `${grille.case}/${grille.dx}/${grille.dy}` : ''}:${affichage.taille}`;
       if (cle !== courante?.cle || demande.x !== defilement.x || demande.y !== defilement.y || demande.ordre !== defilement.ordre) aPlacer = true; // sinon le doigt d'un joueur qui a fait défiler la carte n'est pas contredit
-      defilement = { x: demande.x, y: demande.y, ordre: demande.ordre };
+      defilement = { x: demande.x, y: demande.y, ordre: demande.ordre, centre: demande.centre ?? null };
       courante = { vue: { image, nom, points, grille }, affichage, cle };
       const donnees = { grille: grille ?? null, opacite: casesDeReglages(affichage) / 100, points: points.map((p) => ({ id: p.id, x: p.x, y: p.y, nom: p.nom ?? '' })), alt: nom ? `Carte : ${nom}` : 'Carte' };
       if (connue?.ref === refCle && connue.url) { // même carte : on ne la recharge pas à chaque point révélé

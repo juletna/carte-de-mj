@@ -23,6 +23,7 @@ function validerPoint(brut, etiquette, avertissements) {
     else avertissements.push(`${etiquette} : destination du point « ${p.nom || p.id} » invalide, écartée`);
   }
   if (brut.cache === true) p.cache = true;
+  if (brut.depart === true) p.depart = true;
   return p;
 }
 
@@ -52,6 +53,7 @@ function validerLieu(brut, id, avertissements) {
     if (!p) continue;
     if (ids.has(p.id)) { avertissements.push(`${etiquette} : identifiant de point en double, un point a reçu un nouvel identifiant`); p.id = idUnique('pt', [...ids]); }
     ids.add(p.id);
+    if (p.depart && lieu.points.some((q) => q.depart)) { delete p.depart; avertissements.push(`${etiquette} : un seul point de départ par carte, « ${p.nom || p.id} » ne l’est plus`); }
     lieu.points.push(p);
   }
   return { lieu };

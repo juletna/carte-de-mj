@@ -373,8 +373,8 @@ export function creerUniversUI(ctx) {
     const enCalage = calage.actif();
     const pointsLieu = l.points.map((p) => ({
       id: p.id, x: p.x, y: p.y, nom: p.nom || '',
-      titre: `${p.nom || 'Point sans nom'} → ${modele.nomDestination(univ(), p.vers, donjons())}${orphelinDe(p) ? ` (${orphelinDe(p)})` : ''}`,
-      classes: [p.cache ? 'cache' : '', orphelinDe(p) ? 'orphelin' : '', !p.vers ? 'libre' : '', p.id === pointId ? 'choisi' : '', enCalage ? 'transparent' : ''].filter(Boolean),
+      titre: `${p.depart ? 'Départ de la carte : ' : ''}${p.nom || 'Point sans nom'} → ${modele.nomDestination(univ(), p.vers, donjons())}${orphelinDe(p) ? ` (${orphelinDe(p)})` : ''}`,
+      classes: [p.cache ? 'cache' : '', p.depart ? 'depart' : '', orphelinDe(p) ? 'orphelin' : '', !p.vers ? 'libre' : '', p.id === pointId ? 'choisi' : '', enCalage ? 'transparent' : ''].filter(Boolean),
       selectionne: p.id === pointId,
     }));
     // En calage, les points restent visibles en transparence (sans qu'on puisse les toucher) et les repères de « Mesurer » s'y ajoutent.
