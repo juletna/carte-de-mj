@@ -81,7 +81,7 @@ Aucun : les six étapes ont passé tests et vérification navigateur.
 | 3 | Notes de partie des lieux d'un monde | fa2e6e0 |
 | 4 | « Visible à la table » en interrupteurs, unifié salle / lieu | db5905f |
 | 5 | « Cachés » + popover d'élément (donjon c0f5a43, monde bd82e94) | c0f5a43, bd82e94 |
-| 6 | Cadrage sur la carte (zoom, Remplir, Réel, glisser, molette, pincer), suppression de l'onglet Écran | voir `git log` |
+| 6 | Cadrage sur la carte (zoom, Remplir, Réel, glisser, molette, pincer), suppression de l'onglet Écran | d037c51 |
 
 **Choix faits sans demander :** le stepper de taille réelle avance de 1 mm ; « Noms des points » masque aussi le nom du lieu à la table (comme avant) ; `masquerPoints` est un nouveau champ de la partie de monde ; le zoom est transitoire (non enregistré) et revient à 100 % au changement de carte ; le texte « Projet libre (MIT) » de l'ancien onglet Table a disparu ; l'en-tête de l'onglet Ici garde le type « Salle ».
 
