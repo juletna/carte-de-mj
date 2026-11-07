@@ -28,6 +28,7 @@ export function creerRegieUnivers(ctx) {
   const { etat } = ctx;
   let courant = null;   // { univers, partie } : l'univers dont la carte est affichée (ou dont on est dans un donjon)
   let pointId = null;   // point choisi sur la carte
+  let consulte = null;  // le lieu que la régie regarde sans que la table y soit (jamais enregistré) ; null : la régie regarde le lieu de la table
   let sequence = 0;
   let defil = { ...CENTRE }; // la partie de la carte montrée à la table quand elle dépasse son écran (voir univers-protocole.js)
   let ordreDefil = 0;        // change à chaque commande, même « recentrer » deux fois de suite : la table n'applique que ce qui est nouveau
@@ -49,13 +50,16 @@ export function creerRegieUnivers(ctx) {
   const cleImage = (ref) => `${ref?.source}:${ref?.id}`;
   const grilleDuLieu = (lieu) => (lieu.image ? grilleEffective(lieu, infosParImage.get(cleImage(lieu.image))).grille : null); // sans image, pas de grille
   const opacite = () => casesDeReglages(ctx.r) / 100;
+  /** Le lieu dessiné dans la régie : celui que le MJ consulte, sinon celui de la table. */
+  const lieuAffiche = () => (consulte && consulte in courant.univers.lieux ? consulte : courant.partie.lieuCourant);
+  const enConsultation = () => lieuAffiche() !== courant.partie.lieuCourant;
   const vue = () => { const lieu = courant.univers.lieux[courant.partie.lieuCourant]; return pu.vueDeLaTable(courant.partie, courant.univers, lieu ? grilleDuLieu(lieu) : null); };
 
   // --- Table ----------------------------------------------------------------------------------------------
   /** Envoie la carte à la table si la régie a la main et affiche une carte d'univers. Vrai : la table est servie (regie.js n'envoie alors pas de plan). */
   function diffuser() {
     if (!courant || ecran.hidden) return false;
-    const lieu = courant.univers.lieux[courant.partie.lieuCourant];
+    const lieu = courant.univers.lieux[lieuAffiche()];
     if (lieu) carte.majGrille(grilleDuLieu(lieu), opacite()); // le réglage « Cases » a pu changer
     if (!ctx.commande.main) return true; // en retrait : on ne parle pas à la table, et on ne lui envoie pas non plus un plan vide
     const v = vue();
@@ -82,7 +86,8 @@ export function creerRegieUnivers(ctx) {
     ordreDefil++;
     diffuser();
   }
-  function recentrerTable() { defil = { ...CENTRE }; ordreDefil++; }
+  /** La table change de carte ou de niveau : sa vue se recentre, et la régie regarde de nouveau ce que voit la table. */
+  function recentrerTable() { defil = { ...CENTRE }; ordreDefil++; consulte = null; }
 
   // --- Départ -----------------------------------------------------------------------------------------------
   function listerDepart() {
@@ -154,6 +159,11 @@ export function creerRegieUnivers(ctx) {
   }
 
   function franchir(id) {
+    if (enConsultation()) { // la table n'est pas ici : on suit le point en consultation seulement
+      const q = courant.univers.lieux[lieuAffiche()].points.find((x) => x.id === id);
+      if (q?.vers?.lieu !== undefined && q.vers.lieu in courant.univers.lieux) { consulte = q.vers.lieu; pointId = null; rendre(); }
+      return;
+    }
     const but = pu.franchir(courant.partie, courant.univers, id, donjons());
     if (!but) { ctx.annoncer('Cette destination n’existe plus : le point est signalé comme orphelin. Rien n’a été retiré.', 8000); return; }
     sauver();
@@ -248,6 +258,14 @@ export function creerRegieUnivers(ctx) {
     rendre();
     return true;
   }
+  /** Un lieu choisi dans l'arbre pendant la vue « En régie » : la régie le regarde, la table ne bouge pas. Faux si la carte du monde n'est pas affichée. */
+  function consulterLieu(id) {
+    if (ecran.hidden || !courant || !(id in courant.univers.lieux)) return false;
+    consulte = id === courant.partie.lieuCourant ? null : id;
+    pointId = null;
+    rendre();
+    return true;
+  }
   /** La liste des parties est demandée : la carte de monde n'est plus affichée. */
   function fermer() { ecran.hidden = true; rendreLesReglages(); }
   /** Dans la régie de donjon : le fil de l'univers d'où l'on vient, avec « Remonter ». Appelée à chaque rendu de la régie. */
@@ -265,7 +283,8 @@ export function creerRegieUnivers(ctx) {
   // --- Rendu de la carte ----------------------------------------------------------------------------------------
   function rendre() {
     const { univers, partie } = courant;
-    const lieu = univers.lieux[partie.lieuCourant];
+    if (consulte && !(consulte in univers.lieux)) consulte = null;
+    const lieu = univers.lieux[lieuAffiche()];
     titre.textContent = univers.nom;
     const fil = $('fil-univers');
     fil.hidden = false;
@@ -295,7 +314,7 @@ export function creerRegieUnivers(ctx) {
     rendrePanneau(lieu, dons);
     majCartouche(lieu, moi);
     diffuser();
-    ctx.jouer?.synchroniser({ monde: univers.id, lieu: partie.lieuCourant });
+    ctx.jouer?.synchroniser({ monde: univers.id, lieu: lieu.id });
   }
 
   /** Le cartouche d'échelle du lieu : sa taille en cases et en mètres, d'après sa grille ; rien sans grille. Les dimensions de l'image se lisent une fois. */
@@ -317,13 +336,21 @@ export function creerRegieUnivers(ctx) {
   function majBandeauMonde(lieu) {
     const bandeau = $('bandeau');
     const retrait = ctx.commande.retrait;
-    bandeau.className = retrait ? 'retrait' : 'sur-table';
+    const consultation = !retrait && enConsultation();
+    bandeau.className = retrait ? 'retrait' : consultation ? 'consultation' : 'sur-table';
     const texte = h('div', { className: 'texte' });
-    if (retrait) texte.append(h('span', { className: 'pastille', textContent: 'En retrait' }), 'Une autre régie commande la table : les joueurs ne voient pas ce que tu fais ici.');
+    if (consultation) {
+      const { univers, partie } = courant, table = univers.lieux[partie.lieuCourant];
+      texte.append(h('span', { className: 'pastille', textContent: 'Consultation' }), 'Tu regardes ', h('strong', { textContent: lieu.nom }),
+        partie.decouverts.includes(lieu.id) ? ' (déjà vu)' : ' (pas encore vu)', '. La table montre toujours ', h('strong', { textContent: table?.nom ?? '…' }), '.');
+    } else if (retrait) texte.append(h('span', { className: 'pastille', textContent: 'En retrait' }), 'Une autre régie commande la table : les joueurs ne voient pas ce que tu fais ici.');
     else texte.append(h('span', { className: 'pastille', textContent: 'À la table' }), 'Les joueurs voient la carte : ', h('strong', { textContent: lieu.nom }), '.');
     texte.title = texte.textContent;
     const actions = h('div', { className: 'actions' });
-    if (retrait) actions.append(btn('Reprendre la main', () => { ctx.prendreLaMain(); if (courant) stockage.memoriserPartieOuverte(pu.cleOuverteUnivers(courant.univers.id)); rendre(); }, { icone: 'oeil' }));
+    if (consultation) {
+      actions.append(btn('Afficher à la table', () => conduireA({ lieu: lieu.id }), { icone: 'oeil', classe: 'btn-fort' }),
+        btn('Retour à la table', () => { consulte = null; pointId = null; rendre(); }));
+    } else if (retrait) actions.append(btn('Reprendre la main', () => { ctx.prendreLaMain(); if (courant) stockage.memoriserPartieOuverte(pu.cleOuverteUnivers(courant.univers.id)); rendre(); }, { icone: 'oeil' }));
     bandeau.replaceChildren(texte, actions);
   }
 
@@ -342,7 +369,7 @@ export function creerRegieUnivers(ctx) {
       // Pas de doré ici : l'action principale de la régie est « Ouvrir la fenêtre table » (presentation.html).
       const entrer = btn(p.vers?.donjon ? 'Entrer dans le donjon' : 'Entrer dans ce lieu', () => franchir(p.id), { icone: 'retour', classe: 'univers-entrer' });
       entrer.append(entrer.firstChild); // la flèche passe après le libellé et pointe vers la droite
-      entrer.disabled = !p.vers || !!orph;
+      entrer.disabled = !p.vers || !!orph || (enConsultation() && p.vers.lieu === undefined); // un donjon : d'abord « Afficher à la table »
       actions.append(entrer);
       choisi.push(actions);
     } else choisi.push(h('p', { className: 'note', textContent: 'Touche un point de la carte, ou choisis-le dans la liste.' }));
@@ -365,7 +392,7 @@ export function creerRegieUnivers(ctx) {
     const section = (cle, titre, enfants, options = {}) => creerSection({ cle: `regie-lieu:${cle}`, titre, enfants, ...options }).element;
     panneau.replaceChildren(
       section('table', 'Carte à la table', [
-        h('p', { className: 'note', textContent: ctx.commande.main ? `La table voit cette carte${nbCaches ? ` sans ${pluriel(nbCaches, 'point caché', 'points cachés')}` : ''}.` : 'Cette régie est en retrait : la table ne voit pas ce que tu fais ici.' }),
+        h('p', { className: 'note', textContent: enConsultation() ? 'Tu consultes cette carte : la table ne la voit pas encore. « Afficher à la table » l’y conduit.' : ctx.commande.main ? `La table voit cette carte${nbCaches ? ` sans ${pluriel(nbCaches, 'point caché', 'points cachés')}` : ''}.` : 'Cette régie est en retrait : la table ne voit pas ce que tu fais ici.' }),
         h('label', { className: 'ligne case' }, masquer, ' Masquer les noms à la table')]),
       section('point', 'Point choisi', choisi),
       section('points', 'Points', [lieu.points.length ? liste : h('p', { className: 'note', textContent: 'Aucun point sur cette carte.' })], {
@@ -409,5 +436,5 @@ export function creerRegieUnivers(ctx) {
     rendre();
   }
 
-  return { choisirPoint, cleOuverte, listerDepart, diffuser, majFil, monde, versLeLieu, conduireA, fermer, reprendre, ouvrirParId, defiler, redessiner: () => { if (courant && !ecran.hidden) rendre(); }, actif: () => !ecran.hidden };
+  return { choisirPoint, cleOuverte, listerDepart, diffuser, majFil, monde, versLeLieu, conduireA, consulterLieu, fermer, reprendre, ouvrirParId, defiler, redessiner: () => { if (courant && !ecran.hidden) rendre(); }, actif: () => !ecran.hidden };
 }
