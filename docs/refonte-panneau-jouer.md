@@ -35,7 +35,7 @@ Le panneau de droite de la régie change d'onglets selon la carte affichée : **
 |---|---|---|
 | **Ici** | « Où suis-je, que voit la table ? » | *Visible à la table* (une seule section, même vocabulaire pour une salle ou un lieu : interrupteurs Monstres, Objets ou Points, Noms des points) · *Cachés* (la seule liste : ce qui n'est pas encore à la table, « Révéler » sur chaque ligne et « Révéler tout » ; elle disparaît quand rien n'est caché) · *Notes* (préparation en lecture seule + notes de partie modifiables, aussi pour un lieu) |
 | **Joueurs** | « Qui joue ? » | Personnages · Ajouter un joueur. Disponible dans un monde comme dans un donjon. |
-| **Écran** | « Comment la table affiche-t-elle ? » | *Fenêtre de table* (Ouvrir, Plein écran ici, Reprendre la main si besoin) · *Taille de la carte* (Remplir / Échelle réelle, Mini-carte) · *Calibrage* (Rotation, Miroir, mm, Calibrer) · *Défilement* |
+| **Écran** | « Comment la table affiche-t-elle ? » | *Fenêtre de table* (Ouvrir, Plein écran ici) · *Cette carte* (Taille : Remplir / Échelle réelle, grisée tant que la carte n'a pas de grille ; *Plan du donjon*, seulement dans un donjon) · *Matériel de la table* (Rotation, Miroir, Taille réelle d'une case, Calibrer : réglé une fois, replié) |
 
 **Changements qui en découlent**
 
@@ -48,14 +48,22 @@ Le panneau de droite de la régie change d'onglets selon la carte affichée : **
 
 **Décision du 7 novembre : plus de listes d'éléments, de points ni de portes.** Les listes « Éléments » (salle), « Points » (lieu) et « Portes de la salle » doublent la carte (un clic y choisit déjà l'élément) et l'arbre (qui montre les lieux auxquels les points mènent, et qui descend depuis la navigation de Jouer). Elles sont remplacées par **Cachés**, la seule liste utile : retrouver ce qu'on a préparé en secret pour le révéler au bon moment. Les éléments visibles ne sont pas listés. Le détail d'un point (Mène à, Entrer dans ce lieu, Cacher ou Révéler) devient un **popover sur la carte**, ancré au point touché (décision du 7 novembre : meilleur qu'un bloc dans le panneau, qui sautait à chaque clic). Même geste pour un point, une porte ou un pion : il remplace aussi le panneau « Sélection » flottant d'une salle. Il réutilise la bulle et le placement de Préparer (`js/mj/bulle.js`, `js/mise-en-page.js`), se ferme au clic ailleurs ou avec Échap, évite les bords et le point voisin. À prévoir : dans la vue « À la table », la carte est dans un cadre, donc le cadre doit envoyer la position du clic avec le message pour que la régie place le popover ; sur téléphone, une feuille en bas plutôt qu'une bulle ; et toucher un petit point sur la carte est plus difficile qu'une ligne de liste (le zoom doit suffire).
 
+**Décision du 7 novembre : l'onglet Écran sépare le général du lié à la carte.** Rotation, miroir, taille réelle d'une case et calibrage décrivent le matériel de la table : valables pour toutes les cartes, mémorisés dans le navigateur, réglés une fois (section « Matériel de la table », repliée). La taille de la carte (Remplir / Échelle réelle) et le plan du donjon dépendent de la carte affichée et se retouchent en jeu : ils passent en tête, dans « Cette carte ». L'échelle réelle n'agit que sur une carte à grille calée (un plateau) et se grise avec une explication sinon.
+
+**Renommage : « Mini-carte » devient « Plan du donjon »** (le plan des salles découvertes que la table affiche ; il n'existe que dans un donjon).
+
+**Défilement et zoom directement sur la carte, dans la vue « À la table ».** On glisse pour décaler, molette ou pincer pour zoomer, avec le même contrôle que Préparer (− 100 % + Ajuster). La section « Défilement » et ses flèches disparaissent. La régie garde le zoom et la position (source unique) et les envoie à la fenêtre de table et à l'aperçu ; le cadre de la vue ne fait qu'envoyer les gestes. 100 % = la carte tient dans l'écran ; « Ajuster » y revient ; en « Échelle réelle », le zoom est verrouillé. Zoom et position sont propres à chaque carte et reviennent au cadrage de base au changement de carte. **Nouveau** : la table n'a pas de zoom aujourd'hui, il faut un message de plus sur le canal (`js/protocole-table.js`) géré par le plan du donjon (`js/ecran-table.js`) et par la carte du monde (`js/univers-table.js`) ; c'est une étape à part.
+
 **Couplage optionnel (à tester à l'usage).** Passer à la vue « À la table » ouvre l'onglet **Écran** ; revenir à « En régie » ouvre **Ici**. Le MJ qui règle l'écran voit tout de suite le résultat sans manipuler le panneau. Reste désactivable : un onglet choisi à la main n'est pas écrasé.
 
 ## Ordre de réalisation suggéré
 
 1. Renommer (Table → Écran, Salle et Lieu → Ici) et sortir « Réglages » vers « Affichage » : rapide, sans risque.
-2. Remettre l'onglet Écran au design des panneaux (champs, interrupteurs, aide).
+2. Remettre l'onglet Écran au design des panneaux (champs, interrupteurs, aide), avec les deux groupes « Cette carte » et « Matériel de la table » et « Mini-carte » renommée « Plan du donjon ».
 3. Rendre Joueurs disponible dans un monde ; notes de partie pour les lieux (stockage dans la partie du monde).
 4. Unifier « Visible à la table » entre salle et lieu.
 5. Monter « Ouvrir la fenêtre table » dans la barre d'outils ; coupler vues et onglets.
+6. Liste « Cachés » (Révéler / Révéler tout) à la place des listes d'éléments, de points et de portes ; popover d'élément sur la carte (réutilise `js/mj/bulle.js`).
+7. Défilement et zoom directement sur la carte dans la vue « À la table » (nouveau message de zoom sur le canal, gestes envoyés depuis le cadre, la régie reste la source). Étape à part, la plus lourde.
 
 Les étapes 3 et 4 touchent la logique de partie (`js/partie.js`, `js/regie-univers.js`) et dépendent du chantier « arbre de Jouer » en cours dans sa propre session : à coordonner avant de les lancer.

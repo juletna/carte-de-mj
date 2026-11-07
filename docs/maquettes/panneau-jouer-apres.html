@@ -194,21 +194,23 @@ textarea { width: 100%; min-height: 70px; background: var(--champ); border: 1px 
         <div class="sec"><div class="bandeau">Fenêtre de table</div>
           <div class="corps"><div class="rangee"><span class="btn">⛶ Ouvrir la fenêtre</span><span class="btn">⛶ Plein écran ici</span></div>
             <p class="note">Le bouton doré est aussi dans la barre d'outils.</p></div></div>
-        <div class="sec"><div class="bandeau">Taille de la carte <span class="p">6</span></div>
+        <div class="sec"><div class="bandeau">Cette carte <span class="p">11</span></div>
           <div class="corps">
             <div class="rang"><span class="radio on"></span><span>Remplir l'écran</span></div>
-            <div class="rang"><span class="radio"></span><span>Échelle réelle (figurines)</span></div>
-            <div class="rang"><span style="flex:1">Mini-carte</span><span class="interrupteur"></span></div>
-            <p class="note">Mini-carte : salles découvertes seulement.</p>
+            <div class="rang" style="opacity:.55"><span class="radio"></span><span>Échelle réelle (figurines)</span></div>
+            <p class="note">Échelle réelle : grisée tant que la carte n'a pas de grille (« Cette carte n'a pas de grille »).</p>
+            <div class="rang"><span style="flex:1">Plan du donjon</span><span class="interrupteur"></span></div>
+            <p class="note">Salles découvertes seulement. N'apparaît que dans un donjon. <span class="p">12</span></p>
+            <p class="note">Défilement et zoom : directement sur la carte, dans la vue « À la table ».</p>
           </div></div>
-        <div class="sec"><div class="bandeau">Calibrage <span class="p">8</span></div>
+        <div class="sec fermee"><div class="bandeau">Matériel de la table <span class="p">8</span> <span class="note" style="margin-left:auto;font-weight:400">réglé une fois</span></div></div>
+        <div class="sec"><div class="bandeau" style="color:var(--t3);font-weight:500">Ce que contient « Matériel de la table »</div>
           <div class="corps">
             <div class="champ2"><span>Rotation</span><span class="champ" style="color:var(--t1)">Aucune ▾</span></div>
             <div class="rang"><span style="flex:1">Image en miroir</span><span class="interrupteur off"></span></div>
             <div class="champ2"><span>Taille réelle d'une case (mm)</span><span class="champ" style="color:var(--t1)">25</span></div>
             <span class="btn">Calibrer sur la table</span>
           </div></div>
-        <div class="sec fermee"><div class="bandeau">Défilement</div></div>
       </div>
     </section>
 
@@ -228,6 +230,22 @@ textarea { width: 100%; min-height: 70px; background: var(--champ); border: 1px 
         </div>
       </div>
       <p class="note" style="margin-top:8px">Un point caché (en pointillés) propose « Révéler » à la place de « Cacher ». Le popover se ferme au clic ailleurs ou avec Échap, évite les bords de la carte et ne couvre pas le point voisin. Sur téléphone, il devient une feuille en bas de l'écran. Dans la vue « À la table », il s'ouvre au même endroit, par-dessus le cadre.</p>
+    </section>
+
+    <section class="vue" style="grid-column: span 2">
+      <h2>Vue « À la table » : on décale et on zoome sur la carte</h2><p class="qui">Glisser = décaler (fini les flèches), molette ou pincer = zoomer, comme à la régie <span class="p">11</span></p>
+      <div class="carte" style="border:3px solid var(--succes);cursor:grab">
+        <div class="ile" style="left:-6%;top:6%;width:62%;height:78%"></div>
+        <div class="ile" style="left:54%;top:30%;width:50%;height:66%"></div>
+        <div class="pt" style="left:34%;top:42%"><i></i><b>Port-Bourdon</b></div>
+        <div class="pt" style="left:78%;top:58%"><i></i><b>Les Dents-de-Sel</b></div>
+        <div class="pt" style="left:50%;top:50%;transform:none;font-size:22px;opacity:.9">✥</div>
+        <div style="position:absolute;right:12px;bottom:12px;display:flex;align-items:center;gap:6px;background:#1f1e24;border:1px solid var(--bord);border-radius:8px;padding:4px 6px">
+          <span class="btn" style="min-height:30px;padding:0 10px">−</span><span style="min-width:46px;text-align:center;color:var(--t1);font-size:13px">160 %</span><span class="btn" style="min-height:30px;padding:0 10px">+</span><span class="btn dore" style="min-height:30px;padding:0 12px">Ajuster</span>
+        </div>
+        <div style="position:absolute;left:12px;bottom:12px;background:rgba(0,0,0,.7);color:#fff;font-size:12px;border-radius:6px;padding:4px 10px">Ce que tu décales et zoomes ici, la table le voit aussi.</div>
+      </div>
+      <p class="note" style="margin-top:8px">« Ajuster » remet le cadrage de base (la carte tient dans l'écran). En « Échelle réelle », le zoom est verrouillé : la taille est celle de la figurine. Zoom et position sont propres à chaque carte et reviennent au cadrage de base quand on change de carte. La régie garde le zoom et la position et les envoie à la table et à l'aperçu ; le cadre de la vue ne fait qu'envoyer les gestes.</p>
     </section>
 
     <section class="vue">
@@ -260,9 +278,11 @@ textarea { width: 100%; min-height: 70px; background: var(--champ); border: 1px 
       <li><span class="p">5</span> Joueurs disponible dans un monde ; « Ouvrir la table » monte dans la barre d'outils, accessible depuis n'importe quel onglet.</li>
       <li><span class="p">6</span> Les réglages de la régie (taille d'une case, adapter) rejoignent « Affichage » ; l'onglet Écran ne parle plus que de l'écran de la table.</li>
       <li><span class="p">7</span> « Reprendre la main » seulement dans le bandeau rouge.</li>
-      <li><span class="p">8</span> L'onglet Écran suit le design des panneaux : étiquette au-dessus du champ, interrupteurs, plus de « ? » orphelin ni de légende de fieldset.</li>
+      <li><span class="p">8</span> L'onglet Écran suit le design des panneaux (étiquette au-dessus du champ, interrupteurs, plus de « ? » orphelin) et sépare le <b>matériel de la table</b> (rotation, miroir, taille réelle, calibrage : réglé une fois, replié) de ce qui dépend de la carte affichée.</li>
       <li><span class="p">9</span> Plus de liste « Éléments », « Points » ni « Portes de la salle » : la carte et l'arbre font déjà ce travail. Une seule liste, <b>Cachés</b>, avec « Révéler » sur chaque ligne et « Révéler tout » ; elle n'affiche que ce qui n'est pas encore à la table et disparaît quand il n'y en a plus.</li>
       <li><span class="p">10</span> Le détail d'un point (Mène à, Entrer, Cacher ou Révéler) est un popover sur la carte, à côté du point touché : même geste pour un point, une porte ou un pion, et le panneau de droite ne bouge pas. Il remplace le panneau « Sélection » flottant d'une salle.</li>
+      <li><span class="p">11</span> Le défilement et le zoom se font directement sur la carte, dans la vue « À la table » (glisser, molette, pincer, − / + / Ajuster) ; la section « Défilement » et ses flèches disparaissent. « Cette carte » ne garde que ce qui dépend de la carte : Taille et Plan du donjon.</li>
+      <li><span class="p">12</span> « Mini-carte » s'appelle <b>Plan du donjon</b> : c'est le plan des salles découvertes que la table affiche. Il n'existe que dans un donjon.</li>
     </ol>
   </div>
 </main>
