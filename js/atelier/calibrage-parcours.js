@@ -26,6 +26,7 @@ export const texteMm = (mm) => `${String(Math.round(mm * 10) / 10).replace('.', 
 export function creerParcours({ calibrage, lire, surReglage, fermer = () => {}, doc = document }) {
   const cal = () => calibrage();
   let apercu = null; // l'iframe, créée au premier calibrage et retirée à la fin
+  let avant = null; // rotation, miroir et taille visée au début du parcours, pour l'annulation
   let mode = null; // le choix de l'étape « Terminé » ; null : celui qu'on vient de calibrer (échelle réelle)
 
   const bouton = (texte, classe, action) => { const b = h('button', { type: 'button', className: `btn ${classe}`.trim(), textContent: texte }); b.addEventListener('click', action); return b; };
@@ -93,8 +94,20 @@ export function creerParcours({ calibrage, lire, surReglage, fermer = () => {}, 
   const element = h('div', { className: 'atelier-affichage-groupe pop-parcours', id: 'parcours-calibrage', hidden: true, role: 'group', 'aria-label': 'Calibrage de l’écran de la table' },
     h('div', { className: 'pop-parcours-tete' }, titre, compteur), progres, zoneApercu, orienter, mesurer, verifier, termine, actions);
 
-  /** Abandonne le parcours (rien n'est enregistré) et referme le popover. */
-  function annuler() { fermer({ rendreFocus: true }); cal()?.annuler(); }
+  /**
+   * Abandonne le parcours et referme le popover. Rien ne reste de ce qui a été touché : la taille en pixels n'est qu'un brouillon, et la rotation, le miroir
+   * et la taille visée, écrits au fil du parcours (la table les montre aussitôt), reprennent leur valeur d'avant le parcours.
+   */
+  function annuler() {
+    fermer({ rendreFocus: true });
+    if (avant) {
+      const r = lire();
+      for (const [cle, v] of Object.entries(avant)) { if (v === undefined) delete r[cle]; else r[cle] = v; }
+      avant = null;
+      surReglage();
+    }
+    cal()?.annuler();
+  }
 
   // --- Commandes ---
   const ecrire = () => { surReglage(); maj(); };
@@ -110,8 +123,12 @@ export function creerParcours({ calibrage, lire, surReglage, fermer = () => {}, 
     b.addEventListener('click', (e) => { if (e.detail === 0) cal()?.ajuster(delta); });
   }
   repeter(moins, -0.1); repeter(plus, 0.1);
+  // L'accroche à 25 mm ne vaut que pour la souris ou le doigt : au clavier (pas de 0,5 mm), elle empêcherait de quitter le standard.
+  let engeste = false;
+  curseurMm.addEventListener('pointerdown', () => { engeste = true; });
+  for (const t of ['pointerup', 'pointercancel']) curseurMm.addEventListener(t, () => { engeste = false; });
   curseurMm.addEventListener('input', () => {
-    const v = accrocherMm(Number(curseurMm.value));
+    const v = engeste ? accrocherMm(Number(curseurMm.value)) : Number(curseurMm.value);
     curseurMm.value = String(v);
     appliquerCaseMm(lire(), v); ecrire();
   });
@@ -139,7 +156,8 @@ export function creerParcours({ calibrage, lire, surReglage, fermer = () => {}, 
     const c = cal(), etape = c?.etape() ?? null, actif = etape !== null;
     element.hidden = !actif;
     montrerApercu(actif);
-    if (!actif) { mode = null; return false; }
+    if (!actif) { mode = null; avant = null; return false; }
+    if (!avant) { const r0 = lire() ?? {}; avant = { rotationTable: r0.rotationTable, miroirTable: r0.miroirTable, caseMm: r0.caseMm }; }
     const r = lire() ?? {}, i = ETAPES_CALIBRAGE.indexOf(etape);
     titre.textContent = etape === 'termine' ? TITRES.termine : 'Calibrer l’écran de la table';
     compteur.textContent = `étape ${i + 1} sur ${ETAPES_CALIBRAGE.length}`;

@@ -360,7 +360,7 @@ body.atelier-avec-inspecteur { --largeur-inspecteur: 330px; }
 .pop-parcours-actions .pop-gauche { margin-right: auto; }
 .pop-parcours-actions [hidden] { display: none; }
 @media (max-width: 760px) {
-  .pop-parcours-apercu { max-width: 240px; margin: 0 auto; }
+  .pop-parcours-apercu { width: min(240px, 100%); margin: 0 auto; }
   .pop-parcours .pop-ib, .pop-reinit, .pop-parcours-actions .btn { min-height: 44px; min-width: 44px; }
   .pop-graduations span { font-size: 11px; }
 }
