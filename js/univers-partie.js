@@ -2,7 +2,7 @@
  * Partie d'univers : où en est la table dans un univers (module PUR, sans DOM). Voir docs/conception-univers.md §4.
  *
  * { univers: idUnivers, lieuCourant: idLieu, chemin: [idLieu], decouverts: [idLieu], reveles: { idLieu: [idPoint] },
- *   dans?: { donjon, salle?, depuis? }, masquerNoms?: true }
+ *   dans?: { donjon, salle?, depuis? }, masquerNoms?: true, notesPartie?: { idLieu: texte } }
  *
  * `chemin` : les lieux traversés pour arriver au lieu courant (le courant n'y est pas). `dans` : la table est entrée dans un
  * donjon (sa partie de donjon a son propre format, inchangé, dans carte-de-mj:presentations-v1) ; `depuis` : le point franchi.
@@ -13,6 +13,8 @@ import { destinationValide, copieDestination, lieuDeDepart } from './univers.js'
 
 const RE_ID = /^[A-Za-z0-9_-]{1,64}$/;
 const MAX_CHEMIN = 200;
+/** Longueur maximale d'une note de partie (comme celles des salles, js/partie.js). */
+const MAX_NOTE = 20000;
 
 export function creerPartieUnivers(univers) {
   const depart = lieuDeDepart(univers);
@@ -128,6 +130,18 @@ export function conduireAuLieu(partie, univers, idLieu) {
   return true;
 }
 
+/** Notes prises en jouant pour ce lieu (séparées des notes de préparation du lieu, jamais envoyées à la table). Absentes des anciennes parties. */
+export const notePartieLieu = (partie, idLieu) => partie.notesPartie?.[idLieu] || '';
+
+/** Remplace la note de partie d'un lieu ; une note vide est retirée (et `notesPartie` avec elle quand il ne reste rien). */
+export function definirNotePartieLieu(partie, idLieu, texte) {
+  if (!RE_ID.test(String(idLieu))) return false;
+  const t = String(texte ?? '').slice(0, MAX_NOTE);
+  if (t) (partie.notesPartie ?? (partie.notesPartie = {}))[idLieu] = t;
+  else if (partie.notesPartie) { delete partie.notesPartie[idLieu]; if (!Object.keys(partie.notesPartie).length) delete partie.notesPartie; }
+  return true;
+}
+
 /** Le fil d'Ariane : [{ id, nom }] du lieu de départ au lieu courant (un lieu disparu garde son identifiant comme nom). */
 export const filDAriane = (partie, univers) => [...partie.chemin, partie.lieuCourant].map((id) => ({ id, nom: univers.lieux[id]?.nom ?? '(lieu disparu)' }));
 
@@ -212,6 +226,13 @@ export function validerPartieUnivers(brut) {
     } else avertissements.push('donjon ouvert illisible, la table revient à la carte');
   }
   if (brut.masquerNoms === true) partie.masquerNoms = true;
+  if (brut.notesPartie !== undefined) {
+    if (!estObjet(brut.notesPartie)) avertissements.push('notes de partie illisibles, vidées');
+    else for (const [lieu, texte] of Object.entries(brut.notesPartie)) {
+      if (!RE_ID.test(lieu) || typeof texte !== 'string') { avertissements.push('notes de partie : note invalide écartée'); continue; }
+      definirNotePartieLieu(partie, lieu, texte);
+    }
+  }
   return { ok: !avertissements.length, erreurs: [], avertissements, partie };
 }
 

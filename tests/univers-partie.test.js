@@ -161,6 +161,17 @@ const TESTS = [
     const bonne = { univers: 'u1', lieuCourant: 'l1', chemin: [], decouverts: ['l1'], reveles: {}, dans: { donjon: 'd1', salle: 's1', depuis: 'pt-1' } };
     egal(p.validerPartieUnivers(bonne).partie, bonne, 'une bonne partie ne change pas');
   }],
+  ['notes de partie d’un lieu : écrites, retirées quand vides, relues, absentes des anciennes parties', () => {
+    const pa = { univers: 'u1', lieuCourant: 'l1', chemin: [], decouverts: ['l1'], reveles: {} };
+    egal(p.notePartieLieu(pa, 'l1'), '', 'ancienne partie : pas de note');
+    egal(p.definirNotePartieLieu(pa, 'l1', 'Le meunier ment'), true, 'écrite');
+    egal(p.notePartieLieu(pa, 'l1'), 'Le meunier ment', 'relue');
+    const v = p.validerPartieUnivers(JSON.parse(JSON.stringify(pa)));
+    egal([v.ok, v.partie.notesPartie], [true, { l1: 'Le meunier ment' }], 'survit à l’enregistrement');
+    egal(p.validerPartieUnivers({ ...pa, notesPartie: { '../x': 'a', l2: 4, l3: 'b' } }).partie.notesPartie, { l3: 'b' }, 'les notes invalides sont écartées');
+    p.definirNotePartieLieu(pa, 'l1', '');
+    egal('notesPartie' in pa, false, 'vide : retirée avec son dictionnaire');
+  }],
   ['message de table : un lieu sans image part sans image, la table relit le même lieu', () => {
     const univ = u.creerUnivers({ nom: 'Archipel' });
     const sans = u.ajouterLieu(univ, { nom: 'Île' });

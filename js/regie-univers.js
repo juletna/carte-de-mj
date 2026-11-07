@@ -356,6 +356,21 @@ export function creerRegieUnivers(ctx) {
     bandeau.replaceChildren(texte, actions);
   }
 
+  /** Le champ des notes de partie d'un lieu : enregistré pendant la frappe (sans redessiner), et au départ du champ. */
+  let minuteNotes = null;
+  function viderNotes() { if (minuteNotes === null) return; clearTimeout(minuteNotes); minuteNotes = null; if (courant) sauver(); }
+  window.addEventListener('pagehide', viderNotes);
+  function champNotes(idLieu) {
+    const champ = h('textarea', { id: 'notes-partie-lieu', rows: 5, placeholder: 'Ce qui se passe ici…', value: pu.notePartieLieu(courant.partie, idLieu) });
+    champ.addEventListener('input', () => {
+      pu.definirNotePartieLieu(courant.partie, idLieu, champ.value);
+      clearTimeout(minuteNotes);
+      minuteNotes = setTimeout(viderNotes, 300);
+    });
+    champ.addEventListener('blur', viderNotes);
+    return champ;
+  }
+
   function rendrePanneau(lieu, dons) {
     const { univers, partie } = courant;
     const p = lieu.points.find((q) => q.id === pointId) ?? null;
@@ -401,7 +416,11 @@ export function creerRegieUnivers(ctx) {
         compte: lieu.points.length || null,
         aide: 'Touche un point sur la carte, ou choisis-le dans la liste. Un point caché (œil barré) n’apparaît à la table qu’une fois révélé ; un point marqué d’un triangle mène à une destination qui n’existe plus, rien n’a été retiré.',
       }),
-      ...(lieu.notes ? [section('notes', 'Notes du lieu', [h('p', { className: 'univers-notes', textContent: lieu.notes })])] : []),
+      section('notes', 'Notes', [
+        h('p', { className: 'note', textContent: 'Préparation (lecture seule) :' }),
+        h('p', { className: `univers-notes${lieu.notes ? '' : ' vide'}`, textContent: lieu.notes || 'Aucune note pour ce lieu.' }),
+        h('label', { className: 'note etiquette-notes', htmlFor: 'notes-partie-lieu', textContent: 'Notes de partie, prises en jouant (enregistrées avec la partie, jamais envoyées à la table) :' }),
+        champNotes(lieu.id)]),
     );
   }
   /**
