@@ -4,10 +4,10 @@
  * brillances en tirets blancs, et un cabochon incrusté (losange d'encre, de couleur et de reflet) au centre d'un losange sur deux.
  */
 import { h2, fbmp } from '../bruit.js';
-import { PERIODE } from '../tuile.js';
+import { PERIODE, CASES_PAR_TUILE } from '../tuile.js';
 import { ENCRE, mod, marche, vers, aplats, hachure, semis, D } from './outils.js';
 
-const N = 5, S = PERIODE / N; // losanges par période, et leur diagonale-côté
+const N = 5 * (CASES_PAR_TUILE / 4), S = PERIODE / N; // losanges par période (réglés pour une tuile de 4 cases, comme les sols sobres : 0,8 case de côté), et leur diagonale-côté
 const CREME = [240, 228, 196], GRIS = [196, 208, 222], INCRUSTE = [110, 128, 176], ROUGE = [178, 92, 80];
 const M = { de: 0, fu: 0, fv: 0, alt: 0, id: 0 };
 const C = [0, 0, 0];
