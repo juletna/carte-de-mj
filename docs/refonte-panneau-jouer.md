@@ -2,6 +2,8 @@
 
 **Statut : proposition du 7 novembre 2026, non décidée.** Rien n'est fait tant que Julien ne l'a pas validée. À suivre avec `docs/design-panneaux.md`.
 
+Maquette de l'état actuel (les quatre vues, avec les incohérences numérotées) : [`maquettes/panneau-jouer-avant.html`](maquettes/panneau-jouer-avant.html), à ouvrir dans le navigateur. La maquette « après » suivra.
+
 ## Ce qu'il y a aujourd'hui
 
 Le panneau de droite de la régie change d'onglets selon la carte affichée : **Salle · Joueurs · Table** pour un donjon, **Lieu · Table** pour un monde.
