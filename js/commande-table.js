@@ -59,6 +59,7 @@ export function surMessage(c, m) {
       return c.main ? 'diffuser' : 'presence';
     case MESSAGES.TABLE_DEPLACER:
     case MESSAGES.TABLE_VISER:
+    case MESSAGES.TABLE_POINT:
       return c.main ? 'appliquer' : null;
     default:
       return null;

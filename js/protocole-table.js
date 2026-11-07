@@ -26,6 +26,7 @@ export const MESSAGES = {
   DEMANDE_ETAT: 'demande-etat',
   TABLE_DEPLACER: 'table-deplacer',
   TABLE_VISER: 'table-viser',
+  TABLE_POINT: 'table-point',
 };
 
 // --- Régie → table ----------------------------------------------------------------------------------------
@@ -58,3 +59,5 @@ export const lireDefilement = (m) => ({ dx: entierSigne(m.dx), dy: entierSigne(m
 export const messageDemandeEtat = () => ({ type: MESSAGES.DEMANDE_ETAT });
 export const messageDeplacer = (id, x, y) => ({ type: MESSAGES.TABLE_DEPLACER, id, x, y });
 export const messageViser = (x, y) => ({ type: MESSAGES.TABLE_VISER, x, y });
+/** Un point touché sur la carte d'un monde, dans la vue « Table » de la régie (js/atelier/vue-table-regie.js) : la régie le choisit comme si on l'avait touché sur sa propre carte. */
+export const messagePoint = (id) => ({ type: MESSAGES.TABLE_POINT, id });

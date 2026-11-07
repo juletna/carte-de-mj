@@ -8,7 +8,7 @@
 import * as stockage from './stockage.js';
 import * as table from './commande-table.js';
 import { creerEcranTable } from './ecran-table.js';
-import { MESSAGES, ouvrirCanal, lireEtat, lireDefilement, messageDemandeEtat, messageDeplacer, messageViser } from './protocole-table.js';
+import { MESSAGES, ouvrirCanal, lireEtat, lireDefilement, messageDemandeEtat, messageDeplacer, messageViser, messagePoint } from './protocole-table.js';
 import { affichageDeReglages } from './affichage.js';
 import { TYPE_UNIVERS, lireVueUnivers } from './univers-protocole.js';
 import { creerTableUnivers } from './univers-table.js';
@@ -23,10 +23,11 @@ export function demarrerTable() {
   poserIcones(); // l'icône du bouton plein écran
   const reglages = stockage.chargerReglages(); // seuls les réglages d'affichage : jamais les présentations
   const ecran = creerEcranTable({ affichage: affichageDeReglages(reglages) });
-  const universTable = creerTableUnivers(); // une carte d'univers à la place de la salle (js/univers-table.js)
+  const canal = ouvrirCanal();
+  const apercu = new URLSearchParams(location.search).get('apercu') === '1'; // la vue « Table » de la régie : les points de la carte se touchent
+  const universTable = creerTableUnivers({ surPoint: apercu && canal ? (id) => canal.postMessage(messagePoint(id)) : null }); // une carte d'univers à la place de la salle (js/univers-table.js)
   const attendre = (texte) => ecran.attendre(texte);
 
-  const canal = ouvrirCanal();
   if (!canal) { attendre('Ce navigateur ne permet pas de recevoir la présentation (BroadcastChannel indisponible).'); return; }
   let recu = false, regiePresente = false;
   canal.onmessage = (ev) => {

@@ -6,7 +6,7 @@
  *   vues.afficher('table' | 'regie');  vues.courante()
  *
  * La vue Table est la vraie vue table (presentation.html?vue=table&apercu=1) dans un cadre : elle reçoit les messages du même canal que la
- * fenêtre des joueurs. Lecture seule (aucun clic n'y passe) ; chargée à la première ouverture seulement.
+ * fenêtre des joueurs. Interactive comme la vue Régie (un point de la carte du monde se choisit, un pion se glisse : les gestes passent par le canal) ; chargée à la première ouverture seulement.
  */
 import { h } from '../dom.js';
 

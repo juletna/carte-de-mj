@@ -142,6 +142,7 @@ export function demarrerRegie() {
       else if (action === 'diffuser') diffuser();
       else if (action === 'presence') canal.postMessage({ type: table.PRESENCE });
       else if (action === 'appliquer' && m.type === MESSAGES.TABLE_DEPLACER) deplacerDepuisTable(m.id, m.x, m.y);
+      else if (action === 'appliquer' && m.type === MESSAGES.TABLE_POINT) univers.choisirPoint(m.id);
       else if (action === 'appliquer' && etat.p) viserCase(etat.p.salleCourante, m.x, m.y);
     };
   }

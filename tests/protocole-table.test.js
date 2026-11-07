@@ -39,7 +39,7 @@ const ids = (m) => ['portes', 'objets', 'creatures'].flatMap((l) => m.plan[l].ma
 
 const TESTS = [
   ['les types de messages : distincts, et ceux que commande-table.js lit sont les mêmes', () => {
-    egal(MESSAGES, { ETAT: 'etat', DEFILER: 'defiler', DEMANDE_ETAT: 'demande-etat', TABLE_DEPLACER: 'table-deplacer', TABLE_VISER: 'table-viser' }, 'types sur le canal');
+    egal(MESSAGES, { ETAT: 'etat', DEFILER: 'defiler', DEMANDE_ETAT: 'demande-etat', TABLE_DEPLACER: 'table-deplacer', TABLE_VISER: 'table-viser', TABLE_POINT: 'table-point' }, 'types sur le canal');
     egal(CANAL, 'carte-de-mj-presentation', 'nom du canal');
     egal(new Set(Object.values(MESSAGES)).size, Object.keys(MESSAGES).length, 'aucun type en double');
     const main = t.creerCommande('a'), libre = t.creerCommande('b');

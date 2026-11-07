@@ -14,12 +14,12 @@ import { CENTRE, positionDefilement } from './univers-protocole.js';
 import { casesDeReglages, TAILLE_PAR_DEFAUT } from './affichage.js';
 import { $, h } from './dom.js';
 
-export function creerTableUnivers() {
+export function creerTableUnivers({ surPoint = null } = {}) {
   const racine = $('univers-table');
   const titre = h('p', { className: 'univers-table-titre', hidden: true });
   const zone = h('div', { className: 'univers-table-zone' });
   racine.replaceChildren(zone, titre);
-  const carte = creerCarteUnivers(zone, {});
+  const carte = creerCarteUnivers(zone, { onPoint: surPoint ?? undefined }); // à la table, aucun clic ; dans la vue « Table » de la régie, un point se choisit
   let sequence = 0;
   let courante = null; // { vue, affichage, cle }
   let aPlacer = true;       // vrai : poser le défilement demandé par la régie au prochain dimensionnement (nouvelle carte, nouvelle taille ou nouvelle demande)

@@ -376,5 +376,13 @@ export function creerRegieUnivers(ctx) {
 
   /** La clé `univers:<id>` du monde dont la carte est affichée (retenue par une régie en retrait), ou null. */
   const cleOuverte = () => (courant && !ecran.hidden ? pu.cleOuverteUnivers(courant.univers.id) : null);
-  return { cleOuverte, listerDepart, diffuser, majFil, monde, versLeLieu, fermer, reprendre, ouvrirParId, defiler, redessiner: () => { if (courant && !ecran.hidden) rendre(); }, actif: () => !ecran.hidden };
+  /** Choisit un point de la carte du monde affichée (geste venu de la vue « Table » de la régie) : comme un toucher sur la carte de la régie. */
+  function choisirPoint(id) {
+    const lieu = courant && !ecran.hidden ? courant.univers.lieux[courant.partie.lieuCourant] : null;
+    if (!lieu || typeof id !== 'string' || !lieu.points.some((q) => q.id === id)) return;
+    pointId = id;
+    rendre();
+  }
+
+  return { choisirPoint, cleOuverte, listerDepart, diffuser, majFil, monde, versLeLieu, fermer, reprendre, ouvrirParId, defiler, redessiner: () => { if (courant && !ecran.hidden) rendre(); }, actif: () => !ecran.hidden };
 }

@@ -38,7 +38,7 @@ const TESTS = [
   ['en retrait : les gestes de la table sont ignorés ; à la main : ils sont appliqués', () => {
     const a = t.creerCommande('a'), b = t.creerCommande('b');
     t.surMessage(a, t.prendreMain(b, 1000));
-    for (const type of ['table-deplacer', 'table-viser']) {
+    for (const type of ['table-deplacer', 'table-viser', 'table-point']) {
       egal(t.surMessage(a, { type }), null, `${type} en retrait`);
       egal(t.surMessage(b, { type }), 'appliquer', `${type} à la main`);
     }
