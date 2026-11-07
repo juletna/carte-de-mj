@@ -13,7 +13,48 @@
  *          surChangement() (facultatif : l'interface se met à jour) }.
  */
 import { ETAPES_CALIBRAGE, messageCalibrage, messageFinCalibrage } from './protocole-table.js';
-import { ajusterTaille, tailleReglable, CASE_MM_PAR_DEFAUT, TAILLE_PAR_DEFAUT } from './affichage.js';
+import { ajusterTaille, tailleReglable, caseMmValide, CASE_MM_PAR_DEFAUT, CASE_MM_MIN, CASE_MM_MAX, TAILLE_PAR_DEFAUT } from './affichage.js';
+
+// --- Le parcours dans le popover Affichage : fonctions pures (le DOM est dans js/atelier/calibrage-parcours.js) ---------------------------------
+
+/** Le pas de repère du curseur « Une case vaut » (mm) et la zone où la poignée s'accroche au standard (± mm). */
+export const REPERE_MM = 5;
+export const ACCROCHE_MM = 1;
+
+/** La case standard, 25 mm, ramenée à la valeur où la poignée s'accroche quand on en est à ±1 mm ; toute autre valeur est inchangée. */
+export function accrocherMm(mm, standard = CASE_MM_PAR_DEFAUT, zone = ACCROCHE_MM) {
+  return Number.isFinite(mm) && Math.abs(mm - standard) <= zone ? standard : mm;
+}
+/** Les repères du curseur : [{ mm, pct (0–100 sur la plage 10–50), standard }] tous les 5 mm, le standard marqué. */
+export function graduationsMm(min = CASE_MM_MIN, max = CASE_MM_MAX, pas = REPERE_MM) {
+  const reperes = [];
+  for (let mm = min; mm <= max; mm += pas) reperes.push({ mm, pct: ((mm - min) / (max - min)) * 100, standard: mm === CASE_MM_PAR_DEFAUT });
+  return reperes;
+}
+/** Le bouton « Standard : 25 mm » : grisé quand la case vaut déjà le standard. */
+export const standardGrise = (mm) => !Number.isFinite(mm) || Math.abs(mm - CASE_MM_PAR_DEFAUT) < 0.05;
+/** La taille visée d'une case (mm) des réglages. */
+export const caseMmDe = (r) => (caseMmValide(r?.caseMm) ? r.caseMm : CASE_MM_PAR_DEFAUT);
+/** Écrit la taille visée d'une case (mm, au dixième) dans les réglages ; le standard n'est pas écrit. Rend la valeur retenue (illisible ou hors bornes : inchangée). */
+export function appliquerCaseMm(r, mm) {
+  const v = Math.round(Number(mm) * 10) / 10;
+  if (!caseMmValide(v)) return caseMmDe(r);
+  if (v === CASE_MM_PAR_DEFAUT) delete r.caseMm; else r.caseMm = v;
+  return v;
+}
+/** Tourne l'écran de la table d'un pas (en degrés : ±90) ; 0 n'est pas écrit. Rend la rotation retenue. */
+export function appliquerRotation(r, pas) {
+  const v = (((r.rotationTable || 0) + pas) % 360 + 360) % 360;
+  if (v) r.rotationTable = v; else delete r.rotationTable;
+  return v;
+}
+/** Bascule le miroir de l'écran de la table (faux n'est pas écrit). Rend le nouvel état. */
+export function basculerMiroir(r) {
+  if (r.miroirTable === true) delete r.miroirTable; else r.miroirTable = true;
+  return r.miroirTable === true;
+}
+/** Le texte d'une taille en pixels pour l'écran : un dixième, virgule française. */
+export const texteTaille = (t) => `${(Math.round(t * 10) / 10).toFixed(1).replace('.', ',')} px`;
 
 export function creerCalibrage(ctx) {
   const { r } = ctx;
@@ -78,12 +119,12 @@ export function creerCalibrage(ctx) {
       taille = Math.round(t * 10) / 10;
       envoyer(); prevenir();
     },
-    /** Enregistre ce qui vient d'être mesuré (la table est à l'échelle réelle) et rend la table à la présentation. */
-    terminer() {
+    /** Enregistre ce qui vient d'être mesuré et rend la table à la présentation ; `mode` : « reel » (échelle réelle, par défaut) ou « remplir ». */
+    terminer({ mode = 'reel' } = {}) {
       if (!etape) return;
       r.taille = taille;
       r.calibre = true;
-      r.modeTable = 'reel';
+      r.modeTable = mode === 'remplir' ? 'remplir' : 'reel';
       etape = null; taille = null;
       ctx.enregistrer();
       envoyer(); prevenir();

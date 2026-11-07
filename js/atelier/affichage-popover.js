@@ -17,6 +17,7 @@
  * Les fonctions pures (`appliquerCases`, `casesApresBascule`, `appliquerRendu`) se testent sous Node.
  */
 import { h } from '../dom.js';
+import { creerParcours } from './calibrage-parcours.js';
 import { icone } from '../icones.js';
 import {
   casesDeReglages, casesValides, CASES_PAR_DEFAUT, themeDeReglages, detailsDeReglages, reliefDeReglages, penombreDeReglages, flammesDeReglages,
@@ -70,7 +71,7 @@ export function appliquerRendu(r, champ, valeur) {
   }
 }
 
-export function creerAffichagePopover({ lire, surChangement, regie = false, garderOuvert = () => false }) {
+export function creerAffichagePopover({ lire, surChangement, regie = false, garderOuvert = () => false, calibrage = () => null }) {
   let derniere = 0; // la dernière opacité visible vue ici ; `casesAvant` (réglages) la garde d'une page à l'autre
   const bouton = h('button', { type: 'button', className: 'btn btn-icone btn-discret atelier-affichage-bouton', 'aria-label': 'Affichage', title: 'Affichage : style, détails, relief, pénombre, flammes, repères, écran de la table', 'aria-haspopup': 'dialog', 'aria-expanded': 'false' }, icone('affichage'));
   const curseur = h('input', { type: 'range', min: '0', max: '100', step: '5', id: 'cases', 'aria-label': 'Opacité des lignes de la grille' });
@@ -117,14 +118,10 @@ export function creerAffichagePopover({ lire, surChangement, regie = false, gard
       rang('Taille réelle d’une case', h('span', { className: 'pop-stepper' }, pasBouton('case-mm-moins', '−', 'Une case de moins'),
         h('input', { id: 'case-mm', type: 'number', inputmode: 'decimal', min: '10', max: '50', step: '0.1', 'aria-label': 'Taille réelle d’une case, en millimètres' }), h('span', { className: 'pop-unite', textContent: 'mm' }),
         pasBouton('case-mm-plus', '+', 'Une case de plus'))),
-      h('button', { id: 'calibrer-table', type: 'button', className: 'btn pop-calibrer', textContent: 'Calibrer sur la table', title: 'Pose une carte bancaire sur la table et ajuste jusqu’à ce que la case la recouvre. Ouvre d’abord la table (sur un seul écran : en plein écran ici).' })),
-    h('div', { id: 'reglage-calibrage', className: 'pop-calibrage', hidden: true },
-      h('p', { className: 'pop-note', textContent: 'Pose une carte bancaire sur la table et ajuste jusqu’à ce que la case la recouvre.' }),
-      h('div', { className: 'pop-rang pop-pas', role: 'group', 'aria-label': 'Ajuster la taille d’une case' },
-        ...[['-1', '−1'], ['-0.1', '−0,1']].map(([v, t]) => h('button', { type: 'button', className: 'pop-ib', 'data-pas-taille': v, textContent: t })),
-        h('output', { id: 'calibrage-val', 'aria-live': 'polite', textContent: `${TAILLE_PAR_DEFAUT} px` }),
-        ...[['0.1', '+0,1'], ['1', '+1']].map(([v, t]) => h('button', { type: 'button', className: 'pop-ib', 'data-pas-taille': v, textContent: t }))),
-      h('div', { className: 'pop-rang pop-fin' }, h('button', { id: 'calibrage-fini', type: 'button', className: 'btn btn-primaire', textContent: 'Terminer le calibrage' })))) : null;
+      h('button', { id: 'calibrer-table', type: 'button', className: 'btn pop-calibrer', textContent: 'Calibrer l’écran…', title: 'Parcours en quatre étapes : orienter l’image, mesurer avec une carte bancaire, vérifier. Marche aussi sans salle affichée, dans un monde comme dans un donjon.' }))) : null;
+
+  // Le parcours de calibrage (Jouer seulement) : tant qu'il est en cours, il remplace le contenu du popover, qui reste ouvert (voir `majCalibrage`).
+  const parcours = regie ? creerParcours({ calibrage, lire, surReglage: () => surChangement(), fermer: (o) => fermer(o) }) : null;
 
   const carte = [rang('Style', theme), rang('Détails', details, null, 'Sols dessinés et détaillés, ou sols simples (style peint).'), rang('Relief', relief, null, 'Relief des murs')];
   const repereRang = rang('Repères', reperes, 'A, B… et 1, 2…');
@@ -134,6 +131,7 @@ export function creerAffichagePopover({ lire, surChangement, regie = false, gard
   groupeDonjon.classList.add('pop-donjon'); // ces réglages ne touchent que les salles de donjon, mais restent toujours là, réglables
   const panneau = h('div', { className: 'atelier-affichage-panneau pop-affichage', role: 'dialog', 'aria-label': 'Affichage', hidden: true },
     h('p', { className: 'atelier-affichage-titre', textContent: 'Affichage' }),
+    ...(parcours ? [parcours.element] : []),
     ...(regie
       // Jouer : ce qui touche la carte d'un donjon (régie ET table), l'écran de la table (matériel, une fois), puis la régie elle-même. Un monde n'a que les deux derniers groupes.
       ? [groupeDonjon,
@@ -171,6 +169,16 @@ export function creerAffichagePopover({ lire, surChangement, regie = false, gard
   function ecrire(v) { appliquerCases(lire(), v); maj(); surChangement(); }
   /** Un réglage de rendu : écrit dans les réglages de la page, les contrôles se remettent d'accord, la page enregistre et redessine. */
   function ecrireRendu(champ, v) { appliquerRendu(lire(), champ, v); maj(); surChangement(); }
+  /** Le calibrage a changé : le parcours se met à jour, et le popover s'ouvre au début d'un calibrage, se referme à sa fin ou à son annulation. */
+  let calibrageEnCours = false;
+  function majCalibrage() {
+    if (!parcours) return;
+    const actif = parcours.maj();
+    panneau.classList.toggle('en-calibrage', actif);
+    if (actif && panneau.hidden) ouvrir();
+    else if (!actif && calibrageEnCours) fermer();
+    calibrageEnCours = actif;
+  }
   function ouvrir() { fermerGrille(); maj(); panneau.hidden = false; bouton.setAttribute('aria-expanded', 'true'); }
   function fermer({ rendreFocus = false } = {}) {
     if (panneau.hidden) return;
@@ -197,11 +205,16 @@ export function creerAffichagePopover({ lire, surChangement, regie = false, gard
   basculer(reperes, (v) => ecrireRendu('reperes', v));
   basculer(ajuster, (v) => { regle(ajuster, v); });
   document.addEventListener('pointerdown', (e) => {
-    if (!panneau.hidden && !racine.contains(e.target) && !garderOuvert()) fermer(); // pendant un calibrage, un clic ailleurs ne ferme pas
+    if (!panneau.hidden && !racine.contains(e.target) && !garderOuvert() && !parcours?.actif()) fermer(); // pendant un calibrage, un clic ailleurs ne ferme pas
     if (!panneauGrille.hidden && !racineGrille.contains(e.target)) fermerGrille();
   });
-  racine.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !panneau.hidden) { e.preventDefault(); e.stopPropagation(); fermer({ rendreFocus: true }); } });
+  racine.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape' || panneau.hidden) return;
+    e.preventDefault(); e.stopPropagation();
+    if (parcours?.actif()) parcours.annuler(); else fermer({ rendreFocus: true }); // pendant le calibrage, Échap abandonne le parcours
+  });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !e.defaultPrevented && parcours?.actif()) { e.preventDefault(); parcours.annuler(); } });
   racineGrille.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !panneauGrille.hidden) { e.preventDefault(); e.stopPropagation(); fermerGrille({ rendreFocus: true }); } });
   maj();
-  return { bouton, element: racine, elementGrille: racineGrille, maj, fermer: (o) => { fermer(o); fermerGrille(); } };
+  return { bouton, element: racine, elementGrille: racineGrille, maj, majCalibrage, fermer: (o) => { fermer(o); fermerGrille(); } };
 }

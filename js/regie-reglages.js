@@ -8,8 +8,8 @@
  * que ce qu'elle a changé elle-même (depuis `lu`), sur ce qui est enregistré à cet instant, et reprend ce que les autres ont réglé.
  */
 import * as stockage from './stockage.js';
-import { caseMmValide, CASE_MM_PAR_DEFAUT } from './affichage.js';
-import { creerCalibrage } from './calibrage.js';
+import { CASE_MM_PAR_DEFAUT } from './affichage.js';
+import { creerCalibrage, appliquerCaseMm, appliquerRotation, basculerMiroir, caseMmDe } from './calibrage.js';
 import { $ } from './dom.js';
 
 export function creerReglages(ctx) {
@@ -17,13 +17,11 @@ export function creerReglages(ctx) {
   const rendre = () => ctx.rendre();
   const diffuser = () => ctx.diffuser();
   let lu;
-  /** L'interface du popover suit l'état du calibrage ; la table, elle, est servie par `diffuser()` (regie.js) pendant le calibrage, puis retrouve la présentation. */
+  /** Le parcours du popover « Affichage » suit l'état du calibrage ; la table, elle, est servie par `diffuser()` (regie.js) pendant le calibrage, puis retrouve la présentation. */
   function majCalibrage() {
-    const actif = calibrage.actif();
-    $('calibrer-table').hidden = actif;
-    $('reglage-calibrage').hidden = !actif;
-    $('materiel-table').hidden = actif; // le calibrage se déplie dans le popover « Affichage », qui reste ouvert
-    majTaille();
+    majOrientation(); majTaille();
+    $('case-mm').value = caseMmDe(r);
+    ctx.jouer?.coquille?.affichage?.majCalibrage();
     rendre(); diffuser();
   }
   // Envoi : la régie à la main, ou libre (aucune partie ouverte) ; en retrait, une autre commande la table.
@@ -59,43 +57,30 @@ export function creerReglages(ctx) {
   function majTaille() {
     $('taille').value = r.taille;
     $('taille-val').textContent = `${r.taille} px`;
-    $('calibrage-val').textContent = `${calibrage.taille()} px`; // le brouillon pendant le calibrage
   }
   majControles();
   $('taille').addEventListener('input', (e) => { r.taille = Number(e.target.value); majTaille(); sauverReglages(); rendre(); });
 
   // --- L'écran de table : orientation et calibrage ------------------------------------------------------
   for (const [id, pas] of [['rotation-gauche', -90], ['rotation-droite', 90]]) {
-    $(id).addEventListener('click', () => {
-      const v = (((r.rotationTable || 0) + pas) % 360 + 360) % 360;
-      if (v) r.rotationTable = v; else delete r.rotationTable;
-      majOrientation(); sauverReglages(); rendre();
-    });
+    $(id).addEventListener('click', () => { appliquerRotation(r, pas); majOrientation(); sauverReglages(); rendre(); });
   }
-  $('miroir-table').addEventListener('click', () => {
-    if (r.miroirTable === true) delete r.miroirTable; else r.miroirTable = true;
-    majOrientation(); sauverReglages(); rendre();
-  });
+  $('miroir-table').addEventListener('click', () => { basculerMiroir(r); majOrientation(); sauverReglages(); rendre(); });
   for (const [id, pas] of [['case-mm-moins', -1], ['case-mm-plus', 1]]) {
     $(id).addEventListener('click', () => {
-      const v = Math.round(((r.caseMm ?? CASE_MM_PAR_DEFAUT) + pas) * 10) / 10;
-      if (!caseMmValide(v)) return;
-      if (v === CASE_MM_PAR_DEFAUT) delete r.caseMm; else r.caseMm = v;
+      const avant = caseMmDe(r);
+      const v = appliquerCaseMm(r, avant + pas);
       $('case-mm').value = v; sauverReglages(); rendre();
     });
   }
   $('case-mm').addEventListener('change', (e) => {
     const v = Number(String(e.target.value).replace(',', '.'));
-    if (!caseMmValide(v)) { e.target.value = r.caseMm ?? CASE_MM_PAR_DEFAUT; return; }
-    if (v === CASE_MM_PAR_DEFAUT) delete r.caseMm; else r.caseMm = v;
+    e.target.value = appliquerCaseMm(r, v);
     sauverReglages(); rendre();
   });
   // Le calibrage (js/calibrage.js) est un mode de la table : rien à voir avec la salle, il marche aussi dans un monde et sans présentation.
-  $('calibrer-table').addEventListener('click', () => calibrage.demarrer());
-  $('calibrage-fini').addEventListener('click', () => calibrage.terminer());
-  for (const b of document.querySelectorAll('[data-pas-taille]')) {
-    b.addEventListener('click', () => calibrage.ajuster(Number(b.dataset.pasTaille)));
-  }
+  // Le parcours lui-même est dans le popover (js/atelier/calibrage-parcours.js).
+  $('calibrer-table').addEventListener('click', () => calibrage.demarrer('orienter'));
   $('ajuster').addEventListener('click', () => { etat.ajuster = $('ajuster').getAttribute('aria-checked') === 'true'; rendre(); }); // le popover bascule l'interrupteur avant ce clic-ci
   return { sauver: sauverReglages };
 }

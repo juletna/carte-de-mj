@@ -662,7 +662,7 @@ export function demarrerRegie() {
   const jouer = creerJouer({ racine: $('regie'), donnees: donneesJeu, partie: partieJeu, surChoix: choisirDansArbre,
     ouvrirTable: { fenetre: ouvrirFenetreTable },
     cadrage,
-    affichage: { regie: true, garderOuvert: () => ctx.calibrage?.actif() === true, lire: () => r, surChangement: () => { reglages.sauver(); rendre(); diffuser(); } } });
+    affichage: { regie: true, calibrage: () => ctx.calibrage, garderOuvert: () => ctx.calibrage?.actif() === true, lire: () => r, surChangement: () => { reglages.sauver(); rendre(); diffuser(); } } });
   reglages = creerReglages(ctx);
   ctx.jouer = jouer;
   let minuterie;

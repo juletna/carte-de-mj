@@ -315,3 +315,52 @@ body.atelier-avec-inspecteur { --largeur-inspecteur: 330px; }
   .atelier-inspecteur .atelier-inspecteur-nom { min-height: var(--cible); }
   .atelier-inspecteur details.bloc-inspecteur > summary, .atelier-inspecteur details.exemples > summary, .atelier-inspecteur .aide-bloc > summary { display: flex; align-items: center; min-height: var(--cible); }
 }
+
+/* Le parcours de calibrage (js/atelier/calibrage-parcours.js) : tant qu'il est en cours, il remplace le contenu du popover « Affichage ». */
+.pop-affichage.en-calibrage > :not(.pop-parcours) { display: none; }
+.pop-parcours { gap: var(--esp-3) !important; }
+.pop-parcours[hidden] { display: none; }
+.pop-parcours-etape[hidden] { display: none; }
+.pop-parcours-tete { display: flex; align-items: baseline; justify-content: space-between; gap: var(--esp-2); }
+.pop-parcours-titre { color: var(--p-texte-1, var(--texte)); font-size: 13px; font-weight: 650; }
+.pop-parcours-compteur { color: var(--p-texte-3, var(--texte-doux)); font-size: 12.5px; }
+.pop-progres { display: flex; gap: 4px; }
+.pop-progres i { flex: 1; height: 3px; border-radius: 2px; background: var(--p-filet-fort, var(--bord)); }
+.pop-progres i.on { background: var(--accent); }
+.pop-parcours-etape { display: flex; flex-direction: column; gap: var(--esp-2); }
+.pop-parcours .pop-note { margin: 0; color: var(--p-texte-3, var(--texte-doux)); font-size: 12.5px; }
+.pop-parcours .pop-lib { color: var(--p-texte-2, var(--texte)); }
+.pop-parcours .pop-lib small { color: var(--p-texte-3, var(--texte-doux)); }
+.pop-pas { display: inline-flex; align-items: center; gap: var(--esp-2); }
+.pop-parcours-val { min-width: 60px; text-align: center; color: var(--p-texte-1, var(--texte)); font-weight: 600; font-variant-numeric: tabular-nums; font-size: 14px; }
+.pop-parcours-etape .pop-rang > .pop-parcours-val { min-width: 0; text-align: right; }
+.pop-reinit { min-height: 32px; padding: 0 10px; border: 1px solid var(--p-filet-fort, var(--bord)); border-radius: 6px; background: none; color: var(--p-texte-2, var(--texte)); font: inherit; font-size: 12.5px; cursor: pointer; white-space: nowrap; }
+.pop-reinit:hover:not(:disabled) { border-color: var(--accent); }
+.pop-reinit:disabled { color: var(--p-texte-4, var(--texte-doux)); border-color: var(--p-filet, var(--bord)); cursor: default; }
+.pop-reinit:focus-visible { outline: var(--focus); outline-offset: var(--focus-decalage); }
+/* Curseur gradué : repères tous les 5 mm sous la piste, le 25 en doré ; les repères tiennent compte de la poignée (16 px) pour tomber sous son centre. */
+.pop-reglette { padding: 0 0 22px; position: relative; }
+.pop-reglette-champ { display: block; width: 100%; height: 24px; margin: 0; background: none; accent-color: var(--accent); -webkit-appearance: none; appearance: none; cursor: pointer; }
+.pop-reglette-champ::-webkit-slider-runnable-track { height: 4px; border-radius: 2px; background: var(--p-filet-fort, var(--bord)); }
+.pop-reglette-champ::-moz-range-track { height: 4px; border-radius: 2px; background: var(--p-filet-fort, var(--bord)); }
+.pop-reglette-champ::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; margin-top: -6px; border-radius: 50%; background: var(--accent); border: 0; }
+.pop-reglette-champ::-moz-range-thumb { width: 16px; height: 16px; border-radius: 50%; background: var(--accent); border: 0; }
+.pop-reglette-champ:focus-visible { outline: var(--focus); outline-offset: var(--focus-decalage); }
+.pop-graduations { position: absolute; left: 0; right: 0; top: 24px; height: 18px; }
+.pop-graduations span { position: absolute; left: calc(8px + (100% - 16px) * var(--p)); transform: translateX(-50%); color: var(--p-texte-3, var(--texte-doux)); font-size: 11.5px; font-variant-numeric: tabular-nums; }
+.pop-graduations span::before { content: ""; position: absolute; left: 50%; top: -6px; width: 1px; height: 5px; background: var(--p-texte-4, var(--bord)); }
+.pop-graduations .std { color: var(--accent); font-weight: 700; }
+.pop-graduations .std::before { height: 8px; top: -9px; width: 2px; background: var(--accent); }
+/* L'aperçu de la table : la vue table en mode aperçu, réduite (ratio 16 : 10), qui ne capte aucun clic. */
+.pop-parcours-apercu { position: relative; border: 1px solid var(--p-filet-fort, var(--bord)); border-radius: 6px; overflow: hidden; background: #0b0a0e; pointer-events: none; }
+.pop-parcours-ecran { position: relative; width: 100%; aspect-ratio: 16 / 10; overflow: hidden; }
+.pop-parcours-ecran iframe { position: absolute; left: 0; top: 0; border: 0; transform-origin: 0 0; pointer-events: none; }
+.pop-parcours-etiquette { position: absolute; left: 6px; top: 5px; padding: 1px 7px; border-radius: 8px; background: rgba(0, 0, 0, .6); color: var(--p-texte-2, var(--texte)); font-size: 11.5px; }
+.pop-parcours-actions { justify-content: flex-end; gap: var(--esp-2); flex-wrap: wrap; }
+.pop-parcours-actions .pop-gauche { margin-right: auto; }
+.pop-parcours-actions [hidden] { display: none; }
+@media (max-width: 760px) {
+  .pop-parcours-apercu { max-width: 240px; margin: 0 auto; }
+  .pop-parcours .pop-ib, .pop-reinit, .pop-parcours-actions .btn { min-height: 44px; min-width: 44px; }
+  .pop-graduations span { font-size: 11px; }
+}

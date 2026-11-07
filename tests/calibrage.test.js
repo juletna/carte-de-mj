@@ -2,7 +2,7 @@
  * Tests de la logique du calibrage côté régie (js/calibrage.js) : étapes, brouillon de taille, messages envoyés, annulation et fin.
  * Sans DOM ni stockage : marche sous Node et dans tests.html. Et un contrôle des pages : le mode est bien dans presentation.html.
  */
-import { creerCalibrage } from '../js/calibrage.js';
+import { creerCalibrage, accrocherMm, graduationsMm, standardGrise, appliquerCaseMm, appliquerRotation, basculerMiroir, caseMmDe, texteTaille } from '../js/calibrage.js';
 import { lireCalibrage } from '../js/protocole-table.js';
 import { verifier, egal, executerSuite } from './mini-test.js';
 
@@ -100,6 +100,45 @@ const TESTS = [
     r.rotationTable = 180; r.miroirTable = true; r.caseMm = 32;
     c.envoyer();
     egal(envois.at(-1), { type: 'calibrage', etape: 'orienter', taille: 48, caseMm: 32, rotation: 180, miroir: true }, 'valeurs du moment');
+  }],
+  ['terminer choisit le mode : échelle réelle par défaut, ou remplir', () => {
+    const a = fabrique({ taille: 40 }); a.c.demarrer('termine'); a.c.terminer({ mode: 'remplir' });
+    egal([a.r.calibre, a.r.modeTable], [true, 'remplir'], 'remplir');
+    const b = fabrique({ taille: 40 }); b.c.demarrer('termine'); b.c.terminer({ mode: 'n’importe quoi' });
+    egal(b.r.modeTable, 'reel', 'mode illisible : échelle réelle');
+  }],
+  ['curseur « Une case vaut » : la poignée s’accroche à 25 mm à ±1 mm, pas au-delà', () => {
+    egal([accrocherMm(24), accrocherMm(25.4), accrocherMm(26), accrocherMm(24.5)], [25, 25, 25, 25], 'dans la zone');
+    egal([accrocherMm(23.9), accrocherMm(26.1), accrocherMm(10), accrocherMm(50)], [23.9, 26.1, 10, 50], 'hors zone : inchangé');
+    egal(Number.isNaN(accrocherMm(NaN)), true, 'illisible : inchangé');
+  }],
+  ['graduation : un repère tous les 5 mm de 10 à 50, le 25 marqué, positions en pourcent de la plage', () => {
+    const g = graduationsMm();
+    egal(g.map((x) => x.mm), [10, 15, 20, 25, 30, 35, 40, 45, 50], 'valeurs');
+    egal(g.map((x) => x.pct), [0, 12.5, 25, 37.5, 50, 62.5, 75, 87.5, 100], 'positions');
+    egal(g.filter((x) => x.standard).map((x) => x.mm), [25], 'seul le 25 est le standard');
+  }],
+  ['bouton « Standard : 25 mm » : grisé à 25 mm, actif ailleurs', () => {
+    egal([standardGrise(25), standardGrise(25.04)], [true, true], 'à 25');
+    egal([standardGrise(25.5), standardGrise(30), standardGrise(10), standardGrise(24.9)], [false, false, false, false], 'ailleurs');
+  }],
+  ['appliquerCaseMm : bornes 10–50, au dixième, le standard n’est pas écrit', () => {
+    const r = {};
+    egal(appliquerCaseMm(r, 30.04), 30, 'arrondi'); egal(r.caseMm, 30, 'écrit');
+    egal(appliquerCaseMm(r, 51), 30, 'trop grand : inchangé'); egal(appliquerCaseMm(r, 9.9), 30, 'trop petit : inchangé');
+    egal(appliquerCaseMm(r, 'x'), 30, 'illisible : inchangé');
+    egal(appliquerCaseMm(r, 10), 10, 'borne basse'); egal(appliquerCaseMm(r, 50), 50, 'borne haute');
+    appliquerCaseMm(r, 25); egal('caseMm' in r, false, 'standard : effacé'); egal(caseMmDe(r), 25, 'relu');
+  }],
+  ['rotation et miroir : quarts de tour, 0 et faux ne sont pas écrits', () => {
+    const r = {};
+    egal(appliquerRotation(r, 90), 90, '90'); egal(appliquerRotation(r, 90), 180, '180'); egal(appliquerRotation(r, -90), 90, 'retour');
+    egal(appliquerRotation(r, -90), 0, '0'); egal('rotationTable' in r, false, '0 effacé');
+    egal(appliquerRotation(r, -90), 270, 'tour complet à gauche');
+    egal(basculerMiroir(r), true, 'miroir'); egal(basculerMiroir(r), false, 'plus de miroir'); egal('miroirTable' in r, false, 'effacé');
+  }],
+  ['texte de la taille en pixels : un dixième, virgule française', () => {
+    egal([texteTaille(48), texteTaille(47.96), texteTaille(52.3)], ['48,0 px', '48,0 px', '52,3 px'], 'format');
   }],
   ['pages : presentation.html porte le mode calibrage de la table, sans drapeau dans l’affichage', () => {
     for (const id of ['calibrage-table', 'calibrage-orienter', 'carte-calibrage', 'calibrage-verifier', 'calibrage-termine', 'texte-calibrage']) verifier(sources.html.includes(`id="${id}"`), `#${id}`);
