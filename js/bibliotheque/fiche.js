@@ -8,13 +8,18 @@ import { NIVEAUX, SOUS_TYPES, MILIEUX, libelleMilieu, libelleZoom, normaliserNiv
 
 export const MESSAGE_VIDE = 'Aucune carte pour l’instant. Importe une image (webp, png, jpg ou svg), fais-la illustrer par une IA (« Générer une illustration IA » sur la page Bibliothèque), ou lance le skill « generer-carte » de Claude Code : ses cartes arrivent ici par le dossier de travail (bouton « Sauvegarde »).';
 
-/** Titre, niveau et milieux, taille, description, tags, crédit et licence d'une carte. */
-export function ficheCarte(e) {
+/**
+ * Titre, niveau et milieux, taille, description, tags, crédit et licence d'une carte.
+ * `titreDe(ref)` (facultatif) : le titre de l'image d'une référence { source, id } ou rien si elle n'existe plus, pour écrire « D'après : … ».
+ */
+export function ficheCarte(e, { titreDe } = {}) {
   const lignes = [h('strong', { textContent: e.titre }), h('span', { textContent: `${libelleZoom(e)}${e.milieux?.length ? ' · ' + e.milieux.map(libelleMilieu).join(', ') : ''}` })];
   if (e.largeur && e.hauteur) lignes.push(h('span', { className: 'bib-doux', textContent: `${e.largeur} × ${e.hauteur} px` }));
   if (e.description) lignes.push(h('span', { textContent: e.description }));
   if (e.tags?.length) lignes.push(h('span', { className: 'bib-doux', textContent: 'Tags : ' + e.tags.join(', ') }));
   if (e.origine?.type === 'generee') lignes.push(h('span', { className: 'bib-doux', textContent: `Illustration IA${e.origine.le ? ` · ${e.origine.le}` : ''}` }));
+  const ref = e.origine?.reference;
+  if (ref && titreDe) lignes.push(h('span', { className: 'bib-doux', textContent: titreDe(ref) ? `D’après : ${titreDe(ref)}` : 'D’après : image disparue' }));
   const credit = creditAffiche(e);
   if (credit) lignes.push(h('span', { className: 'bib-credit', textContent: `Crédit : ${credit}` }));
   else if (e.licence) lignes.push(h('span', { className: 'bib-doux', textContent: `Licence : ${e.licence}` }));

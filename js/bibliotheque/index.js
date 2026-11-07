@@ -121,7 +121,7 @@ export function choisirCarte(options = {}) {
         catch (err) { erreurImages = `Suppression impossible : ${err.message}`; dessiner(); }
       });
       actions.append(sup);
-      detail.append(h('div', { className: 'bib-apercu' }, h('img', { src: choisi.url, alt: `Aperçu : ${e.titre}` })), ficheCarte(e), actions);
+      detail.append(h('div', { className: 'bib-apercu' }, h('img', { src: choisi.url, alt: `Aperçu : ${e.titre}` })), ficheCarte(e, { titreDe: (ref) => images.find((i) => i.id === ref.id)?.titre }), actions);
     }
 
     function dessinerListe() {

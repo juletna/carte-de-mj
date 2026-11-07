@@ -40,7 +40,7 @@ Si la clé est absente, rappelle-lui cette voie.
 1. **Comprendre la demande.** Il te faut le *zoom*, classé par phase de jeu (`--niveau monde` : vue d'ensemble, voyage ; `lieu` : un endroit à explorer,
    désert, forêt, village vu en entier, île ; `plateau` : jeu en cases avec figurines, 1 case = 1,5 m, avec `--sous-type exterieur|interieur|souterrain`) et la *scène* ; le style et le format ont des valeurs par défaut (dessin animé, paysage 16:9), ne les demande
    que si le MJ en parle (« façon vieille carte », « pour imprimer »). Si le niveau manque, déduis-le (« une clairière avec un sanctuaire où se battre » → `plateau` extérieur ; « la forêt des ruines » → `lieu`) et dis-le ;
-   ne pose une question que si c'est vraiment ambigu. La vue est imposée par le zoom (cavalière à 45° pour monde et lieu, dessus en trois-quarts pour le plateau) : ne la demande pas dans la scène. Monde et lieu n'ont pas de grille ; le plateau a une grille demandée, qui dépend du format. Les anciens niveaux (`region`, `localite`, `zone`, `batiment`, `souterrain`) sont encore compris et convertis.
+   ne pose une question que si c'est vraiment ambigu. La vue est imposée par le zoom (cavalière à 45° pour monde et lieu, caméra presque verticale (environ 80°, sans perspective) pour le plateau) : ne la demande pas dans la scène. Monde et lieu n'ont pas de grille ; le plateau a une grille demandée, qui dépend du format. Les anciens niveaux (`region`, `localite`, `zone`, `batiment`, `souterrain`) sont encore compris et convertis.
 2. **Écrire la scène** en anglais, concrète et à l'échelle : ce qu'il y a, où, en quelle taille (« a circular shrine 6 squares across in the east »,
    « a path 2 squares wide crossing from north to south »). Pas de texte, pas de personnages ni de créatures, pas de rose des vents : le style les interdit déjà,
    ne les demande pas dans la scène. Les noms de lieux peuvent y figurer pour situer les choses : le rappel final interdit de les écrire sur l'image.
@@ -51,6 +51,11 @@ Si la clé est absente, rappelle-lui cette voie.
    alors demande son accord si la demande est floue. Si le MJ a donné la scène complète, enchaîne.
 4. **Générer.** Même commande sans `--essai`. Options : `--ref chemin` (répétable) pour imposer des références,
    `--sans-reference` pour partir de zéro, `--type webp|png` (en paysage, png obligatoire : le recadrage se fait en png).
+   **Cohérence avec un autre zoom** : pour un plateau qui doit rester fidèle à un lieu déjà généré (ou un lieu à son monde), passe l'image de ce lieu avec
+   `--reference images/<id>.<ext> [--reference-nom "Port-Bourdon"] [--reference-id <id>]`. Le prompt gagne alors une consigne (garder l'architecture, les couleurs, les matériaux
+   et l'ambiance ; ne pas copier la vue, le cadrage ni l'échelle ; pour un plateau, redessiner tout vu presque d'en haut) et l'image part comme **seule** référence d'API :
+   elle **remplace** les références de style (`references/<style>/`), parce qu'elle en porte déjà le style et que deux sortes de références se brouillent ; `--ref` est refusé avec elle.
+   Le JSON affiché gagne `reference: { source, id }` (l'id par défaut est le nom du fichier sans extension : donne `--reference-id` si l'image n'est pas dans `images/<id>.<ext>`).
    Sans `--ref`, les 3 premières images de `references/<style>/` du dossier de travail servent de point de départ du style.
    Le script écrit le brouillon `generees/<id>.png` (paysage) ou `.webp`, et `<id>.prompt.txt` (le prompt utilisé), n'écrase jamais, et affiche un JSON
    (brouillon, fichier relatif, style, format, largeur, hauteur, grille demandée).
@@ -69,10 +74,11 @@ Si la clé est absente, rappelle-lui cette voie.
    { "id": "foret-ruines-01", "titre": "Clairière aux ruines", "fichier": "generees/foret-ruines-01.png",
      "largeur": 1536, "hauteur": 864, "niveau": "plateau", "sousType": "exterieur", "milieux": ["foret","ruines"],
      "tags": ["chemin","colonnes"], "description": "…", "grille": { "case": 48, "dx": 0, "dy": 0 },
-     "origine": { "type": "generee", "outil": "gpt-image-1", "style": "peint-v2", "le": "2026-11-06" } }
+     "origine": { "type": "generee", "outil": "gpt-image-1", "style": "peint-v2", "le": "2026-11-06",
+                  "reference": { "source": "navigateur", "id": "port-bourdon-01" } } }
    ```
    `fichier` est le brouillon (chemin relatif au dossier de travail, ou absolu) ; `largeur`, `hauteur` et `grille` viennent du JSON affiché par le générateur
-   (omets `grille` pour `monde` et `lieu`) ; mets dans `origine.style` le style utilisé. Sans `origine`, le style par défaut et la date du jour sont posés ;
+   (omets `grille` pour `monde` et `lieu`) ; `origine.reference` n'est là que si tu as utilisé `--reference` (recopie le `reference` du JSON, l'appli affichera « D'après : … » dans la fiche) ; mets dans `origine.style` le style utilisé. Sans `origine`, le style par défaut et la date du jour sont posés ;
    `licence` (`libre`) et `credit` aussi. Puis : `node outils/cartes/ajouter.mjs entree.json`. Le script copie l'image vers `images/<id>.<ext>`,
    ajoute l'entrée complète à `images/index.json` (créé s'il manque), refuse un id déjà pris, un fichier existant ou une entrée invalide en disant pourquoi
    (corrige et relance), et n'écrase rien. L'index est relu juste avant l'écriture, puis écrit de façon atomique.

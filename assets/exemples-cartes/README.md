@@ -10,7 +10,7 @@ une image la remplace.
 | --- | --- |
 | `zoom-monde.webp` | Zoom Monde : vue d'ensemble, voyage (vue cavalière, de très haut) |
 | `zoom-lieu.webp` | Zoom Lieu : un endroit à explorer (vue cavalière à 45°) |
-| `zoom-plateau.webp` | Zoom Plateau : jeu en cases (dessus en trois-quarts, grille) |
+| `zoom-plateau.webp` | Zoom Plateau : jeu en cases (vue presque verticale, grille) |
 | `style-peint-v2.webp` | Style « Dessin animé coloré » |
 | `style-parchemin-v1.webp` | Style « Vieille carte sur parchemin » |
 | `style-peint-v1.webp` | Style « Aquarelle peinte » |

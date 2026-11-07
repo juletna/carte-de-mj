@@ -2,7 +2,7 @@
  * Tests des fonctions pures de outils/cartes/ : composition du prompt (styles × formats), format par niveau, cadrage,
  * recadrage PNG, construction et ajout d'une entrée de images/index.json, choix du dossier de travail. Les styles sont lus par `lire` (assets/styles-cartes/).
  */
-import { composerPrompt, extraireSections, formatCarte, promptACopier, cadrageCentre, VUES, STYLES, FORMATS, STYLE_PAR_DEFAUT } from '../outils/cartes/prompt.js';
+import { composerPrompt, consigneReference, extraireSections, formatCarte, promptACopier, cadrageCentre, VUES, STYLES, FORMATS, STYLE_PAR_DEFAUT } from '../outils/cartes/prompt.js';
 import { recadrerPng, taillePng } from '../outils/cartes/png.js';
 import { crc32 } from '../js/zip.js';
 import { construireEntree, ajouterALIndex, extensionDe, indexVide } from '../outils/cartes/entree.js';
@@ -67,7 +67,7 @@ export async function executer({ lire }) {
         verifier(p.includes(VUES[n].vue) && p.includes(VUES[n].rappel), `vue du zoom absente : ${quoi}`);
         verifier(!/isometric|top-down orthographic|straight down|straight from above|never at an angle/i.test(p.replace(VUES[n].vue, '').replace(VUES[n].rappel, '')), `ancienne consigne de vue : ${quoi}`);
         verifier(!/no isometric angle/i.test(p), `« no isometric angle » : ${quoi}`);
-        if (n === 'plateau') verifier(p.includes('1.5 meters') && p.includes('three-quarter') && p.includes('squares wide'), `plateau : échelle et trois-quarts ${quoi}`);
+        if (n === 'plateau') verifier(p.includes('1.5 meters') && p.includes('almost straight down') && !p.includes('three-quarter') && p.includes('squares wide'), `plateau : échelle et caméra presque verticale ${quoi}`);
         else verifier(p.includes('bird\'s-eye oblique view') && p.includes('45 degrees') && !p.includes('1.5 meters') && !p.includes('squares wide') && !p.includes('The picture covers'), `monde/lieu : cavalière, sans grille ${quoi}`);
       }
     }],
@@ -86,6 +86,32 @@ export async function executer({ lire }) {
       let leve = 0;
       for (const a of [{ niveau: 'lune', scene: 'x' }, { niveau: 'lieu', scene: '  ' }, { niveau: 'lieu', scene: 'x', format: 'rond' }]) { try { composerPrompt({ style, ...a }); } catch { leve++; } }
       egal(leve, 3, 'refus');
+    }],
+    ['vue du plateau : caméra presque verticale, sans perspective ni rétrécissement, rien d’oblique', () => {
+      const { vue, rappel } = VUES.plateau;
+      verifier(vue.includes('almost straight down') && vue.includes('about 80 degrees') && vue.includes('NO perspective and NO foreshortening') && vue.includes('keeps exactly the same width from the top to the bottom'), 'caméra ou absence de rétrécissement');
+      verifier(vue.includes('TOPS of things') && vue.includes('thin strip at the bottom edge') && vue.includes('half a square'), 'dessus des objets, faces avant fines');
+      verifier(!/three-quarter|bird's-eye|oblique/i.test(vue), 'la vue du plateau ne doit rien dire d’oblique');
+      verifier(rappel.includes('almost straight down') && rappel.includes('no shrinking toward the top') && rappel.includes('not an oblique or bird\'s-eye view'), 'rappel');
+      verifier(!/zelda|pokemon|final fantasy|diablo/i.test(vue + rappel), 'aucun jeu nommé');
+    }],
+    ['image de référence : la consigne n’est là que si on la demande, sans contredire la vue du zoom', () => {
+      const ZOOMS = [['monde'], ['lieu'], ['plateau', 'exterieur'], ['plateau', 'interieur'], ['plateau', 'souterrain']];
+      for (const [n, t] of ZOOMS) {
+        const base = { style, niveau: n, sousType: t, scene: 'le quai de pêche' };
+        const sans = composerPrompt(base), avec = composerPrompt({ ...base, reference: true }), nommee = composerPrompt({ ...base, reference: { nom: 'Port-Bourdon' } });
+        verifier(!sans.includes('attached as a reference') && !sans.includes('same place'), `consigne présente sans demande : ${n} ${t ?? ''}`);
+        const c = consigneReference(n);
+        verifier(avec.includes(c) && c.includes('architecture, colors, materials and overall mood') && c.includes('do NOT copy its viewpoint, its framing or its scale'), `consigne absente : ${n}`);
+        verifier(nommee.includes('(Port-Bourdon)') && nommee.includes(consigneReference(n, 'Port-Bourdon')), `nom absent : ${n}`);
+        verifier(avec.indexOf(VUES[n].vue) < avec.indexOf(c) && avec.indexOf(c) < avec.indexOf('le quai de pêche'), `consigne mal placée : ${n}`);
+        verifier(avec.trim().endsWith(VUES[n].rappel) && avec.includes(VUES[n].vue), `la vue du zoom doit rester entière et en dernier : ${n}`);
+        if (n === 'plateau') verifier(c.includes('The reference is drawn in an oblique bird\'s-eye view: ignore that viewpoint completely') && c.includes('almost vertically down'), 'plateau : la référence est dite oblique, à redessiner vue de dessus');
+        else verifier(!/isometric|top-down orthographic|straight down|straight from above|never at an angle|bird's-eye|three-quarter|oblique/i.test(c), `la consigne parle de vue : ${n}`);
+        egal(avec.replace(`${c}\n\n`, ''), sans, `seule la consigne s’ajoute : ${n}`);
+      }
+      verifier(consigneReference('plateau').includes('on the ground, at figurine scale') && consigneReference('lieu').includes('closer, as a whole place'), 'fin selon le zoom');
+      verifier(!consigneReference('plateau', 'A\nB\n\nC').includes('\n'), 'un nom sur une seule ligne');
     }],
     ['paysage par défaut : 3:2 demandé puis 16:9, cases écrites seulement au plateau, rappels en dernier', () => {
       const z = composerPrompt({ style, niveau: 'plateau', sousType: 'exterieur', scene: 'une clairière' });
@@ -145,6 +171,13 @@ export async function executer({ lire }) {
       egal(e.origine, { type: 'generee', outil: 'gpt-image-1', style: STYLE_PAR_DEFAUT, le: '2026-11-06' }, 'origine par défaut');
       const sans = construireEntree({ id: 'a', titre: 'A', niveau: 'monde', milieux: [] }, { extension: 'png', largeur: 10, hauteur: 5, maintenant: MAINTENANT }).entree;
       verifier(sans && !('grille' in sans), 'pas de grille si absente');
+    }],
+    ['entrée : la référence d’origine est gardée, une référence mal formée est ignorée', () => {
+      const ok = construireEntree(entree({ origine: { type: 'generee', reference: { source: 'navigateur', id: 'img-abc1', autre: 1 } } }), { extension: 'webp', maintenant: MAINTENANT }).entree;
+      egal(ok.origine, { type: 'generee', reference: { source: 'navigateur', id: 'img-abc1' } }, 'référence gardée');
+      for (const r of [{ source: 'web', id: 'x' }, { source: 'navigateur', id: 'Pas Valide' }, 'img-abc1', null]) {
+        egal(construireEntree(entree({ origine: { type: 'generee', reference: r } }), { extension: 'webp', maintenant: MAINTENANT }).entree.origine, { type: 'generee' }, `référence ignorée : ${JSON.stringify(r)}`);
+      }
     }],
     ['entrée abîmée : refusée avec ses raisons', () => {
       const p = construireEntree(entree({ id: 'Foret 1', niveau: 'x', largeur: undefined, hauteur: undefined }), { extension: 'gif' }).problemes;

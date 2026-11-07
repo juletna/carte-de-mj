@@ -1,5 +1,6 @@
-// Génère une image de carte : node outils/cartes/generer.mjs --niveau plateau --sous-type exterieur --id foret-ruines-01 --scene "…" [--style …] [--format paysage|portrait|carre] [--ref image]… [--essai]
+// Génère une image de carte : node outils/cartes/generer.mjs --niveau plateau --sous-type exterieur --id foret-ruines-01 --scene "…" [--style …] [--format paysage|portrait|carre] [--ref image]… [--reference image [--reference-nom nom] [--reference-id id]] [--essai]
 // Même prompt que le panneau « Générer une carte » de la Bibliothèque (js/bibliotheque/prompt.js : STYLES, FORMATS).
+// --reference : l'image d'un autre zoom du même endroit (le lieu pour un plateau, le monde pour un lieu) : le prompt reçoit la consigne de js/bibliotheque/prompt.js (consigneReference) et l'image part comme seule référence d'API ; elle REMPLACE les références de style (voir lireReferences).
 // Écrit le brouillon <dossier de travail>/generees/<id>.<type> (+ <id>.prompt.txt) sans jamais écraser : il n'entre dans la liste de l'appli qu'avec ajouter.mjs. La clé OPENAI_API_KEY n'est jamais affichée.
 // Quand le format recadre (paysage : 3:2 demandé, 16:9 gardé), l'image est demandée en PNG, recadrée au centre et écrite en PNG.
 import { readFile, writeFile, mkdir, readdir, access } from 'node:fs/promises';
@@ -36,6 +37,11 @@ Options :
   --style <id>          ${STYLES.map((s) => `${s.id} (${s.libelle})`).join(', ')} ; défaut : ${STYLE_PAR_DEFAUT}
   --format <id>         ${FORMATS.map((f) => `${f.id} (${f.libelle})`).join(', ')} ; défaut : ${FORMAT_PAR_DEFAUT}
   --ref <image>         image de référence de style, répétable (png, webp, jpg)
+  --reference <image>   image du même endroit à un autre zoom (le lieu pour un plateau, le monde pour un lieu) : le prompt le dit et l'image est la seule
+                        référence envoyée à l'API (elle remplace les références de style : elle en porte déjà le style, et deux sortes de références se brouillent) ;
+                        incompatible avec --ref
+  --reference-nom <nom> nom du lieu, écrit dans le prompt (défaut : aucun)
+  --reference-id <id>   id de l'image de référence dans la liste de l'appli, noté dans le JSON pour origine.reference (défaut : le nom du fichier sans extension)
   --sans-reference      ne pas utiliser references/<style>/ du dossier de travail
   --type webp|png       type de fichier (défaut : png si le format recadre, sinon webp)
   --qualite <q>         qualité demandée à l'API (défaut : high)
@@ -50,7 +56,7 @@ try {
   ({ values: o } = parseArgs({ options: {
     niveau: { type: 'string' }, 'sous-type': { type: 'string' }, scene: { type: 'string' }, id: { type: 'string' }, style: { type: 'string', default: STYLE_PAR_DEFAUT },
     format: { type: 'string', default: FORMAT_PAR_DEFAUT }, type: { type: 'string' },
-    ref: { type: 'string', multiple: true }, 'sans-reference': { type: 'boolean' },
+    ref: { type: 'string', multiple: true }, reference: { type: 'string' }, 'reference-nom': { type: 'string' }, 'reference-id': { type: 'string' }, 'sans-reference': { type: 'boolean' },
     qualite: { type: 'string', default: 'high' }, essai: { type: 'boolean' }, help: { type: 'boolean', short: 'h' }, aide: { type: 'boolean' },
   } }));
 } catch (e) { console.error(`${/Unknown option '([^']+)'/.exec(e.message)?.[0].replace(/Unknown option '([^']+)'/, 'Option inconnue : $1') ?? e.message}\n\n${AIDE}`); process.exit(1); }
@@ -61,12 +67,16 @@ if (!o.niveau || !o.scene || !o.id) sortir(`Il manque --niveau, --id ou --scene.
 if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(o.id) || o.id.length > 64) sortir('id : minuscules, chiffres et tirets, 64 caractères au plus.');
 if (!STYLES.some((s) => s.id === o.style)) sortir(`style : ${STYLES.map((s) => s.id).join(', ')}.`);
 if (!FORMATS.some((f) => f.id === o.format)) sortir(`format : ${FORMATS.map((f) => f.id).join(', ')} (le type de fichier se choisit avec --type).`);
+if (o.reference && o.ref?.length) sortir('--reference remplace les références de style : n\'utilisez pas --ref avec elle.');
+const idReference = o.reference ? (o['reference-id'] ?? path.basename(o.reference, path.extname(o.reference))) : null;
+if (o.reference && (!/^[a-z0-9-]{1,64}$/.test(idReference))) sortir('--reference-id : minuscules, chiffres et tirets, 64 caractères au plus (l\'id de l\'image dans la liste de l\'appli ; à donner si le nom du fichier n\'en est pas un).');
+if (o['reference-nom'] && !o.reference) sortir('--reference-nom n\'a de sens qu\'avec --reference.');
 if (o.type && !['webp', 'png'].includes(o.type)) sortir('type : webp ou png.');
 if (o['sous-type'] && !SOUS_TYPES.includes(o['sous-type'])) sortir(`sous-type : ${SOUS_TYPES.join(', ')}.`);
 
 /** Références explicites, sinon les premières images de <dossier>/references/<style>/ (point de départ du style). */
 async function lireReferences() {
-  let chemins = (o.ref ?? []).map((r) => path.resolve(r));
+  let chemins = (o.reference ? [o.reference] : (o.ref ?? [])).map((r) => path.resolve(r));
   if (!chemins.length && !o['sans-reference']) {
     if (!dossier) return [];
     const dossierRef = path.join(dossier, 'references', o.style);
@@ -82,7 +92,7 @@ async function lireReferences() {
 let style;
 try { style = await readFile(FICHIER_STYLE(o.style), 'utf8'); } catch { sortir(`Style illisible : ${o.style}`); }
 let prompt;
-try { prompt = composerPrompt({ style, niveau: o.niveau, sousType: o['sous-type'], scene: o.scene, format: o.format }); } catch (e) { sortir(e.message); }
+try { prompt = composerPrompt({ style, niveau: o.niveau, sousType: o['sous-type'], scene: o.scene, format: o.format, reference: o.reference ? { nom: o['reference-nom'] } : undefined }); } catch (e) { sortir(e.message); }
 const format = formatCarte(o.format, o.niveau);
 if (format.recadre && o.type === 'webp') sortir(`Le format ${o.format} recadre l'image en ${format.largeur} × ${format.hauteur} : la sortie est en png (le webp ne se recadre pas sans dépendance).`);
 o.type ??= format.recadre ? 'png' : 'webp';
@@ -92,7 +102,7 @@ const dossierSortie = dossier ? path.join(dossier, 'generees') : path.join('<CAR
 const sortie = path.join(dossierSortie, `${o.id}.${o.type}`);
 
 if (o.essai) {
-  console.log(JSON.stringify({ essai: true, requete: { ...requete, champs: { ...requete.champs, prompt: undefined } }, prompt, references: references.map((r) => r.nom), sortie: sortie, dossier: dossier ?? 'non défini (export CARTE_DE_MJ_DOSSIER)', cle: process.env.OPENAI_API_KEY ? 'présente' : 'absente' }, null, 2));
+  console.log(JSON.stringify({ essai: true, requete: { ...requete, champs: { ...requete.champs, prompt: undefined } }, prompt, references: references.map((r) => r.nom), reference: o.reference ? { source: 'navigateur', id: idReference } : undefined, sortie: sortie, dossier: dossier ?? 'non défini (export CARTE_DE_MJ_DOSSIER)', cle: process.env.OPENAI_API_KEY ? 'présente' : 'absente' }, null, 2));
   process.exit(0);
 }
 
@@ -112,4 +122,4 @@ if (format.recadre) {
 await mkdir(dossierSortie, { recursive: true });
 await writeFile(sortie, octets, { flag: 'wx' });
 await writeFile(path.join(dossierSortie, `${o.id}.prompt.txt`), prompt + '\n', { flag: 'wx' });
-console.log(JSON.stringify({ brouillon: sortie, fichier: path.relative(dossier, sortie), niveau: o.niveau, ...(o['sous-type'] ? { sousType: o['sous-type'] } : {}), style: o.style, format: o.format, largeur: format.largeur, hauteur: format.hauteur, grille: format.grille ? { case: format.grille.case, dx: 0, dy: 0 } : null, references: references.map((r) => r.nom), octets: octets.length }, null, 2));
+console.log(JSON.stringify({ brouillon: sortie, fichier: path.relative(dossier, sortie), niveau: o.niveau, ...(o['sous-type'] ? { sousType: o['sous-type'] } : {}), style: o.style, format: o.format, largeur: format.largeur, hauteur: format.hauteur, grille: format.grille ? { case: format.grille.case, dx: 0, dy: 0 } : null, references: references.map((r) => r.nom), ...(o.reference ? { reference: { source: 'navigateur', id: idReference } } : {}), octets: octets.length }, null, 2));

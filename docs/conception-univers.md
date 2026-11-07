@@ -114,7 +114,7 @@ Un tableau JSON, écrit par l'appli avec `JSON.stringify(index, null, 1)` :
 - `tags` : mots libres, en français, sans accents obligatoires (la recherche ignore accents et casse, voir `sansAccents` de `js/format.js`).
 - `grille` (facultatif) : taille d'une case en pixels de l'image et décalage de la grille. Absent : carte d'ambiance, sans grille.
   Le skill écrit la grille **demandée** ; le calage (F4) la corrigera.
-- `origine.type` : `generee`, `importee` ou `externe`. `licence` et `credit` : à afficher avec la carte quand `credit` n'est pas vide.
+- `origine.type` : `generee`, `importee` ou `externe`. `origine.reference` (facultatif) : `{ "source": "navigateur" | "bibliotheque", "id": "…" }`, l'image jointe au générateur pour rester cohérent avec elle (le lieu d'un plateau, le monde d'un lieu), au même format qu'une référence de carte ; une valeur mal formée est ignorée, et la fiche écrit « D'après : <titre> » (ou « image disparue » si elle n'est plus dans la liste). Elle n'a pas d'effet dans l'atelier. `licence` et `credit` : à afficher avec la carte quand `credit` n'est pas vide.
 - La validation des champs descriptifs est `validerCarte` (`js/bibliotheque/catalogue.js`), la même pour l'appli et pour les scripts du skill. Un champ inconnu est ignoré.
 
 Recherche et filtres (session B) : filtre par `niveau` (et `sousType`), par `milieux` (cumulables), recherche texte sur `titre`, `tags`,

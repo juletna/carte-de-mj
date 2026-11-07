@@ -6,7 +6,9 @@
  * (style et format au choix, assets/styles-cartes/, js/bibliotheque/prompt.js, le même que le skill generer-carte) à coller dans un
  * générateur d'images externe, importer l'image obtenue, recadrée au format choisi, avec son zoom et sa grille déjà remplis.
  * Le zoom (monde, lieu, plateau + sous-type) et le style se choisissent sur des cartes illustrées (js/bibliotheque/cartes-choix.js).
- * Le brouillon (scène, zoom, style, format, prompt copié) est gardé dans ce navigateur. Sans clé ni serveur.
+ * Une image de la bibliothèque peut être choisie comme référence (monde pour un lieu, lieu pour un plateau) : le prompt le dit, le MJ la joint dans
+ * le générateur (bouton de téléchargement), et l'image importée garde `origine.reference`.
+ * Le brouillon (scène, zoom, style, format, référence, prompt copié) est gardé dans ce navigateur. Sans clé ni serveur.
  * Elle réutilise js/bibliotheque/ (vocabulaire, images, fiche d'une carte).
  */
 import { h, deuxTemps, fichierChoisi } from './dom.js';
@@ -23,6 +25,7 @@ import { promptACopier, formatCarte, STYLES, FORMATS, STYLE_PAR_DEFAUT, FORMAT_P
 const racine = document.getElementById('bibliotheque');
 const etat = { generer: false, niveau: '', milieux: new Set(), requete: '' };
 const styles = new Map(); // id de style → texte de assets/styles-cartes/<id>.md, ou une Error (absent : en cours de lecture)
+let refId = null; // id de l'image (IndexedDB) choisie comme référence, ou null
 let preremplir = null; // métadonnées venues du volet Générer pour le prochain import
 let copie = false; // le prompt a été copié : au retour de ChatGPT, le volet s'ouvre sur l'import
 let images = [];
@@ -84,6 +87,61 @@ const majSousType = () => { zoneSousType.hidden = genNiveau.valeur() !== 'platea
 const zoomGen = () => ({ niveau: genNiveau.valeur(), sousType: genNiveau.valeur() === 'plateau' ? genSousType.valeur() : undefined });
 const genFormat = h('select', { id: 'gen-format' }, ...FORMATS.map((f) => h('option', { value: f.id, textContent: f.libelle, title: f.aide })));
 genFormat.value = FORMAT_PAR_DEFAUT;
+/** L'image de référence choisie, tant qu'elle existe encore. */
+const refEntree = () => (refId ? images.find((i) => i.id === refId) : undefined);
+/** Lieux et mondes d'abord (un plateau se fait d'après un lieu, un lieu d'après un monde), puis le reste ; les plus récentes en tête de chaque groupe. */
+const RANG_REF = { lieu: 0, monde: 1, plateau: 2 };
+const imagesPourReference = () => [...images].sort((a, b) => (RANG_REF[a.niveau] ?? 3) - (RANG_REF[b.niveau] ?? 3));
+const refBouton = h('button', { type: 'button', id: 'gen-reference', className: 'bib-ref-bouton', 'aria-expanded': 'false', 'aria-controls': 'gen-reference-liste', 'aria-haspopup': 'listbox' });
+const refListe = h('div', { id: 'gen-reference-liste', className: 'bib-ref-liste', role: 'listbox', 'aria-label': 'Images de la bibliothèque', hidden: true });
+const vignetteRef = (e) => {
+  const boite = h('span', { className: 'bib-ref-vignette', 'aria-hidden': 'true' });
+  if (e) { const img = h('img', { src: urlDepuisBlob(e), alt: '', loading: 'lazy' }); img.addEventListener('error', () => img.remove()); boite.append(img); }
+  return boite;
+};
+function choisirReference(id) {
+  refId = id; refListe.hidden = true; refBouton.setAttribute('aria-expanded', 'false');
+  genEtat.textContent = ''; copie = false; remplirBouton(copier, 'Copier le prompt', { icone: 'copier' });
+  enregistrer(); majReference(); majPrompt(); refBouton.focus();
+}
+function dessinerReference() {
+  const rangee = (id, e, nom, sous) => {
+    const b = h('button', { type: 'button', className: 'bib-ref-rang', role: 'option', 'aria-selected': String(id === refId) },
+      vignetteRef(e), h('span', { className: 'bib-ref-nom', textContent: nom }), h('span', { className: 'bib-ref-sous', textContent: sous }));
+    b.addEventListener('click', () => choisirReference(id));
+    return b;
+  };
+  refListe.replaceChildren(rangee(null, null, 'Aucune', 'sans image jointe'), ...imagesPourReference().map((e) => rangee(e.id, e, e.titre, libelleZoom(e))));
+  if (!images.length) refListe.append(h('p', { className: 'bib-note', textContent: 'Aucune image dans la bibliothèque pour l’instant.' }));
+}
+/** Le bouton qui montre le choix, la note de téléchargement sous le prompt, et la liste. */
+function majReference() {
+  const e = refEntree();
+  refBouton.replaceChildren(vignetteRef(e), h('span', { className: 'bib-ref-nom', textContent: e ? e.titre : 'Aucune' }), h('span', { className: 'bib-ref-sous', textContent: e ? libelleZoom(e) : 'sans image jointe' }));
+  dessinerReference();
+  refNote.hidden = !e;
+  refNom.textContent = e ? `« ${e.titre} »` : '';
+}
+function telechargerReference() {
+  const e = refEntree();
+  if (!e) return;
+  const a = h('a', { href: urlDepuisBlob(e), download: e.nom || `${e.id}.webp` });
+  document.body.append(a); a.click(); a.remove();
+}
+refBouton.addEventListener('click', () => {
+  refListe.hidden = !refListe.hidden; refBouton.setAttribute('aria-expanded', String(!refListe.hidden));
+  if (!refListe.hidden) (refListe.querySelector('[aria-selected="true"]') ?? refListe.firstElementChild)?.focus();
+});
+refListe.addEventListener('keydown', (e) => {
+  const r = [...refListe.querySelectorAll('.bib-ref-rang')], i = r.indexOf(document.activeElement);
+  if (e.key === 'ArrowDown') { e.preventDefault(); r[Math.min(i + 1, r.length - 1)]?.focus(); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); r[Math.max(i - 1, 0)]?.focus(); }
+  else if (e.key === 'Escape' && !refListe.hidden) { e.stopPropagation(); refListe.hidden = true; refBouton.setAttribute('aria-expanded', 'false'); refBouton.focus(); }
+});
+const refNom = h('strong');
+const refNote = h('div', { className: 'bib-ref-note', hidden: true },
+  h('p', { className: 'bib-note' }, 'Joins aussi cette image dans ChatGPT : ', refNom, '. Le prompt lui demande de s’en servir pour l’architecture et les couleurs, pas pour la vue.'),
+  h('div', { className: 'bib-actions' }, btn('Télécharger l’image de référence', telechargerReference, { icone: 'importer', classe: 'btn-discret' })));
 const genScene = h('textarea', { id: 'gen-scene', rows: 5, maxLength: 2000, placeholder: 'Une clairière dans une forêt de chênes, avec un petit sanctuaire en ruine de 6 cases à l’est et un chemin de 2 cases qui la traverse du nord au sud.' });
 const genGrille = h('p', { className: 'bib-etiquette' });
 const genPrompt = h('textarea', { id: 'gen-prompt', rows: 4, readOnly: true, className: 'bib-prompt', 'aria-label': 'Prompt (en anglais)' });
@@ -124,7 +182,7 @@ function recevoirImage(f) {
   preremplir = {
     ...zoomGen(), description: genScene.value.trim().slice(0, 600), colonnes: format.grille?.colonnes,
     cadre: { largeur: format.largeur, hauteur: format.hauteur, libelle: FORMATS.find((x) => x.id === genFormat.value).libelle },
-    origine: { type: 'generee', style: genStyle.valeur(), le: new Date().toISOString().slice(0, 10) },
+    origine: { type: 'generee', style: genStyle.valeur(), le: new Date().toISOString().slice(0, 10), ...(refEntree() ? { reference: { source: 'navigateur', id: refId } } : {}) },
   };
   ouvrirFormulaire(f);
 }
@@ -150,7 +208,7 @@ function majPrompt() {
   genPrompt.value = '';
   if (!style) { genEtat.textContent = 'Chargement du style…'; lireStyle(genStyle.valeur()); }
   else if (style instanceof Error) genEtat.textContent = `Le style n’a pas pu être lu (${style.message}). Ouvre l’appli par « python3 outils/serveur.py » ou depuis le site.`;
-  else if (scene) { genPrompt.value = promptACopier({ style, ...zoomGen(), scene, format: genFormat.value }); copier.disabled = false; }
+  else if (scene) { genPrompt.value = promptACopier({ style, ...zoomGen(), scene, format: genFormat.value, reference: refEntree() ? { nom: refEntree().titre } : undefined }); copier.disabled = false; }
   genPrompt.classList.toggle('vide', !genPrompt.value);
   majEtapes();
 }
@@ -162,11 +220,13 @@ const section1 = creerSection({ cle: 'bib-gen:1', titre: '1 · Décrire l’illu
   h('div', { className: 'bib-champ' }, h('span', { className: 'bib-etiq', textContent: 'Style' }), genStyle.element),
   champ('gen-format', 'Format', genFormat),
   genGrille,
+  h('div', { className: 'bib-champ' }, h('label', { htmlFor: 'gen-reference', textContent: 'Image de référence' }), refBouton, refListe,
+    h('p', { className: 'bib-note', textContent: 'Facultatif. Pour un plateau, choisis le lieu ; pour un lieu, le monde : la nouvelle carte garde ses bâtiments, ses couleurs et ses matériaux.' })),
   h('p', { className: 'bib-note', textContent: 'En français ou en anglais : ce qu’il y a, où, et en quelle taille (une porte fait 1 case, un arbre 2 à 3, un chemin 2). Inutile de demander l’absence de texte ou de personnages : le style s’en charge.' }),
 ] }, { replis: sansMemoire() });
 const section2 = creerSection({ cle: 'bib-gen:2', titre: '2 · Copier le prompt', compte: pastille2, repliee: true,
   aide: 'Pour garder le même style d’une carte à l’autre, joins une de tes cartes réussies comme image de référence quand tu colles le prompt.', enfants: [
-    genPrompt, h('div', { className: 'bib-actions' }, copier, agrandir), genEtat,
+    genPrompt, h('div', { className: 'bib-actions' }, copier, agrandir), genEtat, refNote,
     h('p', { className: 'bib-note', textContent: 'À coller dans ChatGPT ou un autre générateur d’images, avec une de tes cartes réussies en référence pour garder le style.' }),
   ] }, { replis: sansMemoire() });
 const section3 = creerSection({ cle: 'bib-gen:3', titre: '3 · Importer l’image', compte: pastille3, repliee: true, enfants: [
@@ -202,7 +262,7 @@ function majEtapes() {
 }
 
 function enregistrer() {
-  ecrireBrouillon({ scene: genScene.value, ...zoomGen(), style: genStyle.valeur(), format: genFormat.value, copie });
+  ecrireBrouillon({ scene: genScene.value, ...zoomGen(), style: genStyle.valeur(), format: genFormat.value, reference: refId ?? undefined, copie });
 }
 function restaurerBrouillon() {
   const b = lireBrouillon();
@@ -212,6 +272,7 @@ function restaurerBrouillon() {
   if (STYLES.some((x) => x.id === b.style)) genStyle.definir(b.style);
   majSousType();
   if (FORMATS.some((x) => x.id === b.format)) genFormat.value = b.format;
+  if (typeof b.reference === 'string' && b.reference.length <= 64) refId = b.reference; // vérifiée quand la liste des images est lue
   copie = b.copie === true && !!genScene.value.trim();
   if (copie) remplirBouton(copier, 'Copié', { icone: 'coche' });
 }
@@ -233,6 +294,7 @@ function fermerVolet({ rendreFocus = true } = {}) {
 }
 
 restaurerBrouillon();
+majReference();
 majPrompt();
 
 function tuile(entree) {
@@ -261,7 +323,7 @@ function dessinerDetail() {
       choisi = null; await recharger();
     } catch (err) { erreurImages = `Suppression impossible : ${err.message}`; dessiner(); }
   });
-  const fiche = ficheCarte(choisi.entree);
+  const fiche = ficheCarte(choisi.entree, { titreDe: (ref) => images.find((i) => i.id === ref.id)?.titre });
   fiche.append(h('div', { className: 'bib-actions' }, sup));
   detail.append(h('div', { className: 'bib-apercu' }, h('img', { src: choisi.url, alt: `Aperçu : ${choisi.entree.titre}` })), fiche);
 }
@@ -305,7 +367,7 @@ function ouvrirFormulaire(fichier) {
       });
       hote.replaceChildren();
       if (pre) { // l'illustration est dans la bibliothèque : le volet repart d'une scène vide
-        depot.hidden = false; genScene.value = ''; copie = false; remplirBouton(copier, 'Copier le prompt', { icone: 'copier' }); ecrireBrouillon(null); majPrompt();
+        depot.hidden = false; genScene.value = ''; copie = false; remplirBouton(copier, 'Copier le prompt', { icone: 'copier' }); refId = null; ecrireBrouillon(null); majReference(); majPrompt();
         etat.generer = false;
       }
       await recharger();
@@ -324,6 +386,8 @@ function ouvrirFormulaire(fichier) {
 
 async function recharger() {
   try { images = await listerImages(); erreurImages = ''; } catch (e) { images = []; erreurImages = `Les cartes de ce navigateur sont indisponibles : ${e.message}`; }
+  if (refId && !erreurImages && !refEntree()) { refId = null; enregistrer(); } // l'image de référence a été supprimée
+  majReference(); majPrompt();
   dessiner();
 }
 

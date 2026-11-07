@@ -148,3 +148,22 @@ dialog.bib .btn-danger.danger, #bibliotheque .btn-danger.danger { background: va
   .bib-carte { min-height: 44px; }
   .bib-volet .btn { min-height: 44px; }
 }
+
+/* Image de référence du volet Générer : un bouton qui montre le choix, une liste en creux de rangées à vignette (docs/design-panneaux.md, « Liste ») */
+.bib-ref-bouton, .bib-ref-rang { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; align-items: center; column-gap: var(--esp-3); width: 100%; min-height: 44px; padding: 5px 8px; text-align: left; font: inherit; color: var(--p-texte-1); background: var(--p-surface-1); border: 1px solid transparent; border-radius: 8px; cursor: pointer; }
+.bib-ref-bouton { border-color: var(--p-filet-fort); }
+.bib-ref-bouton[aria-expanded="true"] { border-color: var(--accent); }
+.bib-ref-liste { display: flex; flex-direction: column; gap: 2px; max-height: 260px; overflow-y: auto; padding: 4px; background: var(--p-surface-1); border-radius: 8px; border: 1px solid var(--p-filet); }
+.bib-ref-liste[hidden] { display: none; }
+.bib-ref-rang { background: transparent; }
+.bib-ref-rang:hover { background: var(--p-surface-survol); }
+.bib-ref-rang[aria-selected="true"] { background: var(--p-choisi); color: var(--accent); }
+.bib-ref-rang:focus-visible, .bib-ref-bouton:focus-visible { outline: var(--focus); outline-offset: var(--focus-decalage); }
+.bib-ref-vignette { display: block; width: 44px; height: 30px; overflow: hidden; border-radius: 4px; background: var(--p-filet); }
+.bib-ref-vignette img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.bib-ref-nom { font-size: 14px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bib-ref-sous { font-size: 12.5px; color: var(--p-texte-3); white-space: nowrap; }
+.bib-ref-note[hidden] { display: none; }
+.bib-ref-note { display: flex; flex-direction: column; gap: var(--esp-2); }
+.bib-ref-note strong { color: var(--p-texte-1); font-weight: 500; }
+@media (max-width: 760px) { .bib-ref-bouton, .bib-ref-rang { min-height: 48px; } }

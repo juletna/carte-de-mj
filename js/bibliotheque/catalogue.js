@@ -8,6 +8,7 @@ import { IDS_NIVEAUX, IDS_MILIEUX, libelleMilieu, libelleNiveau, normaliserNivea
 export const FORMAT_CATALOGUE = 'carte-de-mj-bibliotheque';
 const EXTENSIONS = ['webp', 'png', 'jpg', 'jpeg', 'svg'];
 const ORIGINES = ['generee', 'importee', 'externe'];
+const SOURCES_IMAGE = ['navigateur', 'bibliotheque'];
 const MAX_TAGS = 40;
 const texte = (v, max) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
 const dimension = (v) => (Number.isFinite(v) && v >= 1 && v <= 20000 ? Math.round(v) : undefined);
@@ -59,6 +60,9 @@ export function validerCarte(brut, { avecFichier = true } = {}) {
   if (o && typeof o === 'object' && ORIGINES.includes(o.type)) {
     carte.origine = { type: o.type };
     for (const c of ['outil', 'style', 'le']) if (texte(o[c], 80)) carte.origine[c] = texte(o[c], 80);
+    // `reference` : l'image jointe au générateur pour rester cohérent avec elle ({ source, id }, comme la référence d'une carte de lieu) ; ignorée si mal formée.
+    const r = o.reference;
+    if (r && typeof r === 'object' && SOURCES_IMAGE.includes(r.source) && idValide(r.id)) carte.origine.reference = { source: r.source, id: r.id };
   }
   return { carte };
 }

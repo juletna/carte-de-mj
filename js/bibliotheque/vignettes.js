@@ -2,7 +2,7 @@
  * Vignettes des cartes de choix de l'onglet « Générer une carte » (zooms et styles). Module pur (aucun DOM).
  * `assets/exemples-cartes/<cle>.webp` quand Julien y a déposé une vraie image générée (voir le README de ce dossier) ;
  * sinon une vignette de repli dessinée en SVG, simple et claire : vue cavalière pour le monde et le lieu, plateau en
- * trois-quarts avec une grille légère, palette ou trait pour chaque style. Clés : zoom-<niveau>, style-<id>.
+ * vue presque verticale avec une grille légère, palette ou trait pour chaque style. Clés : zoom-<niveau>, style-<id>.
  */
 
 /** Les clés de vignette, dans l'ordre d'affichage. */

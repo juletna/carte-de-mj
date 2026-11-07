@@ -26,6 +26,12 @@ const TESTS = [
     egal(r.cartes[0].grille, { case: 70, dx: 0, dy: 0 }, 'grille');
     egal(r.cartes[0].origine, { type: 'generee', outil: 'gpt-image-1', style: 'peint-v1', le: '2026-11-06' }, 'origine');
   }],
+  ['origine.reference : { source, id } gardée, le reste ignoré', () => {
+    const v = (reference) => validerCatalogue(catalogue([carte({ origine: { type: 'generee', reference } })])).cartes[0].origine;
+    egal(v({ source: 'navigateur', id: 'img-ab12', x: 1 }), { type: 'generee', reference: { source: 'navigateur', id: 'img-ab12' } }, 'navigateur');
+    egal(v({ source: 'bibliotheque', id: 'port-bourdon' }), { type: 'generee', reference: { source: 'bibliotheque', id: 'port-bourdon' } }, 'ancien catalogue');
+    for (const r of [{ source: 'url', id: 'a' }, { source: 'navigateur' }, { source: 'navigateur', id: '../a' }, 'a', 3]) egal(v(r), { type: 'generee' }, `ignorée : ${JSON.stringify(r)}`);
+  }],
   ['migration : les 6 anciens niveaux se convertissent à la lecture, sans rien perdre', () => {
     const attendu = {
       monde: { niveau: 'monde' }, region: { niveau: 'lieu' }, localite: { niveau: 'lieu' },

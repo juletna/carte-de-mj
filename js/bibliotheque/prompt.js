@@ -8,7 +8,7 @@ import { IDS_NIVEAUX as NIVEAUX, normaliserNiveau } from './vocabulaire.js';
 
 /**
  * La vue de chaque zoom, imposée (aucun choix) et écrite ici, jamais dans les fichiers de style : `vue` ouvre le bloc de vue
- * du prompt, `rappel` le referme en dernière ligne. Monde et lieu : vue cavalière ; plateau : dessus en trois-quarts, cases égales.
+ * du prompt, `rappel` le referme en dernière ligne. Monde et lieu : vue cavalière ; plateau : caméra presque verticale (environ 80°), sans perspective, cases égales.
  */
 export const VUES = {
   monde: {
@@ -24,12 +24,30 @@ export const VUES = {
     rappel: 'View check: oblique bird\'s-eye view at about 45 degrees; not a flat map seen from straight above, not a side view; every important place visible.',
   },
   plateau: {
-    vue: 'View: top-down three-quarter view, as in a 2D action role-playing video game. The ground is flat and seen from directly above, and every square has the same size everywhere in the picture, so that a grid fits exactly. '
-      + 'Each object (house, tree, rock, statue, piece of furniture) is drawn slightly from the front: its facade, trunk or side is visible. '
-      + 'It reads clearly as a game board, with walkable ground clearly distinct from obstacles. No sky, no horizon, no perspective that shrinks the background.',
-    rappel: 'View check: flat ground seen from above with equal squares everywhere, objects drawn slightly from the front; no sky, no horizon, no shrinking perspective.',
+    vue: 'View: camera looking almost straight down (about 80 degrees), like the map of a classic top-down 2D adventure game. The ground is flat, and every square has the same size everywhere in the picture, so that a grid fits exactly. '
+      + 'We mostly see the TOPS of things: roofs, tree crowns, tops of crates, barrels and stalls. Front faces appear only as a thin strip at the bottom edge of each object (walls and facades no taller than about half a square on the picture). '
+      + 'NO perspective and NO foreshortening: parallel lines stay parallel, a pier or a road keeps exactly the same width from the top to the bottom of the picture, and objects at the top of the map are drawn at the same size as identical objects at the bottom. '
+      + 'The whole map reads like a flat game board, with walkable ground clearly distinct from obstacles. No sky, no horizon.',
+    rappel: 'View check: camera almost straight down; same square size everywhere; no shrinking toward the top; only thin front faces; not an oblique or bird\'s-eye view.',
   },
 };
+
+/**
+ * Consigne ajoutée au prompt quand une image du même endroit est jointe comme référence (`reference`) : elle ne sert qu'à garder
+ * l'architecture, les couleurs, les matériaux et l'ambiance, jamais la vue (imposée plus haut), le cadrage ni l'échelle.
+ * La fin dépend du zoom : un plateau est vu au sol, à l'échelle des figurines ; un lieu est plus près que le monde dont il vient.
+ */
+const REFERENCE_SUITE = {
+  monde: 'Here we see the whole region at once, far wider than the reference.',
+  lieu: 'Here we are closer, as a whole place: show more detail than the reference.',
+  plateau: 'Here we are on the ground, at figurine scale: draw only a small part of the place, in detail. '
+    + 'The reference is drawn in an oblique bird\'s-eye view: ignore that viewpoint completely and redraw everything with a camera looking almost vertically down, with no perspective.',
+};
+export function consigneReference(niveau, nom = '') {
+  const n = String(nom || '').replace(/\s+/g, ' ').trim().slice(0, 80);
+  return `An image of this place${n ? ` (${n})` : ''} is attached as a reference: use it only for the architecture, colors, materials and overall mood, so that this map clearly belongs to the same place; `
+    + `do NOT copy its viewpoint, its framing or its scale. The view described above always takes priority. ${REFERENCE_SUITE[niveau]}`;
+}
 
 /** Le gabarit d'un zoom dans le fichier de style : monde, lieu, ou plateau-<sous-type>. */
 export const gabaritDe = ({ niveau, sousType }) => (niveau === 'plateau' ? `plateau-${sousType}` : niveau);
@@ -107,10 +125,11 @@ export function cadrageCentre(largeur, hauteur, largeurCible, hauteurCible) {
 
 /**
  * Prompt complet, identique pour l'API et pour un générateur en conversation.
- * `style` : texte du fichier de style ; `niveau` : un des NIVEAUX (ou un ancien, converti) ; `sousType` : celui d'un plateau ; `scene` : la description du MJ ; `format` : un des FORMATS.
+ * `style` : texte du fichier de style ; `niveau` : un des NIVEAUX (ou un ancien, converti) ; `sousType` : celui d'un plateau ; `scene` : la description du MJ ; `format` : un des FORMATS ;
+ * `reference` (facultatif) : `true` ou `{ nom }` quand une image du même endroit est jointe, ce qui ajoute `consigneReference` après la vue.
  * Dans les gabarits, `{scene}` reçoit la scène et `{cases}` la taille en cases (« about 32 squares wide and 18 squares tall »).
  */
-export function composerPrompt({ style, niveau: niveauBrut, sousType, scene, format = FORMAT_PAR_DEFAUT }) {
+export function composerPrompt({ style, niveau: niveauBrut, sousType, scene, format = FORMAT_PAR_DEFAUT, reference }) {
   const zoom = normaliserNiveau({ niveau: niveauBrut, sousType });
   if (!zoom) throw new Error(`Niveau inconnu « ${niveauBrut} » (attendu : ${NIVEAUX.join(', ')}).`);
   const { niveau } = zoom;
@@ -124,7 +143,8 @@ export function composerPrompt({ style, niveau: niveauBrut, sousType, scene, for
   const cases = grille ? `about ${grille.colonnes} squares wide and ${grille.lignes} squares tall` : '';
   const consigne = f.consigne + (grille ? ` The picture covers ${grille.colonnes} × ${grille.lignes} squares; do not draw the grid.` : '');
   const vue = VUES[niveau];
-  return [s['Bloc de style'], vue.vue, gabarit.replace('{scene}', texte).replace('{cases}', cases), grille ? s['Échelle'] : '', consigne,
+  const ref = reference ? consigneReference(niveau, reference.nom) : '';
+  return [s['Bloc de style'], vue.vue, ref, gabarit.replace('{scene}', texte).replace('{cases}', cases), grille ? s['Échelle'] : '', consigne,
     [s['Rappel final'], vue.rappel].filter(Boolean).join('\n')].filter(Boolean).join('\n\n');
 }
 
