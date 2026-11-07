@@ -138,7 +138,7 @@ const TESTS = (pages) => [
     const html = pages['presentation.html'];
     verifier(!/[\u{1F300}-\u{1FAFF}\u2190-\u21FF\u2300-\u23FF\u2715\u22EF\u2B1A]/u.test(html.replace(/<!--[\s\S]*?-->/g, '')), 'aucun emoji ni flèche-caractère');
     verifier(!/aide-bouton/.test(html), 'plus de « ? » maison');
-    egal((html.match(/<details class="aide">/g) || []).length, 1, 'une aide repliable (l’aide des réglages a suivi la taille d’une case dans « Affichage »)');
+    egal((html.match(/<details class="aide">/g) || []).length, 0, 'plus d’aide repliable dans la régie (les aides du matériel de la table sont des infobulles du popover « Affichage »)');
     const ecrans = { depart: /<main id="depart"[\s\S]*?<\/main>/, choix: /<main id="choix-joueurs"[\s\S]*?<\/main>/, regie: /<div id="regie"[\s\S]*?<div id="ecran-table"/ };
     egal(Object.fromEntries(Object.entries(ecrans).map(([nom, re]) => [nom, (html.match(re)?.[0].match(/btn-primaire/g) || []).length])), { depart: 0, choix: 1, regie: 0 }, 'dorés statiques (« Ouvrir la table » est créé par jouer.js dans la barre d’outils)');
   }],

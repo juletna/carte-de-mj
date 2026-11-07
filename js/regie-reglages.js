@@ -30,15 +30,19 @@ export function creerReglages(ctx) {
   function majControles() {
     if (r.reperes === undefined) r.reperes = true;
     lu = { ...r };
-    $('mini-active').checked = r.miniTable !== false;
     majModeTable();
     majTaille();
-    $('rotation-table').value = String(r.rotationTable || 0);
-    $('miroir-table').checked = r.miroirTable === true;
+    majOrientation();
     $('case-mm').value = r.caseMm ?? CASE_MM_PAR_DEFAUT;
   }
-  $('ajuster').checked = etat.ajuster;
-  $('mini-active').addEventListener('change', (e) => { r.miniTable = e.target.checked; sauverReglages(); diffuser(); montrerIci(); });
+  const NOMS_ROTATION = { 0: 'Aucune', 90: '90° à droite', 180: '180°', 270: '90° à gauche' };
+  /** L'orientation de l'écran de table : la valeur écrite, l'interrupteur du miroir, et l'aperçu (un « F » tourné et retourné comme la carte le sera). */
+  function majOrientation() {
+    const rot = r.rotationTable || 0, miroir = r.miroirTable === true;
+    $('rotation-val').textContent = NOMS_ROTATION[rot] ?? `${rot}°`;
+    $('miroir-table').setAttribute('aria-checked', String(miroir));
+    $('apercu-lettre').style.transform = `rotate(${rot}deg)${miroir ? ' scaleX(-1)' : ''}`;
+  }
   function majModeTable() {
     const mode = modeTable(r);
     $('mode-remplir').checked = mode === 'remplir';
@@ -60,15 +64,25 @@ export function creerReglages(ctx) {
   $('taille').addEventListener('input', (e) => { r.taille = Number(e.target.value); majTaille(); sauverReglages(); majModeTable(); rendre(); });
 
   // --- L'écran de table : orientation et calibrage ------------------------------------------------------
-  $('rotation-table').addEventListener('change', (e) => {
-    const v = Number(e.target.value);
-    if (v) r.rotationTable = v; else delete r.rotationTable;
-    sauverReglages(); rendre();
+  for (const [id, pas] of [['rotation-gauche', -90], ['rotation-droite', 90]]) {
+    $(id).addEventListener('click', () => {
+      const v = (((r.rotationTable || 0) + pas) % 360 + 360) % 360;
+      if (v) r.rotationTable = v; else delete r.rotationTable;
+      majOrientation(); sauverReglages(); rendre();
+    });
+  }
+  $('miroir-table').addEventListener('click', () => {
+    if (r.miroirTable === true) delete r.miroirTable; else r.miroirTable = true;
+    majOrientation(); sauverReglages(); rendre();
   });
-  $('miroir-table').addEventListener('change', (e) => {
-    if (e.target.checked) r.miroirTable = true; else delete r.miroirTable;
-    sauverReglages(); rendre();
-  });
+  for (const [id, pas] of [['case-mm-moins', -1], ['case-mm-plus', 1]]) {
+    $(id).addEventListener('click', () => {
+      const v = Math.round(((r.caseMm ?? CASE_MM_PAR_DEFAUT) + pas) * 10) / 10;
+      if (!caseMmValide(v)) return;
+      if (v === CASE_MM_PAR_DEFAUT) delete r.caseMm; else r.caseMm = v;
+      $('case-mm').value = v; sauverReglages(); rendre();
+    });
+  }
   $('case-mm').addEventListener('change', (e) => {
     const v = Number(String(e.target.value).replace(',', '.'));
     if (!caseMmValide(v)) { e.target.value = r.caseMm ?? CASE_MM_PAR_DEFAUT; return; }
@@ -79,6 +93,7 @@ export function creerReglages(ctx) {
     etat.calibrage = actif;
     $('calibrer-table').hidden = actif;
     $('reglage-calibrage').hidden = !actif;
+    $('materiel-table').hidden = actif; // le calibrage se déplie dans le popover « Affichage », qui reste ouvert
     rendre();
   }
   $('calibrer-table').addEventListener('click', () => basculerCalibrage(true));
@@ -89,6 +104,6 @@ export function creerReglages(ctx) {
   for (const b of document.querySelectorAll('[data-pas-taille]')) {
     b.addEventListener('click', () => { r.taille = ajusterTaille(r.taille, Number(b.dataset.pasTaille)); majTaille(); sauverReglages(); majModeTable(); rendre(); });
   }
-  $('ajuster').addEventListener('change', (e) => { etat.ajuster = e.target.checked; rendre(); });
+  $('ajuster').addEventListener('click', () => { etat.ajuster = $('ajuster').getAttribute('aria-checked') === 'true'; rendre(); }); // le popover bascule l'interrupteur avant ce clic-ci
   return { sauver: sauverReglages };
 }

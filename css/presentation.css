@@ -303,3 +303,4 @@ body.vue-apercu .coin, body.vue-apercu #retour-regie { display: none !important;
 .ouvrir-table-menu[hidden] { display: none; }
 .ouvrir-table-entree { justify-content: flex-start; min-height: var(--cible); font-size: 13px; }
 .ouvrir-table-entree[hidden] { display: none; }
+@media (max-width: 760px) { .ouvrir-table-bouton > span:nth-child(2) { display: none; } .ouvrir-table-bouton { min-width: 44px; justify-content: center; } .ouvrir-table-menu { min-width: 11rem; } }

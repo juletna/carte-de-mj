@@ -70,38 +70,73 @@ export function appliquerRendu(r, champ, valeur) {
   }
 }
 
-export function creerAffichagePopover({ lire, surChangement, regie = false }) {
+export function creerAffichagePopover({ lire, surChangement, regie = false, garderOuvert = () => false }) {
   let derniere = 0; // la dernière opacité visible vue ici ; `casesAvant` (réglages) la garde d'une page à l'autre
-  const bouton = h('button', { type: 'button', className: 'btn btn-icone btn-discret atelier-affichage-bouton', 'aria-label': 'Affichage', title: 'Affichage : thème, détails, relief, pénombre, flammes, repères', 'aria-haspopup': 'dialog', 'aria-expanded': 'false' }, icone('affichage'));
+  const bouton = h('button', { type: 'button', className: 'btn btn-icone btn-discret atelier-affichage-bouton', 'aria-label': 'Affichage', title: 'Affichage : style, détails, relief, pénombre, flammes, repères, écran de la table', 'aria-haspopup': 'dialog', 'aria-expanded': 'false' }, icone('affichage'));
   const curseur = h('input', { type: 'range', min: '0', max: '100', step: '5', id: 'cases', 'aria-label': 'Opacité des lignes de la grille' });
   const valeur = h('output', { className: 'atelier-affichage-valeur' });
-  const theme = h('select', { id: 'theme' }, h('option', { value: 'peint', textContent: 'Peint' }), h('option', { value: 'vectoriel', textContent: 'Vectoriel' }));
-  const details = h('select', { id: 'details' }, h('option', { value: 'riches', textContent: 'Riches' }), h('option', { value: 'sobres', textContent: 'Sobres' }));
-  const relief = h('input', { type: 'checkbox', id: 'relief' });
+
+  // Un contrôle adapté à chaque réglage : boutons segmentés (deux choix), curseurs avec leur valeur, interrupteurs (oui / non).
+  const segmente = (id, libelle, options) => {
+    const boutons = options.map(([v, t]) => h('button', { type: 'button', role: 'radio', 'aria-checked': 'false', 'data-valeur': v, textContent: t }));
+    const el = h('div', { id, className: 'pop-seg', role: 'radiogroup', 'aria-label': libelle }, ...boutons);
+    el.choisir = (v) => { for (const b of boutons) b.setAttribute('aria-checked', String(b.dataset.valeur === v)); };
+    el.surChoix = (f) => { for (const b of boutons) b.addEventListener('click', () => f(b.dataset.valeur)); };
+    return el;
+  };
+  const interrupteur = (id, libelle) => h('button', { type: 'button', id, className: 'pop-interrupteur', role: 'switch', 'aria-checked': 'false', 'aria-label': libelle });
+  const basculer = (el, f) => el.addEventListener('click', () => f(el.getAttribute('aria-checked') !== 'true'));
+  const regle = (el, vrai) => el.setAttribute('aria-checked', String(!!vrai));
+  const theme = segmente('theme', 'Style', [['peint', 'Peint'], ['vectoriel', 'Vectoriel']]);
+  const details = segmente('details', 'Détails des sols', [['riches', 'Riches'], ['sobres', 'Sobres']]);
+  const relief = interrupteur('relief', 'Relief des murs');
   const penombre = h('input', { type: 'range', min: '0', max: '100', step: '5', id: 'penombre', 'aria-label': 'Pénombre' });
-  const penombreVal = h('output', { className: 'atelier-affichage-valeur', id: 'penombre-val' });
-  const flammes = h('input', { type: 'checkbox', id: 'flammes' });
-  const reperes = h('input', { type: 'checkbox', id: 'reperes' });
+  const penombreVal = h('output', { className: 'pop-valeur', id: 'penombre-val' });
+  const flammes = interrupteur('flammes', 'Flammes animées');
+  const reperes = interrupteur('reperes', 'Repères de cases');
   // Groupe « Régie » (Jouer seulement) : la taille d'une case et l'adaptation de la carte à la fenêtre. Réglages propres à la régie, lus et écrits par
-  // js/regie-reglages.js (qui retrouve ces contrôles par leur identifiant) : ce module ne fait que les poser.
+  // js/regie-reglages.js (qui retrouve ces contrôles et ceux de l'écran de table par leur identifiant) : ce module ne fait que les poser.
   const taille = h('input', { type: 'range', min: String(TAILLE_MIN), max: String(TAILLE_MAX), step: '0.1', value: String(TAILLE_PAR_DEFAUT), id: 'taille', 'aria-label': 'Taille d’une case' });
-  const tailleVal = h('output', { className: 'atelier-affichage-valeur', id: 'taille-val', textContent: `${TAILLE_PAR_DEFAUT} px` });
-  const ajuster = h('input', { type: 'checkbox', id: 'ajuster', checked: true });
-  const ligne = (texte, champ, titre) => h('label', { className: 'atelier-affichage-ligne atelier-affichage-choix', title: titre ?? '' }, h('span', { textContent: texte }), champ);
-  const caseACocher = (texte, champ) => h('label', { className: 'atelier-affichage-case' }, champ, h('span', { textContent: texte }));
-  const groupe = (titre, ...enfants) => h('div', { className: 'atelier-affichage-groupe' }, h('p', { className: 'atelier-affichage-sous-titre', textContent: titre }), ...enfants);
-  const groupeRegie = regie ? [groupe('Régie',
-    h('label', { className: 'atelier-affichage-ligne', title: 'Sert de plafond à la carte de la régie, et à la table en échelle réelle (calibrée dans l’onglet Écran).' },
-      h('span', { textContent: 'Taille d’une case' }), taille, tailleVal),
-    h('label', { className: 'atelier-affichage-case', title: 'Ne change que l’affichage de cette régie.' }, ajuster, h('span', { textContent: 'Adapter la carte à la fenêtre' })))] : [];
-  const panneau = h('div', { className: 'atelier-affichage-panneau', role: 'dialog', 'aria-label': 'Affichage', hidden: true },
+  const tailleVal = h('output', { className: 'pop-valeur', id: 'taille-val', textContent: `${TAILLE_PAR_DEFAUT} px` });
+  const ajuster = interrupteur('ajuster', 'Adapter la carte à la fenêtre');
+  regle(ajuster, true);
+  const rang = (libelle, controle, aide, titre) => h('div', { className: 'pop-rang', title: titre ?? '' },
+    h('span', { className: 'pop-lib' }, libelle, ...(aide ? [h('small', { textContent: aide })] : [])), controle);
+  const curseurRang = (libelle, champ, sortie, titre) => h('div', { className: 'pop-rang', title: titre ?? '' }, h('span', { className: 'pop-lib', textContent: libelle }), h('span', { className: 'pop-curseur' }, champ, sortie));
+  const groupe = (titre, aide, ...enfants) => h('div', { className: 'atelier-affichage-groupe' }, h('p', { className: 'atelier-affichage-sous-titre' }, titre, ...(aide ? [h('small', { textContent: aide })] : [])), ...enfants);
+
+  // L'écran de la table (Jouer seulement), réglé une fois : orientation par quarts de tour avec son aperçu, miroir, taille réelle d'une case, calibrage.
+  const pasBouton = (id, texte, etiquette) => h('button', { type: 'button', id, className: 'pop-ib', 'aria-label': etiquette, title: etiquette, textContent: texte });
+  const ecranTable = regie ? groupe('Écran de la table', 'réglé une fois',
+    h('div', { id: 'materiel-table', className: 'pop-materiel' },
+      h('div', { className: 'pop-rang pop-orientation' },
+        h('div', { className: 'pop-apercu', title: 'Comment la carte apparaît à la table' }, h('div', { className: 'pop-apercu-cadre' }, h('span', { id: 'apercu-lettre', className: 'pop-apercu-lettre', textContent: 'F' }))),
+        h('span', { className: 'pop-lib' }, 'Orientation', h('small', { id: 'rotation-val', textContent: 'Aucune' })),
+        h('span', { className: 'pop-duo' }, pasBouton('rotation-gauche', '↺', 'Tourner à gauche'), pasBouton('rotation-droite', '↻', 'Tourner à droite'))),
+      rang('Image en miroir', interrupteur('miroir-table', 'Image en miroir')),
+      rang('Taille réelle d’une case', h('span', { className: 'pop-stepper' }, pasBouton('case-mm-moins', '−', 'Une case de moins'),
+        h('input', { id: 'case-mm', type: 'number', inputmode: 'decimal', min: '10', max: '50', step: '0.1', 'aria-label': 'Taille réelle d’une case, en millimètres' }), h('span', { className: 'pop-unite', textContent: 'mm' }),
+        pasBouton('case-mm-plus', '+', 'Une case de plus'))),
+      h('button', { id: 'calibrer-table', type: 'button', className: 'btn pop-calibrer', textContent: 'Calibrer sur la table', title: 'Pose une carte bancaire sur la table et ajuste jusqu’à ce que la case la recouvre. Ouvre d’abord la table (sur un seul écran : en plein écran ici).' })),
+    h('div', { id: 'reglage-calibrage', className: 'pop-calibrage', hidden: true },
+      h('p', { className: 'pop-note', textContent: 'Pose une carte bancaire sur la table et ajuste jusqu’à ce que la case la recouvre.' }),
+      h('div', { className: 'pop-rang pop-pas', role: 'group', 'aria-label': 'Ajuster la taille d’une case' },
+        ...[['-1', '−1'], ['-0.1', '−0,1']].map(([v, t]) => h('button', { type: 'button', className: 'pop-ib', 'data-pas-taille': v, textContent: t })),
+        h('output', { id: 'calibrage-val', 'aria-live': 'polite', textContent: `${TAILLE_PAR_DEFAUT} px` }),
+        ...[['0.1', '+0,1'], ['1', '+1']].map(([v, t]) => h('button', { type: 'button', className: 'pop-ib', 'data-pas-taille': v, textContent: t }))),
+      h('div', { className: 'pop-rang pop-fin' }, h('button', { id: 'calibrage-fini', type: 'button', className: 'btn btn-primaire', textContent: 'Terminer le calibrage' })))) : null;
+
+  const carte = [rang('Style', theme), rang('Détails', details, null, 'Sols dessinés et détaillés, ou sols simples (style peint).'), rang('Relief', relief, null, 'Relief des murs')];
+  const repereRang = rang('Repères', reperes, 'A, B… et 1, 2…');
+  const penombreRang = curseurRang('Pénombre', penombre, penombreVal, 'Obscurité de la salle à la table. La vue du MJ n’en garde qu’une part, pour tout voir.');
+  const panneau = h('div', { className: 'atelier-affichage-panneau pop-affichage', role: 'dialog', 'aria-label': 'Affichage', hidden: true },
     h('p', { className: 'atelier-affichage-titre', textContent: 'Affichage' }),
-    ...groupeRegie,
-    groupe('Carte', ligne('Thème', theme), ligne('Détails des sols', details, 'Sols dessinés et détaillés, ou sols simples (thème peint).'), caseACocher('Relief des murs', relief)),
-    groupe('À la table',
-      h('label', { className: 'atelier-affichage-ligne', title: 'Obscurité de la salle à la table. La vue du MJ n’en garde qu’une part, pour tout voir.' },
-        h('span', { textContent: 'Pénombre' }), penombre, penombreVal),
-      caseACocher('Flammes animées', flammes), caseACocher('Repères (A, B… et 1, 2…)', reperes)));
+    ...(regie
+      ? [groupe('Régie', 'ce que tu vois, toi', ...carte, repereRang, curseurRang('Taille d’une case', taille, tailleVal, 'Sert de plafond à la carte de la régie, et à la table en échelle réelle (calibrée ci-dessous).'),
+          rang('Adapter la carte à la fenêtre', ajuster, null, 'Ne change que l’affichage de cette régie.')),
+        groupe('À la table', 'ce que voient les joueurs', penombreRang, rang('Flammes animées', flammes)),
+        ecranTable]
+      : [groupe('Carte', null, ...carte), groupe('À la table', null, penombreRang, rang('Flammes animées', flammes), repereRang)]));
   const racine = h('div', { className: 'atelier-affichage' }, bouton, panneau);
 
   // La grille : un bouton direct (afficher / masquer, en temps réel) et, à côté, un chevron qui ouvre l'opacité des lignes.
@@ -120,13 +155,13 @@ export function creerAffichagePopover({ lire, surChangement, regie = false }) {
     boutonGrille.title = n > 0 ? 'Masquer la grille' : 'Afficher la grille';
     curseur.value = String(n);
     valeur.textContent = `${n} %`;
-    theme.value = themeDeReglages(r);
-    details.value = detailsDeReglages(r);
-    relief.checked = reliefDeReglages(r);
+    theme.choisir(themeDeReglages(r));
+    details.choisir(detailsDeReglages(r));
+    regle(relief, reliefDeReglages(r));
     penombre.value = String(penombreDeReglages(r));
     penombreVal.textContent = `${penombreDeReglages(r)} %`;
-    flammes.checked = flammesDeReglages(r);
-    reperes.checked = r.reperes !== false;
+    regle(flammes, flammesDeReglages(r));
+    regle(reperes, r.reperes !== false);
   }
   function ecrire(v) { appliquerCases(lire(), v); maj(); surChangement(); }
   /** Un réglage de rendu : écrit dans les réglages de la page, les contrôles se remettent d'accord, la page enregistre et redessine. */
@@ -149,14 +184,15 @@ export function creerAffichagePopover({ lire, surChangement, regie = false }) {
   });
   boutonGrille.addEventListener('click', () => ecrire(casesApresBascule(lire() ?? {}, derniere)));
   curseur.addEventListener('input', () => ecrire(curseur.value));
-  theme.addEventListener('change', () => ecrireRendu('theme', theme.value));
-  details.addEventListener('change', () => ecrireRendu('details', details.value));
-  relief.addEventListener('change', () => ecrireRendu('relief', relief.checked));
+  theme.surChoix((v) => ecrireRendu('theme', v));
+  details.surChoix((v) => ecrireRendu('details', v));
+  basculer(relief, (v) => ecrireRendu('relief', v));
   penombre.addEventListener('input', () => ecrireRendu('penombre', penombre.value));
-  flammes.addEventListener('change', () => ecrireRendu('flammes', flammes.checked));
-  reperes.addEventListener('change', () => ecrireRendu('reperes', reperes.checked));
+  basculer(flammes, (v) => ecrireRendu('flammes', v));
+  basculer(reperes, (v) => ecrireRendu('reperes', v));
+  basculer(ajuster, (v) => { regle(ajuster, v); });
   document.addEventListener('pointerdown', (e) => {
-    if (!panneau.hidden && !racine.contains(e.target)) fermer();
+    if (!panneau.hidden && !racine.contains(e.target) && !garderOuvert()) fermer(); // pendant un calibrage, un clic ailleurs ne ferme pas
     if (!panneauGrille.hidden && !racineGrille.contains(e.target)) fermerGrille();
   });
   racine.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !panneau.hidden) { e.preventDefault(); e.stopPropagation(); fermer({ rendreFocus: true }); } });

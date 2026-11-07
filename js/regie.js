@@ -409,14 +409,18 @@ export function demarrerRegie() {
   function majProjection() {
     const sur = etat.consultee === etat.p.salleCourante;
     $('projection-titre').textContent = sur ? 'À la table :' : 'Une fois à la table :';
-    for (const b of $('projection').querySelectorAll('button')) {
+    const plan = r.miniTable !== false;
+    iconeEtTexte($('montrer-plan'), plan ? 'oeil' : 'oeil-barre', `Plan du donjon ${plan ? 'visible' : 'masqué'}`);
+    $('montrer-plan').classList.toggle('masque', !plan);
+    for (const b of $('projection').querySelectorAll('button[data-categorie]')) {
       const categorie = b.dataset.categorie, masque = pres.estMasque(etat.p, etat.consultee, categorie);
       iconeEtTexte(b, masque ? 'oeil-barre' : 'oeil', `${NOMS_MASQUE[categorie]} ${masque ? 'masqués' : 'visibles'}`);
       b.classList.toggle('masque', masque);
       b.title = `${masque ? 'Montrer' : 'Masquer'} à la table les ${categorie === 'monstres' ? 'monstres et les PNJ' : 'objets'} de cette salle. Cette régie les montre toujours.`;
     }
   }
-  for (const b of $('projection').querySelectorAll('button')) {
+  $('montrer-plan').addEventListener('click', () => { r.miniTable = r.miniTable === false; reglages.sauver(); diffuser(); majProjection(); montrerIci(); });
+  for (const b of $('projection').querySelectorAll('button[data-categorie]')) {
     b.addEventListener('click', () => {
       if (!etat.p) return;
       pres.definirMasque(etat.p, etat.consultee, b.dataset.categorie, !pres.estMasque(etat.p, etat.consultee, b.dataset.categorie));
@@ -679,7 +683,7 @@ export function demarrerRegie() {
   let reglages;
   const jouer = creerJouer({ racine: $('regie'), donnees: donneesJeu, partie: partieJeu, surChoix: choisirDansArbre,
     ouvrirTable: { fenetre: ouvrirFenetreTable, pleinIci: entrerPleinIci },
-    affichage: { regie: true, lire: () => r, surChangement: () => { reglages.sauver(); rendre(); diffuser(); } } });
+    affichage: { regie: true, garderOuvert: () => etat.calibrage === true, lire: () => r, surChangement: () => { reglages.sauver(); rendre(); diffuser(); } } });
   reglages = creerReglages(ctx);
   ctx.jouer = jouer;
   let minuterie;

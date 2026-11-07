@@ -9,9 +9,9 @@
   <link rel="stylesheet" href="css/base.css?v=99a97065">
   <link rel="stylesheet" href="css/style.css?v=7843981e">
   <link rel="stylesheet" href="css/univers.css?v=e15bf1d6">
-  <link rel="stylesheet" href="css/atelier.css?v=f74e7f5f">
+  <link rel="stylesheet" href="css/atelier.css?v=1d1c2b4b">
   <link rel="stylesheet" href="css/panneaux.css?v=c7bf9261">
-  <link rel="stylesheet" href="css/presentation.css?v=47fa5dec">
+  <link rel="stylesheet" href="css/presentation.css?v=19e65c20">
   <!-- versions:debut (généré par outils/versions.mjs, ne pas modifier à la main) -->
   <script type="importmap">
   {
@@ -21,7 +21,7 @@
       "./js/atelier-arbre.js": "./js/atelier-arbre.js?v=91968e1e",
       "./js/atelier-route.js": "./js/atelier-route.js?v=c99de008",
       "./js/atelier-selection.js": "./js/atelier-selection.js?v=8ac4a04a",
-      "./js/atelier/affichage-popover.js": "./js/atelier/affichage-popover.js?v=ec77ee70",
+      "./js/atelier/affichage-popover.js": "./js/atelier/affichage-popover.js?v=7b6dc07c",
       "./js/atelier/arbre-vue.js": "./js/atelier/arbre-vue.js?v=4b08cda1",
       "./js/atelier/cartouche.js": "./js/atelier/cartouche.js?v=54b8c854",
       "./js/atelier/coquille.js": "./js/atelier/coquille.js?v=502c744c",
@@ -90,11 +90,11 @@
       "./js/protocole-table.js": "./js/protocole-table.js?v=9728a7e8",
       "./js/regie-depart.js": "./js/regie-depart.js?v=ebfc2144",
       "./js/regie-icones.js": "./js/regie-icones.js?v=815e777f",
-      "./js/regie-panneau.js": "./js/regie-panneau.js?v=abab92a3",
-      "./js/regie-reglages.js": "./js/regie-reglages.js?v=779675e3",
+      "./js/regie-panneau.js": "./js/regie-panneau.js?v=6f36e11a",
+      "./js/regie-reglages.js": "./js/regie-reglages.js?v=df405426",
       "./js/regie-selection.js": "./js/regie-selection.js?v=bb38a63f",
-      "./js/regie-univers.js": "./js/regie-univers.js?v=782e36cb",
-      "./js/regie.js": "./js/regie.js?v=911b20c9",
+      "./js/regie-univers.js": "./js/regie-univers.js?v=b56c6f15",
+      "./js/regie.js": "./js/regie.js?v=9fcea112",
       "./js/rendu/feu.js": "./js/rendu/feu.js?v=026d6dcd",
       "./js/rendu/geometrie.js": "./js/rendu/geometrie.js?v=6d683b3b",
       "./js/rendu/graine.js": "./js/rendu/graine.js?v=5331bb5f",
@@ -295,6 +295,7 @@
         <span id="projection-titre"></span>
         <button id="montrer-monstres" type="button" class="btn" data-categorie="monstres"></button>
         <button id="montrer-objets" type="button" class="btn" data-categorie="objets"></button>
+        <button id="montrer-plan" type="button" class="btn" title="Le plan des salles découvertes que la table affiche, avec la salle en cours en surbrillance"></button>
       </div>
 
       <section class="cette-salle" aria-label="Cette salle">
@@ -354,41 +355,6 @@
           <label class="ligne case"><input type="radio" name="mode-table" id="mode-reel" value="reel"> Échelle réelle (figurines)</label>
           <p id="aide-mode-table" class="note"></p>
         </fieldset>
-        <label class="ligne case"><input id="mini-active" type="checkbox" checked> Plan du donjon à la table (salles découvertes seulement)</label>
-        <details class="defilement">
-          <summary>Régler l'écran de table</summary>
-          <details class="aide">
-            <summary class="btn btn-icone btn-discret" aria-label="Aide : régler l'écran de table" title="Comment régler l'écran de table ?">?</summary>
-            <div class="aide-texte">
-            <p class="note">Rotation et miroir : pour un projecteur sous la table dont le montage n'a pas de miroir, si le projecteur n'a pas lui-même de mode « rétroprojection ».</p>
-            <p class="note">Taille réelle d'une case : 25 mm pour les figurines courantes, 25,4 mm pour 1 pouce.</p>
-            <p class="note">Ouvre d'abord la fenêtre table et glisse-la sur l'écran de la table (sur un seul écran, ouvre-la sur celui-ci), puis « Calibrer sur la table » : pose une carte bancaire sur le rectangle affiché et ajuste jusqu'à ce qu'elle coïncide. Le calibrage vaut pour tous les donjons et tous les lieux.</p>
-            </div>
-          </details>
-          <label class="ligne">Rotation
-            <select id="rotation-table">
-              <option value="0">Aucune</option>
-              <option value="90">90° à droite</option>
-              <option value="180">180°</option>
-              <option value="270">90° à gauche</option>
-            </select>
-          </label>
-          <label class="ligne case"><input id="miroir-table" type="checkbox"> Image en miroir</label>
-          <label class="ligne">Taille réelle d'une case (mm)
-            <input id="case-mm" type="number" inputmode="decimal" min="10" max="50" step="0.1">
-          </label>
-          <div class="actions"><button id="calibrer-table" type="button" class="btn btn-discret">Calibrer sur la table</button></div>
-          <div id="reglage-calibrage" hidden>
-            <div class="pas-calibrage" role="group" aria-label="Ajuster la taille d'une case">
-              <button type="button" class="btn btn-discret" data-pas-taille="-1">−1</button>
-              <button type="button" class="btn btn-discret" data-pas-taille="-0.1">−0,1</button>
-              <output id="calibrage-val" aria-live="polite">48 px</output>
-              <button type="button" class="btn btn-discret" data-pas-taille="0.1">+0,1</button>
-              <button type="button" class="btn btn-discret" data-pas-taille="1">+1</button>
-            </div>
-            <div class="actions"><button id="calibrage-fini" type="button" class="btn">Terminer le calibrage</button></div>
-          </div>
-        </details>
         <details class="defilement">
           <summary>Faire défiler la vue table</summary>
           <p class="note">Utile si la carte dépasse l'écran de la table. Tu peux aussi réduire la taille d'une case dans « Affichage » (groupe Régie).</p>
