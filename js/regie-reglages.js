@@ -2,7 +2,7 @@
  * Les réglages de la régie (partagés avec le Donjon : carte-de-mj:reglages-v1) : taille de case (groupe Régie du popover « Affichage »), plan du donjon, mode de la table, rotation, miroir,
  * calibrage, adaptation de la carte de la régie à la fenêtre. Le rendu de la carte (grille, thème, détails, relief, pénombre, flammes, repères)
  * n'est plus ici : un seul bouton « Affichage » le règle (js/atelier/affichage-popover.js). Fabrique `creerReglages(ctx)` ; `ctx` est celui de regie.js
- * (`etat`, `r`, `commande`, `rendre`, `diffuser`, `montrerIci`), lu au moment de l'appel. Renvoie `sauver` (à rappeler quand la régie reprend la main).
+ * (`etat`, `r`, `commande`, `rendre`, `diffuser`), lu au moment de l'appel. Renvoie `sauver` (à rappeler quand la régie reprend la main).
  *
  * Plusieurs régies peuvent être ouvertes : en retrait, un réglage reste propre à cet onglet, rien n'est enregistré. La régie qui a la main n'écrit
  * que ce qu'elle a changé elle-même (depuis `lu`), sur ce qui est enregistré à cet instant, et reprend ce que les autres ont réglé.
@@ -15,7 +15,6 @@ export function creerReglages(ctx) {
   const { etat, r, commande } = ctx;
   const rendre = () => ctx.rendre();
   const diffuser = () => ctx.diffuser();
-  const montrerIci = () => ctx.montrerIci();
   let lu;
   function sauverReglages() {
     if (commande.retrait) return;

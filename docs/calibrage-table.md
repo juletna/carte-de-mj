@@ -11,7 +11,7 @@ On ne calibre pas un donjon, on calibre une grille. Aujourd'hui le calibrage est
 1. **Le calibrage est un mode de la table**, pas un drapeau de la salle : un message dédié sur le canal (`js/protocole-table.js`), géré par `js/ecran-table.js` / `js/vue-table.js`. Fond uni, grille seule, carte bancaire. Aucun plan ni partie ne passe. Il marche sans présentation, avec un monde comme avec un donjon.
 2. **Parcours guidé en quatre étapes** : Orienter (F, rotation, miroir) · Mesurer (carte bancaire, ± au dixième de pixel, case visée en mm) · Vérifier (trois cases et un pion de test) · Terminé (mode « Échelle réelle » choisi). « Annuler » toujours possible.
 3. **Premier « Ouvrir la table » sans calibrage enregistré : la fenêtre s'ouvre directement en calibrage**, avec un bandeau dans la régie et « Plus tard ». Le bouton garde une pastille tant que ce n'est pas fait.
-4. **Toujours accessible** : entrée « Calibrer l'écran… » dans le menu « Ouvrir la table ▾ » et dans Affichage › Écran de la table, même sans salle ni présentation, même dans un monde (plus de bouton grisé).
+4. **Toujours accessible** : entrée « Calibrer l'écran… » dans Affichage › Écran de la table (« Ouvrir la table » n'a plus de menu : « Plein écran ici » est retiré, la fenêtre table a son propre bouton « Plein écran »), même sans salle ni présentation, même dans un monde (plus de bouton grisé).
 5. **Mémorisé pour l'écran** (résolution, rapport de pixels) ; un autre écran redemande le calibrage.
 6. **Fin ou annulation** : la table retrouve la même salle, la même case montrée, le même défilement ; un bandeau de la régie rappelle « Calibrage en cours » pendant ce temps.
 7. **Rotation et miroir restent dans Affichage › Écran de la table**, utilisables à tout moment (y compris pour retourner temporairement la salle pendant le jeu). L'étape 1 du parcours règle les mêmes valeurs, il n'y en a pas deux. Pas de bouton ni de mode « inversion temporaire » : c'est un détournement, le MJ remet lui-même le bon sens. « Taille réelle d'une case » reste aussi dans Affichage ; « Calibrer sur la table » y devient « Calibrer l'écran… », jamais grisé.
@@ -27,7 +27,7 @@ On ne calibre pas un donjon, on calibre une grille. Aujourd'hui le calibrage est
 
 1. Protocole : message `calibrage`, mode dans `ecran-table.js` / `vue-table.js`, retrait du drapeau dans `affichageTable()`.
 2. Régie : module `calibrage.js` (étapes), sorti de `js/regie-reglages.js` ; fin du grisage dans un monde (`js/regie-univers.js`).
-3. Premier lancement : menu « Ouvrir la table », bandeau, pastille.
+3. Premier lancement : bouton « Ouvrir la table » (sans menu), bandeau, pastille.
 4. Parcours dans le popover Affichage (reste ouvert pendant le calibrage).
 5. Tests : sans présentation, monde, donjon, reprise du contenu, première ouverture, changement d'écran.
 6. **Livraison : supprimer ce document et sa maquette** (le code devient la référence).

@@ -15,25 +15,3 @@ export function poserIcones(racine = document) {
 export function iconeEtTexte(bouton, nom, texte) {
   bouton.replaceChildren(icone(nom), ...(texte ? [document.createTextNode(` ${texte}`)] : []));
 }
-
-/**
- * Comme `deuxTemps` (js/dom.js) pour un bouton qui porte une icône : le second clic, dans les 4 secondes, confirme ; le bouton se remet
- * au repos (icône et libellé) en perdant le focus. Renvoie la fonction qui le remet au repos.
- */
-export function deuxTempsIcone(bouton, nom, libelle, confirmation, action) {
-  let attente;
-  const reinitialiser = () => {
-    clearTimeout(attente);
-    bouton.dataset.confirme = '';
-    iconeEtTexte(bouton, nom, libelle);
-  };
-  reinitialiser();
-  bouton.addEventListener('click', () => {
-    if (bouton.dataset.confirme === '1') { reinitialiser(); action(); return; }
-    bouton.dataset.confirme = '1';
-    iconeEtTexte(bouton, nom, confirmation);
-    attente = setTimeout(reinitialiser, 4000);
-  });
-  bouton.addEventListener('blur', reinitialiser);
-  return reinitialiser;
-}

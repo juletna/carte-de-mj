@@ -3,7 +3,7 @@
  * donjons à lancer, l'import d'un donjon depuis un fichier, puis « Qui joue ? » (fiches du donjon, ou nombre de joueurs avec nom, race
  * et classe) avant de lancer une partie neuve.
  * Fabrique `creerDepart(ctx)` ; `ctx` est celui de regie.js (`etat`, `r`, `annoncer`, `entrer`, `viderSauvegarde`, `noterRetrait`,
- * `quitterPleinIci`, `diffuser`, `salleCourante`), lu au moment de l'appel.
+ * `diffuser`, `salleCourante`), lu au moment de l'appel.
  */
 import * as stockage from './stockage.js';
 import { convertirImport } from './donjon-validation.js';
@@ -21,7 +21,6 @@ export function creerDepart(ctx) {
   const salleCourante = () => ctx.salleCourante();
   const viderSauvegarde = () => ctx.viderSauvegarde();
   const noterRetrait = () => ctx.noterRetrait();
-  const quitterPleinIci = () => ctx.quitterPleinIci();
   const diffuser = () => ctx.diffuser();
 
   // --- Écran de départ -------------------------------------------------------------------------
@@ -91,7 +90,6 @@ export function creerDepart(ctx) {
     etat.p = null;
     etat.consultee = null;
     noterRetrait();
-    quitterPleinIci();
     $('regie').hidden = true;
     $('choix-joueurs').hidden = true;
     $('depart').hidden = false;

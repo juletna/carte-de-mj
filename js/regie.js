@@ -1,6 +1,6 @@
 /**
  * La RÉGIE du MJ (presentation.html) : choix du donjon, carte complète, révélations, portes, notes, personnages, commande rapide,
- * et ce qu'elle montre à la table (par le canal, ou en « Plein écran ici »). Fabrique de tout le reste : `demarrerRegie()` est la
+ * et ce qu'elle montre à la table (par le canal). Fabrique de tout le reste : `demarrerRegie()` est la
  * racine de composition, avec l'état de la régie (`etat`), ses réglages (`r`) et le contexte `ctx` que reçoivent les modules
  * regie-depart.js, regie-selection.js et regie-reglages.js (qui ne s'importent pas entre eux).
  *
@@ -10,7 +10,7 @@
  * Plusieurs régies peuvent être ouvertes : une seule commande la table (voir commande-table.js).
  *
  * SÉCURITÉ : la régie n'envoie à la table que le résultat de vueTable() et de miniPlanTable() (voir vue-publique.js), par
- * `messageEtat` (protocole-table.js) : tout passe par `contenuTable()`, qui est aussi ce que dessine « Plein écran ici ».
+ * `messageEtat` (protocole-table.js) : tout passe par `contenuTable()`.
  */
 import * as stockage from './stockage.js';
 import * as modele from './donjon.js';
@@ -31,22 +31,18 @@ import { $, h, bouton } from './dom.js';
 import { icone } from './icones.js';
 import { pluriel } from './format.js';
 import { ouvrirCanal, messageEtat, messageCadrage, lirePosition, lireFacteurZoom, lireCadrage, lireElement, MESSAGES } from './protocole-table.js';
-import { creerEcranTable } from './ecran-table.js';
 import { creerDepart } from './regie-depart.js';
 import { creerSelection } from './regie-selection.js';
 import { creerReglages } from './regie-reglages.js';
 import { creerRegieUnivers } from './regie-univers.js';
 import { lierPanneau, sectionnerOnglets } from './regie-panneau.js';
 import { creerSection } from './atelier/section.js';
-import { poserIcones, iconeEtTexte, deuxTempsIcone } from './regie-icones.js';
+import { poserIcones, iconeEtTexte } from './regie-icones.js';
 import * as pu from './univers-partie.js';
 import { creerJouer } from './atelier/jouer.js';
 import { cartoucheSalle } from './atelier/cartouche.js';
 
 export function demarrerRegie() {
-  // L'écran de table local (« Plein écran ici ») : créé le premier, comme ses écouteurs l'étaient à l'import.
-  let reinitialiserRetour = null; // le bouton « Retour à la régie » (défini plus bas) se remet au repos quand les boutons de coin se cachent
-  const ecran = creerEcranTable({ surCoinsCaches: () => reinitialiserRetour?.() });
   const canal = ouvrirCanal();
   const retraitAvantRechargement = stockage.retraitMemorise();
   const commande = table.creerCommande(table.nouvelIdRegie(), { retrait: !!retraitAvantRechargement });
@@ -65,7 +61,6 @@ export function demarrerRegie() {
     fichier: null,       // { donjon, avertissements } : donjon ouvert depuis un fichier
     focusSelection: false, // le focus doit passer au panneau de sélection au prochain rendu
     caseVisee: null,     // { salle, x, y } : la case que le MJ montre aux joueurs. Jamais sauvegardée
-    pleinIci: false,
     enregistre: true,
     empreinte: null,     // la partie telle que cette régie l'a lue ou écrite en dernier (voir sauvegarder)
     perimee: false,      // en retrait : l'autre régie tient ou a fait avancer cette partie, on ne l'enregistre plus ici
@@ -135,24 +130,16 @@ export function demarrerRegie() {
       let z = zoomTable();
       if (modeTable(r) === 'reel') { r.modeTable = 'remplir'; z = 1; reglages.sauver(); }
       etat.zoom.valeur = Math.max(ZOOM_TABLE_MIN, Math.min(ZOOM_TABLE_MAX, Math.round(z * facteur * 1000) / 1000));
-      diffuser(); montrerIci();
+      diffuser();
     },
-    remplir() { r.modeTable = 'remplir'; etat.zoom.valeur = 1; reglages.sauver(); diffuser(); montrerIci(); },
-    reel() { r.modeTable = 'reel'; etat.zoom.valeur = 1; reglages.sauver(); diffuser(); montrerIci(); },
+    remplir() { r.modeTable = 'remplir'; etat.zoom.valeur = 1; reglages.sauver(); diffuser(); },
+    reel() { r.modeTable = 'reel'; etat.zoom.valeur = 1; reglages.sauver(); diffuser(); },
   };
   /** Un glissement dans la vue « Table » : la position est renvoyée à la table (la carte du monde la garde dans sa partie d'affichage). */
   function cadrerTable(position) {
     if (univers.actif()) { univers.cadrer(position); return; }
     if (commande.main) canal?.postMessage(messageCadrage(position.x, position.y));
-    if (etat.pleinIci) ecran.cadrer(position);
   }
-  /** « Plein écran ici » : la même chose, dessinée par l'écran de table de cette page (l'encart relu comme le fait la fenêtre table). */
-  function montrerIci() {
-    if (!etat.pleinIci || !etat.p) return;
-    const contenu = contenuTable();
-    ecran.appliquer({ ...contenu, mini: contenu.mini && pres.recevoirMiniPlan(contenu.mini) });
-  }
-
   /** Un clic sur une case vide la montre ; un clic sur la même case l'enlève. */
   function viserCase(idSalle, x, y) {
     etat.caseVisee = pres.viserCase(etat.caseVisee, etat.p, idSalle, x, y);
@@ -161,7 +148,7 @@ export function demarrerRegie() {
   function deplacerDepuisTable(id, x, y) {
     if (!etat.p) return;
     if (pres.deplacerPion(etat.p, etat.p.salleCourante, id, x, y)) modifie();
-    else { diffuser(); montrerIci(); } // refusé : la table reprend la position d'avant
+    else { diffuser(); } // refusé : la table reprend la position d'avant
   }
   if (canal) {
     canal.onmessage = (ev) => {
@@ -382,7 +369,6 @@ export function demarrerRegie() {
     majSalle();
     majCommande();
     majPersonnages();
-    montrerIci();
     diffuser();
     majArbre();
   }
@@ -454,7 +440,7 @@ export function demarrerRegie() {
       b.title = `${masque ? 'Montrer' : 'Masquer'} à la table les ${categorie === 'monstres' ? 'monstres et les PNJ' : 'objets'} de cette salle. Cette régie les montre toujours.`;
     }
   }
-  $('montrer-plan').addEventListener('click', () => { if (r.miniTable === false) delete r.miniTable; else r.miniTable = false; reglages.sauver(); diffuser(); majProjection(); montrerIci(); });
+  $('montrer-plan').addEventListener('click', () => { if (r.miniTable === false) delete r.miniTable; else r.miniTable = false; reglages.sauver(); diffuser(); majProjection(); });
   for (const b of $('projection').querySelectorAll('button[data-categorie]')) {
     b.addEventListener('click', () => {
       if (!etat.p) return;
@@ -623,7 +609,7 @@ export function demarrerRegie() {
     portesLarges: true, // zone de clic des portes élargie vers l'intérieur ; un glissement sur un pion déplace toujours le pion
   });
 
-  // --- Fenêtre table et plein écran ici -------------------------------------------------------------
+  // --- Fenêtre table -------------------------------------------------------------
   const messageTable = (texte) => annoncer(texte, 10000);
   let veilleFenetre = null;
   function ouvrirFenetreTable() {
@@ -636,41 +622,14 @@ export function demarrerRegie() {
     else messageTable('Le navigateur a bloqué la fenêtre. Autorise les fenêtres pour ce site, ou ouvre presentation.html?vue=table dans un nouvel onglet.');
   }
 
-  function entrerPleinIci() {
-    if (!etat.p) return;
-    etat.pleinIci = true;
-    $('retour-regie').hidden = false;
-    $('ecran-table').hidden = false;
-    $('attente').textContent = 'Aucune salle à afficher.';
-    montrerIci();
-    $('vue-table').focus({ preventScroll: true });
-    $('ecran-table').requestFullscreen?.().catch(() => {}); // sinon : la vue table couvre quand même toute la fenêtre
-  }
-  function quitterPleinIci() {
-    if (!etat.pleinIci) return;
-    etat.pleinIci = false;
-    ecran.relacherEveil();
-    $('ecran-table').hidden = true;
-    $('retour-regie').hidden = true;
-    if (document.fullscreenElement) document.exitFullscreen?.();
-    $('ouvrir-table-bouton')?.focus?.();
-  }
-  ecran.activerActions({
-    deplacer: deplacerDepuisTable,
-    viser: (x, y) => { if (etat.p) viserCase(etat.p.salleCourante, x, y); },
-  });
-  reinitialiserRetour = deuxTempsIcone($('retour-regie'), 'retour', 'Retour à la régie', 'Appuie encore pour revenir', quitterPleinIci);
-  document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && etat.pleinIci) quitterPleinIci(); });
 
   // Échap : UN SEUL écouteur, dans l'ordre de priorité qu'avaient les trois d'avant (enregistrés dans cet ordre, sans stopPropagation :
   // la sélection appelait preventDefault et les autres s'effaçaient devant lui ou par leurs propres conditions).
-  //  1. « Plein écran ici » : retour à la régie, quoi qu'il arrive à l'événement ;
-  //  2. un plein écran en cours : Échap sert déjà à en sortir, rien à faire ;
-  //  3. une sélection ouverte : la ferme, sauf dans un champ de saisie ou de liste (Échap y sert déjà) ;
-  //  4. sinon la case montrée : l'enlève, sauf dans n'importe quel champ (cases à cocher comprises).
+  //  1. un plein écran en cours : Échap sert déjà à en sortir, rien à faire ;
+  //  2. une sélection ouverte : la ferme, sauf dans un champ de saisie ou de liste (Échap y sert déjà) ;
+  //  3. sinon la case montrée : l'enlève, sauf dans n'importe quel champ (cases à cocher comprises).
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
-    if (etat.pleinIci) { quitterPleinIci(); return; }
     if (e.defaultPrevented || !etat.p || document.fullscreenElement) return;
     const cible = e.target instanceof HTMLElement ? e.target : null;
     if (etat.selection) {
@@ -690,7 +649,7 @@ export function demarrerRegie() {
   poserIcones();
   lierPanneau();
   sectionnerOnglets(creerSection); // les onglets en sections de panneau (docs/design-panneaux.md)
-  const ctx = { etat, r, commande, canal, affichageTable, prendreLaMain, annoncer, rendre, modifie, salleCourante, salleConsultee, entrer, viderSauvegarde, noterRetrait, quitterPleinIci, diffuser, montrerIci };
+  const ctx = { etat, r, commande, canal, affichageTable, prendreLaMain, annoncer, rendre, modifie, salleCourante, salleConsultee, entrer, viderSauvegarde, noterRetrait, diffuser };
   const depart = creerDepart(ctx);
   ctx.depart = depart;
   const univers = creerRegieUnivers(ctx);
@@ -700,7 +659,7 @@ export function demarrerRegie() {
   // et « Adapter ») et après `univers` et `etat`, qu'elle lit.
   let reglages;
   const jouer = creerJouer({ racine: $('regie'), donnees: donneesJeu, partie: partieJeu, surChoix: choisirDansArbre,
-    ouvrirTable: { fenetre: ouvrirFenetreTable, pleinIci: entrerPleinIci },
+    ouvrirTable: { fenetre: ouvrirFenetreTable },
     cadrage,
     affichage: { regie: true, garderOuvert: () => etat.calibrage === true, lire: () => r, surChangement: () => { reglages.sauver(); rendre(); diffuser(); } } });
   reglages = creerReglages(ctx);

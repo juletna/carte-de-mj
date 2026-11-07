@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="css/univers.css?v=e15bf1d6">
   <link rel="stylesheet" href="css/atelier.css?v=cb6508ad">
   <link rel="stylesheet" href="css/panneaux.css?v=21fca64a">
-  <link rel="stylesheet" href="css/presentation.css?v=622de8a1">
+  <link rel="stylesheet" href="css/presentation.css?v=47e4ff3c">
   <!-- versions:debut (généré par outils/versions.mjs, ne pas modifier à la main) -->
   <script type="importmap">
   {
@@ -28,9 +28,9 @@
       "./js/atelier/dimensions.js": "./js/atelier/dimensions.js?v=4b8c8867",
       "./js/atelier/fil-compact.js": "./js/atelier/fil-compact.js?v=51898dee",
       "./js/atelier/inspecteur.js": "./js/atelier/inspecteur.js?v=517a8155",
-      "./js/atelier/jouer.js": "./js/atelier/jouer.js?v=3949f55e",
+      "./js/atelier/jouer.js": "./js/atelier/jouer.js?v=46e08708",
       "./js/atelier/liste.js": "./js/atelier/liste.js?v=57861fc0",
-      "./js/atelier/ouvrir-table.js": "./js/atelier/ouvrir-table.js?v=06607a05",
+      "./js/atelier/ouvrir-table.js": "./js/atelier/ouvrir-table.js?v=2eb9e1f9",
       "./js/atelier/section.js": "./js/atelier/section.js?v=14b9a65d",
       "./js/atelier/vignette-lieu.js": "./js/atelier/vignette-lieu.js?v=2e9a3f90",
       "./js/atelier/vue-table-regie.js": "./js/atelier/vue-table-regie.js?v=89868ec1",
@@ -52,7 +52,7 @@
       "./js/donjon.js": "./js/donjon.js?v=52ddf63c",
       "./js/dossier-travail-logique.js": "./js/dossier-travail-logique.js?v=3ebf235b",
       "./js/dossier-travail.js": "./js/dossier-travail.js?v=b8ce52db",
-      "./js/ecran-table.js": "./js/ecran-table.js?v=50d8980f",
+      "./js/ecran-table.js": "./js/ecran-table.js?v=9f93fd09",
       "./js/fiche/format.js": "./js/fiche/format.js?v=9477ccaf",
       "./js/fiche/regles.js": "./js/fiche/regles.js?v=01711471",
       "./js/format.js": "./js/format.js?v=c7e074dc",
@@ -91,13 +91,13 @@
       "./js/pose.js": "./js/pose.js?v=3caab815",
       "./js/presentation.js": "./js/presentation.js?v=f615a0fc",
       "./js/protocole-table.js": "./js/protocole-table.js?v=fa0ad027",
-      "./js/regie-depart.js": "./js/regie-depart.js?v=ebfc2144",
-      "./js/regie-icones.js": "./js/regie-icones.js?v=815e777f",
+      "./js/regie-depart.js": "./js/regie-depart.js?v=63b2ff4a",
+      "./js/regie-icones.js": "./js/regie-icones.js?v=55f2e08b",
       "./js/regie-panneau.js": "./js/regie-panneau.js?v=85d10ec1",
-      "./js/regie-reglages.js": "./js/regie-reglages.js?v=35aabd63",
+      "./js/regie-reglages.js": "./js/regie-reglages.js?v=76ca69bb",
       "./js/regie-selection.js": "./js/regie-selection.js?v=17b5d4ac",
-      "./js/regie-univers.js": "./js/regie-univers.js?v=d6ffed73",
-      "./js/regie.js": "./js/regie.js?v=56e51a31",
+      "./js/regie-univers.js": "./js/regie-univers.js?v=64ce8a7f",
+      "./js/regie.js": "./js/regie.js?v=083891a5",
       "./js/rendu/feu.js": "./js/rendu/feu.js?v=026d6dcd",
       "./js/rendu/geometrie.js": "./js/rendu/geometrie.js?v=6d683b3b",
       "./js/rendu/graine.js": "./js/rendu/graine.js?v=5331bb5f",
@@ -349,7 +349,7 @@
     <section id="selection" class="selection" role="region" aria-label="Sélection" tabindex="-1" hidden></section>
   </div>
 
-  <!-- Vue table : uniquement la carte. Fenêtre ?vue=table, ou « Plein écran ici » depuis la régie. -->
+  <!-- Vue table : uniquement la carte. Fenêtre ?vue=table. -->
   <div id="ecran-table" hidden>
     <!-- Tout ce que voient les joueurs, tourné ou en miroir d'un bloc. Pas #ecran-table : le navigateur annule la transformation de l'élément en plein écran. -->
     <div id="orientation-table">
@@ -366,7 +366,6 @@
         <p id="texte-calibrage"></p>
       </div>
     </div>
-    <button id="retour-regie" type="button" class="btn coin coin-gauche" data-icone="retour" hidden>Retour à la régie</button>
     <button id="plein-ecran-table" type="button" class="btn btn-icone btn-discret coin coin-droite" aria-label="Plein écran" title="Plein écran" data-icone="plein-ecran"></button>
   </div>
 

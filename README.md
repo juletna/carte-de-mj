@@ -341,13 +341,11 @@ ni de la Fiche ni d'un réseau, et n'exige de décrire quoi que ce soit : elle o
     permanent dit si la salle regardée est « À LA TABLE » (vert) ou en « CONSULTATION » (jaune, cadre en pointillés) et rappelle laquelle
     est à la table ; « Afficher à la table » la rend courante et découverte.
   - *Monstres et objets à la table* : pour jouer sur une carte projetée sur une vraie table. Sous le bandeau, deux boutons montrent ou masquent, séparément et à tout moment, les monstres et les objets de la salle regardée : le MJ les montre pour poser ses vrais pions et coffres aux bons endroits, puis les masque. « Monstres » veut dire tous les pions qui ne sont pas des joueurs (PNJ compris) ; les pions des joueurs et les portes restent. Une salle s'affiche d'abord entière. Le choix est gardé **par salle** et enregistré avec la partie, comme les positions : en revenant dans une salle, on la retrouve telle qu'on l'a laissée. Sur une salle en consultation, le choix s'appliquera quand elle sera à la table. Seule la table est concernée (carte et mini-carte) : la régie montre toujours tout.
-- **Vue table** : uniquement la carte, sans interface. Deux façons :
-  - « Ouvrir la fenêtre table » (`presentation.html?vue=table`) : à glisser sur l'écran de la table ; un bouton « Plein écran » discret
+- **Vue table** : uniquement la carte, sans interface. Une fenêtre :
+  - « Ouvrir la table » (`presentation.html?vue=table`, une fenêtre) : à glisser sur l'écran de la table ; un bouton « Plein écran » discret
     apparaît quelques secondes après un mouvement de **souris** (inactif sinon : `pointer-events: none`, et un toucher ne le réveille pas). Synchronisée par BroadcastChannel (canal `carte-de-mj-presentation`, même navigateur). Ouverte seule ou rechargée, elle
     demande l'état à la régie, et affiche un message d'attente si aucune régie ne répond.
   - *Plusieurs régies ouvertes* : une seule commande la table, la dernière qui a ouvert une partie (`js/commande-table.js`). Les autres passent **en retrait** : elles ne diffusent plus, ne répondent plus à la table, ignorent ses gestes, le disent en permanence (bandeau et panneau) et proposent « Reprendre la main », qui renvoie aussitôt leur état. Une régie sans la main ne vide jamais la table. Recharger la régie active lui rend la main ; recharger une régie en retrait la laisse en retrait. Si la régie active est fermée, rien n'est repris tout seul : la table attend qu'on clique sur « Reprendre la main ». Chaque régie n'enregistre que sa partie, et une régie en retrait n'enregistre pas la partie que la régie active a ouverte, ni une partie plus récente que la sienne. « Reprendre la main » garde ce qui a été fait en retrait, sauf si l'autre régie a avancé entre-temps : on repart alors de sa version.
-  - « Plein écran ici » : pour un seul écran ; Échap pour revenir, ou « Retour à la régie », qui demande **deux appuis**
-    (le premier arme le bouton, le second confirme dans les 4 secondes).
   - *Régler l'écran de table* (bloc Table de la régie, mémorisé dans les réglages) : rotation par quart de tour (`rotationTable`), image en miroir pour un projecteur sous la table (`miroirTable`) et taille réelle visée d'une case (`caseMm`, 25 mm par défaut). Tout ce que voient les joueurs tourne d'un bloc, et la souris du MJ et les flèches de défilement suivent. « Calibrer sur la table » dessine une carte bancaire **sur l'écran de table** ; le MJ l'ajuste au dixième de pixel depuis la régie. C'est la façon juste de calibrer, car une taille mesurée sur un autre écran serait fausse.
   - *Confort à la table* : l'écran reste allumé si le navigateur le permet (`navigator.wakeLock`), le curseur disparaît avec les boutons de coin, et au-dessus de 760 px un doigt ne fait ni défiler ni zoomer.
   - *Taille de la carte* (choix de la régie, mémorisé dans les réglages, `modeTable`) :
@@ -550,13 +548,13 @@ js/partie.js        partie en cours : création, validation, révélations, masq
 js/passage.js       passage d'une porte (le groupe suit), salle créée derrière une porte, pose des pions (pur, sans DOM)
 js/vue-publique.js  ce que voit la table : règle de visibilité (`visibleATable`), `vueTable()`, `planPublic()`, encart du plan et leur relecture côté table (pur, sans parseur)
 js/main-presentation.js  point d'entrée de presentation.html : la régie, ou la vue table avec ?vue=table
-js/regie.js         régie : état, canal, sauvegarde, rendu, panneaux, plein écran ici, Échap ; racine de composition (DOM, stockage, BroadcastChannel)
+js/regie.js         régie : état, canal, sauvegarde, rendu, panneaux, Échap ; racine de composition (DOM, stockage, BroadcastChannel)
 js/regie-depart.js  régie : liste des donjons et des parties, import d'un fichier, « Qui joue ? »
 js/regie-selection.js  régie : panneau Sélection (révéler, état d'un pion, passer une porte, créer la salle d'à côté)
 js/regie-reglages.js  régie : réglages de la table (taille de case, mini-carte, mode, rotation, miroir, calibrage)
 js/atelier/affichage-popover.js  le bouton et le popover « Affichage » (grille, thème, détails, relief, pénombre, flammes, repères), communs à Préparer et Jouer
 js/vue-table.js     fenêtre de table (?vue=table) : reçoit la régie par le canal, ne lit jamais les parties
-js/ecran-table.js   écran de table partagé par la fenêtre de table et « Plein écran ici » : un seul `appliquer`, boutons de coin, défilement ; seule vue à pénombre pleine et flammes animées
+js/ecran-table.js   écran de table de la fenêtre de table : un seul `appliquer`, boutons de coin, défilement ; seule vue à pénombre pleine et flammes animées
 js/animation-carte.js  la boucle d'animation de la table (une seule, arrêtée quand la carte ne se voit pas ; prefers-reduced-motion)
 js/protocole-table.js  canal et messages régie ↔ table : fabrication côté régie, relecture et validation côté table (sans DOM)
 js/commande-table.js  quelle régie commande la table quand plusieurs sont ouvertes (pur, sans DOM)

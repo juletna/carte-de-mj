@@ -1,10 +1,8 @@
 /**
- * Écran de table : ce que voient les joueurs, partagé par la fenêtre `?vue=table` (vue-table.js) et par « Plein écran ici »
- * de la régie (regie.js). Il ne décide de rien : il dessine ce qu'on lui donne (`appliquer`, la seule façon de le changer)
+ * Écran de table : ce que voient les joueurs, de la fenêtre `?vue=table` (vue-table.js). Il ne décide de rien : il dessine ce qu'on lui donne (`appliquer`, la seule façon de le changer)
  * et, à la souris, demande à la régie de déplacer un pion ou de montrer une case, car seule la régie a le plan complet.
  *
- * Ce qu'on lui donne est déjà filtré : le résultat de `lireEtat` (message reçu) ou, en plein écran ici, celui de vueTable()
- * et de miniPlanTable() relu par recevoirMiniPlan (voir vue-publique.js). Il ne lit ni le stockage ni les parties.
+ * Ce qu'on lui donne est déjà filtré : le résultat de `lireEtat` (message reçu). Il ne lit ni le stockage ni les parties.
  *
  * C'est la seule vue où la lumière est pleine (pénombre du réglage) et où les flammes bougent (animation-carte.js) : `dessiner` reçoit `vue: 'table'`.
  */
@@ -23,11 +21,10 @@ import { $ } from './dom.js';
 const DUREE_COINS = 3500;
 
 /**
- * @param {{affichage?:object, surCoinsCaches?:()=>void}} [options]
- *   affichage : l'affichage avant le premier message (par défaut AFFICHAGE_PAR_DEFAUT) ;
- *   surCoinsCaches : appelé quand les boutons de coin se cachent (la régie y remet son bouton « Retour » au repos).
+ * @param {{affichage?:object}} [options]
+ *   affichage : l'affichage avant le premier message (par défaut AFFICHAGE_PAR_DEFAUT).
  */
-export function creerEcranTable({ affichage = { ...AFFICHAGE_PAR_DEFAUT }, surCoinsCaches } = {}) {
+export function creerEcranTable({ affichage = { ...AFFICHAGE_PAR_DEFAUT } } = {}) {
   const ecran = { plan: null, mini: null, caseVisee: null, affichage };
   const animation = creerAnimation($('carte-table')); // une seule boucle, qui s'arrête quand la carte n'est plus affichée
 
@@ -78,7 +75,6 @@ export function creerEcranTable({ affichage = { ...AFFICHAGE_PAR_DEFAUT }, surCo
     demandeEveil = false;
   }
   document.addEventListener('visibilitychange', () => { if (ecran.plan) garderEveille(); });
-  function relacherEveil() { eveil?.release().catch(() => {}); eveil = null; }
 
   function rendre() {
     const carte = $('carte-table');
@@ -172,7 +168,7 @@ export function creerEcranTable({ affichage = { ...AFFICHAGE_PAR_DEFAUT }, surCo
   // Boutons de coin : invisibles ET inactifs (pointer-events: none) tant que la souris n'a pas bougé, puis quelques
   // secondes. Un toucher (joueur qui pose le doigt sur la carte) ne les réveille jamais.
   let minuteCoins;
-  function cacherCoins() { clearTimeout(minuteCoins); $('ecran-table').classList.remove('coins-visibles'); surCoinsCaches?.(); }
+  function cacherCoins() { clearTimeout(minuteCoins); $('ecran-table').classList.remove('coins-visibles'); }
   function montrerCoins() {
     $('ecran-table').classList.add('coins-visibles');
     clearTimeout(minuteCoins);
@@ -195,7 +191,7 @@ export function creerEcranTable({ affichage = { ...AFFICHAGE_PAR_DEFAUT }, surCo
   });
 
   return {
-    appliquer, attendre, activerActions, defiler, cadrer, relacherEveil,
+    appliquer, attendre, activerActions, defiler, cadrer,
     /** L'affichage en cours (la fenêtre table s'en sert de repli quand un message en porte un invalide). */
     affichage: () => ecran.affichage,
     aUnPlan: () => !!ecran.plan,

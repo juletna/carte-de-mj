@@ -284,18 +284,12 @@ details.bloc > .aide, .defilement > .aide { display: block; margin-bottom: 6px; 
 .apercu-scene[hidden] { display: none; }
 .apercu-scene iframe { position: absolute; left: 0; top: 0; border: 0; transform-origin: 0 0; }
 #principal.vue-table-active > :not(.atelier-barre):not(#apercu-scene) { display: none; } /* la carte de la régie cède la place à la vue table */
-body.vue-apercu .coin, body.vue-apercu #retour-regie { display: none !important; }
+body.vue-apercu .coin { display: none !important; }
 
-/* « Ouvrir la table ▾ » (js/atelier/ouvrir-table.js) : bouton doré dans la barre d'outils de la scène, et son menu. */
-.ouvrir-table { position: relative; }
+/* « Ouvrir la table » (js/atelier/ouvrir-table.js) : bouton doré dans la barre d'outils de la scène. */
 .ouvrir-table-bouton.btn-discret { font-weight: 500; color: var(--texte-doux); }
 .ouvrir-table-bouton { min-height: 30px; padding: 0 var(--esp-3); font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
-.ouvrir-table-menu { position: absolute; right: 0; top: calc(100% + 4px); z-index: 45; min-width: 12rem; display: flex; flex-direction: column; gap: 2px; padding: var(--esp-2); background: var(--panneau); border: 1px solid var(--bord); border-radius: var(--rayon); box-shadow: 0 8px 24px rgba(0, 0, 0, .55); }
-.ouvrir-table-menu[hidden] { display: none; }
-.ouvrir-table-entree { justify-content: flex-start; min-height: var(--cible); font-size: 13px; }
-.ouvrir-table-entree[hidden] { display: none; }
-@media (max-width: 760px) { .ouvrir-table-bouton > span:nth-child(2) { display: none; } .ouvrir-table-bouton { min-width: 44px; justify-content: center; } .ouvrir-table-menu { min-width: 11rem; } }
-
+@media (max-width: 760px) { .ouvrir-table-bouton > span:nth-child(2) { display: none; } .ouvrir-table-bouton { min-width: 44px; justify-content: center; } 
 /* Le contrôle de cadrage de la vue « À la table » (js/atelier/vue-table-regie.js) : posé sur la carte, en bas, au centre. */
 .apercu-scene { position: relative; }
 .cadrage-table { position: absolute; left: 50%; bottom: var(--esp-3); transform: translateX(-50%); z-index: 5; display: inline-flex; align-items: center; gap: 2px; padding: 3px; background: var(--panneau); border: 1px solid var(--bord); border-radius: 10px; box-shadow: 0 4px 14px rgba(0, 0, 0, .5); }

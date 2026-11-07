@@ -3,7 +3,7 @@
  * entre dans un donjon (sa partie de donjon, au format inchangé, s'ouvre ou se reprend) et remonte. À la table : la carte en grand et
  * seulement les points visibles ou révélés (voir univers-protocole.js : la référence de l'image part, jamais l'image).
  * Fabrique `creerRegieUnivers(ctx)` ; `ctx` est celui de regie.js (`etat`, `r`, `commande`, `canal`, `annoncer`, `entrer`, `depart`, `rendre`,
- * `viderSauvegarde`, `noterRetrait`, `quitterPleinIci`, `prendreLaMain`), lu au moment de l'appel.
+ * `viderSauvegarde`, `noterRetrait`, `prendreLaMain`), lu au moment de l'appel.
  * Renvoie `listerDepart` (l'écran de départ), `diffuser` (vrai si la table a reçu une carte d'univers), `majFil` (le fil d'Ariane de la régie de donjon).
  */
 import * as stockage from './stockage.js';
@@ -70,7 +70,7 @@ export function creerRegieUnivers(ctx) {
 
   // --- Réglages et défilement de la table ---------------------------------------------------------------------------
   // Rien ne disparaît dans une carte de monde : ce qui ne concerne que les salles est grisé, avec la raison en infobulle.
-  const HORS_MONDE = { 'plein-ici': 'Le plein écran ici ne montre que les salles d’un donjon.', 'calibrer-table': 'Le calibrage dessine une carte bancaire sur une salle : mesure-le depuis une salle de donjon.' };
+  const HORS_MONDE = { 'calibrer-table': 'Le calibrage dessine une carte bancaire sur une salle : mesure-le depuis une salle de donjon.' };
   function grisees(oui) {
     for (const [id, raison] of Object.entries(HORS_MONDE)) {
       const b = $(id);
@@ -123,7 +123,6 @@ export function creerRegieUnivers(ctx) {
     ctx.viderSauvegarde();
     etat.p = null; etat.consultee = null;
     ctx.noterRetrait();
-    ctx.quitterPleinIci();
     recentrerTable();
     if (!partie.lieuCourant) { ctx.annoncer('Ce monde n’a plus aucune carte.', 8000); return; }
     sauver();
@@ -172,7 +171,6 @@ export function creerRegieUnivers(ctx) {
     if (!ctx.commande.retrait) stockage.memoriserPartieOuverte(pu.cleOuverteUnivers(courant.univers.id));
     etat.p = null; etat.consultee = null;
     ctx.noterRetrait();
-    ctx.quitterPleinIci();
     afficherEcran();
     prendreLesReglages();
   }

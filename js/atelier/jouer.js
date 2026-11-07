@@ -44,7 +44,7 @@ export function creerJouer({ racine, donnees, partie, surChoix, affichage, ouvri
 
   // Deux vues en haut de la scène : « Régie » (carte et commande) et « Table » (ce que voient les joueurs, en grand), pour régler l'écran de table en voyant le résultat.
   const vues = creerVuesRegie({ scene: $('principal'), barre: coquille.barreOutils, avant: coquille.barreFin, cadrage });
-  // « Ouvrir la table ▾ » : la fenêtre des joueurs, ou le plein écran ici. Un seul endroit.
+  // « Ouvrir la table » : la fenêtre des joueurs. Un seul endroit.
   // À droite de la barre, avec la grille et « Affichage ».
   const boutonTable = ouvrirTable ? creerOuvrirTable({ barre: coquille.barreFin, avant: coquille.barreFin.firstChild, ...ouvrirTable }) : null;
 
