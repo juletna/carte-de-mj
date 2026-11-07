@@ -14,6 +14,7 @@ On ne calibre pas un donjon, on calibre une grille. Aujourd'hui le calibrage est
 4. **Toujours accessible** : entrée « Calibrer l'écran… » dans le menu « Ouvrir la table ▾ » et dans Affichage › Écran de la table, même sans salle ni présentation, même dans un monde (plus de bouton grisé).
 5. **Mémorisé pour l'écran** (résolution, rapport de pixels) ; un autre écran redemande le calibrage.
 6. **Fin ou annulation** : la table retrouve la même salle, la même case montrée, le même défilement ; un bandeau de la régie rappelle « Calibrage en cours » pendant ce temps.
+7. **Rotation et miroir restent dans Affichage › Écran de la table**, utilisables à tout moment (y compris pour retourner temporairement la salle pendant le jeu). L'étape 1 du parcours règle les mêmes valeurs, il n'y en a pas deux. Pas de bouton ni de mode « inversion temporaire » : c'est un détournement, le MJ remet lui-même le bon sens. « Taille réelle d'une case » reste aussi dans Affichage ; « Calibrer sur la table » y devient « Calibrer l'écran… », jamais grisé.
 
 ## À trancher
 
