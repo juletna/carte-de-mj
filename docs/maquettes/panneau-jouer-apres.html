@@ -111,100 +111,153 @@ textarea { width: 100%; min-height: 70px; background: var(--champ); border: 1px 
 .bulle .rangee { gap: 6px; }
 .bulle .btn { min-height: 28px; padding: 0 10px; font-size: 12.5px; }
 .couplage { margin: 20px 0 0; padding: 12px 16px; background: var(--panneau); border: 1px dashed var(--filet-fort); border-radius: 8px; color: var(--t2); max-width: 920px; }
+
+/* v2 : l'écran final seul ; les annotations sont dans la légende, jamais dans les panneaux */
+.etat { font-size: 12.5px; color: var(--t3); margin: 0 0 8px; }
+.num { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: var(--succes); color: #06140a; font-size: 11px; font-weight: 700; margin-left: 6px; vertical-align: 1px; }
+.vue h2 .num { margin-left: 8px; }
+.sec .aide-bas { color: var(--t3); font-size: 12.5px; margin: 0; }
+.btn.mini { min-height: 26px; padding: 0 10px; font-size: 12px; }
+.grise { opacity: .5; }
+.bande-rouge { background: #3a1a15; border: 1px solid var(--erreur); border-radius: 8px; padding: 10px 12px; font-size: 13px; color: #f1b3a8; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.bande-jaune { background: #33280a; border: 1px solid #8a6d17; border-radius: 8px; padding: 10px 12px; font-size: 13px; color: #e8d28a; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.section-titre { font-size: 14px; color: var(--t2); margin: 34px 0 12px; padding-top: 14px; border-top: 1px solid var(--filet); }
+.zoombar { position: absolute; right: 12px; bottom: 12px; display: flex; align-items: center; gap: 6px; background: #1f1e24; border: 1px solid var(--bord); border-radius: 8px; padding: 4px 6px; }
+.zoombar .btn { min-height: 30px; padding: 0 10px; }
+.zoombar span.v { min-width: 46px; text-align: center; color: var(--t1); font-size: 13px; }
 </style>
 </head>
 <body>
 <main>
   <h1>Panneau de droite de Jouer : <em>après</em></h1>
-  <p class="chapo">La proposition : <b>trois onglets stables</b>, les mêmes dans un monde et dans un donjon. <b>Ici</b> (où suis-je, que voit la table ?), <b>Joueurs</b> (qui joue ?), <b>Écran</b> (comment la table affiche-t-elle ?). Les pastilles vertes disent quelle incohérence de la maquette « avant » est réglée.</p>
+  <p class="chapo">L'écran final, sans annotations dans les panneaux : seulement ce que verrait le MJ. Les numéros verts, à côté des titres, renvoient à la légende en bas. Trois onglets stables, les mêmes dans un monde et dans un donjon : <b>Ici</b>, <b>Joueurs</b>, <b>Écran</b>.</p>
 
+  <h2 class="section-titre" style="margin-top:0;border-top:0;padding-top:0">La barre d'outils de la scène <span class="num">1</span></h2>
   <div class="barre">
-    <span class="note" style="margin-right:4px">Barre d'outils de la scène :</span>
     <div class="vues"><span>En régie</span><span class="v">À la table</span></div>
-    <span class="btn dore ico">⛶ Ouvrir la table <span class="p">5</span></span>
-    <div class="fin"><span class="btn ico">▦ ▾</span><span class="btn ico">⚙ Affichage <span class="p">6</span></span></div>
+    <span class="btn dore ico">⛶ Ouvrir la table</span>
+    <div class="fin"><span class="btn ico">▦ ▾</span><span class="btn ico">⚙ Affichage</span></div>
   </div>
 
-  <div class="rouge"><b>En retrait</b> : une autre régie commande la table. <span class="btn">Reprendre la main</span> <span class="p">7</span><span class="note" style="flex-basis:100%">Bandeau rouge au-dessus de la carte : le seul endroit, plus de doublon dans un onglet.</span></div>
-
+  <h2 class="section-titre">Les trois onglets</h2>
   <div class="grille">
 
     <section class="vue">
-      <h2>Ici · dans un donjon</h2><p class="qui">La salle regardée</p>
+      <h2>Ici, dans un donjon <span class="num">2</span></h2>
       <div class="panneau">
         <div class="onglets"><span class="actif">Ici</span><span>Joueurs</span><span>Écran</span></div>
         <div class="tete"><p class="type">Salle</p><p class="nom">Cuisine</p><p class="meta">À la table</p></div>
-        <div class="sec"><div class="bandeau">Visible à la table <span class="p">2</span></div>
+        <div class="sec"><div class="bandeau">Visible à la table</div>
           <div class="corps">
             <div class="rang"><span style="flex:1">Monstres</span><span class="interrupteur"></span></div>
             <div class="rang"><span style="flex:1">Objets</span><span class="interrupteur"></span></div>
           </div></div>
-        <div class="sec"><div class="bandeau">Cachés <span class="compte">3</span> <span class="btn" style="margin-left:auto;min-height:26px;padding:0 10px;font-size:12px">Révéler tout</span></div>
+        <div class="sec"><div class="bandeau">Cachés <span class="compte">3</span> <span class="btn mini" style="margin-left:auto">Révéler tout</span></div>
           <div class="corps"><div class="liste">
-            <div class="l"><span class="ico">◌</span><span><b>piège à fosse</b><small>caché à la table</small></span><span class="btn" style="min-height:26px;padding:0 10px;font-size:12px">Révéler</span></div>
-            <div class="l"><span class="ico">◌</span><span><b>porte secrète · mur est</b><small>caché à la table</small></span><span class="btn" style="min-height:26px;padding:0 10px;font-size:12px">Révéler</span></div>
-            <div class="l"><span class="ico">◌</span><span><b>coffre</b><small>caché à la table · C4</small></span><span class="btn" style="min-height:26px;padding:0 10px;font-size:12px">Révéler</span></div>
-          </div>
-          <p class="note">Les éléments visibles ne sont pas listés : ils sont sur la carte. Rien de caché : la section disparaît. <span class="p">9</span></p></div></div>
-        <div class="sec"><div class="bandeau">Notes <span class="p">4</span></div>
-          <div class="corps"><div class="lecture">Préparation : cuisine enfumée, deux gardes endormis.</div>
+            <div class="l"><span class="ico">◌</span><span><b>piège à fosse</b><small>C4</small></span><span class="btn mini">Révéler</span></div>
+            <div class="l"><span class="ico">◌</span><span><b>porte secrète</b><small>mur est</small></span><span class="btn mini">Révéler</span></div>
+            <div class="l"><span class="ico">◌</span><span><b>coffre</b><small>F7</small></span><span class="btn mini">Révéler</span></div>
+          </div></div></div>
+        <div class="sec" style="border-bottom:0"><div class="bandeau">Notes</div>
+          <div class="corps"><div class="lecture">Cuisine enfumée, deux gardes endormis.</div>
             <div class="champ2"><span>Notes de partie</span><textarea>Ce qui se passe dans cette salle…</textarea></div></div></div>
       </div>
     </section>
 
     <section class="vue">
-      <h2>Ici · dans un monde</h2><p class="qui">Le lieu regardé : mêmes sections, mêmes mots <span class="p">3</span></p>
+      <h2>Ici, dans un monde <span class="num">2</span></h2>
       <div class="panneau">
         <div class="onglets"><span class="actif">Ici</span><span>Joueurs</span><span>Écran</span></div>
         <div class="tete"><p class="type">Lieu</p><p class="nom">Archipel des clochers d'or</p><p class="meta">À la table</p></div>
-        <div class="sec"><div class="bandeau">Visible à la table <span class="p">2</span></div>
+        <div class="sec"><div class="bandeau">Visible à la table</div>
           <div class="corps">
             <div class="rang"><span style="flex:1">Points</span><span class="interrupteur"></span></div>
             <div class="rang"><span style="flex:1">Noms des points</span><span class="interrupteur off"></span></div>
           </div></div>
-        <div class="sec"><div class="bandeau">Cachés <span class="compte">1</span> <span class="btn" style="margin-left:auto;min-height:26px;padding:0 10px;font-size:12px">Révéler tout</span></div>
+        <div class="sec"><div class="bandeau">Cachés <span class="compte">1</span> <span class="btn mini" style="margin-left:auto">Révéler tout</span></div>
           <div class="corps"><div class="liste">
-            <div class="l"><span class="ico">◌</span><span><b>Brasierre</b><small>caché à la table · vers Brasierre</small></span><span class="btn" style="min-height:26px;padding:0 10px;font-size:12px">Révéler</span></div>
+            <div class="l"><span class="ico">◌</span><span><b>Brasierre</b><small>vers Brasierre</small></span><span class="btn mini">Révéler</span></div>
           </div></div></div>
-        <div class="sec"><div class="bandeau">Notes <span class="p">4</span></div>
-          <div class="corps"><div class="lecture">Préparation : un archipel tempéré et lumineux…</div>
+        <div class="sec" style="border-bottom:0"><div class="bandeau">Notes</div>
+          <div class="corps"><div class="lecture">Un archipel tempéré et lumineux…</div>
             <div class="champ2"><span>Notes de partie</span><textarea>Ce qui se passe sur cette carte…</textarea></div></div></div>
       </div>
     </section>
 
     <section class="vue">
-      <h2>Joueurs</h2><p class="qui">Partout : monde et donjon <span class="p">5</span></p>
+      <h2>Joueurs, partout <span class="num">3</span></h2>
       <div class="panneau">
         <div class="onglets"><span>Ici</span><span class="actif">Joueurs</span><span>Écran</span></div>
         <div class="sec"><div class="bandeau">Personnages <span class="compte">3</span></div>
           <div class="corps"><div class="liste">
-            <div class="fiche"><b>Aelith · Elfe, Magicienne</b><span class="pv">PV 18 / 22</span><span class="pv">Avec le groupe</span></div>
-            <div class="fiche"><b>Brom · Nain, Guerrier</b><span class="pv">PV 31 / 34</span><span class="pv">Avec le groupe</span></div>
-            <div class="fiche"><b>Ysmé · Humaine, Voleuse</b><span class="pv">PV 14 / 14</span><span class="pv">Avec le groupe</span></div>
+            <div class="fiche"><b>Aelith · Elfe, Magicienne</b><span class="pv">PV 18 / 22</span><span class="pv">En D5</span></div>
+            <div class="fiche"><b>Brom · Nain, Guerrier</b><span class="pv">PV 31 / 34</span><span class="pv">En E5</span></div>
+            <div class="fiche"><b>Ysmé · Humaine, Voleuse</b><span class="pv">PV 14 / 14</span><span class="pv">Pas posée</span></div>
           </div></div></div>
         <div class="sec fermee"><div class="bandeau">Ajouter un joueur</div></div>
-        <p class="note" style="padding:10px 16px">Dans un donjon, un pion se pose dans la salle ; dans un monde, le groupe est « avec le groupe ».</p>
       </div>
     </section>
 
     <section class="vue">
-      <h2>Écran</h2><p class="qui">Comment la table affiche <span class="p">1</span></p>
+      <h2>Écran <span class="num">4</span></h2>
       <div class="panneau">
         <div class="onglets"><span>Ici</span><span>Joueurs</span><span class="actif">Écran</span></div>
         <div class="sec"><div class="bandeau">Fenêtre de table</div>
-          <div class="corps"><div class="rangee"><span class="btn">⛶ Ouvrir la fenêtre</span><span class="btn">⛶ Plein écran ici</span></div>
-            <p class="note">Le bouton doré est aussi dans la barre d'outils.</p></div></div>
-        <div class="sec"><div class="bandeau">Cette carte <span class="p">11</span></div>
+          <div class="corps"><div class="rangee"><span class="btn">⛶ Ouvrir la fenêtre</span><span class="btn">⛶ Plein écran ici</span></div></div></div>
+        <div class="sec"><div class="bandeau">Cette carte</div>
           <div class="corps">
             <div class="rang"><span class="radio on"></span><span>Remplir l'écran</span></div>
-            <div class="rang" style="opacity:.55"><span class="radio"></span><span>Échelle réelle (figurines)</span></div>
-            <p class="note">Échelle réelle : grisée tant que la carte n'a pas de grille (« Cette carte n'a pas de grille »).</p>
+            <div class="rang grise"><span class="radio"></span><span>Échelle réelle (figurines)</span></div>
+            <p class="aide-bas">Cette carte n'a pas de grille.</p>
             <div class="rang"><span style="flex:1">Plan du donjon</span><span class="interrupteur"></span></div>
-            <p class="note">Salles découvertes seulement. N'apparaît que dans un donjon. <span class="p">12</span></p>
-            <p class="note">Défilement et zoom : directement sur la carte, dans la vue « À la table ».</p>
+            <p class="aide-bas">Salles découvertes seulement.</p>
           </div></div>
-        <div class="sec fermee"><div class="bandeau">Matériel de la table <span class="p">8</span> <span class="note" style="margin-left:auto;font-weight:400">réglé une fois</span></div></div>
-        <div class="sec"><div class="bandeau" style="color:var(--t3);font-weight:500">Ce que contient « Matériel de la table »</div>
+        <div class="sec fermee" style="border-bottom:0"><div class="bandeau">Matériel de la table</div></div>
+      </div>
+    </section>
+
+  </div>
+
+  <h2 class="section-titre">Sur la carte</h2>
+  <div class="grille" style="grid-template-columns: repeat(auto-fit, minmax(420px, 1fr))">
+
+    <section class="vue">
+      <h2>Toucher un point : le popover <span class="num">5</span></h2>
+      <div class="carte">
+        <div class="ile" style="left:6%;top:14%;width:34%;height:44%"></div>
+        <div class="ile" style="left:46%;top:8%;width:42%;height:52%"></div>
+        <div class="ile" style="left:14%;top:62%;width:36%;height:32%"></div>
+        <div class="pt" style="left:30%;top:36%"><i></i><b>La Verte-Écume</b></div>
+        <div class="pt choisi" style="left:64%;top:34%"><i></i><b>Port-Bourdon</b></div>
+        <div class="pt cache" style="left:34%;top:78%"><i></i><b>Brasierre</b></div>
+        <div class="bulle" style="left:calc(64% - 22px);top:calc(34% + 18px)">
+          <p class="nom">Port-Bourdon</p><p class="vers">Mène à Port-Bourdon</p>
+          <div class="rangee"><span class="btn dore">Entrer →</span><span class="btn">Cacher</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="vue">
+      <h2>Vue « À la table » : décaler et zoomer <span class="num">6</span></h2>
+      <div class="carte" style="border:3px solid var(--succes);cursor:grab">
+        <div class="ile" style="left:-6%;top:6%;width:62%;height:78%"></div>
+        <div class="ile" style="left:54%;top:30%;width:50%;height:66%"></div>
+        <div class="pt" style="left:34%;top:42%"><i></i><b>Port-Bourdon</b></div>
+        <div class="pt" style="left:78%;top:58%"><i></i><b>Les Dents-de-Sel</b></div>
+        <div class="zoombar"><span class="btn">−</span><span class="v">160 %</span><span class="btn">+</span><span class="btn dore">Ajuster</span></div>
+      </div>
+    </section>
+
+  </div>
+
+  <h2 class="section-titre">Autres états et fenêtres</h2>
+  <div class="grille">
+
+    <section class="vue">
+      <h2>« Matériel de la table » déplié <span class="num">4</span></h2>
+      <div class="panneau">
+        <div class="onglets"><span>Ici</span><span>Joueurs</span><span class="actif">Écran</span></div>
+        <div class="sec"><div class="bandeau">Matériel de la table</div>
           <div class="corps">
             <div class="champ2"><span>Rotation</span><span class="champ" style="color:var(--t1)">Aucune ▾</span></div>
             <div class="rang"><span style="flex:1">Image en miroir</span><span class="interrupteur off"></span></div>
@@ -214,48 +267,14 @@ textarea { width: 100%; min-height: 70px; background: var(--champ); border: 1px 
       </div>
     </section>
 
-    <section class="vue" style="grid-column: span 2">
-      <h2>Popover d'élément, sur la carte</h2><p class="qui">Toucher un point, une porte ou un pion : ses actions s'ouvrent <b>à côté de lui</b>, le panneau ne bouge pas <span class="p">10</span></p>
-      <div class="carte">
-        <div class="ile" style="left:6%;top:14%;width:34%;height:44%"></div>
-        <div class="ile" style="left:46%;top:8%;width:42%;height:52%"></div>
-        <div class="ile" style="left:14%;top:62%;width:36%;height:32%"></div>
-        <div class="pt" style="left:30%;top:36%"><i></i><b>La Verte-Écume</b></div>
-        <div class="pt choisi" style="left:64%;top:34%"><i></i><b>Port-Bourdon</b></div>
-        <div class="pt cache" style="left:34%;top:78%"><i></i><b>Brasierre</b></div>
-        <div class="bulle" style="left:calc(64% - 22px);top:calc(34% + 18px)">
-          <p class="nom">Port-Bourdon</p>
-          <p class="vers">Mène à Port-Bourdon</p>
-          <div class="rangee"><span class="btn dore">Entrer →</span><span class="btn">Cacher</span></div>
-        </div>
-      </div>
-      <p class="note" style="margin-top:8px">Un point caché (en pointillés) propose « Révéler » à la place de « Cacher ». Le popover se ferme au clic ailleurs ou avec Échap, évite les bords de la carte et ne couvre pas le point voisin. Sur téléphone, il devient une feuille en bas de l'écran. Dans la vue « À la table », il s'ouvre au même endroit, par-dessus le cadre.</p>
-    </section>
-
-    <section class="vue" style="grid-column: span 2">
-      <h2>Vue « À la table » : on décale et on zoome sur la carte</h2><p class="qui">Glisser = décaler (fini les flèches), molette ou pincer = zoomer, comme à la régie <span class="p">11</span></p>
-      <div class="carte" style="border:3px solid var(--succes);cursor:grab">
-        <div class="ile" style="left:-6%;top:6%;width:62%;height:78%"></div>
-        <div class="ile" style="left:54%;top:30%;width:50%;height:66%"></div>
-        <div class="pt" style="left:34%;top:42%"><i></i><b>Port-Bourdon</b></div>
-        <div class="pt" style="left:78%;top:58%"><i></i><b>Les Dents-de-Sel</b></div>
-        <div class="pt" style="left:50%;top:50%;transform:none;font-size:22px;opacity:.9">✥</div>
-        <div style="position:absolute;right:12px;bottom:12px;display:flex;align-items:center;gap:6px;background:#1f1e24;border:1px solid var(--bord);border-radius:8px;padding:4px 6px">
-          <span class="btn" style="min-height:30px;padding:0 10px">−</span><span style="min-width:46px;text-align:center;color:var(--t1);font-size:13px">160 %</span><span class="btn" style="min-height:30px;padding:0 10px">+</span><span class="btn dore" style="min-height:30px;padding:0 12px">Ajuster</span>
-        </div>
-        <div style="position:absolute;left:12px;bottom:12px;background:rgba(0,0,0,.7);color:#fff;font-size:12px;border-radius:6px;padding:4px 10px">Ce que tu décales et zoomes ici, la table le voit aussi.</div>
-      </div>
-      <p class="note" style="margin-top:8px">« Ajuster » remet le cadrage de base (la carte tient dans l'écran). En « Échelle réelle », le zoom est verrouillé : la taille est celle de la figurine. Zoom et position sont propres à chaque carte et reviennent au cadrage de base quand on change de carte. La régie garde le zoom et la position et les envoie à la table et à l'aperçu ; le cadre de la vue ne fait qu'envoyer les gestes.</p>
-    </section>
-
     <section class="vue">
-      <h2>Popover « Affichage »</h2><p class="qui">Les préférences de la régie, au même endroit <span class="p">6</span></p>
+      <h2>Popover « Affichage » <span class="num">7</span></h2>
       <div class="pop">
         <h3>Régie</h3>
         <div class="ligne"><span>Thème</span><span class="champ">Dessiné ▾</span></div>
         <div class="ligne"><span>Détails</span><span class="champ">Riches ▾</span></div>
         <div class="ligne"><span>Relief</span><span class="interrupteur"></span></div>
-        <div class="ligne"><span>Repères (A, B… et 1, 2…)</span><span class="interrupteur"></span></div>
+        <div class="ligne"><span>Repères</span><span class="interrupteur"></span></div>
         <div class="ligne"><span>Taille d'une case</span><span class="curseur"></span></div>
         <div class="ligne"><span>Adapter la carte à la fenêtre</span><span class="interrupteur"></span></div>
         <h3 style="margin-top:12px">À la table</h3>
@@ -264,25 +283,28 @@ textarea { width: 100%; min-height: 70px; background: var(--champ); border: 1px 
       </div>
     </section>
 
+    <section class="vue">
+      <h2>Bandeaux au-dessus de la carte <span class="num">8</span></h2>
+      <p class="etat">Seulement quand il y a quelque chose à faire. Normalement : aucun bandeau.</p>
+      <div style="display:grid;gap:10px">
+        <div class="bande-jaune"><b>Consultation</b> La table montre toujours Cuisine. <span class="btn mini">Afficher à la table</span> <span class="btn mini">Retour à la table</span></div>
+        <div class="bande-rouge"><b>En retrait</b> Une autre régie commande la table. <span class="btn mini">Reprendre la main</span></div>
+      </div>
+    </section>
+
   </div>
 
-  <div class="couplage"><b>Couplage optionnel.</b> Passer à la vue « À la table » (liseré vert) ouvre l'onglet <b>Écran</b> ; revenir à « En régie » ouvre <b>Ici</b>. Tu règles l'écran en voyant le résultat en grand. Un onglet choisi à la main n'est jamais écrasé.</div>
-
   <div class="legende">
-    <h2>Ce que règlent les pastilles vertes</h2>
+    <h2>Ce qui change par rapport à aujourd'hui</h2>
     <ol>
-      <li><span class="p">1</span> Plus de collision : l'onglet « Table » devient « Écran », « À la table » ne désigne plus que la vue des joueurs.</li>
-      <li><span class="p">2</span> Une seule section « Visible à la table », avec les mêmes interrupteurs et les mêmes mots pour une salle et pour un lieu.</li>
-      <li><span class="p">3</span> Salle et Lieu deviennent « Ici » : mêmes sections, mêmes emplacements.</li>
-      <li><span class="p">4</span> Notes de préparation et notes de partie partout, aussi pour un lieu.</li>
-      <li><span class="p">5</span> Joueurs disponible dans un monde ; « Ouvrir la table » monte dans la barre d'outils, accessible depuis n'importe quel onglet.</li>
-      <li><span class="p">6</span> Les réglages de la régie (taille d'une case, adapter) rejoignent « Affichage » ; l'onglet Écran ne parle plus que de l'écran de la table.</li>
-      <li><span class="p">7</span> « Reprendre la main » seulement dans le bandeau rouge.</li>
-      <li><span class="p">8</span> L'onglet Écran suit le design des panneaux (étiquette au-dessus du champ, interrupteurs, plus de « ? » orphelin) et sépare le <b>matériel de la table</b> (rotation, miroir, taille réelle, calibrage : réglé une fois, replié) de ce qui dépend de la carte affichée.</li>
-      <li><span class="p">9</span> Plus de liste « Éléments », « Points » ni « Portes de la salle » : la carte et l'arbre font déjà ce travail. Une seule liste, <b>Cachés</b>, avec « Révéler » sur chaque ligne et « Révéler tout » ; elle n'affiche que ce qui n'est pas encore à la table et disparaît quand il n'y en a plus.</li>
-      <li><span class="p">10</span> Le détail d'un point (Mène à, Entrer, Cacher ou Révéler) est un popover sur la carte, à côté du point touché : même geste pour un point, une porte ou un pion, et le panneau de droite ne bouge pas. Il remplace le panneau « Sélection » flottant d'une salle.</li>
-      <li><span class="p">11</span> Le défilement et le zoom se font directement sur la carte, dans la vue « À la table » (glisser, molette, pincer, − / + / Ajuster) ; la section « Défilement » et ses flèches disparaissent. « Cette carte » ne garde que ce qui dépend de la carte : Taille et Plan du donjon.</li>
-      <li><span class="p">12</span> « Mini-carte » s'appelle <b>Plan du donjon</b> : c'est le plan des salles découvertes que la table affiche. Il n'existe que dans un donjon.</li>
+      <li><span class="num">1</span> <span><b>Deux vues dans la barre d'outils</b> (« En régie » / « À la table », liseré vert) et « Ouvrir la table » qui y monte, accessible depuis n'importe quel onglet.</span></li>
+      <li><span class="num">2</span> <span><b>« Salle » et « Lieu » deviennent « Ici »</b>, avec les mêmes sections : <i>Visible à la table</i> (interrupteurs), <i>Cachés</i> (la seule liste : Révéler sur chaque ligne et Révéler tout, elle disparaît quand rien n'est caché), <i>Notes</i> (préparation et partie, aussi pour un lieu). Les listes d'éléments, de points et de portes sont supprimées : la carte et l'arbre font déjà ce travail.</span></li>
+      <li><span class="num">3</span> <span><b>Joueurs partout</b>, dans un monde comme dans un donjon.</span></li>
+      <li><span class="num">4</span> <span><b>« Table » devient « Écran »</b>, en deux groupes : <i>Cette carte</i> (taille, plan du donjon : ce qu'on retouche en jeu) et <i>Matériel de la table</i> (rotation, miroir, taille réelle, calibrage : réglé une fois, replié). « Mini-carte » s'appelle « Plan du donjon ». La section « Défilement » disparaît.</span></li>
+      <li><span class="num">5</span> <span><b>Un popover sur la carte</b> remplace le bloc « Point choisi » et le panneau « Sélection » : mêmes actions, à côté de l'élément touché.</span></li>
+      <li><span class="num">6</span> <span><b>Défilement et zoom directement sur la carte</b> dans la vue « À la table » : glisser, molette ou pincer, − / + / Ajuster. Nouveau : la table n'a pas de zoom aujourd'hui.</span></li>
+      <li><span class="num">7</span> <span><b>« Affichage »</b> reçoit les préférences de la régie (taille d'une case, adapter à la fenêtre) qui étaient dans « Réglages ».</span></li>
+      <li><span class="num">8</span> <span><b>« Reprendre la main »</b> et « Consultation » ne vivent que dans les bandeaux au-dessus de la carte, plus dans un onglet.</span></li>
     </ol>
   </div>
 </main>
