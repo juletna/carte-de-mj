@@ -159,8 +159,8 @@ Même grammaire dans le panneau bas. Replié, il ne montre que l'en-tête. Cible
 | Salle · Génération aléatoire (rangée et vue dédiée) | `js/atelier/au-hasard-salle.js`, `css/panneaux.css` | oui (voir « Vue dédiée ») |
 | Donjon · onglets Portes, Mobilier, Créatures (catalogue) | `js/atelier/catalogue-onglet.js`, `js/palette.js` | oui (onglets soulignés comme Jouer ; catégories, recherche et vignettes sous les onglets) |
 | Porte, Objet, Créature | `js/mj/bulle.js` | oui (sections « Liaison », « Aspect ») |
-| Jouer · Ici (salle), Joueurs, Écran | `presentation.html`, `js/regie.js`, `js/regie-panneau.js` | oui (en-tête de l'onglet Ici). Refonte en cours : étape 1 livrée (onglets renommés, « Ouvrir la table ▾ » dans la barre, « Réglages » dans Affichage), voir `refonte-panneau-jouer.md` |
-| Jouer · Ici (lieu, monde) | `js/regie-univers.js` | oui |
+| Jouer · Ici (salle), Joueurs, Écran | `presentation.html`, `js/regie.js`, `js/regie-panneau.js` | oui (en-tête de l'onglet Ici). Refonte livrée (7 novembre 2026) : deux onglets Ici · Joueurs (Ici seul dans un monde), interrupteurs « Visible à la table », liste « Cachés », popover d'élément, « Ouvrir la table ▾ » et « Affichage » dans la barre ; voir `refonte-panneau-jouer.md` |
+| Jouer · Ici (lieu, monde ; plus d'onglet Écran) | `js/regie-univers.js` | oui |
 | Bibliothèque · volet « Générer une illustration IA » | `js/page-bibliotheque.js`, `css/bibliotheque.css` | oui (sections-accordéon, étiquettes T3 ; tiroir bas sous 760 px ; maquette `maquettes/generer-carte.html`) |
 
 Nettoyage fait : les règles mortes des anciens panneaux (`.insp-section`, `.aide-bloc`, `.univers-liste`, `.univers-ligne-point`, titres et cadres des blocs de la régie) sont retirées d'`atelier.css`, `univers.css` et `presentation.css`. Les règles de panneau qui restent dans ces feuilles posent la structure (marges, mise en page) ; la typographie et les couleurs sont dans `css/panneaux.css`.

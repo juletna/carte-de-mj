@@ -30,7 +30,6 @@ export function creerReglages(ctx) {
   function majControles() {
     if (r.reperes === undefined) r.reperes = true;
     lu = { ...r };
-    majModeTable();
     majTaille();
     majOrientation();
     $('case-mm').value = r.caseMm ?? CASE_MM_PAR_DEFAUT;
@@ -43,17 +42,6 @@ export function creerReglages(ctx) {
     $('miroir-table').setAttribute('aria-checked', String(miroir));
     $('apercu-lettre').style.transform = `rotate(${rot}deg)${miroir ? ' scaleX(-1)' : ''}`;
   }
-  function majModeTable() {
-    const mode = modeTable(r);
-    $('mode-remplir').checked = mode === 'remplir';
-    $('mode-reel').checked = mode === 'reel';
-    $('aide-mode-table').textContent = mode === 'remplir'
-      ? 'La case s’adapte à la fenêtre de la table : la salle occupe tout l’écran. Les figurines ne sont plus à l’échelle.'
-      : `Chaque case garde sa taille calibrée (${r.taille} px) : les figurines restent à l’échelle. Une grande salle défile.`;
-  }
-  for (const radio of [$('mode-remplir'), $('mode-reel')]) {
-    radio.addEventListener('change', () => { r.modeTable = radio.value; sauverReglages(); majModeTable(); diffuser(); montrerIci(); });
-  }
   /** Affiche la taille partout où on la règle. */
   function majTaille() {
     $('taille').value = r.taille;
@@ -61,7 +49,7 @@ export function creerReglages(ctx) {
     $('calibrage-val').textContent = `${r.taille} px`;
   }
   majControles();
-  $('taille').addEventListener('input', (e) => { r.taille = Number(e.target.value); majTaille(); sauverReglages(); majModeTable(); rendre(); });
+  $('taille').addEventListener('input', (e) => { r.taille = Number(e.target.value); majTaille(); sauverReglages(); rendre(); });
 
   // --- L'écran de table : orientation et calibrage ------------------------------------------------------
   for (const [id, pas] of [['rotation-gauche', -90], ['rotation-droite', 90]]) {
@@ -99,10 +87,10 @@ export function creerReglages(ctx) {
   $('calibrer-table').addEventListener('click', () => basculerCalibrage(true));
   $('calibrage-fini').addEventListener('click', () => {
     r.calibre = true; r.modeTable = 'reel'; // ce qui vient d'être mesuré sert à la table
-    sauverReglages(); majModeTable(); basculerCalibrage(false);
+    sauverReglages(); basculerCalibrage(false);
   });
   for (const b of document.querySelectorAll('[data-pas-taille]')) {
-    b.addEventListener('click', () => { r.taille = ajusterTaille(r.taille, Number(b.dataset.pasTaille)); majTaille(); sauverReglages(); majModeTable(); rendre(); });
+    b.addEventListener('click', () => { r.taille = ajusterTaille(r.taille, Number(b.dataset.pasTaille)); majTaille(); sauverReglages(); rendre(); });
   }
   $('ajuster').addEventListener('click', () => { etat.ajuster = $('ajuster').getAttribute('aria-checked') === 'true'; rendre(); }); // le popover bascule l'interrupteur avant ce clic-ci
   return { sauver: sauverReglages };

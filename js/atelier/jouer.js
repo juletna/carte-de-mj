@@ -1,6 +1,6 @@
 /**
  * La régie (presentation.html) sur la coquille de l'atelier, mode « jouer » : l'arbre en lecture à gauche (pastilles : à la table, découvert,
- * pas encore montré), la carte au centre, et à droite les onglets Ici · Joueurs · Écran (Ici · Écran pour une carte de monde).
+ * pas encore montré), la carte au centre, et à droite les onglets Ici · Joueurs (Ici seul pour une carte de monde : la rangée d'onglets est alors invisible, sans changer de hauteur).
  * Voir docs/conception-atelier.md, lot D. Ce module ne contient aucune logique de partie : regie.js et regie-univers.js lui disent où l'on est
  * (`synchroniser`) et lui demandent de réagir au clic sur l'arbre (`surChoix`).
  *
@@ -22,11 +22,11 @@ import { creerCartouche } from './cartouche.js';
 import { vignetteLieu } from './vignette-lieu.js';
 
 const ONGLETS = {
-  donjon: ['salle', 'joueurs', 'table'],
-  monde: ['lieu', 'table'],
+  donjon: ['salle', 'joueurs'],
+  monde: ['lieu'],
 };
 
-export function creerJouer({ racine, donnees, partie, surChoix, affichage, ouvrirTable }) {
+export function creerJouer({ racine, donnees, partie, surChoix, affichage, ouvrirTable, cadrage }) {
   let enCours = false;
   let modeCourant = 'donjon';
   let derniere = null;
@@ -43,7 +43,7 @@ export function creerJouer({ racine, donnees, partie, surChoix, affichage, ouvri
   });
 
   // Deux vues en haut de la scène : « Régie » (carte et commande) et « Table » (ce que voient les joueurs, en grand), pour régler l'écran de table en voyant le résultat.
-  const vues = creerVuesRegie({ scene: $('principal'), barre: coquille.barreOutils, avant: coquille.barreFin });
+  const vues = creerVuesRegie({ scene: $('principal'), barre: coquille.barreOutils, avant: coquille.barreFin, cadrage });
   // « Ouvrir la table ▾ » : la fenêtre des joueurs, ou le plein écran ici. Un seul endroit.
   if (ouvrirTable) creerOuvrirTable({ barre: coquille.barreOutils, avant: coquille.barreFin, ...ouvrirTable });
 
@@ -56,7 +56,7 @@ export function creerJouer({ racine, donnees, partie, surChoix, affichage, ouvri
   cartouche.element.classList.add('cartouche-regie');
   $('scene').before(h('div', { className: 'cartouche-ancre' }, cartouche.element));
 
-  const defs = [['salle', 'Ici'], ['joueurs', 'Joueurs'], ['lieu', 'Ici'], ['table', 'Écran']];
+  const defs = [['salle', 'Ici'], ['joueurs', 'Joueurs'], ['lieu', 'Ici']];
   for (const [id, libelle] of defs) coquille.onglets.ajouter({ id, libelle, contenu: $(`onglet-${id}`) });
   // Sous 760 px : un onglet touché ouvre le panneau bas replié ; toucher l'onglet déjà ouvert le replie (la carte reprend la place).
   const colonne = coquille.inspecteur.element;
@@ -76,9 +76,11 @@ export function creerJouer({ racine, donnees, partie, surChoix, affichage, ouvri
     const visibles = ONGLETS[modeCourant];
     for (const [id] of defs) { bouton(id).hidden = !visibles.includes(id); }
     if (!visibles.includes(coquille.onglets.courant())) coquille.onglets.choisir(visibles[0]);
+    // Un seul onglet : la rangée reste (même hauteur, même filet : le panneau reste aligné sur la barre d'outils) mais ses boutons ne se voient plus.
+    colonne.querySelector('.atelier-onglets')?.classList.toggle('onglet-unique', visibles.length < 2);
   }
 
-  /** La composition : donjon (Ici · Joueurs · Écran) ou monde (Ici · Écran). Les deux partagent l'arbre, le bandeau et l'onglet Écran. */
+  /** La composition : donjon (Ici · Joueurs) ou monde (Ici). Les deux partagent l'arbre et le bandeau. */
   function mode(m) {
     modeCourant = m === 'monde' ? 'monde' : 'donjon';
     racine.dataset.regie = modeCourant;

@@ -8,8 +8,9 @@
 import * as stockage from './stockage.js';
 import * as table from './commande-table.js';
 import { creerEcranTable } from './ecran-table.js';
-import { MESSAGES, ouvrirCanal, lireEtat, lireDefilement, messageDemandeEtat, messageDeplacer, messageViser, messagePoint } from './protocole-table.js';
+import { MESSAGES, ouvrirCanal, lireEtat, lireDefilement, messageDemandeEtat, messageDeplacer, messageViser, messagePoint, messageZoom, messageCadrer, lireCadrage } from './protocole-table.js';
 import { affichageDeReglages } from './affichage.js';
+import { activerZoomGestes } from './cadrage-table.js';
 import { TYPE_UNIVERS, lireVueUnivers } from './univers-protocole.js';
 import { creerTableUnivers } from './univers-table.js';
 import { $ } from './dom.js';
@@ -46,6 +47,9 @@ export function demarrerTable() {
       ecran.appliquer(lireEtat(m, ecran.affichage()), 'La présentation n’a pas commencé. Lance-la depuis la régie.');
     } else if (m.type === MESSAGES.DEFILER) {
       ecran.defiler(lireDefilement(m));
+    } else if (m.type === MESSAGES.CADRAGE) {
+      const position = lireCadrage(m);
+      if (position) { ecran.cadrer(position); universTable.cadrer(position); }
     } else if (m.type === table.PRESENCE) {
       regiePresente = true; // on continue à demander : la régie qui a la main, ou qui la reprendra, nous servira
       if (!ecran.aUnPlan()) attendre('En attente de la régie : lance une présentation, ou clique sur « Reprendre la main » dans une régie en retrait.');
@@ -54,7 +58,12 @@ export function demarrerTable() {
   ecran.activerActions({
     deplacer: (id, x, y) => canal.postMessage(messageDeplacer(id, x, y)),
     viser: (x, y) => canal.postMessage(messageViser(x, y)),
+    ...(apercu ? { glisser: (p) => canal.postMessage(messageCadrer(p.x, p.y)), tactile: true } : {}), // la vue « Table » de la régie : glisser décale la carte, molette et pincer zooment
   });
+  if (apercu) {
+    activerZoomGestes($('ecran-table'), { surZoom: (facteur) => canal.postMessage(messageZoom(facteur)) });
+    universTable.activerGlisser((p) => canal.postMessage(messageCadrer(p.x, p.y)));
+  }
   attendre('En attente de la régie…');
   const demander = () => canal.postMessage(messageDemandeEtat());
   demander();

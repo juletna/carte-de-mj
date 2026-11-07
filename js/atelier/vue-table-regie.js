@@ -2,8 +2,9 @@
  * Les deux vues de la régie, en haut de la scène : « En régie » (la carte et la commande) et « À la table » (ce que voient les joueurs, en grand).
  * Le MJ règle l'écran de table dans le panneau de droite et voit tout de suite le résultat, sans tourner la tête vers l'écran de la table.
  *
- *   const vues = creerVuesRegie({ scene, barre, avant });   // `scene` : #principal (colonne), `barre` : la barre d'outils, `avant` : le nœud devant lequel poser le sélecteur
- *   vues.afficher('table' | 'regie');  vues.courante()
+ *   const vues = creerVuesRegie({ scene, barre, avant, cadrage });   // `scene` : #principal (colonne), `barre` : la barre d'outils, `avant` : le nœud devant lequel poser le sélecteur
+ *   vues.afficher('table' | 'regie');  vues.courante();  vues.majCadrage()
+ *   `cadrage` (facultatif) : { lire() → { zoom, reel, reelPossible }, zoomer(facteur), remplir(), reel() } : le contrôle « − 160 % +  Remplir  Réel » posé sur la vue « À la table ».
  *
  * La vue Table est la vraie vue table (presentation.html?vue=table&apercu=1) dans un cadre : elle reçoit les messages du même canal que la
  * fenêtre des joueurs. Interactive comme la vue Régie (un point de la carte du monde se choisit, un pion se glisse : les gestes passent par le canal) ; chargée à la première ouverture seulement.
@@ -13,7 +14,7 @@ import { h } from '../dom.js';
 /** Taille (px) à laquelle la vue table est dessinée avant d'être réduite à la place disponible : un écran de salon en 16 : 9. */
 const ECRAN = { largeur: 1600, hauteur: 900 };
 
-export function creerVuesRegie({ scene, barre, avant = null, doc = document }) {
+export function creerVuesRegie({ scene, barre, avant = null, doc = document, cadrage = null }) {
   let courante = 'regie';
   let cadre = null;
   const boutons = {};
@@ -30,6 +31,26 @@ export function creerVuesRegie({ scene, barre, avant = null, doc = document }) {
 
   const zone = h('div', { id: 'apercu-scene', className: 'apercu-scene', hidden: true });
   scene.append(zone);
+
+  // Le contrôle de cadrage : − · zoom · + · Remplir · Réel. La régie garde le zoom ; ici on ne fait que le montrer et envoyer les gestes.
+  const valeur = h('output', { className: 'cadrage-valeur', 'aria-live': 'polite' });
+  const bouton = (texte, titre, action, classe = '') => { const b = h('button', { type: 'button', className: `btn btn-discret cadrage-bouton ${classe}`.trim(), title: titre, 'aria-label': titre, textContent: texte }); b.addEventListener('click', action); return b; };
+  const moins = bouton('−', 'Zoom arrière', () => cadrage.zoomer(1 / 1.25));
+  const plus = bouton('+', 'Zoom avant', () => cadrage.zoomer(1.25));
+  const remplir = bouton('Remplir', 'La carte remplit l’écran de la table', () => cadrage.remplir());
+  const reel = bouton('Réel', 'Échelle réelle : chaque case a la taille calibrée (figurines)', () => cadrage.reel());
+  const barreCadrage = h('div', { className: 'cadrage-table', role: 'group', 'aria-label': 'Cadrage de la vue table', hidden: true }, moins, valeur, plus, remplir, reel);
+  if (cadrage) zone.append(barreCadrage);
+  function majCadrage() {
+    if (!cadrage) return;
+    const { zoom, reel: estReel, reelPossible } = cadrage.lire();
+    valeur.textContent = estReel ? 'Réel' : `${Math.round(zoom * 100)} %`;
+    reel.disabled = !reelPossible;
+    reel.title = reelPossible ? 'Échelle réelle : chaque case a la taille calibrée (figurines)' : 'Cette carte n’a pas de grille';
+    reel.setAttribute('aria-pressed', String(estReel));
+    remplir.setAttribute('aria-pressed', String(!estReel && zoom === 1));
+    barreCadrage.hidden = courante !== 'table';
+  }
 
   function ajuster() {
     if (!cadre || zone.hidden) return;
@@ -50,6 +71,7 @@ export function creerVuesRegie({ scene, barre, avant = null, doc = document }) {
       Object.assign(cadre.style, { width: `${ECRAN.largeur}px`, height: `${ECRAN.hauteur}px` });
       zone.append(cadre);
     }
+    majCadrage();
     ajuster();
   }
   afficher('regie');
@@ -59,5 +81,5 @@ export function creerVuesRegie({ scene, barre, avant = null, doc = document }) {
     const r = cadre.getBoundingClientRect();
     return { x: r.left + pos.x * r.width, y: r.top + pos.y * r.height };
   }
-  return { afficher, courante: () => courante, element: selecteur, ancre };
+  return { afficher, courante: () => courante, element: selecteur, ancre, majCadrage };
 }

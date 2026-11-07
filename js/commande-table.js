@@ -60,6 +60,8 @@ export function surMessage(c, m) {
     case MESSAGES.TABLE_DEPLACER:
     case MESSAGES.TABLE_VISER:
     case MESSAGES.TABLE_POINT:
+    case MESSAGES.TABLE_ZOOM:
+    case MESSAGES.TABLE_CADRER:
       return c.main ? 'appliquer' : null;
     default:
       return null;

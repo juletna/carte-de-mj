@@ -13,6 +13,7 @@ import { dimensionsTable } from './univers-grille.js';
 import { CENTRE, positionDefilement } from './univers-protocole.js';
 import { casesDeReglages, TAILLE_PAR_DEFAUT } from './affichage.js';
 import { $, h } from './dom.js';
+import { poserPosition, activerGlisser } from './cadrage-table.js';
 
 export function creerTableUnivers({ surPoint = null } = {}) {
   const racine = $('univers-table');
@@ -33,7 +34,7 @@ export function creerTableUnivers({ surPoint = null } = {}) {
     if (!courante || !dims) return;
     const marge = 24; // le padding de la zone
     const d = dimensionsTable({
-      mode: courante.affichage.mode, grille: courante.vue.grille ?? null, taille: courante.affichage.taille ?? TAILLE_PAR_DEFAUT, image: dims,
+      mode: courante.affichage.mode, grille: courante.vue.grille ?? null, taille: courante.affichage.taille ?? TAILLE_PAR_DEFAUT, image: dims, zoom: courante.affichage.zoom,
       zone: { largeur: Math.max(0, zone.clientWidth - marge), hauteur: Math.max(0, zone.clientHeight - marge) },
     });
     if (!d) return;
@@ -51,6 +52,10 @@ export function creerTableUnivers({ surPoint = null } = {}) {
   else window.addEventListener('resize', dimensionner);
 
   return {
+    /** Pose la position de la carte (fractions 0–1 de la course) : le cadrage renvoyé par la régie. */
+    cadrer: (position) => poserPosition(zone, position),
+    /** Dans la vue « Table » de la régie : glisser sur la carte (hors d'un point) la décale ; `surFin(position)` renvoie la position à la régie. */
+    activerGlisser: (surFin) => activerGlisser(zone, { surFin, ignorer: (cible) => !!cible.closest?.('.univers-point') }),
     /** Montre la vue (relue par lireVueUnivers). L'image arrive quand la bibliothèque a répondu ; sans elle, un message le dit. */
     async montrer({ image, nom, points, grille }, affichage = {}, demande = { ...CENTRE, ordre: 0 }) {
       const moi = ++sequence;

@@ -14,6 +14,7 @@ import { dessinerPlanDonjon } from './rendu/plan.js';
 import { animationActive } from './rendu/lumiere.js';
 import { creerAnimation, mouvementReduit } from './animation-carte.js';
 import { activerDeplacement } from './deplacement.js';
+import { positionFractions, poserPosition } from './cadrage-table.js';
 import { AFFICHAGE_PAR_DEFAUT, CASE_MM_PAR_DEFAUT, optionsRendu, tailleTable, tailleQuiTientPlan, carteDeCalibrage, transformOrientation, versCarte } from './affichage.js';
 import { virgule } from './format.js';
 import { $ } from './dom.js';
@@ -33,7 +34,7 @@ export function creerEcranTable({ affichage = { ...AFFICHAGE_PAR_DEFAUT }, surCo
   /** Côté de case à la table : « échelle réelle » = la taille calibrée, exacte ; « remplir » = calculé sur la fenêtre. */
   function tailleEcranTable() {
     const v = $('vue-table');
-    return tailleTable({ mode: ecran.affichage.mode, plan: ecran.plan, vue: { largeur: v.clientWidth, hauteur: v.clientHeight }, taille: ecran.affichage.taille });
+    return tailleTable({ mode: ecran.affichage.mode, plan: ecran.plan, vue: { largeur: v.clientWidth, hauteur: v.clientHeight }, taille: ecran.affichage.taille, zoom: ecran.affichage.zoom });
   }
 
   function optionsEcran(taille) {
@@ -124,7 +125,7 @@ export function creerEcranTable({ affichage = { ...AFFICHAGE_PAR_DEFAUT }, surCo
    * À la souris, le MJ agit aussi depuis l'écran de table : glisser un pion, montrer une case. Un doigt de joueur sur la carte
    * ne déclenche rien. L'écran de table ne décide de rien : il demande à la régie, qui seule a le plan complet.
    */
-  function activerActions({ deplacer, viser }) {
+  function activerActions({ deplacer, viser, glisser = null, tactile = false }) {
     activerDeplacement($('carte-table'), {
       plan: () => ecran.plan,
       taille: () => tailleEcranTable(),
@@ -135,7 +136,8 @@ export function creerEcranTable({ affichage = { ...AFFICHAGE_PAR_DEFAUT }, surCo
       },
       cliquer: (touche, caseVide) => { if (!touche && caseVide) viser(caseVide[0], caseVide[1]); },
       deplacables: ['creature'],
-      filtre: (e) => e.pointerType === 'mouse',
+      filtre: (e) => e.pointerType === 'mouse' || tactile, // un doigt de joueur ne déclenche rien ; dans la vue « Table » de la régie (`tactile`), le MJ touche aussi
+      glisserVide: glisser ? { deplacer: (dx, dy) => $('vue-table').scrollBy({ left: dx, top: dy }), fin: () => glisser(positionFractions($('vue-table'))) } : null,
       versCanvas: (e) => {
         const c = $('carte-table'), r = c.getBoundingClientRect();
         const [x, y] = versCarte(e.clientX - (r.left + r.width / 2), e.clientY - (r.top + r.height / 2), ecran.affichage);
@@ -143,6 +145,9 @@ export function creerEcranTable({ affichage = { ...AFFICHAGE_PAR_DEFAUT }, surCo
       },
     });
   }
+
+  /** Pose la position de la vue table (fractions 0–1 de la course) : le cadrage que la régie renvoie après un glissement dans sa vue « Table ». */
+  function cadrer(position) { poserPosition($('vue-table'), position); }
 
   /** Fait défiler la vue table d'une part de l'écran (-1, 0 ou 1 par axe), ou la recentre. */
   function defiler({ dx = 0, dy = 0, recentrer = false }) {
@@ -187,7 +192,7 @@ export function creerEcranTable({ affichage = { ...AFFICHAGE_PAR_DEFAUT }, surCo
   });
 
   return {
-    appliquer, attendre, activerActions, defiler, relacherEveil,
+    appliquer, attendre, activerActions, defiler, cadrer, relacherEveil,
     /** L'affichage en cours (la fenêtre table s'en sert de repli quand un message en porte un invalide). */
     affichage: () => ecran.affichage,
     aUnPlan: () => !!ecran.plan,

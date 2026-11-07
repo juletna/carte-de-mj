@@ -10,7 +10,7 @@ import * as stockage from './stockage.js';
 import * as pres from './presentation.js';
 import * as modele from './univers.js';
 import * as pu from './univers-partie.js';
-import { messageUnivers, CENTRE, decalerDefilement } from './univers-protocole.js';
+import { messageUnivers, CENTRE, bornerDefilement as pu_borner } from './univers-protocole.js';
 import { creerCarteUnivers } from './univers-carte.js';
 import * as images from './univers-images.js';
 import { affichageDeReglages, casesDeReglages } from './affichage.js';
@@ -77,13 +77,6 @@ export function creerRegieUnivers(ctx) {
   function rendreLesReglages() {
     $('plein-ici').hidden = false;
     $('calibrer-table').hidden = etat.calibrage === true;
-  }
-  /** Les flèches et « recentrer » de « Faire défiler la vue table » (regie.js les appelle quand une carte d'univers est affichée). */
-  function defiler(dx, dy, recentrer) {
-    if (!courant) return;
-    defil = recentrer ? { ...CENTRE } : decalerDefilement(defil, dx, dy);
-    ordreDefil++;
-    diffuser();
   }
   /** La table change de carte ou de niveau : sa vue se recentre, et la régie regarde de nouveau ce que voit la table. */
   function recentrerTable() { defil = { ...CENTRE }; ordreDefil++; consulte = null; }
@@ -463,6 +456,12 @@ export function creerRegieUnivers(ctx) {
   /** La clé `univers:<id>` du monde dont la carte est affichée (retenue par une régie en retrait), ou null. */
   const cleOuverte = () => (courant && !ecran.hidden ? pu.cleOuverteUnivers(courant.univers.id) : null);
   /** Choisit un point de la carte du monde affichée (geste venu de la vue « Table » de la régie) : comme un toucher sur la carte de la régie. */
+  /** La carte que voit la table (clé du zoom : il revient au cadrage de base quand elle change), ou null. */
+  const cleCarte = () => (courant && !ecran.hidden ? `u:${courant.univers.id}:${courant.partie.lieuCourant}` : null);
+  /** Le lieu à la table a-t-il une grille ? « Réel » n'a de sens qu'avec elle. */
+  const grilleDisponible = () => { const l = courant?.univers.lieux[courant.partie.lieuCourant]; return !!l && !!grilleDuLieu(l); };
+  /** Le glissement dans la vue « Table » : la position (fractions de la course) que la carte montrée à la table doit avoir. */
+  function cadrer({ x, y }) { defil = pu_borner({ x, y }); ordreDefil++; diffuser(); }
   function choisirPoint(id, ancre = null) {
     const lieu = courant && !ecran.hidden ? courant.univers.lieux[courant.partie.lieuCourant] : null;
     if (!lieu || typeof id !== 'string' || !lieu.points.some((q) => q.id === id)) return;
@@ -471,5 +470,5 @@ export function creerRegieUnivers(ctx) {
     rendre();
   }
 
-  return { choisirPoint, cleOuverte, listerDepart, diffuser, majFil, monde, versLeLieu, conduireA, consulterLieu, fermer, reprendre, ouvrirParId, defiler, redessiner: () => { if (courant && !ecran.hidden) rendre(); }, actif: () => !ecran.hidden };
+  return { cleCarte, grilleDisponible, cadrer, choisirPoint, cleOuverte, listerDepart, diffuser, majFil, monde, versLeLieu, conduireA, consulterLieu, fermer, reprendre, ouvrirParId, redessiner: () => { if (courant && !ecran.hidden) rendre(); }, actif: () => !ecran.hidden };
 }

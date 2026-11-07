@@ -68,10 +68,6 @@ body.presentation a { color: var(--accent); }
 #toast.visible { opacity: 1; pointer-events: auto; transform: translateY(0); }
 @media (prefers-reduced-motion: reduce) { #toast { transition: none; } }
 
-.croix { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
-.croix button { min-width: max(40px, var(--cible)); }
-.croix .fleche-inverse .icone { transform: rotate(180deg); } /* flèches droite et bas : les icônes gauche et haut retournées */
-.defilement { margin-top: 8px; font-size: 14px; }
 .pas-calibrage { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 8px; }
 .pas-calibrage output { min-width: 72px; text-align: center; font-weight: 600; }
 
@@ -87,10 +83,6 @@ body.presentation a { color: var(--accent); }
 .selection-entete { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .selection-entete h2 { margin: 0; }
 .selection-titre { margin: 4px 0 0; font-weight: 600; overflow-wrap: anywhere; }
-.mode-table { border: 0; padding: 0; margin: 8px 0 0; min-width: 0; }
-.mode-table legend { padding: 0; font-size: 13px; color: var(--texte-doux); }
-.mode-table .ligne { justify-content: flex-start; margin: 2px 0; }
-.mode-table input[type="radio"] { accent-color: var(--accent); min-width: 18px; min-height: 18px; }
 .elements-salle { margin-top: 8px; font-size: 14px; }
 .elements-salle .liste-portes { max-height: 240px; overflow: auto; }
 .liste-portes button[aria-pressed="true"] { background: var(--accent); color: var(--accent-texte); border-color: transparent; font-weight: 600; }
@@ -302,3 +294,13 @@ body.vue-apercu .coin, body.vue-apercu #retour-regie { display: none !important;
 .ouvrir-table-entree { justify-content: flex-start; min-height: var(--cible); font-size: 13px; }
 .ouvrir-table-entree[hidden] { display: none; }
 @media (max-width: 760px) { .ouvrir-table-bouton > span:nth-child(2) { display: none; } .ouvrir-table-bouton { min-width: 44px; justify-content: center; } .ouvrir-table-menu { min-width: 11rem; } }
+
+/* Le contrôle de cadrage de la vue « À la table » (js/atelier/vue-table-regie.js) : posé sur la carte, en bas, au centre. */
+.apercu-scene { position: relative; }
+.cadrage-table { position: absolute; left: 50%; bottom: var(--esp-3); transform: translateX(-50%); z-index: 5; display: inline-flex; align-items: center; gap: 2px; padding: 3px; background: var(--panneau); border: 1px solid var(--bord); border-radius: 10px; box-shadow: 0 4px 14px rgba(0, 0, 0, .5); }
+.cadrage-table[hidden] { display: none; }
+.cadrage-bouton { min-height: 34px; padding: 0 var(--esp-3); font-size: 13px; font-weight: 600; }
+.cadrage-bouton[aria-pressed="true"] { background: var(--p-surface-survol, var(--bord)); color: var(--texte); }
+.cadrage-bouton:disabled { opacity: .4; cursor: not-allowed; }
+.cadrage-valeur { white-space: nowrap; min-width: 5.5ch; text-align: center; font-size: 13px; font-variant-numeric: tabular-nums; }
+@media (max-width: 760px) { .cadrage-bouton { min-height: 44px; min-width: 44px; } }

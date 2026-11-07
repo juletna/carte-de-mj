@@ -25,12 +25,12 @@ import { nomCase, libelleDePorte } from './coordonnees.js';
 import { nomAffiche } from './parseur/lexique.js';
 import { nomVariante } from './catalogue.js';
 import { creerMicro } from './voix.js';
-import { affichageDeReglages, optionsRendu } from './affichage.js';
+import { affichageDeReglages, optionsRendu, modeTable, ZOOM_TABLE_MIN, ZOOM_TABLE_MAX } from './affichage.js';
 import { telephone, marquerDefilement, tailleQuiTient } from './telephone.js';
 import { $, h, bouton } from './dom.js';
 import { icone } from './icones.js';
 import { pluriel } from './format.js';
-import { ouvrirCanal, messageEtat, messageDefiler, lirePosition, MESSAGES } from './protocole-table.js';
+import { ouvrirCanal, messageEtat, messageCadrage, lirePosition, lireFacteurZoom, lireCadrage, MESSAGES } from './protocole-table.js';
 import { creerEcranTable } from './ecran-table.js';
 import { creerDepart } from './regie-depart.js';
 import { creerSelection } from './regie-selection.js';
@@ -55,6 +55,7 @@ export function demarrerRegie() {
     presentations: {},   // { idDonjon: présentation } (copie en mémoire de ce qui est sauvegardé)
     p: null,             // présentation en cours
     consultee: null,     // salle que le MJ regarde (≠ forcément la salle à la table) : jamais sauvegardée
+    zoom: { cle: null, valeur: 1 }, // zoom de la vue table, par carte (voir affichageTable)
     selection: null,     // { genre, id } : les identifiants sont stables dans la copie
     message: '',
     messageCommande: null, // { texte, ok } : réponse à la dernière commande rapide (régie seulement)
@@ -92,7 +93,14 @@ export function demarrerRegie() {
 
   // --- Communication avec la fenêtre table -------------------------------------------------------
   /** Pendant le calibrage, la table est à l'échelle réelle et dessine la carte bancaire ; ce réglage passager n'est pas enregistré. */
-  const affichageTable = () => (etat.calibrage ? { ...affichageDeReglages(r), mode: 'reel', calibrage: true } : affichageDeReglages(r));
+  // Le zoom de la vue table est celui de la régie (source unique) : propre à la carte montrée, il revient au cadrage de base quand elle change.
+  const cleCarte = () => (etat.p ? `d:${etat.p.donjon.id}:${etat.p.salleCourante}` : ctx.univers?.cleCarte() ?? null);
+  const zoomTable = () => { const cle = cleCarte(); if (etat.zoom.cle !== cle) etat.zoom = { cle, valeur: 1 }; return etat.zoom.valeur; };
+  const affichageTable = () => {
+    const a = etat.calibrage ? { ...affichageDeReglages(r), mode: 'reel', calibrage: true } : affichageDeReglages(r);
+    const z = zoomTable();
+    return z === 1 ? a : { ...a, zoom: z };
+  };
   // Le plan complet essaie plusieurs dispositions : on ne le refait que si les salles, leurs portes ou les liaisons ont changé.
   let dispositionPartie = { cle: null, plan: null };
   function dispositionDePartie() {
@@ -113,9 +121,30 @@ export function demarrerRegie() {
   }
   /** Envoie à la table son contenu (seule la régie qui a la main le fait). */
   function diffuser() {
+    ctx.jouer?.vues.majCadrage(); // le contrôle de cadrage de la vue « À la table » suit le zoom et le mode
     if (!commande.main) return;
     if (univers.diffuser()) return; // une carte d'univers est affichée : c'est elle que voit la table (js/regie-univers.js)
     canal?.postMessage(messageEtat(contenuTable()));
+  }
+
+  // --- Cadrage de la vue table : zoom (− / +), Remplir, Réel ; molette, pincer et glisser dans la vue « À la table » ---------------------
+  const cadrage = {
+    lire: () => ({ zoom: zoomTable(), reel: modeTable(r) === 'reel', reelPossible: etat.p ? true : univers.grilleDisponible() }),
+    /** Un cran de zoom (ou un facteur de geste). Depuis « Réel », on passe à « Remplir » : il n'y a pas de verrou. */
+    zoomer(facteur) {
+      let z = zoomTable();
+      if (modeTable(r) === 'reel') { r.modeTable = 'remplir'; z = 1; reglages.sauver(); }
+      etat.zoom.valeur = Math.max(ZOOM_TABLE_MIN, Math.min(ZOOM_TABLE_MAX, Math.round(z * facteur * 1000) / 1000));
+      diffuser(); montrerIci();
+    },
+    remplir() { r.modeTable = 'remplir'; etat.zoom.valeur = 1; reglages.sauver(); diffuser(); montrerIci(); },
+    reel() { r.modeTable = 'reel'; etat.zoom.valeur = 1; reglages.sauver(); diffuser(); montrerIci(); },
+  };
+  /** Un glissement dans la vue « Table » : la position est renvoyée à la table (la carte du monde la garde dans sa partie d'affichage). */
+  function cadrerTable(position) {
+    if (univers.actif()) { univers.cadrer(position); return; }
+    if (commande.main) canal?.postMessage(messageCadrage(position.x, position.y));
+    if (etat.pleinIci) ecran.cadrer(position);
   }
   /** « Plein écran ici » : la même chose, dessinée par l'écran de table de cette page (l'encart relu comme le fait la fenêtre table). */
   function montrerIci() {
@@ -142,6 +171,8 @@ export function demarrerRegie() {
       else if (action === 'diffuser') diffuser();
       else if (action === 'presence') canal.postMessage({ type: table.PRESENCE });
       else if (action === 'appliquer' && m.type === MESSAGES.TABLE_DEPLACER) deplacerDepuisTable(m.id, m.x, m.y);
+      else if (action === 'appliquer' && m.type === MESSAGES.TABLE_ZOOM) { const f = lireFacteurZoom(m); if (f) cadrage.zoomer(f); }
+      else if (action === 'appliquer' && m.type === MESSAGES.TABLE_CADRER) { const p = lireCadrage(m); if (p) cadrerTable(p); }
       else if (action === 'appliquer' && m.type === MESSAGES.TABLE_POINT) univers.choisirPoint(m.id, jouer.vues.ancre(lirePosition(m)));
       else if (action === 'appliquer' && etat.p) viserCase(etat.p.salleCourante, m.x, m.y);
     };
@@ -643,16 +674,6 @@ export function demarrerRegie() {
     }
   });
 
-  for (const b of document.querySelectorAll('[data-defiler]')) {
-    b.addEventListener('click', () => {
-      const [dx, dy] = b.dataset.defiler.split(',').map(Number);
-      const recentrer = dx === 0 && dy === 0;
-      if (univers.actif()) { univers.defiler(dx, dy, recentrer); return; } // une carte d'univers : la table défile selon univers-etat
-      if (commande.main) canal?.postMessage(messageDefiler(dx, dy, recentrer));
-      if (etat.pleinIci) ecran.defiler({ dx, dy, recentrer });
-    });
-  }
-
   // --- Câblage des modules de la régie ---------------------------------------------------------------
   // Tout ce qui précède est déclaré (fonctions) ou défini (constantes) : on peut le donner aux modules. Ils ne l'appellent
   // qu'une fois la page démarrée, jamais pendant leur création.
@@ -670,6 +691,7 @@ export function demarrerRegie() {
   let reglages;
   const jouer = creerJouer({ racine: $('regie'), donnees: donneesJeu, partie: partieJeu, surChoix: choisirDansArbre,
     ouvrirTable: { fenetre: ouvrirFenetreTable, pleinIci: entrerPleinIci },
+    cadrage,
     affichage: { regie: true, garderOuvert: () => etat.calibrage === true, lire: () => r, surChangement: () => { reglages.sauver(); rendre(); diffuser(); } } });
   reglages = creerReglages(ctx);
   ctx.jouer = jouer;

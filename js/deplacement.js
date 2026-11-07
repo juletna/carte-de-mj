@@ -63,7 +63,7 @@ export function porteSous(cx, cy, plan, profondeur = EPAISSEUR_CLIC) {
  *   deplacables?: string[]              genres qui peuvent bouger (par défaut : tous)
  * }} options
  */
-export function activerDeplacement(canvas, { plan, taille, apercu, deposer, cliquer, commencer, deplacables, portesLarges = false, filtre = () => true, versCanvas }) {
+export function activerDeplacement(canvas, { plan, taille, apercu, deposer, cliquer, commencer, deplacables, portesLarges = false, filtre = () => true, versCanvas, glisserVide = null }) {
   const peutBouger = (genre) => !deplacables || deplacables.includes(genre);
   let prise = null; // { genre, element, depart, glisse, decalX, decalY, x, y } ou, pour une porte, { mur, position }
   let image = 0;
@@ -122,6 +122,32 @@ export function activerDeplacement(canvas, { plan, taille, apercu, deposer, cliq
     });
   }
 
+  /**
+   * Un geste qui part d'une case sans rien dessus : un simple clic reste un clic (`cliquer`), un glissement décale la carte (`glisserVide.deplacer(dx, dy)` en px écran,
+   * puis `glisserVide.fin()`). Le seuil de 6 px sépare les deux.
+   */
+  function glisserDansLeVide(depart, caseVide) {
+    let x = depart.clientX, y = depart.clientY, bouge = false;
+    const bouger = (m) => {
+      if (m.pointerId !== depart.pointerId) return;
+      if (!bouge && Math.hypot(m.clientX - depart.clientX, m.clientY - depart.clientY) < 6) return;
+      bouge = true;
+      glisserVide.deplacer(x - m.clientX, y - m.clientY);
+      x = m.clientX; y = m.clientY;
+    };
+    const finir = (m) => {
+      if (m.pointerId !== depart.pointerId) return;
+      window.removeEventListener('pointermove', bouger);
+      window.removeEventListener('pointerup', finir);
+      window.removeEventListener('pointercancel', finir);
+      if (bouge) glisserVide.fin();
+      else if (m.type === 'pointerup') cliquer?.(null, caseVide, { x: m.clientX, y: m.clientY });
+    };
+    window.addEventListener('pointermove', bouger);
+    window.addEventListener('pointerup', finir);
+    window.addEventListener('pointercancel', finir);
+  }
+
   canvas.addEventListener('pointerdown', (e) => {
     if (e.button !== 0 || !filtre(e)) return;
     const [cx, cy] = enCases(e);
@@ -134,7 +160,11 @@ export function activerDeplacement(canvas, { plan, taille, apercu, deposer, cliq
       else trouve = { genre: large.genre, element: large.element };
     }
     surlignage.cacher();
-    if (!trouve) { cliquer?.(null, [Math.floor(cx), Math.floor(cy)], { x: e.clientX, y: e.clientY }); return; }
+    if (!trouve) {
+      if (glisserVide) { glisserDansLeVide(e, [Math.floor(cx), Math.floor(cy)]); return; }
+      cliquer?.(null, [Math.floor(cx), Math.floor(cy)], { x: e.clientX, y: e.clientY });
+      return;
+    }
     const { genre, element } = trouve;
     if (!peutBouger(genre) && !cliquer) return; // ni déplaçable ni cliquable : on ignore
     e.preventDefault();

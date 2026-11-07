@@ -119,6 +119,7 @@
    Onglets soulignés d'or ; chaque bloc d'onglet devient une section (filet, titre 13 px clair) ; les listes d'éléments, des rangées en creux. */
 .atelier-onglets { gap: 0; padding: 0 var(--esp-2); border-bottom: 1px solid var(--p-filet-fort); }
 .atelier-onglet.btn { min-height: max(40px, var(--cible)); padding: 0 var(--esp-1); border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: none; color: var(--p-texte-3); font-size: 13.5px; font-weight: 600; }
+.atelier-onglets.onglet-unique { visibility: hidden; }
 .atelier-onglet.btn:hover { background: none; color: var(--p-texte-1); }
 .atelier-onglet.btn[aria-selected="true"] { background: none; border-color: transparent; border-bottom-color: var(--accent); color: var(--p-texte-1); }
 #regie .atelier-inspecteur .onglet-contenu { gap: 0; padding: 0 0 var(--esp-3); font-size: 14px; color: var(--p-texte-2); }

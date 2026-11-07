@@ -1,6 +1,6 @@
 # Refonte du panneau de droite de Jouer
 
-**Statut : proposition du 7 novembre 2026, non décidée.** Rien n'est fait tant que Julien ne l'a pas validée. À suivre avec `docs/design-panneaux.md`.
+**Statut : validée par Julien le 7 novembre 2026, réalisée (les six étapes, voir « État de la livraison » en bas).** À suivre avec `docs/design-panneaux.md`.
 
 Maquette de l'état actuel (les quatre vues, avec les incohérences numérotées) : [`maquettes/panneau-jouer-avant.html`](maquettes/panneau-jouer-avant.html), à ouvrir dans le navigateur. Maquette de la proposition : [`maquettes/panneau-jouer-apres.html`](maquettes/panneau-jouer-apres.html).
 
@@ -58,10 +58,36 @@ Le panneau de droite de la régie change d'onglets selon la carte affichée : **
 3. ✅ **Livrée le 7 novembre 2026.** Section « Notes » dans Ici d'un monde : préparation en lecture seule + champ de notes de partie (`notesPartie: { idLieu: texte }` dans la partie du monde, `js/univers-partie.js`, testé ; absent des anciennes parties). Texte d'origine : Notes de partie pour les lieux (stockage dans la partie du monde). L'onglet Joueurs n'est pas touché (hors périmètre pour l'instant).
 4. ✅ **Livrée le 7 novembre 2026.** « Visible à la table » : mêmes rangées à interrupteurs (donjon : Monstres, Objets, Plan du donjon ; monde : Points, Noms des points). Nouveau champ de partie de monde `masquerPoints` (la table ne voit aucun point). Texte d'origine : Unifier « Visible à la table » entre salle et lieu.
 5. ✅ **Livrée le 7 novembre 2026** (deux commits : donjon, puis monde). Liste « Cachés » (Révéler par ligne, Révéler tout, section masquée quand rien n'est caché) pour les éléments/portes d'une salle et pour les points d'un monde ; listes d'éléments, de portes et de points supprimées ; le panneau « Sélection » (donjon) et le bloc « Point choisi » (monde) deviennent des popovers posés à côté du clic (`js/popover-element.js`, placement de `js/mise-en-page.js`), la position du point touché dans la vue « À la table » part avec le message `table-point` (fractions du cadre). Sous 760 px : feuille en bas (CSS existante). Limites : dans la vue « À la table » d'un donjon, un pion ne se sélectionne toujours pas (comme avant : seuls glisser et viser passent par le canal) ; `js/mj/bulle.js` n'est pas réutilisé tel quel (seulement `positionBulle`). Texte d'origine : Liste « Cachés » (Révéler / Révéler tout) à la place des listes d'éléments, de points et de portes ; popover d'élément sur la carte (réutilise `js/mj/bulle.js`).
-6. Contrôle de cadrage sur la carte (− / + / Remplir / Réel), défilement et zoom directement sur la carte dans la vue « À la table » (nouveau message de zoom sur le canal, gestes envoyés depuis le cadre, la régie reste la source). Étape à part, la plus lourde.
+6. ✅ **Livrée le 7 novembre 2026.** Contrôle `− 100 % +  Remplir  Réel` posé sur la vue « À la table » (Réel grisé sans grille, + ou − sort de Réel) ; molette et pincer zooment, glisser décale (dans le cadre, `js/cadrage-table.js`) ; le zoom vit dans la régie (`affichage.zoom`, propre à chaque carte, remis à 1 quand la carte change) ; messages `table-zoom`, `table-cadrer`, `cadrage` ; la position (défilement) reste locale à chaque écran et se rejoue par `cadrage`. L'onglet « Écran » est supprimé (Taille de la carte, Défilement, Régler l'écran de table n'existent plus) ; dans un monde, la rangée d'onglets devient invisible (même hauteur : le panneau reste aligné). Texte d'origine : Contrôle de cadrage sur la carte (− / + / Remplir / Réel), défilement et zoom directement sur la carte dans la vue « À la table » (nouveau message de zoom sur le canal, gestes envoyés depuis le cadre, la régie reste la source). Étape à part, la plus lourde.
 
 Les étapes 3 et 4 touchent la logique de partie (`js/partie.js`, `js/regie-univers.js`) et dépendent du chantier « arbre de Jouer » en cours dans sa propre session : à coordonner avant de les lancer.
 
 ## Piste pour plus tard : l'onglet Joueurs
 
 Non décidée, notée le 7 novembre pour ne pas la perdre. Joueurs = le résumé du groupe : une ligne par personnage (nom, barre de PV avec − et + rapides, états en pastilles, position cliquable qui sélectionne le pion) ; le pion touché sur la carte ouvre le même popover que les points (PV −/+, états, fiche) ; dans un monde, mêmes lignes sans position (« avec le groupe »). Question ouverte : les PV changés en jeu ne vivent aujourd'hui que dans la partie (la fiche ne bouge pas) ; faut-il pouvoir les reporter sur la fiche en fin de séance ?
+
+## Blocages
+
+Aucun : les six étapes ont passé tests et vérification navigateur.
+
+## État de la livraison (7 novembre 2026)
+
+**En production (poussé sur `main`, un ou deux commits par étape, tous revertibles seuls avec `git revert <sha>`) :**
+
+| Étape | Contenu | Commit |
+|---|---|---|
+| 1 | Onglets « Ici », « Ouvrir la table ▾ » dans la barre, « Reprendre la main » seulement dans le bandeau, taille d'une case et Adapter dans Affichage | 61b1d5b |
+| 2 | Popover « Affichage » redessiné + matériel de la table (↺ ↻ avec aperçu, miroir, mm, calibrage qui se déplie) ; Plan du donjon dans Ici | 6985ac8 |
+| 3 | Notes de partie des lieux d'un monde | fa2e6e0 |
+| 4 | « Visible à la table » en interrupteurs, unifié salle / lieu | db5905f |
+| 5 | « Cachés » + popover d'élément (donjon c0f5a43, monde bd82e94) | c0f5a43, bd82e94 |
+| 6 | Cadrage sur la carte (zoom, Remplir, Réel, glisser, molette, pincer), suppression de l'onglet Écran | voir `git log` |
+
+**Choix faits sans demander :** le stepper de taille réelle avance de 1 mm ; « Noms des points » masque aussi le nom du lieu à la table (comme avant) ; `masquerPoints` est un nouveau champ de la partie de monde ; le zoom est transitoire (non enregistré) et revient à 100 % au changement de carte ; le texte « Projet libre (MIT) » de l'ancien onglet Table a disparu ; l'en-tête de l'onglet Ici garde le type « Salle ».
+
+**Non vérifié / limites :**
+- Les captures de la maquette n'ont pas été comparées pixel à pixel ; vérification faite à la main sur des parties de donjon et de monde de démonstration (le monde de démonstration n'a pas d'image : le zoom de la carte du monde est testé sous Node mais pas vu à l'écran).
+- Pas de test sur un vrai écran de table / une vraie fenêtre table (le navigateur d'aperçu bloque `window.open`), ni sur un vrai téléphone (seulement l'émulation 375 px).
+- Dans la vue « À la table » d'un donjon, un pion ne se sélectionne toujours pas (seuls glisser un pion et viser passent par le canal).
+- Les notes de partie d'un lieu sont réécrites si la régie redessine pendant la frappe (le champ perd le focus) : à surveiller.
+- Le glisser et le zoom ne marchent que dans le cadre de la vue « À la table » ; la fenêtre table des joueurs ne reçoit que le résultat.

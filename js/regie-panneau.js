@@ -38,8 +38,8 @@ export function lierPanneau(racine = document) {
  * regie.js et regie-selection.js retrouvent leurs nœuds. Appelée une fois, après `lierPanneau`.
  */
 export function sectionnerOnglets(creerSection, $ = (id) => document.getElementById(id)) {
-  const salle = $('onglet-salle'), joueurs = $('onglet-joueurs'), table = $('onglet-table');
-  if (!salle || !joueurs || !table) return;
+  const salle = $('onglet-salle'), joueurs = $('onglet-joueurs');
+  if (!salle || !joueurs) return;
   const section = (cle, titre, blocs, options = {}) => {
     for (const b of blocs) if (b.tagName === 'DETAILS') b.open = true;
     return creerSection({ cle: `regie:${cle}`, titre, enfants: blocs, ...options }).element;
@@ -63,12 +63,4 @@ export function sectionnerOnglets(creerSection, $ = (id) => document.getElementB
   joueurs.replaceChildren(
     section('personnages', 'Personnages', [persos]),
     section('ajout-joueur', 'Ajouter un joueur', [ajout], { repliee: true }));
-  const defilement = table.querySelector('.bloc-table > details.defilement');
-  const blocTable = table.querySelector('.bloc-table');
-  const avant = [...table.children].filter((e) => e !== blocTable && !e.matches('p.note:last-child'));
-  const pied = table.querySelector(':scope > p.note:last-child');
-  table.replaceChildren(...avant,
-    section('table', 'Carte à la table', [blocTable]),
-    ...(defilement ? [section('defilement', 'Faire défiler la vue table', [defilement], { repliee: true })] : []),
-    ...(pied ? [pied] : []));
 }

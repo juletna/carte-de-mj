@@ -27,6 +27,7 @@ export const TAILLE_MAX_REMPLIR = 300; // plus grande case atteinte en « rempli
 export const ECHELLE_PAR_DEFAUT = 1.5; // mètres par case, pour lire « une salle de 9 mètres »
 export const ROTATIONS_TABLE = [0, 90, 180, 270]; // degrés, dans le sens des aiguilles d'une montre
 export const CASE_MM_PAR_DEFAUT = 25;  // taille réelle visée d'une case (figurines de 25 mm) ; 25,4 mm = 1 pouce
+export const ZOOM_TABLE_MIN = 0.25, ZOOM_TABLE_MAX = 6; // zoom de la vue table par rapport au cadrage de base (Remplir, ou Réel) : 1 = le cadrage de base
 export const CASE_MM_MIN = 10;
 export const CASE_MM_MAX = 50;
 const CARTE_BANCAIRE_MM = { largeur: 85.6, hauteur: 53.98 };
@@ -98,10 +99,13 @@ export function tailleRemplir(plan, largeur, hauteur) {
  * Case à utiliser à la table. En « reel », toujours `taille`, sans la moindre adaptation (échelle exacte).
  * En « remplir », le calcul ci-dessus ; `taille` sert de repli tant que la fenêtre n'a pas de dimensions.
  */
-export function tailleTable({ mode, plan, vue, taille }) {
-  if (mode !== 'remplir') return taille;
-  return tailleRemplir(plan, vue?.largeur, vue?.hauteur) ?? taille;
+export function tailleTable({ mode, plan, vue, taille, zoom = 1 }) {
+  const base = mode !== 'remplir' ? taille : (tailleRemplir(plan, vue?.largeur, vue?.hauteur) ?? taille);
+  return base * zoomValide(zoom);
 }
+
+/** Le zoom de la vue table : un nombre dans les bornes, sinon 1 (le cadrage de base). */
+export const zoomValide = (z) => (Number.isFinite(z) && z >= ZOOM_TABLE_MIN && z <= ZOOM_TABLE_MAX ? z : 1);
 
 /**
  * L'affichage de la table tel que le décrivent des réglages enregistrés : { taille, grille, reperes, mode }, plus `cases` (si réglé), `theme`,
@@ -137,6 +141,7 @@ export const validerAffichage = (a, defaut) => ({
   ...(a?.miroir === true ? { miroir: true } : {}),
   ...(caseMmValide(a?.caseMm) ? { caseMm: a.caseMm } : {}),
   ...(a?.calibrage === true ? { calibrage: true } : {}),
+  ...(Number.isFinite(a?.zoom) && zoomValide(a.zoom) !== 1 ? { zoom: a.zoom } : {}),
 });
 
 /** La transformation CSS de l'écran de table ; vide sans rotation ni miroir, pour ne rien changer au dessin. */

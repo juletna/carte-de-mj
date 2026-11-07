@@ -99,7 +99,7 @@ export const nombreDeCases = (g, largeur, hauteur) => ({ colonnes: arrondi(large
  * @param {{mode:string, grille:object|null, taille:number, image:{largeur:number,hauteur:number}, zone:{largeur:number,hauteur:number}}} o
  * @returns {{largeur:number, hauteur:number, echelle:number, defile:boolean, reel:boolean}|null} null tant qu'on ne connaît pas une taille
  */
-export function dimensionsTable({ mode, grille, taille, image, zone }) {
+export function dimensionsTable({ mode, grille, taille, image, zone, zoom = 1 }) {
   if (!(image?.largeur > 0) || !(image?.hauteur > 0)) return null;
   const reel = mode === 'reel' && !!grille && taille > 0;
   let echelle;
@@ -108,6 +108,7 @@ export function dimensionsTable({ mode, grille, taille, image, zone }) {
     if (!(zone?.largeur > 0) || !(zone?.hauteur > 0)) return null;
     echelle = Math.min(zone.largeur / image.largeur, zone.hauteur / image.hauteur);
   }
+  echelle *= Number.isFinite(zoom) && zoom > 0 ? zoom : 1; // le zoom de la vue table, par rapport au cadrage de base
   const largeur = image.largeur * echelle, hauteur = image.hauteur * echelle;
   return { largeur, hauteur, echelle, reel, defile: !!zone && (largeur > zone.largeur + 0.5 || hauteur > zone.hauteur + 0.5) };
 }

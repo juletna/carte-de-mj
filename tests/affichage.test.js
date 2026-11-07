@@ -11,6 +11,7 @@ import {
 import { chargerReglages, fusionnerReglages, enregistrerReglages, CLE_REGLAGES } from '../js/stockage.js';
 import { dessiner } from '../js/rendu/moteur.js';
 import { tailleQuiTient } from '../js/telephone.js';
+import { dimensionsTable } from '../js/univers-grille.js';
 import { analyser } from '../js/parseur/index.js';
 import { verifier, egal, fauxStock, executerSuite } from './mini-test.js';
 
@@ -24,6 +25,16 @@ function attribut(html, id, nom) {
 }
 
 const TESTS = (pages) => [
+  ['zoom de la vue table : multiplie le cadrage de base (Remplir ou Réel), borné, omis quand il vaut 1', () => {
+    egal(tailleTable({ mode: 'reel', plan: null, vue: null, taille: 48, zoom: 2 }), 96, 'réel × 2');
+    egal(tailleTable({ mode: 'reel', plan: null, vue: null, taille: 48 }), 48, 'sans zoom : inchangé');
+    egal(tailleTable({ mode: 'reel', plan: null, vue: null, taille: 48, zoom: 99 }), 48, 'zoom hors bornes : le cadrage de base');
+    const defaut = { mode: 'remplir', taille: 48, grille: true, reperes: true };
+    egal(validerAffichage({ ...defaut, zoom: 1.6 }, defaut).zoom, 1.6, 'zoom relu');
+    egal('zoom' in validerAffichage({ ...defaut, zoom: 1 }, defaut), false, 'zoom 1 : aucune clé');
+    egal('zoom' in validerAffichage({ ...defaut, zoom: 0 }, defaut), false, 'zoom invalide écarté');
+    egal(dimensionsTable({ mode: 'remplir', grille: null, taille: 48, image: { largeur: 1000, hauteur: 500 }, zone: { largeur: 500, hauteur: 500 }, zoom: 2 }).largeur, 1000, 'carte du monde zoomée');
+  }],
   ['écran de table : orientation, miroir et taille réelle sont envoyés seulement s’ils diffèrent du défaut', () => {
     egal(affichageDeReglages({ taille: 60, grille: true, modeTable: 'reel', rotationTable: 180, miroirTable: true, caseMm: 25.4 }),
       { taille: 60, grille: true, reperes: true, mode: 'reel', rotation: 180, miroir: true, caseMm: 25.4 }, 'tout réglé');

@@ -27,6 +27,9 @@ export const MESSAGES = {
   TABLE_DEPLACER: 'table-deplacer',
   TABLE_VISER: 'table-viser',
   TABLE_POINT: 'table-point',
+  TABLE_ZOOM: 'table-zoom',
+  TABLE_CADRER: 'table-cadrer',
+  CADRAGE: 'cadrage',
 };
 
 // --- Régie → table ----------------------------------------------------------------------------------------
@@ -65,4 +68,21 @@ export const messagePoint = (id, x, y) => ({ type: MESSAGES.TABLE_POINT, id, ...
 export function lirePosition(m) {
   const ok = (v) => typeof v === 'number' && v >= 0 && v <= 1;
   return ok(m?.x) && ok(m?.y) ? { x: m.x, y: m.y } : null;
+}
+
+// --- Cadrage : zoom et position de la vue table ---------------------------------------------------------------
+// Le zoom est celui de la régie (source unique : `affichage.zoom`). Dans la vue « Table » de la régie, la molette, le pincer et le glisser ne font
+// qu'envoyer des gestes : `table-zoom` (un facteur) et `table-cadrer` (la position, en fractions 0–1 de la course) ; la régie les applique et les
+// renvoie aux tables (`cadrage` : la position ; le zoom part dans l'affichage).
+
+/** Un geste de zoom : le facteur à appliquer au zoom actuel (borné à 0,5–2 par geste). */
+export const messageZoom = (facteur) => ({ type: MESSAGES.TABLE_ZOOM, facteur });
+export const lireFacteurZoom = (m) => (typeof m?.facteur === 'number' && Number.isFinite(m.facteur) ? Math.max(0.5, Math.min(2, m.facteur)) : null);
+const borne01 = (v) => (typeof v === 'number' && v >= 0 && v <= 1 ? v : null);
+/** Une position de la vue table, en fractions (0–1) de la course de défilement : table → régie (`table-cadrer`) puis régie → tables (`cadrage`). */
+export const messageCadrer = (x, y) => ({ type: MESSAGES.TABLE_CADRER, x, y });
+export const messageCadrage = (x, y) => ({ type: MESSAGES.CADRAGE, x, y });
+export function lireCadrage(m) {
+  const x = borne01(m?.x), y = borne01(m?.y);
+  return x === null || y === null ? null : { x, y };
 }
