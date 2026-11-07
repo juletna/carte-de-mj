@@ -45,7 +45,9 @@ body.atelier-avec-inspecteur { --largeur-inspecteur: 330px; }
 .atelier-badge.discret { border-color: var(--bord); color: var(--texte-doux); }
 /* Mode jeu : pastille d'état (à la table / déjà montré / pas encore). */
 .atelier-pastille { flex: none; width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--texte-doux); }
-.atelier-pastille.table { background: var(--accent); border-color: var(--accent); }
+.atelier-pastille.table { background: var(--succes); border-color: var(--succes); } /* vert : où est la table (le doré est ce que la régie regarde) */
+.atelier-ligne.non-vu .atelier-noeud-texte, .atelier-ligne.non-vu .atelier-icone, .atelier-ligne.non-vu .univers-vignette { opacity: 0.55; } /* pas encore vu : atténué */
+.atelier-noeud.courant > .atelier-ligne.non-vu .atelier-noeud-texte { opacity: 1; }
 .atelier-pastille.decouvert { background: var(--texte-doux); }
 .atelier-menu { position: relative; }
 .atelier-menu > summary { list-style: none; cursor: pointer; }

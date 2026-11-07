@@ -92,6 +92,42 @@ export function allerAuLieu(partie, univers, idLieu) {
   return true;
 }
 
+/**
+ * Les lieux à traverser du lieu de départ jusqu'à `idLieu` (celui-ci exclu), par les points qui mènent à un lieu : le plus court chemin.
+ * Vide si `idLieu` est le départ ; null si aucun point ne mène jusque-là (lieu non relié).
+ */
+export function cheminVers(univers, idLieu) {
+  const depart = lieuDeDepart(univers);
+  if (!depart || !(idLieu in univers.lieux)) return null;
+  const vus = new Map([[depart, []]]);
+  const file = [depart];
+  for (let i = 0; i < file.length; i++) {
+    const id = file[i];
+    if (id === idLieu) return vus.get(id);
+    for (const q of univers.lieux[id].points) {
+      const but = q.vers?.lieu;
+      if (but !== undefined && but in univers.lieux && !vus.has(but)) { vus.set(but, [...vus.get(id), id]); file.push(but); }
+    }
+  }
+  return null;
+}
+/**
+ * Conduit la table à un lieu depuis l'arbre, vers le haut comme vers le bas : un lieu du chemin y remonte ; un autre est atteint par son
+ * chemin dans le monde (les lieux parents deviennent le fil d'Ariane), à défaut par un saut (`allerAuLieu`). Sort du donjon. Marque le lieu vu.
+ */
+export function conduireAuLieu(partie, univers, idLieu) {
+  if (!(idLieu in univers.lieux)) return false;
+  const i = partie.chemin.indexOf(idLieu);
+  if (i >= 0 || idLieu === partie.lieuCourant) return allerAuLieu(partie, univers, idLieu);
+  const chemin = cheminVers(univers, idLieu);
+  if (!chemin) return allerAuLieu(partie, univers, idLieu);
+  delete partie.dans;
+  partie.chemin = chemin.slice(-MAX_CHEMIN);
+  partie.lieuCourant = idLieu;
+  ajouteUnique(partie.decouverts, idLieu);
+  return true;
+}
+
 /** Le fil d'Ariane : [{ id, nom }] du lieu de départ au lieu courant (un lieu disparu garde son identifiant comme nom). */
 export const filDAriane = (partie, univers) => [...partie.chemin, partie.lieuCourant].map((id) => ({ id, nom: univers.lieux[id]?.nom ?? '(lieu disparu)' }));
 

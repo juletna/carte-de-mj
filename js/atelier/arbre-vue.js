@@ -12,7 +12,7 @@ import { filtrerAtelier, parcourir } from '../atelier-arbre.js';
 
 const SEUIL_FILTRE = 12; // au-delà de ce nombre de nœuds, un champ de filtre apparaît
 const ICONE = { monde: 'monde', lieu: 'monde', donjon: 'donjon', salle: 'donjon', groupe: 'donjon' };
-const LIBELLE_PASTILLE = { table: 'à la table', decouvert: 'découvert', cache: 'pas encore montré' };
+const LIBELLE_PASTILLE = { table: 'à la table', decouvert: 'déjà vu (montré à la table)', cache: 'pas encore vu' };
 
 /**
  * @param {{ mode?: 'preparer'|'jouer', surChoix: (noeud) => void, pastille?: (noeud) => string, titre?: string }} options
@@ -81,6 +81,7 @@ export function creerArbreVue({ mode = 'preparer', surChoix, pastille = null, ti
     if (n.nonRelie) ligne.append(h('span', { className: 'atelier-badge discret', textContent: 'non relié', title: 'Aucun chemin depuis la carte du monde' }));
     if (mode === 'jouer' && pastille && n.type !== 'groupe') {
       const etat = pastille(n);
+      if (etat === 'cache') ligne.classList.add('non-vu'); // lieu pas encore montré à la table : atténué
       ligne.append(h('span', { className: `atelier-pastille ${etat}`, title: LIBELLE_PASTILLE[etat] ?? '', 'aria-label': LIBELLE_PASTILLE[etat] ?? '' }));
     }
     li.append(ligne);

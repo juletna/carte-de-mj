@@ -285,13 +285,33 @@ export function demarrerRegie() {
     return m ? { monde: m.univers.id, lieu: m.partie.lieuCourant } : null;
   }
   function majArbre() { const pos = positionJeu(); if (pos) ctx.jouer?.synchroniser(pos); }
-  /** Un nœud de l'arbre choisi : consulter une salle du donjon en cours, remonter à un lieu du chemin ; ailleurs, on explique comment y aller. */
+  /** La vue « À la table » est choisie en haut de la scène : l'arbre montre alors tout de suite, sinon il consulte. */
+  const vueTable = () => ctx.jouer?.vues.courante() === 'table';
+  /** Un nœud de l'arbre choisi. Vue « À la table » : la table y va tout de suite. Vue « En régie » : consultation d'une salle du donjon en cours, remontée à un lieu du chemin ; ailleurs, on explique. */
   function choisirDansArbre(noeud) {
+    if (vueTable() && montrerDepuisArbre(noeud)) return;
     if (noeud.type === 'salle' && etat.p && noeud.contexte.donjon === etat.p.donjon.id) { consulter(noeud.id); return; }
     if (noeud.type === 'lieu' && univers.versLeLieu(noeud.id)) return;
     if (noeud.type === 'donjon' && etat.p && noeud.id === etat.p.donjon.id) return;
     if (noeud.type === 'monde' && (!noeud.racine || univers.versLeLieu(noeud.racine))) return; // le nœud monde est la carte du monde
     annoncer('Pour aller là, passe par la carte : l’arbre montre où en est la partie, il ne déplace pas la table.', 6000);
+  }
+  /** Met à la table ce que le nœud désigne (lieu, carte du monde, donjon, salle). Faux si l'on ne peut pas (le clic retombe alors sur la consultation). */
+  function montrerDepuisArbre(noeud) {
+    if (commande.retrait) return false; // en retrait la table n'est pas à cette régie
+    if (noeud.type === 'salle' && etat.p && noeud.contexte.donjon === etat.p.donjon.id) { // la salle du donjon à la table
+      viderSauvegarde();
+      etat.consultee = noeud.id;
+      afficherConsulteeATable();
+      return true;
+    }
+    const m = mondeEnCours();
+    if (!m || (noeud.contexte?.monde && m.univers.id !== noeud.contexte.monde)) return false; // un autre monde, ou un donjon hors monde : pas de lieu où conduire la table
+    if (noeud.type === 'monde') return noeud.racine ? univers.conduireA({ lieu: noeud.racine }) : false;
+    if (noeud.type === 'lieu') return univers.conduireA({ lieu: noeud.id });
+    if (noeud.type === 'donjon') return noeud.contexte.lieu ? univers.conduireA({ lieu: noeud.contexte.lieu, donjon: noeud.id }) : false;
+    if (noeud.type === 'salle') return noeud.contexte.lieu ? univers.conduireA({ lieu: noeud.contexte.lieu, donjon: noeud.contexte.donjon, salle: noeud.id }) : false;
+    return false;
   }
 
   // --- Rendu de la régie ---------------------------------------------------------------------------

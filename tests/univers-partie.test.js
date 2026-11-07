@@ -110,6 +110,30 @@ const TESTS = [
     egal([pa.lieuCourant, pa.chemin], [m.id, []], 'comme un retour');
     egal(p.allerAuLieu(pa, univ, 'l-nulle'), false, 'lieu inconnu');
   }],
+  ['cheminVers : le plus court chemin depuis le départ, null si le lieu n’est pas relié', () => {
+    const { univ, m, r, z } = monde();
+    const libre = u.ajouterLieu(univ, { nom: 'Libre', image: IMG('x') });
+    egal(p.cheminVers(univ, m.id), [], 'le départ');
+    egal(p.cheminVers(univ, r.id), [m.id], 'un enfant');
+    egal(p.cheminVers(univ, z.id), [m.id], 'Zone est aussi reliée depuis le monde (point caché compris) : chemin le plus court');
+    egal(p.cheminVers(univ, libre.id), null, 'non relié');
+    egal(p.cheminVers(univ, 'l-nulle'), null, 'inconnu');
+  }],
+  ['conduireAuLieu : descendre, remonter et changer de branche depuis l’arbre, en marquant le lieu vu', () => {
+    const { univ, m, r, z } = monde();
+    const libre = u.ajouterLieu(univ, { nom: 'Libre', image: IMG('x') });
+    const pa = p.creerPartieUnivers(univ);
+    egal(p.conduireAuLieu(pa, univ, r.id), true, 'descendre');
+    egal([pa.lieuCourant, pa.chemin, pa.decouverts.includes(r.id)], [r.id, [m.id], true], 'Région : fil Monde › Région, vue');
+    egal(p.conduireAuLieu(pa, univ, z.id), true, 'voisin');
+    egal([pa.lieuCourant, pa.chemin], [z.id, [m.id]], 'le chemin suit l’arbre, pas la visite');
+    pa.dans = { donjon: 'x' };
+    egal(p.conduireAuLieu(pa, univ, m.id), true, 'remonter');
+    egal([pa.lieuCourant, pa.chemin, pa.dans], [m.id, [], undefined], 'sort du donjon');
+    egal(p.conduireAuLieu(pa, univ, libre.id), true, 'lieu non relié : saut');
+    egal([pa.lieuCourant, pa.chemin], [libre.id, [m.id]], 'l’ancien lieu rejoint le chemin');
+    egal(p.conduireAuLieu(pa, univ, 'l-nulle'), false, 'inconnu');
+  }],
   ['reconcilier : ce qui a disparu est corrigé en le disant', () => {
     const { univ, m, r, z, pc, pr, donjons, d } = monde();
     const pa = p.creerPartieUnivers(univ);

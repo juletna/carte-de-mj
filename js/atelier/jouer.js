@@ -8,6 +8,7 @@
  *   donnees() → { univers: { id: univers }, donjons: { id: donjon }, donjonActif?, mondeActif? }   (voir coquille.js)
  *   partie()  → { univers?: partie d'univers, presentations?: { idDonjon: partie } }               (voir etatJeu, atelier-arbre.js)
  *   surChoix(noeud)  le MJ a choisi un nœud de l'arbre ; la position de l'arbre est ensuite remise sur la vraie position
+ *   jouer.vues.courante()  'regie' | 'table' : la vue choisie en haut de la scène (donne le mode de l'arbre : consulter, ou montrer)
  *   jouer.mode('donjon'|'monde')  quelle composition : les onglets Salle et Joueurs, ou l'onglet Lieu
  *   jouer.synchroniser(position?)  { donjon, salle } ou { monde, lieu } : l'arbre, les pastilles et l'onglet suivent
  */
@@ -97,5 +98,5 @@ export function creerJouer({ racine, donnees, partie, surChoix, affichage }) {
   /** Sous 760 px : replie le panneau bas (la carte et la bulle de sélection reprennent la place). */
   function replier() { if (telephone() && !colonne.classList.contains('replie')) plier.click(); }
 
-  return { coquille, cartouche, mode, replier, synchroniser, choisirOnglet: (id) => coquille.onglets.choisir(id), position: () => derniere };
+  return { coquille, vues, cartouche, mode, replier, synchroniser, choisirOnglet: (id) => coquille.onglets.choisir(id), position: () => derniere };
 }

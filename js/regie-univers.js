@@ -135,7 +135,7 @@ export function creerRegieUnivers(ctx) {
     titre.focus({ preventScroll: true });
   }
 
-  function entrerDonjon({ donjon: idDonjon, salle }, { main = true } = {}) {
+  function entrerDonjon({ donjon: idDonjon, salle }, { main = true, aLaTable = false } = {}) {
     const d = donjons()[idDonjon];
     if (!d) return;
     ecran.hidden = true;
@@ -144,7 +144,10 @@ export function creerRegieUnivers(ctx) {
     const existante = stockage.chargerPresentations()[d.id];
     if (existante) {
       ctx.entrer(existante, { reprise: true, main });
-      if (salle && salle in etat.p.donjon.salles) { etat.consultee = salle; ctx.rendre(); }
+      if (salle && salle in etat.p.donjon.salles) {
+        if (aLaTable) { pres.afficherATable(etat.p, salle); etat.consultee = salle; ctx.modifie(); } // choisie dans l'arbre à la table : la table y va
+        else { etat.consultee = salle; ctx.rendre(); }
+      }
       return;
     }
     ctx.depart.demanderJoueurs(pres.creerPresentation(d, { salleDepart: salle && salle in d.salles ? salle : pres.salleDepart(d) }));
@@ -221,6 +224,28 @@ export function creerRegieUnivers(ctx) {
     if (index === chemin.length - 1 && !m.partie.dans) return true; // déjà ici
     courant = m;
     versLe(index);
+    return true;
+  }
+  /**
+   * Un lieu, un donjon ou une salle choisi dans l'arbre pendant la vue « À la table » : la table y va tout de suite, vers le haut comme vers le bas.
+   * `but` : { lieu } ou { lieu, donjon, salle? } (le lieu qui porte le donjon). Faux si le monde ou le but n'existe plus.
+   */
+  function conduireA(but) {
+    const m = monde();
+    if (!m || !m.univers.lieux[but.lieu]) return false;
+    courant = m;
+    if (!pu.conduireAuLieu(m.partie, m.univers, but.lieu)) return false;
+    if (but.donjon) {
+      const d = donjons()[but.donjon];
+      if (!d) return false;
+      m.partie.dans = { donjon: d.id, ...(but.salle && but.salle in d.salles ? { salle: but.salle } : {}) };
+    }
+    sauver();
+    pointId = null;
+    recentrerTable();
+    if (m.partie.dans) { entrerDonjon(m.partie.dans, { aLaTable: true }); return true; }
+    if (ecran.hidden) quitterLeDonjon();
+    rendre();
     return true;
   }
   /** La liste des parties est demandée : la carte de monde n'est plus affichée. */
@@ -384,5 +409,5 @@ export function creerRegieUnivers(ctx) {
     rendre();
   }
 
-  return { choisirPoint, cleOuverte, listerDepart, diffuser, majFil, monde, versLeLieu, fermer, reprendre, ouvrirParId, defiler, redessiner: () => { if (courant && !ecran.hidden) rendre(); }, actif: () => !ecran.hidden };
+  return { choisirPoint, cleOuverte, listerDepart, diffuser, majFil, monde, versLeLieu, conduireA, fermer, reprendre, ouvrirParId, defiler, redessiner: () => { if (courant && !ecran.hidden) rendre(); }, actif: () => !ecran.hidden };
 }
