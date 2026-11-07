@@ -2,7 +2,7 @@
  * Tests de la logique du calibrage côté régie (js/calibrage.js) : étapes, brouillon de taille, messages envoyés, annulation et fin.
  * Sans DOM ni stockage : marche sous Node et dans tests.html. Et un contrôle des pages : le mode est bien dans presentation.html.
  */
-import { creerCalibrage, accrocherMm, graduationsMm, standardGrise, appliquerCaseMm, appliquerRotation, basculerMiroir, caseMmDe, texteTaille } from '../js/calibrage.js';
+import { fautIlProposerCalibrage, actionOuvrirTable, bandeauCalibrageVisible, creerCalibrage, accrocherMm, graduationsMm, standardGrise, appliquerCaseMm, appliquerRotation, basculerMiroir, caseMmDe, texteTaille } from '../js/calibrage.js';
 import { lireCalibrage } from '../js/protocole-table.js';
 import { verifier, egal, executerSuite } from './mini-test.js';
 
@@ -140,8 +140,35 @@ const TESTS = [
   ['texte de la taille en pixels : un dixième, virgule française', () => {
     egal([texteTaille(48), texteTaille(47.96), texteTaille(52.3)], ['48,0 px', '48,0 px', '52,3 px'], 'format');
   }],
+  ['ouverture guidée : la pastille n’existe que table ouverte et jamais calibrée', () => {
+    egal(fautIlProposerCalibrage({ reglages: {}, tableOuverte: true }), true, 'ouverte, jamais calibrée');
+    egal(fautIlProposerCalibrage({ reglages: {}, tableOuverte: false }), false, 'fermée');
+    egal(fautIlProposerCalibrage({ reglages: { calibre: true }, tableOuverte: true }), false, 'calibrée');
+    egal(fautIlProposerCalibrage({ reglages: { taille: 61 }, tableOuverte: true }), false, 'taille changée : calibrée aussi (comme modeTableDefaut)');
+    egal(fautIlProposerCalibrage({ reglages: { taille: 48 }, tableOuverte: true }), true, 'taille par défaut seule : pas calibrée');
+  }],
+  ['ouverture guidée : ce que fait un clic sur « Ouvrir la table »', () => {
+    egal(actionOuvrirTable({ reglages: {}, tableOuverte: false }), 'ouvrir-calibrer', 'premier lancement');
+    egal(actionOuvrirTable({ reglages: {}, tableOuverte: true }), 'calibrer', 'ouverte, non calibrée : on relance le calibrage');
+    egal(actionOuvrirTable({ reglages: { calibre: true }, tableOuverte: false }), 'ouvrir', 'calibrée, fermée');
+    egal(actionOuvrirTable({ reglages: { calibre: true }, tableOuverte: true }), 'ouvrir', 'calibrée, ouverte');
+  }],
+  ['ouverture guidée : le bandeau ne dure que la première étape, et seulement s’il est proposé', () => {
+    egal(bandeauCalibrageVisible({ propose: true, etape: 'orienter' }), true, 'proposé, étape 1');
+    egal(bandeauCalibrageVisible({ propose: true, etape: 'mesurer' }), false, 'pendant le calibrage');
+    egal(bandeauCalibrageVisible({ propose: true, etape: null }), false, 'fini ou annulé');
+    egal(bandeauCalibrageVisible({ propose: false, etape: 'orienter' }), false, '« Plus tard » ou « Calibrer »');
+  }],
+  ['robustesse : fin de calibrage envoyée au repos, calibrage repris sinon', () => {
+    const { c, envois } = fabrique();
+    c.envoyer();
+    egal(envois, [{ type: 'calibrage', etape: null }], 'au repos : « fin de calibrage » (démarrage de la régie, demande d’état)');
+    c.demarrer('orienter'); c.annuler();
+    egal(envois[envois.length - 1], { type: 'calibrage', etape: null }, 'annuler rend la table');
+  }],
   ['pages : presentation.html porte le mode calibrage de la table, sans drapeau dans l’affichage', () => {
     for (const id of ['calibrage-table', 'calibrage-orienter', 'carte-calibrage', 'calibrage-verifier', 'calibrage-termine', 'texte-calibrage']) verifier(sources.html.includes(`id="${id}"`), `#${id}`);
+    verifier(sources.html.includes('id="bandeau-calibrage"'), '#bandeau-calibrage');
     verifier(!/calibrage:\s*true/.test(sources.regie), 'regie.js : plus de drapeau calibrage dans l’affichage');
     verifier(!/calibrer-table/.test(sources.univers), 'regie-univers.js : le calibrage n’est plus grisé dans un monde');
   }],

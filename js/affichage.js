@@ -77,9 +77,11 @@ export const AFFICHAGE_PAR_DEFAUT = { taille: TAILLE_PAR_DEFAUT, grille: true, r
  * le Donjon, ou à défaut une taille différente de la valeur par défaut), sinon « remplir ».
  */
 export function modeTableDefaut(reglages = {}) {
-  const calibre = reglages.calibre === true || (Number.isFinite(reglages.taille) && reglages.taille !== TAILLE_PAR_DEFAUT);
-  return calibre ? 'reel' : 'remplir';
+  return estCalibre(reglages) ? 'reel' : 'remplir';
 }
+
+/** La table a-t-elle un calibrage enregistré ? L'indicateur `calibre`, ou à défaut une taille différente de la valeur par défaut. */
+export const estCalibre = (reglages = {}) => reglages.calibre === true || (Number.isFinite(reglages.taille) && reglages.taille !== TAILLE_PAR_DEFAUT);
 
 /** Mode à appliquer : celui des réglages s'il est valide, sinon le défaut. */
 export const modeTable = (reglages = {}) => (MODES_TABLE.includes(reglages.modeTable) ? reglages.modeTable : modeTableDefaut(reglages));

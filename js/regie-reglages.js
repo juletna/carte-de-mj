@@ -22,6 +22,7 @@ export function creerReglages(ctx) {
     majOrientation(); majTaille();
     $('case-mm').value = caseMmDe(r);
     ctx.jouer?.coquille?.affichage?.majCalibrage();
+    ctx.surCalibrage?.();
     rendre(); diffuser();
   }
   // Envoi : la régie à la main, ou libre (aucune partie ouverte) ; en retrait, une autre commande la table.

@@ -13,7 +13,22 @@
  *          surChangement() (facultatif : l'interface se met à jour) }.
  */
 import { ETAPES_CALIBRAGE, messageCalibrage, messageFinCalibrage } from './protocole-table.js';
-import { ajusterTaille, tailleReglable, caseMmValide, CASE_MM_PAR_DEFAUT, CASE_MM_MIN, CASE_MM_MAX, TAILLE_PAR_DEFAUT } from './affichage.js';
+import { estCalibre, ajusterTaille, tailleReglable, caseMmValide, CASE_MM_PAR_DEFAUT, CASE_MM_MIN, CASE_MM_MAX, TAILLE_PAR_DEFAUT } from './affichage.js';
+
+// --- L'ouverture guidée : quand proposer le calibrage (fonctions pures) -----------------------------------------------------------------------
+
+/** La table est ouverte sans calibrage enregistré : le bouton « Table ouverte » porte la pastille dorée « À calibrer ». */
+export const fautIlProposerCalibrage = ({ reglages, tableOuverte }) => tableOuverte === true && !estCalibre(reglages);
+/**
+ * Ce que fait un clic sur « Ouvrir la table » : 'ouvrir' (la fenêtre, comme avant), 'ouvrir-calibrer' (premier lancement : la fenêtre s'ouvre et le
+ * calibrage démarre, avec le bandeau) ou 'calibrer' (la table est déjà ouverte et jamais calibrée : on relance le calibrage, pas la fenêtre).
+ */
+export function actionOuvrirTable({ reglages, tableOuverte }) {
+  if (estCalibre(reglages)) return 'ouvrir';
+  return tableOuverte === true ? 'calibrer' : 'ouvrir-calibrer';
+}
+/** Le bandeau « La table n'est pas calibrée » : montré tant qu'il est proposé et que le calibrage en est à la première étape (orienter). */
+export const bandeauCalibrageVisible = ({ propose, etape }) => propose === true && etape === 'orienter';
 
 // --- Le parcours dans le popover Affichage : fonctions pures (le DOM est dans js/atelier/calibrage-parcours.js) ---------------------------------
 

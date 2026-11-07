@@ -4,6 +4,7 @@
  * Le bouton garde l'identifiant `ouvrir-table`.
  *
  *   const o = creerOuvrirTable({ barre, avant, fenetre });   // `barre` : la barre d'outils, `avant` : le nœud devant lequel poser le bouton
+ *   o.pastille(true | false)  la table est ouverte mais jamais calibrée : pastille dorée et infobulle « À calibrer »
  *   o.ouverte(true | false)   la fenêtre de table est ouverte : le bouton doré devient discret (« Table ouverte »), et redevient doré à sa fermeture
  */
 import { h } from '../dom.js';
@@ -20,5 +21,13 @@ export function creerOuvrirTable({ barre, avant = null, fenetre }) {
     bouton.classList.toggle('btn-discret', oui);
     bouton.querySelector('.ouvrir-table-texte').textContent = oui ? 'Table ouverte' : 'Ouvrir la table';
   }
-  return { element: bouton, ouverte };
+  const TITRE = bouton.title;
+  /** Pastille dorée « À calibrer » sur le bouton discret (la table est ouverte mais jamais calibrée). */
+  function pastille(oui) {
+    bouton.classList.toggle('a-calibrer', oui);
+    bouton.title = oui ? 'À calibrer : un clic lance le calibrage de l’écran de la table' : TITRE;
+    bouton.querySelector('.ouvrir-table-pastille')?.remove();
+    if (oui) bouton.append(h('span', { className: 'ouvrir-table-pastille', 'aria-label': 'À calibrer' }));
+  }
+  return { element: bouton, ouverte, pastille };
 }

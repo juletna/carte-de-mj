@@ -63,6 +63,8 @@ export function demarrerTable() {
       const position = lireCadrage(m);
       if (position) { ecran.cadrer(position); universTable.cadrer(position); }
     } else if (m.type === table.PRESENCE) {
+      // Une régie qui répond sans calibrage en cours (elle ne calibre plus : rechargée, annulé) libère la table restée sur la grille ; si elle calibre, son message suit.
+      if (ecran.enCalibrage()) { ecran.calibrer(null); if (dernierUnivers) universTable.montrer(dernierUnivers.vue, dernierUnivers.affichage, dernierUnivers.defilement); }
       regiePresente = true; // on continue à demander : la régie qui a la main, ou qui la reprendra, nous servira
       if (!ecran.aUnPlan()) attendre('En attente de la régie : lance une présentation, ou clique sur « Reprendre la main » dans une régie en retrait.');
     }

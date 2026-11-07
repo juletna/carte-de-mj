@@ -54,6 +54,13 @@ body.presentation a { color: var(--accent); }
 #bandeau.sur-table .pastille { background: var(--succes); color: #06140a; }
 #bandeau.consultation .pastille { background: var(--accent); color: var(--accent-texte); }
 #bandeau.retrait .pastille { background: var(--erreur); color: #fff; }
+/* Le bandeau « La table n'est pas calibrée » (premier « Ouvrir la table ») : même gabarit que « Consultation », posé sous le bandeau d'état. */
+#bandeau-calibrage { display: flex; align-items: center; gap: 8px 14px; min-height: 56px; flex: none; padding: 4px 16px; border-bottom: 1px solid #8a6d17; background: #33280a; font-size: 15px; }
+#bandeau-calibrage[hidden] { display: none; }
+#bandeau-calibrage .texte { flex: 1 1 0; min-width: 0; line-height: 1.3; overflow-wrap: anywhere; }
+#bandeau-calibrage .actions { margin: 0; flex: none; display: flex; gap: 8px; flex-wrap: nowrap; }
+#bandeau-calibrage .actions button { white-space: nowrap; }
+@media (max-width: 760px) { #bandeau-calibrage { flex-wrap: wrap; padding: 4px 10px; } #bandeau-calibrage .texte { flex: 1 1 100%; } #bandeau-calibrage .actions { flex-wrap: wrap; } }
 #bandeau .actions { margin: 0; flex: none; flex-wrap: nowrap; }
 #bandeau .actions button { white-space: nowrap; }
 @media (max-width: 1100px) and (min-width: 761px) { #bandeau { flex-wrap: wrap; height: 112px; align-content: center; } #bandeau .texte { flex: 1 1 100%; } }
@@ -299,8 +306,9 @@ body.vue-apercu .coin { display: none !important; }
 
 /* « Ouvrir la table » (js/atelier/ouvrir-table.js) : bouton doré dans la barre d'outils de la scène. */
 .ouvrir-table-bouton.btn-discret { font-weight: 500; color: var(--texte-doux); }
+.ouvrir-table-pastille { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex: none; }
 .ouvrir-table-bouton { min-height: 30px; padding: 0 var(--esp-3); font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
-@media (max-width: 760px) { .ouvrir-table-bouton > span:nth-child(2) { display: none; } .ouvrir-table-bouton { min-width: 44px; justify-content: center; } 
+@media (max-width: 760px) { .ouvrir-table-bouton > span:nth-child(2) { display: none; } .ouvrir-table-bouton { min-width: 44px; justify-content: center; } }
 /* Le contrôle de cadrage de la vue « À la table » (js/atelier/vue-table-regie.js) : posé sur la carte, en bas, au centre. */
 .apercu-scene { position: relative; }
 .cadrage-table { position: absolute; left: 50%; bottom: var(--esp-3); transform: translateX(-50%); z-index: 5; display: inline-flex; align-items: center; gap: 2px; padding: 3px; background: var(--panneau); border: 1px solid var(--bord); border-radius: 10px; box-shadow: 0 4px 14px rgba(0, 0, 0, .5); }
@@ -310,3 +318,5 @@ body.vue-apercu .coin { display: none !important; }
 .cadrage-bouton:disabled { opacity: .4; cursor: not-allowed; }
 .cadrage-valeur { white-space: nowrap; min-width: 5.5ch; text-align: center; font-size: 13px; font-variant-numeric: tabular-nums; }
 @media (max-width: 760px) { .cadrage-bouton { min-height: 44px; min-width: 44px; } }
+/* Tant que le bandeau « pas calibrée » est là, le popover Affichage (le parcours) s'ouvre dessous : il ne cache pas « Plus tard » et « Calibrer ». */
+@media (min-width: 761px) { body:has(#bandeau-calibrage:not([hidden])) .atelier-affichage-panneau.pop-affichage { margin-top: 62px; max-height: calc(100dvh - 190px); } }

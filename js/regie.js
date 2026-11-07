@@ -25,12 +25,13 @@ import { nomCase, libelleDePorte } from './coordonnees.js';
 import { nomAffiche } from './parseur/lexique.js';
 import { nomVariante } from './catalogue.js';
 import { creerMicro } from './voix.js';
+import { fautIlProposerCalibrage, actionOuvrirTable, bandeauCalibrageVisible } from './calibrage.js';
 import { affichageDeReglages, optionsRendu, modeTable, ZOOM_TABLE_MIN, ZOOM_TABLE_MAX } from './affichage.js';
 import { telephone, marquerDefilement, tailleQuiTient } from './telephone.js';
 import { $, h, bouton } from './dom.js';
 import { icone } from './icones.js';
 import { pluriel } from './format.js';
-import { ouvrirCanal, messageEtat, messageCadrage, lirePosition, lireFacteurZoom, lireCadrage, lireElement, MESSAGES } from './protocole-table.js';
+import { ouvrirCanal, messageEtat, messageCadrage, lirePosition, lireFacteurZoom, lireCadrage, lireElement, messageFinCalibrage, MESSAGES } from './protocole-table.js';
 import { creerDepart } from './regie-depart.js';
 import { creerSelection } from './regie-selection.js';
 import { creerReglages } from './regie-reglages.js';
@@ -156,8 +157,8 @@ export function demarrerRegie() {
       const m = ev.data;
       const action = table.surMessage(commande, m);
       if (action === 'retrait') { noterRetrait(); if (etat.p) majRetrait(); else univers.redessiner(); } // la carte d'un monde montre aussi son bandeau « En retrait »
-      else if (action === 'diffuser') diffuser();
-      else if (action === 'presence') { canal.postMessage({ type: table.PRESENCE }); if (ctx.calibrage?.actif()) ctx.calibrage.envoyer(); } // une table ouverte pendant le calibrage le rejoint
+      else if (action === 'diffuser') { if (m.type === MESSAGES.DEMANDE_ETAT) ctx.calibrage?.envoyer(); diffuser(); } // la table qui demande son état sort d'un calibrage resté sans régie (rien en cours : « fin de calibrage »)
+      else if (action === 'presence') { canal.postMessage({ type: table.PRESENCE }); if (ctx.calibrage?.actif()) ctx.calibrage.envoyer(); } // une table ouverte pendant le calibrage le rejoint ; sans calibrage, la présence suffit à l’en sortir
       else if (action === 'appliquer' && m.type === MESSAGES.TABLE_DEPLACER) deplacerDepuisTable(m.id, m.x, m.y);
       else if (action === 'appliquer' && m.type === MESSAGES.TABLE_ZOOM) { const f = lireFacteurZoom(m); if (f) cadrage.zoomer(f); }
       else if (action === 'appliquer' && m.type === MESSAGES.TABLE_CADRER) { const p = lireCadrage(m); if (p) cadrerTable(p); }
@@ -177,6 +178,7 @@ export function demarrerRegie() {
     reglages.sauver(); // ce qui a été réglé en retrait, et ce que l'autre régie a réglé entre-temps
   }
   window.addEventListener('pagehide', () => {
+    if (ctx.calibrage?.actif() && !commande.retrait) canal?.postMessage(messageFinCalibrage()); // régie rechargée ou fermée en plein calibrage : la table ne reste pas sur la grille
     const depart = table.messageDepart(commande);
     if (depart) canal?.postMessage(depart);
   });
@@ -613,13 +615,35 @@ export function demarrerRegie() {
   // --- Fenêtre table -------------------------------------------------------------
   const messageTable = (texte) => annoncer(texte, 10000);
   let veilleFenetre = null;
+  let tableOuverte = false, calibragePropose = false; // la fenêtre table est ouverte ; le bandeau « pas calibrée » a été proposé (en mémoire : « Plus tard » ne l'enregistre pas)
+  /** La pastille « À calibrer » du bouton et le bandeau de la régie suivent l'état de la table et du calibrage. */
+  function majOuvertureGuidee() {
+    jouer.boutonTable?.pastille(fautIlProposerCalibrage({ reglages: r, tableOuverte }));
+    const etape = ctx.calibrage?.etape() ?? null;
+    if (etape !== 'orienter') calibragePropose = false; // le bandeau ne dure que la première étape : il disparaît pendant et après le calibrage
+    const bandeau = $('bandeau-calibrage');
+    bandeau.hidden = !bandeauCalibrageVisible({ propose: calibragePropose, etape });
+    if (bandeau.hidden) { bandeau.replaceChildren(); return; }
+    if (bandeau.childElementCount) return;
+    const plusTard = bouton('Plus tard', () => { calibragePropose = false; if (jouer.coquille.affichage) jouer.coquille.affichage.annulerCalibrage(); else ctx.calibrage.annuler(); majOuvertureGuidee(); }, 'btn btn-discret');
+    const calibrer = bouton('Calibrer', () => { calibragePropose = false; majOuvertureGuidee(); jouer.coquille.affichage?.bouton.focus(); }, 'btn btn-primaire');
+    bandeau.append(h('div', { className: 'texte' }, h('strong', { textContent: 'La table n’est pas calibrée. ' }), 'Glisse la fenêtre sur l’écran de la table, puis suis les étapes.'), h('div', { className: 'actions' }, plusTard, calibrer));
+  }
   function ouvrirFenetreTable() {
+    const action = actionOuvrirTable({ reglages: r, tableOuverte });
+    if (action === 'calibrer') { ctx.calibrage.demarrer('orienter'); return; } // la fenêtre est déjà là : on relance seulement le calibrage
     const w = window.open(new URL('presentation.html?vue=table', location.href).href, 'carte-de-mj-table', 'popup,width=1024,height=768');
     if (w) {
       w.focus();
+      tableOuverte = true;
       jouer.boutonTable?.ouverte(true); // discret tant que la fenêtre est ouverte, doré de nouveau à sa fermeture
       clearInterval(veilleFenetre);
-      veilleFenetre = setInterval(() => { if (w.closed) { clearInterval(veilleFenetre); jouer.boutonTable?.ouverte(false); } }, 1000); messageTable('Fenêtre table ouverte : glisse-la sur l’écran de la table, puis son bouton « Plein écran » (au survol, en haut à droite).'); }
+      veilleFenetre = setInterval(() => { if (w.closed) { clearInterval(veilleFenetre); tableOuverte = false; jouer.boutonTable?.ouverte(false); majOuvertureGuidee(); } }, 1000);
+      messageTable('Fenêtre table ouverte : glisse-la sur l’écran de la table, puis son bouton « Plein écran » (au survol, en haut à droite).');
+      // Premier lancement : le calibrage démarre à « orienter » ; la fenêtre, qui n'a encore rien reçu, le reçoit en demandant son état (`diffuser`).
+      if (action === 'ouvrir-calibrer' && !commande.retrait) { calibragePropose = true; ctx.calibrage.demarrer('orienter'); }
+      majOuvertureGuidee();
+    }
     else messageTable('Le navigateur a bloqué la fenêtre. Autorise les fenêtres pour ce site, ou ouvre presentation.html?vue=table dans un nouvel onglet.');
   }
 
@@ -651,6 +675,7 @@ export function demarrerRegie() {
   lierPanneau();
   sectionnerOnglets(creerSection); // les onglets en sections de panneau (docs/design-panneaux.md)
   const ctx = { etat, r, commande, canal, affichageTable, prendreLaMain, annoncer, rendre, modifie, salleCourante, salleConsultee, entrer, viderSauvegarde, noterRetrait, diffuser };
+  ctx.surCalibrage = majOuvertureGuidee;
   const depart = creerDepart(ctx);
   ctx.depart = depart;
   const univers = creerRegieUnivers(ctx);
@@ -695,6 +720,8 @@ export function demarrerRegie() {
     if (!retraitAvantRechargement) stockage.oublierPartieOuverte(); // la liste est affichée : un rechargement y reste
     depart.afficher();
   }
+  // Une table restée en calibrage d'une régie rechargée ou fermée en plein parcours en sort : le démarrage envoie « pas de calibrage » (rien en cours).
+  if (!commande.retrait) ctx.calibrage.envoyer();
   // Dit une fois, après le premier affichage ; un échec, lui, est redit à chaque ouverture puisque rien n'est enregistré.
   if (miseDeCote && (miseDeCote.nouvelle || !miseDeCote.ok)) {
     const phrase = stockage.phraseMiseDeCoteParties(miseDeCote);

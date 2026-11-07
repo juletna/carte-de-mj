@@ -11,17 +11,17 @@
   <link rel="stylesheet" href="css/univers.css?v=e15bf1d6">
   <link rel="stylesheet" href="css/atelier.css?v=8261827d">
   <link rel="stylesheet" href="css/panneaux.css?v=21fca64a">
-  <link rel="stylesheet" href="css/presentation.css?v=65764080">
+  <link rel="stylesheet" href="css/presentation.css?v=6d53b1fd">
   <!-- versions:debut (généré par outils/versions.mjs, ne pas modifier à la main) -->
   <script type="importmap">
   {
     "imports": {
-      "./js/affichage.js": "./js/affichage.js?v=b6c2b384",
+      "./js/affichage.js": "./js/affichage.js?v=c6d57623",
       "./js/animation-carte.js": "./js/animation-carte.js?v=ca813499",
       "./js/atelier-arbre.js": "./js/atelier-arbre.js?v=91968e1e",
       "./js/atelier-route.js": "./js/atelier-route.js?v=c99de008",
       "./js/atelier-selection.js": "./js/atelier-selection.js?v=8ac4a04a",
-      "./js/atelier/affichage-popover.js": "./js/atelier/affichage-popover.js?v=e74b8044",
+      "./js/atelier/affichage-popover.js": "./js/atelier/affichage-popover.js?v=b07c5a5f",
       "./js/atelier/arbre-vue.js": "./js/atelier/arbre-vue.js?v=4b08cda1",
       "./js/atelier/calibrage-parcours.js": "./js/atelier/calibrage-parcours.js?v=db8b9439",
       "./js/atelier/cartouche.js": "./js/atelier/cartouche.js?v=54b8c854",
@@ -31,7 +31,7 @@
       "./js/atelier/inspecteur.js": "./js/atelier/inspecteur.js?v=517a8155",
       "./js/atelier/jouer.js": "./js/atelier/jouer.js?v=46e08708",
       "./js/atelier/liste.js": "./js/atelier/liste.js?v=57861fc0",
-      "./js/atelier/ouvrir-table.js": "./js/atelier/ouvrir-table.js?v=2eb9e1f9",
+      "./js/atelier/ouvrir-table.js": "./js/atelier/ouvrir-table.js?v=5c2a98be",
       "./js/atelier/section.js": "./js/atelier/section.js?v=14b9a65d",
       "./js/atelier/vignette-lieu.js": "./js/atelier/vignette-lieu.js?v=2e9a3f90",
       "./js/atelier/vue-table-regie.js": "./js/atelier/vue-table-regie.js?v=89868ec1",
@@ -43,7 +43,7 @@
       "./js/bibliotheque/source.js": "./js/bibliotheque/source.js?v=ef3cf14e",
       "./js/bibliotheque/vocabulaire.js": "./js/bibliotheque/vocabulaire.js?v=48a97e23",
       "./js/cadrage-table.js": "./js/cadrage-table.js?v=b145b237",
-      "./js/calibrage.js": "./js/calibrage.js?v=65cdf4d1",
+      "./js/calibrage.js": "./js/calibrage.js?v=c0fd7e62",
       "./js/carte-personnage.js": "./js/carte-personnage.js?v=9e379875",
       "./js/catalogue.js": "./js/catalogue.js?v=8bd103a4",
       "./js/commande-table.js": "./js/commande-table.js?v=534e6525",
@@ -96,10 +96,10 @@
       "./js/regie-depart.js": "./js/regie-depart.js?v=63b2ff4a",
       "./js/regie-icones.js": "./js/regie-icones.js?v=55f2e08b",
       "./js/regie-panneau.js": "./js/regie-panneau.js?v=85d10ec1",
-      "./js/regie-reglages.js": "./js/regie-reglages.js?v=7bd6433f",
+      "./js/regie-reglages.js": "./js/regie-reglages.js?v=b060d497",
       "./js/regie-selection.js": "./js/regie-selection.js?v=17b5d4ac",
       "./js/regie-univers.js": "./js/regie-univers.js?v=195541ef",
-      "./js/regie.js": "./js/regie.js?v=aa54bbfc",
+      "./js/regie.js": "./js/regie.js?v=1bde3a2d",
       "./js/rendu/feu.js": "./js/rendu/feu.js?v=026d6dcd",
       "./js/rendu/geometrie.js": "./js/rendu/geometrie.js?v=6d683b3b",
       "./js/rendu/graine.js": "./js/rendu/graine.js?v=5331bb5f",
@@ -160,7 +160,7 @@
       "./js/univers.js": "./js/univers.js?v=10b19c48",
       "./js/voix.js": "./js/voix.js?v=1b45311f",
       "./js/vue-publique.js": "./js/vue-publique.js?v=bfdc5b53",
-      "./js/vue-table.js": "./js/vue-table.js?v=4217dba0",
+      "./js/vue-table.js": "./js/vue-table.js?v=c3b3d93e",
       "./js/zip.js": "./js/zip.js?v=82ee6658",
       "./js/zone-passage.js": "./js/zone-passage.js?v=22c0cfc2"
     }
@@ -250,6 +250,7 @@
         </div>
         <p id="alerte-stockage" class="note erreur" role="alert" hidden></p>
         <div id="bandeau" role="status"></div>
+        <div id="bandeau-calibrage" role="status" hidden></div>
       </div>
 
       <!-- Commande rapide : barre fixe au-dessus de la carte (régie de donjon seulement). -->

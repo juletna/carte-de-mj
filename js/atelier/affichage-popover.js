@@ -216,5 +216,5 @@ export function creerAffichagePopover({ lire, surChangement, regie = false, gard
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !e.defaultPrevented && parcours?.actif()) { e.preventDefault(); parcours.annuler(); } });
   racineGrille.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !panneauGrille.hidden) { e.preventDefault(); e.stopPropagation(); fermerGrille({ rendreFocus: true }); } });
   maj();
-  return { bouton, element: racine, elementGrille: racineGrille, maj, majCalibrage, fermer: (o) => { fermer(o); fermerGrille(); } };
+  return { bouton, element: racine, elementGrille: racineGrille, maj, majCalibrage, annulerCalibrage: () => parcours?.annuler(), fermer: (o) => { fermer(o); fermerGrille(); } };
 }
