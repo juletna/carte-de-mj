@@ -94,6 +94,18 @@ h2 { font-size: 13px; letter-spacing: .06em; text-transform: uppercase; color: v
 .note-box ul { margin: 6px 0 0; padding-left: 18px; color: var(--t3); }
 .note-box li { margin: 3px 0; }
 .mis { display: inline-block; font-size: 11px; background: #14281a; color: #7cc47c; border: 1px solid #2f6b3a; border-radius: 10px; padding: 0 8px; margin-left: 6px; font-weight: 600; letter-spacing: .02em; }
+
+/* curseur gradué : repères tous les 5 mm, le standard (25) est marqué et nommé */
+.reglette { padding: 4px 8px 20px; }
+.piste { position: relative; height: 4px; background: var(--filet-fort); border-radius: 2px; margin: 10px 0 0; }
+.piste .poignee { position: absolute; top: -5px; width: 14px; height: 14px; border-radius: 50%; background: var(--accent); transform: translateX(-50%); }
+.piste .repere { position: absolute; top: -5px; width: 2px; height: 14px; background: var(--t2); transform: translateX(-50%); }
+.grad { position: relative; height: 16px; margin-top: 14px; }
+.grad span { position: absolute; transform: translateX(-50%); font-size: 10.5px; color: var(--t4); font-variant-numeric: tabular-nums; }
+.grad span::before { content: ""; position: absolute; left: 50%; top: -14px; width: 1px; height: 6px; background: var(--t4); }
+.grad .std { color: var(--accent); font-weight: 700; }
+.grad .std::before { background: var(--accent); height: 8px; top: -16px; }
+.reinit { font-size: 12px; color: var(--t4); border: 1px solid var(--filet); border-radius: 5px; padding: 2px 8px; }
 </style>
 </head>
 <body>
@@ -177,9 +189,14 @@ h2 { font-size: 13px; letter-spacing: .06em; text-transform: uppercase; color: v
       <div class="progres"><i class="on"></i><i class="on"></i><i></i><i></i></div>
       <div class="ligne"><span>Taille du rectangle</span><span class="pas"><span class="btn carre">−</span><span class="val">48,0 px</span><span class="btn carre">+</span></span></div>
       <p>− et + règlent au dixième de pixel. Maintenir le bouton accélère.</p>
-      <div class="ligne"><span>Une case vaut</span><span class="val">25 mm</span></div>
-      <div class="ligne"><span class="curseur" style="--p: 33%"></span></div>
-      <p>25 mm = case de table standard (1 pouce ≈ 25,4 mm). À changer seulement avec un tapis ou des figurines hors norme.</p>
+      <div class="ligne"><span>Une case vaut</span><span class="pas"><span class="reinit">Standard : 25 mm</span><span class="val">25 mm</span></span></div>
+      <div class="reglette">
+        <div class="piste"><i class="repere" style="left: 37.5%"></i><i class="poignee" style="left: 37.5%"></i></div>
+        <div class="grad">
+          <span style="left: 0">10</span><span style="left: 12.5%">15</span><span style="left: 25%">20</span><span class="std" style="left: 37.5%">25</span><span style="left: 50%">30</span><span style="left: 62.5%">35</span><span style="left: 75%">40</span><span style="left: 87.5%">45</span><span style="left: 100%">50</span>
+        </div>
+      </div>
+      <p>La poignée s'accroche à 25 mm (case standard, 1 pouce ≈ 25,4 mm). « Standard : 25 mm » remet cette valeur ; il est grisé quand on y est déjà, actif sinon (ex. à 30 mm). À changer seulement avec un tapis ou des figurines hors norme.</p>
       <div class="actions"><span class="btn discret gauche">Retour</span><span class="btn dore">Suivant</span></div>
     </div>
   </div>
