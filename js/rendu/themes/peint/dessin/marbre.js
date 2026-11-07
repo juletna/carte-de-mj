@@ -8,7 +8,7 @@ import { PERIODE, CASES_PAR_TUILE } from '../tuile.js';
 import { ENCRE, mod, marche, vers, aplats, hachure, semis, D } from './outils.js';
 
 const N = 5 * (CASES_PAR_TUILE / 4), S = PERIODE / N; // losanges par période (réglés pour une tuile de 4 cases, comme les sols sobres : 0,8 case de côté), et leur diagonale-côté
-const CREME = [240, 228, 196], GRIS = [196, 208, 222], INCRUSTE = [110, 128, 176], ROUGE = [178, 92, 80];
+const CREME = [232, 228, 218], GRIS = [204, 203, 200], INCRUSTE = [112, 110, 108], ROUGE = [134, 130, 124]; // blanc cassé et gris : un marbre, pas un damier de couleurs ; cabochons gris sombre
 const M = { de: 0, fu: 0, fv: 0, alt: 0, id: 0 };
 const C = [0, 0, 0];
 
@@ -40,8 +40,8 @@ export function marbre(X, Y, o, out) {
     const g1 = 3 * fx + 2 * fy + 0.24 * (fbmp(fx, fy, N, o.s + 30, 3) - 0.5), g2 = 2 * fx - 3 * fy + 0.16 * (fbmp(fx, fy, N * 2, o.s + 31, 2) - 0.5);
     const v1 = Math.abs(mod(g1, 1) - 0.5), v2 = Math.abs(mod(g2, 1) - 0.5);
     // Veines : traits nets et sinueux, une grande (bleu-gris) et une fine plus claire.
-    vers(C, [120, 128, 150], (1 - marche(v1, 0.014, 0.005)) * 0.8 * marche(de, 4.5, 1.5));
-    vers(C, [150, 160, 182], (1 - marche(v2, 0.009, 0.004)) * 0.55 * marche(de, 4.5, 1.5));
+    vers(C, [132, 130, 128], (1 - marche(v1, 0.014, 0.005)) * 0.8 * marche(de, 4.5, 1.5));
+    vers(C, [158, 156, 154], (1 - marche(v2, 0.009, 0.004)) * 0.55 * marche(de, 4.5, 1.5));
   }
   // Hachures d'encre dans l'ombre du biseau.
   vers(C, ENCRE, ombre * hachure(X, Y, 3) * 0.25);
