@@ -284,3 +284,8 @@ details.bloc > .aide, .defilement > .aide { display: block; margin-bottom: 6px; 
 .cartouche-ancre { position: relative; flex: none; height: 0; z-index: 24; }
 .cartouche-regie { left: var(--esp-3); top: var(--esp-2); }
 @media (max-width: 760px) { .cartouche-regie { left: var(--esp-2); top: var(--esp-1); } }
+
+/* Aperçu de la table dans la régie (js/regie-panneau.js) : la vue table dessinée en 1280 × 800 puis réduite à la largeur du panneau, en lecture seule. */
+.apercu-table { position: relative; width: 100%; overflow: hidden; background: #000; border: 1px solid var(--p-filet-fort); border-radius: var(--rayon); }
+.apercu-table iframe { position: absolute; left: 0; top: 0; border: 0; transform-origin: 0 0; pointer-events: none; }
+body.vue-apercu .coin, body.vue-apercu #retour-regie { display: none !important; }

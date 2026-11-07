@@ -17,6 +17,7 @@ import { poserIcones } from './regie-icones.js';
 
 export function demarrerTable() {
   document.body.classList.add('vue-table');
+  if (new URLSearchParams(location.search).get('apercu') === '1') document.body.classList.add('vue-apercu'); // encadrée dans la régie : sans boutons de coin
   document.title = 'Table · Carte de MJ';
   $('ecran-table').hidden = false;
   poserIcones(); // l'icône du bouton plein écran

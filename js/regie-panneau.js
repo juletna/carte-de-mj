@@ -37,6 +37,35 @@ export function lierPanneau(racine = document) {
  * en CSS, le pli est celui de la section), un titre <h2> interne fait doublon et est masqué de même. Les identifiants ne changent pas :
  * regie.js et regie-selection.js retrouvent leurs nœuds. Appelée une fois, après `lierPanneau`.
  */
+/** Largeur et hauteur (px) auxquelles l'aperçu dessine la vue table, avant d'être réduit à la largeur du panneau : une table, pas un téléphone. */
+const APERCU = { largeur: 1280, hauteur: 800 };
+
+/**
+ * L'aperçu de la table : la vraie vue table (`presentation.html?vue=table&apercu=1`) dans un cadre réduit, alimentée par le même canal que la fenêtre
+ * des joueurs. Le MJ voit ce que voit la table sans tourner la tête. Lecture seule (aucun clic n'y passe) ; chargée seulement quand la section est ouverte.
+ */
+export function creerApercuTable(doc = document) {
+  const cadre = doc.createElement('iframe');
+  cadre.title = 'Aperçu de la table';
+  cadre.loading = 'lazy'; // pas de chargement tant que la section est repliée
+  cadre.tabIndex = -1;
+  cadre.setAttribute('aria-hidden', 'true');
+  cadre.src = new URL('presentation.html?vue=table&apercu=1', doc.baseURI).href;
+  Object.assign(cadre.style, { width: `${APERCU.largeur}px`, height: `${APERCU.hauteur}px` });
+  const boite = doc.createElement('div');
+  boite.className = 'apercu-table';
+  boite.append(cadre);
+  const ajuster = () => {
+    const l = boite.clientWidth;
+    if (!l) return;
+    const echelle = l / APERCU.largeur;
+    cadre.style.transform = `scale(${echelle})`;
+    boite.style.height = `${Math.round(APERCU.hauteur * echelle)}px`;
+  };
+  if (typeof ResizeObserver === 'function') new ResizeObserver(ajuster).observe(boite);
+  return boite;
+}
+
 export function sectionnerOnglets(creerSection, $ = (id) => document.getElementById(id)) {
   const salle = $('onglet-salle'), joueurs = $('onglet-joueurs'), table = $('onglet-table');
   if (!salle || !joueurs || !table) return;
@@ -68,6 +97,7 @@ export function sectionnerOnglets(creerSection, $ = (id) => document.getElementB
   const avant = [...table.children].filter((e) => e !== blocTable && e !== reglages && !e.matches('p.note:last-child'));
   const pied = table.querySelector(':scope > p.note:last-child');
   table.replaceChildren(...avant,
+    section('apercu', 'Aperçu de la table', [creerApercuTable()]),
     section('table', 'Table', [blocTable]),
     ...(ecran ? [section('ecran', 'Régler l’écran de table', [ecran], { repliee: true })] : []),
     ...(defilement ? [section('defilement', 'Faire défiler la vue table', [defilement], { repliee: true })] : []),
