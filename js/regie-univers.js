@@ -346,8 +346,7 @@ export function creerRegieUnivers(ctx) {
     const texte = h('div', { className: 'texte' });
     if (consultation) {
       const { univers, partie } = courant, table = univers.lieux[partie.lieuCourant];
-      texte.append(h('span', { className: 'pastille', textContent: 'Consultation' }), 'Tu regardes ', h('strong', { textContent: lieu.nom }),
-        partie.decouverts.includes(lieu.id) ? ' (déjà vu)' : ' (pas encore vu)', '. La table montre toujours ', h('strong', { textContent: table?.nom ?? '…' }), '.');
+      texte.append(h('span', { className: 'pastille', textContent: 'Consultation' }), 'La table montre toujours ', h('strong', { textContent: table?.nom ?? '…' }), '.');
     } else if (retrait) texte.append(h('span', { className: 'pastille', textContent: 'En retrait' }), 'Une autre régie commande la table : les joueurs ne voient pas ce que tu fais ici.');
     else texte.append(h('span', { className: 'pastille', textContent: 'À la table' }), 'Les joueurs voient la carte : ', h('strong', { textContent: lieu.nom }), '.');
     texte.title = texte.textContent;
