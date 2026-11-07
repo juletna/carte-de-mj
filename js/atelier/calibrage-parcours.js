@@ -1,6 +1,6 @@
 /**
  * Le PARCOURS de calibrage de l'écran de la table, dans le popover « Affichage » (groupe « Écran de la table », bouton « Calibrer l'écran… »).
- * Quatre étapes (maquette : docs/maquettes/calibrage-table.html) : Orienter (rotation, miroir), Mesurer (taille du rectangle au dixième de pixel,
+ * Quatre étapes : Orienter (rotation, miroir), Mesurer (taille du rectangle au dixième de pixel,
  * « Une case vaut » en mm), Vérifier (texte), Terminé (Remplir / Échelle réelle). Un aperçu de la table (« Ce que voient les joueurs ») reste en haut :
  * c'est la vue table en mode aperçu (`presentation.html?vue=table&apercu=1`, comme la vue « À la table » de la régie), qui reçoit les mêmes messages
  * `calibrage` que la fenêtre, donc montre la même chose sans second rendu.
