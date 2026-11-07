@@ -1,6 +1,6 @@
 /**
  * La régie (presentation.html) sur la coquille de l'atelier, mode « jouer » : l'arbre en lecture à gauche (pastilles : à la table, découvert,
- * pas encore montré), la carte au centre, et à droite les onglets Salle · Joueurs · Table (+ Lieu pour une carte de monde).
+ * pas encore montré), la carte au centre, et à droite les onglets Ici · Joueurs · Écran (Ici · Écran pour une carte de monde).
  * Voir docs/conception-atelier.md, lot D. Ce module ne contient aucune logique de partie : regie.js et regie-univers.js lui disent où l'on est
  * (`synchroniser`) et lui demandent de réagir au clic sur l'arbre (`surChoix`).
  *
@@ -9,13 +9,14 @@
  *   partie()  → { univers?: partie d'univers, presentations?: { idDonjon: partie } }               (voir etatJeu, atelier-arbre.js)
  *   surChoix(noeud)  le MJ a choisi un nœud de l'arbre ; la position de l'arbre est ensuite remise sur la vraie position
  *   jouer.vues.courante()  'regie' | 'table' : la vue choisie en haut de la scène (donne le mode de l'arbre : consulter, ou montrer)
- *   jouer.mode('donjon'|'monde')  quelle composition : les onglets Salle et Joueurs, ou l'onglet Lieu
+ *   jouer.mode('donjon'|'monde')  quelle composition : les onglets Ici (salle) et Joueurs, ou Ici (lieu)
  *   jouer.synchroniser(position?)  { donjon, salle } ou { monde, lieu } : l'arbre, les pastilles et l'onglet suivent
  */
 import { $, h } from '../dom.js';
 import { telephone } from '../telephone.js';
 import { creerCoquille } from './coquille.js';
 import { creerVuesRegie } from './vue-table-regie.js';
+import { creerOuvrirTable } from './ouvrir-table.js';
 import { etatJeu } from '../atelier-arbre.js';
 import { creerCartouche } from './cartouche.js';
 import { vignetteLieu } from './vignette-lieu.js';
@@ -25,7 +26,7 @@ const ONGLETS = {
   monde: ['lieu', 'table'],
 };
 
-export function creerJouer({ racine, donnees, partie, surChoix, affichage }) {
+export function creerJouer({ racine, donnees, partie, surChoix, affichage, ouvrirTable }) {
   let enCours = false;
   let modeCourant = 'donjon';
   let derniere = null;
@@ -43,6 +44,8 @@ export function creerJouer({ racine, donnees, partie, surChoix, affichage }) {
 
   // Deux vues en haut de la scène : « Régie » (carte et commande) et « Table » (ce que voient les joueurs, en grand), pour régler l'écran de table en voyant le résultat.
   const vues = creerVuesRegie({ scene: $('principal'), barre: coquille.barreOutils, avant: coquille.barreFin });
+  // « Ouvrir la table ▾ » : la fenêtre des joueurs, ou le plein écran ici. Un seul endroit.
+  if (ouvrirTable) creerOuvrirTable({ barre: coquille.barreOutils, avant: coquille.barreFin, ...ouvrirTable });
 
   // Les lieux de l'arbre montrent leur carte en vignette (comme dans le Monde), pas le globe ; le monde, celle de sa carte.
   coquille.arbre.vue.definirVignette((n) => (n.type === 'lieu' || n.racine ? vignetteLieu(donnees().univers?.[n.contexte?.monde]?.lieux?.[n.racine ?? n.id]?.image, '') : null));
@@ -53,7 +56,7 @@ export function creerJouer({ racine, donnees, partie, surChoix, affichage }) {
   cartouche.element.classList.add('cartouche-regie');
   $('scene').before(h('div', { className: 'cartouche-ancre' }, cartouche.element));
 
-  const defs = [['salle', 'Salle'], ['joueurs', 'Joueurs'], ['lieu', 'Lieu'], ['table', 'Table']];
+  const defs = [['salle', 'Ici'], ['joueurs', 'Joueurs'], ['lieu', 'Ici'], ['table', 'Écran']];
   for (const [id, libelle] of defs) coquille.onglets.ajouter({ id, libelle, contenu: $(`onglet-${id}`) });
   // Sous 760 px : un onglet touché ouvre le panneau bas replié ; toucher l'onglet déjà ouvert le replie (la carte reprend la place).
   const colonne = coquille.inspecteur.element;
@@ -75,7 +78,7 @@ export function creerJouer({ racine, donnees, partie, surChoix, affichage }) {
     if (!visibles.includes(coquille.onglets.courant())) coquille.onglets.choisir(visibles[0]);
   }
 
-  /** La composition : donjon (Salle · Joueurs · Table) ou monde (Lieu · Table). Les deux partagent l'arbre, le bandeau et l'onglet Table. */
+  /** La composition : donjon (Ici · Joueurs · Écran) ou monde (Ici · Écran). Les deux partagent l'arbre, le bandeau et l'onglet Écran. */
   function mode(m) {
     modeCourant = m === 'monde' ? 'monde' : 'donjon';
     racine.dataset.regie = modeCourant;

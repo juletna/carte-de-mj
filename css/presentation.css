@@ -89,9 +89,6 @@ body.presentation a { color: var(--accent); }
 .selection-entete { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .selection-entete h2 { margin: 0; }
 .selection-titre { margin: 4px 0 0; font-weight: 600; overflow-wrap: anywhere; }
-#alerte-retrait { margin-top: 6px; padding: 8px 10px; border: 1px solid var(--erreur); border-radius: var(--rayon); background: #3a1a15; }
-#alerte-retrait[hidden] { display: none; }
-#alerte-retrait p { margin: 0 0 8px; }
 .mode-table { border: 0; padding: 0; margin: 8px 0 0; min-width: 0; }
 .mode-table legend { padding: 0; font-size: 13px; color: var(--texte-doux); }
 .mode-table .ligne { justify-content: flex-start; margin: 2px 0; }
@@ -222,9 +219,6 @@ details.bloc > .aide, .defilement > .aide { display: block; margin-bottom: 6px; 
 .univers-regie-panneau { width: auto; }
 
 /* Fenêtre table : l'action principale de la régie, en doré. */
-.bloc-table .actions { display: flex; flex-wrap: wrap; gap: var(--esp-2); }
-.bloc-table #ouvrir-table { flex: 1 1 100%; }
-#alerte-retrait:not([hidden]) { margin: 0; }
 
 /* --- Écran étroit (sous 760 px) : arbre en tiroir, onglets en barre du bas, la carte d'abord --- */
 @media (max-width: 760px) {
@@ -301,3 +295,11 @@ details.bloc > .aide, .defilement > .aide { display: block; margin-bottom: 6px; 
 .apercu-scene iframe { position: absolute; left: 0; top: 0; border: 0; transform-origin: 0 0; }
 #principal.vue-table-active > :not(.atelier-barre):not(#apercu-scene) { display: none; } /* la carte de la régie cède la place à la vue table */
 body.vue-apercu .coin, body.vue-apercu #retour-regie { display: none !important; }
+
+/* « Ouvrir la table ▾ » (js/atelier/ouvrir-table.js) : bouton doré dans la barre d'outils de la scène, et son menu. */
+.ouvrir-table { position: relative; }
+.ouvrir-table-bouton { min-height: 30px; padding: 0 var(--esp-3); font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
+.ouvrir-table-menu { position: absolute; left: 0; top: calc(100% + 4px); z-index: 45; min-width: 12rem; display: flex; flex-direction: column; gap: 2px; padding: var(--esp-2); background: var(--panneau); border: 1px solid var(--bord); border-radius: var(--rayon); box-shadow: 0 8px 24px rgba(0, 0, 0, .55); }
+.ouvrir-table-menu[hidden] { display: none; }
+.ouvrir-table-entree { justify-content: flex-start; min-height: var(--cible); font-size: 13px; }
+.ouvrir-table-entree[hidden] { display: none; }

@@ -63,14 +63,12 @@ export function sectionnerOnglets(creerSection, $ = (id) => document.getElementB
     section('personnages', 'Personnages', [persos]),
     section('ajout-joueur', 'Ajouter un joueur', [ajout], { repliee: true }));
   const [ecran, defilement] = table.querySelectorAll('.bloc-table > details.defilement');
-  const reglages = table.querySelector('details.reglages');
   const blocTable = table.querySelector('.bloc-table');
-  const avant = [...table.children].filter((e) => e !== blocTable && e !== reglages && !e.matches('p.note:last-child'));
+  const avant = [...table.children].filter((e) => e !== blocTable && !e.matches('p.note:last-child'));
   const pied = table.querySelector(':scope > p.note:last-child');
   table.replaceChildren(...avant,
-    section('table', 'Table', [blocTable]),
+    section('table', 'Carte à la table', [blocTable]),
     ...(ecran ? [section('ecran', 'Régler l’écran de table', [ecran], { repliee: true })] : []),
     ...(defilement ? [section('defilement', 'Faire défiler la vue table', [defilement], { repliee: true })] : []),
-    ...(reglages ? [section('reglages', 'Réglages', [reglages], { repliee: true })] : []),
     ...(pied ? [pied] : []));
 }

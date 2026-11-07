@@ -160,19 +160,9 @@ export function demarrerRegie() {
   // Revenue du cache du navigateur par « Précédent » : elle a annoncé son départ et a pu manquer des messages.
   window.addEventListener('pageshow', (e) => { if (e.persisted && commande.main) prendreLaMain(); });
 
-  /** Une régie en retrait le dit en permanence : dans son panneau, et dans le bandeau au-dessus de la carte (hauteur fixe : la carte ne bouge pas). */
+  /** Une régie en retrait le dit en permanence : dans le bandeau au-dessus de la carte (hauteur fixe : la carte ne bouge pas). */
   const tenueAilleurs = () => table.partieTenueAilleurs(commande, etat.p?.donjon.id, stockage.idPartieOuverte());
   function majRetrait() {
-    const alerte = $('alerte-retrait');
-    alerte.hidden = !commande.retrait;
-    if (commande.retrait) {
-      $('texte-retrait').textContent = [
-        commande.titulaireParti
-          ? 'La régie qui avait la main a été fermée : la table n’est plus servie. Reprends la main pour lui montrer cette partie.'
-          : 'Cette régie est en retrait : une autre régie a ouvert une partie et commande la table. Ce que tu fais ici n’est plus montré aux joueurs. Si cette autre régie a été fermée, reprends la main.',
-        ...(etat.perimee || tenueAilleurs() ? ['Cette partie est aussi ouverte dans l’autre régie : ce que tu fais ici n’est pas enregistré. « Reprendre la main » le garde, sauf si elle y a avancé : tu repars alors de sa version.'] : []),
-      ].join(' ');
-    }
     $('support').className = commande.retrait ? '' : etat.consultee === etat.p.salleCourante ? 'sur-table' : 'consultation';
     majBandeau();
   }
@@ -188,7 +178,6 @@ export function demarrerRegie() {
     etat.message = 'Cette régie a repris la main : la table montre sa partie.';
     rendre();
   }
-  $('reprendre-main').addEventListener('click', reprendreLaMain);
 
   /**
    * N'écrit que la partie de cette régie, jamais sa copie en mémoire des autres : elles ont pu avancer dans un autre onglet.
@@ -388,7 +377,8 @@ export function demarrerRegie() {
     if (commande.retrait) { // la table ne montre pas cette partie : « À la table » serait faux
       bandeau.className = 'retrait';
       const texte = h('div', { className: 'texte' }, h('span', { className: 'pastille', textContent: 'En retrait' }),
-        commande.titulaireParti ? 'La régie qui avait la main a été fermée : la table n’est plus servie.' : 'Une autre régie commande la table : les joueurs ne voient pas ce que tu fais ici.');
+        commande.titulaireParti ? 'La régie qui avait la main a été fermée : la table n’est plus servie.' : 'Une autre régie commande la table : les joueurs ne voient pas ce que tu fais ici.',
+        ...(etat.perimee || tenueAilleurs() ? [' Cette partie est aussi ouverte dans l’autre régie : ce que tu fais ici n’est pas enregistré. « Reprendre la main » le garde, sauf si elle y a avancé : tu repars alors de sa version.'] : []));
       texte.title = texte.textContent;
       bandeau.replaceChildren(texte, h('div', { className: 'actions' }, bouton('Reprendre la main', reprendreLaMain, 'btn')));
       return;
@@ -608,11 +598,11 @@ export function demarrerRegie() {
 
   // --- Fenêtre table et plein écran ici -------------------------------------------------------------
   const messageTable = (texte) => annoncer(texte, 10000);
-  $('ouvrir-table').addEventListener('click', () => {
+  function ouvrirFenetreTable() {
     const w = window.open(new URL('presentation.html?vue=table', location.href).href, 'carte-de-mj-table', 'popup,width=1024,height=768');
     if (w) { w.focus(); messageTable('Fenêtre table ouverte : glisse-la sur l’écran de la table, puis son bouton « Plein écran » (au survol, en haut à droite).'); }
     else messageTable('Le navigateur a bloqué la fenêtre. Autorise les fenêtres pour ce site, ou ouvre presentation.html?vue=table dans un nouvel onglet.');
-  });
+  }
 
   function entrerPleinIci() {
     if (!etat.p) return;
@@ -631,9 +621,8 @@ export function demarrerRegie() {
     $('ecran-table').hidden = true;
     $('retour-regie').hidden = true;
     if (document.fullscreenElement) document.exitFullscreen?.();
-    $('plein-ici').focus?.();
+    $('ouvrir-table-bouton')?.focus?.();
   }
-  $('plein-ici').addEventListener('click', entrerPleinIci);
   ecran.activerActions({
     deplacer: deplacerDepuisTable,
     viser: (x, y) => { if (etat.p) viserCase(etat.p.salleCourante, x, y); },
@@ -685,10 +674,13 @@ export function demarrerRegie() {
   const univers = creerRegieUnivers(ctx);
   ctx.univers = univers;
   const selection = creerSelection(ctx);
-  const reglages = creerReglages(ctx);
-  // La coquille de l'atelier : arbre de lecture, onglets Salle · Joueurs · Table. Créée en dernier : elle lit `univers` et `etat`.
+  // La coquille de l'atelier : arbre de lecture, onglets Ici · Joueurs · Écran. Créée avant les réglages (le popover « Affichage » porte la taille d'une case
+  // et « Adapter ») et après `univers` et `etat`, qu'elle lit.
+  let reglages;
   const jouer = creerJouer({ racine: $('regie'), donnees: donneesJeu, partie: partieJeu, surChoix: choisirDansArbre,
-    affichage: { lire: () => r, surChangement: () => { reglages.sauver(); rendre(); diffuser(); } } });
+    ouvrirTable: { fenetre: ouvrirFenetreTable, pleinIci: entrerPleinIci },
+    affichage: { regie: true, lire: () => r, surChangement: () => { reglages.sauver(); rendre(); diffuser(); } } });
+  reglages = creerReglages(ctx);
   ctx.jouer = jouer;
   let minuterie;
   window.addEventListener('resize', () => { clearTimeout(minuterie); minuterie = setTimeout(() => { if (etat.p) rendre(); }, 150); });

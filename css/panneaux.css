@@ -122,7 +122,6 @@
 .atelier-onglet.btn:hover { background: none; color: var(--p-texte-1); }
 .atelier-onglet.btn[aria-selected="true"] { background: none; border-color: transparent; border-bottom-color: var(--accent); color: var(--p-texte-1); }
 #regie .atelier-inspecteur .onglet-contenu { gap: 0; padding: 0 0 var(--esp-3); font-size: 14px; color: var(--p-texte-2); }
-#regie .onglet-contenu > #alerte-retrait { padding: var(--esp-3) var(--esp-4); border-bottom: 1px solid var(--p-filet); }
 #regie .onglet-contenu > p.note { padding: var(--esp-3) var(--esp-4) 0; }
 /* Les blocs de presentation.html dans le corps d'une section (js/regie-panneau.js, sectionnerOnglets) : sans cadre ni titre propres. */
 #regie .p-section-corps > section, #regie .p-section-corps > details, #regie .p-section-corps > #projection { display: flex; flex-direction: column; gap: var(--esp-3); margin: 0; padding: 0; border: 0; border-radius: 0; }

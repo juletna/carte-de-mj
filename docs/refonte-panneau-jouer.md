@@ -53,7 +53,7 @@ Le panneau de droite de la régie change d'onglets selon la carte affichée : **
 
 ## Ordre de réalisation suggéré
 
-1. Renommer (Salle et Lieu → Ici), retirer l'onglet « Table » en déplaçant « Ouvrir la table » dans la barre d'outils, et sortir « Réglages » vers « Affichage » : rapide, sans risque.
+1. ✅ **Livrée le 7 novembre 2026.** Renommer (Salle et Lieu → Ici), « Ouvrir la table ▾ » dans la barre d'outils (menu « Dans une fenêtre » / « Plein écran ici », `js/atelier/ouvrir-table.js`), « Reprendre la main » seulement dans le bandeau rouge, « Réglages » (taille d'une case, Adapter) dans le groupe « Régie » du popover « Affichage ». Choix faits : l'onglet « Table » est **renommé « Écran »** et reste en attendant les étapes 2 et 6 (il garde « Taille de la carte », « Plan du donjon » ex-« Mini-carte », « Régler l'écran de table », « Faire défiler la vue table ») ; sa section « Table » devient « Carte à la table » ; les en-têtes de type « Salle » (en-tête de l'onglet Ici) ne changent pas ; le texte long de l'ancienne alerte (partie aussi ouverte dans l'autre régie, non enregistrée) est passé dans le bandeau rouge. **Reste** : étape 2 (matériel de la table dans « Affichage », « Plan du donjon » dans Ici), étape 6 (cadrage et défilement sur la carte, fin de l'onglet Écran).
 2. Le matériel de la table dans le groupe « À la table » du popover « Affichage » (calibrage qui se déplie, popover maintenu ouvert), « Mini-carte » renommée « Plan du donjon » et placée dans Ici.
 3. Notes de partie pour les lieux (stockage dans la partie du monde). L'onglet Joueurs n'est pas touché (hors périmètre pour l'instant).
 4. Unifier « Visible à la table » entre salle et lieu.

@@ -68,10 +68,10 @@ export function creerRegieUnivers(ctx) {
   }
 
   // --- Réglages et défilement de la table ---------------------------------------------------------------------------
-  // L'onglet Table est le même pour un donjon et pour une carte de monde ; pour une carte, on masque ce qui ne concerne que les salles.
+  // L'onglet Écran est le même pour un donjon et pour une carte de monde ; pour une carte, on masque ce qui ne concerne que les salles.
   function prendreLesReglages() {
     $('plein-ici').hidden = true; // « Plein écran ici » ne montre que les salles
-    $('mini-active').closest('label').hidden = true; // pas de mini-carte pour une carte d'univers
+    $('mini-active').closest('label').hidden = true; // pas de plan du donjon pour une carte d'univers
     $('calibrer-table').hidden = true; // le calibrage dessine une carte bancaire sur la salle : mesure-le depuis une salle (Donjon ou donjon d'un univers)
   }
   function rendreLesReglages() {

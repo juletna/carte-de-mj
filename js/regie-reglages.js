@@ -1,5 +1,5 @@
 /**
- * Les réglages de la régie (partagés avec le Donjon : carte-de-mj:reglages-v1) : taille de case, mini-carte, mode de la table, rotation, miroir,
+ * Les réglages de la régie (partagés avec le Donjon : carte-de-mj:reglages-v1) : taille de case (groupe Régie du popover « Affichage »), plan du donjon, mode de la table, rotation, miroir,
  * calibrage, adaptation de la carte de la régie à la fenêtre. Le rendu de la carte (grille, thème, détails, relief, pénombre, flammes, repères)
  * n'est plus ici : un seul bouton « Affichage » le règle (js/atelier/affichage-popover.js). Fabrique `creerReglages(ctx)` ; `ctx` est celui de regie.js
  * (`etat`, `r`, `commande`, `rendre`, `diffuser`, `montrerIci`), lu au moment de l'appel. Renvoie `sauver` (à rappeler quand la régie reprend la main).

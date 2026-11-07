@@ -10,8 +10,8 @@
   <link rel="stylesheet" href="css/style.css?v=7843981e">
   <link rel="stylesheet" href="css/univers.css?v=e15bf1d6">
   <link rel="stylesheet" href="css/atelier.css?v=f74e7f5f">
-  <link rel="stylesheet" href="css/panneaux.css?v=7a3c12b9">
-  <link rel="stylesheet" href="css/presentation.css?v=ccc0c62f">
+  <link rel="stylesheet" href="css/panneaux.css?v=c7bf9261">
+  <link rel="stylesheet" href="css/presentation.css?v=47fa5dec">
   <!-- versions:debut (généré par outils/versions.mjs, ne pas modifier à la main) -->
   <script type="importmap">
   {
@@ -21,15 +21,16 @@
       "./js/atelier-arbre.js": "./js/atelier-arbre.js?v=91968e1e",
       "./js/atelier-route.js": "./js/atelier-route.js?v=c99de008",
       "./js/atelier-selection.js": "./js/atelier-selection.js?v=8ac4a04a",
-      "./js/atelier/affichage-popover.js": "./js/atelier/affichage-popover.js?v=10964419",
+      "./js/atelier/affichage-popover.js": "./js/atelier/affichage-popover.js?v=ec77ee70",
       "./js/atelier/arbre-vue.js": "./js/atelier/arbre-vue.js?v=4b08cda1",
       "./js/atelier/cartouche.js": "./js/atelier/cartouche.js?v=54b8c854",
       "./js/atelier/coquille.js": "./js/atelier/coquille.js?v=502c744c",
       "./js/atelier/dimensions.js": "./js/atelier/dimensions.js?v=4b8c8867",
       "./js/atelier/fil-compact.js": "./js/atelier/fil-compact.js?v=51898dee",
       "./js/atelier/inspecteur.js": "./js/atelier/inspecteur.js?v=517a8155",
-      "./js/atelier/jouer.js": "./js/atelier/jouer.js?v=09ad8c4c",
+      "./js/atelier/jouer.js": "./js/atelier/jouer.js?v=d57f1be1",
       "./js/atelier/liste.js": "./js/atelier/liste.js?v=57861fc0",
+      "./js/atelier/ouvrir-table.js": "./js/atelier/ouvrir-table.js?v=4e34fdec",
       "./js/atelier/section.js": "./js/atelier/section.js?v=14b9a65d",
       "./js/atelier/vignette-lieu.js": "./js/atelier/vignette-lieu.js?v=2e9a3f90",
       "./js/atelier/vue-table-regie.js": "./js/atelier/vue-table-regie.js?v=956d0ef6",
@@ -89,11 +90,11 @@
       "./js/protocole-table.js": "./js/protocole-table.js?v=9728a7e8",
       "./js/regie-depart.js": "./js/regie-depart.js?v=ebfc2144",
       "./js/regie-icones.js": "./js/regie-icones.js?v=815e777f",
-      "./js/regie-panneau.js": "./js/regie-panneau.js?v=2eeafecd",
-      "./js/regie-reglages.js": "./js/regie-reglages.js?v=d980dc23",
+      "./js/regie-panneau.js": "./js/regie-panneau.js?v=abab92a3",
+      "./js/regie-reglages.js": "./js/regie-reglages.js?v=779675e3",
       "./js/regie-selection.js": "./js/regie-selection.js?v=bb38a63f",
-      "./js/regie-univers.js": "./js/regie-univers.js?v=5fa2b940",
-      "./js/regie.js": "./js/regie.js?v=c3c4beb3",
+      "./js/regie-univers.js": "./js/regie-univers.js?v=782e36cb",
+      "./js/regie.js": "./js/regie.js?v=911b20c9",
       "./js/rendu/feu.js": "./js/rendu/feu.js?v=026d6dcd",
       "./js/rendu/geometrie.js": "./js/rendu/geometrie.js?v=6d683b3b",
       "./js/rendu/graine.js": "./js/rendu/graine.js?v=5331bb5f",
@@ -345,23 +346,15 @@
     </div>
 
     <div id="onglet-table" class="onglet-contenu" hidden>
-      <div id="alerte-retrait" role="alert" hidden>
-        <p id="texte-retrait" class="note erreur"></p>
-        <button id="reprendre-main" type="button" class="btn">Reprendre la main</button>
-      </div>
       <section class="bloc-table" aria-label="Table">
-        <h2>Table</h2>
-        <div class="actions">
-          <button id="ouvrir-table" type="button" class="btn btn-primaire" data-icone="plein-ecran" title="Ouvre presentation.html?vue=table dans une nouvelle fenêtre, à glisser sur l'écran de la table">Ouvrir la fenêtre table</button>
-          <button id="plein-ici" type="button" class="btn" title="Montre la vue table en plein écran sur cet écran" data-icone="plein-ecran">Plein écran ici</button>
-        </div>
+        <h2>Carte à la table</h2>
         <fieldset class="mode-table">
           <legend>Taille de la carte à la table</legend>
           <label class="ligne case"><input type="radio" name="mode-table" id="mode-remplir" value="remplir"> Remplir l’écran</label>
           <label class="ligne case"><input type="radio" name="mode-table" id="mode-reel" value="reel"> Échelle réelle (figurines)</label>
           <p id="aide-mode-table" class="note"></p>
         </fieldset>
-        <label class="ligne case"><input id="mini-active" type="checkbox" checked> Mini-carte à la table (salles découvertes seulement)</label>
+        <label class="ligne case"><input id="mini-active" type="checkbox" checked> Plan du donjon à la table (salles découvertes seulement)</label>
         <details class="defilement">
           <summary>Régler l'écran de table</summary>
           <details class="aide">
@@ -398,7 +391,7 @@
         </details>
         <details class="defilement">
           <summary>Faire défiler la vue table</summary>
-          <p class="note">Utile si la carte dépasse l'écran de la table. Tu peux aussi réduire la taille d'une case dans les réglages.</p>
+          <p class="note">Utile si la carte dépasse l'écran de la table. Tu peux aussi réduire la taille d'une case dans « Affichage » (groupe Régie).</p>
           <div class="croix" role="group" aria-label="Faire défiler la vue table">
             <button type="button" class="btn btn-icone btn-discret" data-defiler="0,-1" aria-label="Vers le haut" data-icone="remonter"></button>
             <button type="button" class="btn btn-icone btn-discret" data-defiler="-1,0" aria-label="Vers la gauche" data-icone="retour"></button>
@@ -409,18 +402,6 @@
         </details>
       </section>
 
-      <details class="bloc reglages" data-memo="reglages">
-        <summary><h2>Réglages</h2></summary>
-        <details class="aide">
-          <summary class="btn btn-icone btn-discret" aria-label="Aide : les réglages" title="À quoi servent ces réglages ?">?</summary>
-          <div class="aide-texte">La taille d'une case sert à la table en « échelle réelle » (on la calibre une fois pour toutes dans « Régler l'écran de table », bloc Table) et de plafond à la régie.
-            « Adapter » ne change que l'affichage de cette régie. Le thème, la grille, le relief, la pénombre, les flammes et les repères se règlent avec le bouton « Affichage » de la barre de la carte.</div>
-        </details>
-        <label class="ligne">Taille d'une case
-          <span><input id="taille" type="range" min="16" max="160" step="0.1" value="48"> <output id="taille-val">48 px</output></span>
-        </label>
-        <label class="ligne case"><input id="ajuster" type="checkbox" checked> Adapter la carte de la régie à la fenêtre</label>
-      </details>
       <p class="note">Projet libre (MIT) · fonctionne hors ligne</p>
     </div>
 

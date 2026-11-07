@@ -141,11 +141,8 @@ const TESTS = (pages) => [
   }],
   ['pages HTML : le curseur de taille (Présentation seulement : on n’y calibre plus dans le Donjon) et le champ d’échelle portent les bonnes bornes et les bons défauts', () => {
     verifier(!/id="(taille|calibrage)"/.test(pages['donjon.html']), 'donjon.html : ni taille de case ni calibrage');
-    for (const page of ['presentation.html']) {
-      const html = pages[page];
-      egal(['type', 'min', 'max', 'value'].map((a) => attribut(html, 'taille', a)), ['range', String(TAILLE_MIN), String(TAILLE_MAX), String(TAILLE_PAR_DEFAUT)], `${page} : curseur de taille`);
-      verifier(html.includes(`<output id="taille-val">${TAILLE_PAR_DEFAUT} px</output>`), `${page} : valeur affichée du curseur`);
-    }
+    // Le curseur de taille de la régie est dans le popover « Affichage » (js/atelier/affichage-popover.js, groupe Régie), plus dans presentation.html.
+    verifier(!/id="taille"/.test(pages['presentation.html']), 'presentation.html : le curseur de taille est dans le popover');
     egal(attribut(pages['donjon.html'], 'echelle', 'value'), String(ECHELLE_PAR_DEFAUT), 'donjon.html : échelle');
   }],
 ];

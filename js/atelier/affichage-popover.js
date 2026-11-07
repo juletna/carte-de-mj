@@ -5,8 +5,9 @@
  *   Grille          (bouton direct à côté, `elementGrille`) afficher / masquer d'un clic, et le chevron : opacité des lignes (`cases`, 0–100 %) ;
  *   Carte           thème (peint / vectoriel), détails des sols (riches / sobres), relief des murs ;
  *   À la table      pénombre (0–100 %), flammes animées, repères de cases (A, B… et 1, 2…).
- * Ce qui touche à la table physique (mode remplir / échelle réelle, rotation, miroir, calibrage, mini-carte, défilement) reste dans l'onglet
- * Table de la régie ; l'échelle (m par case) reste dans l'inspecteur du donjon, car elle sert à écrire et à créer les salles.
+ * Jouer ajoute un groupe « Régie » (taille d'une case, adapter la carte à la fenêtre : option `regie`).
+ * Ce qui touche à la table physique (mode remplir / échelle réelle, rotation, miroir, calibrage, plan du donjon, défilement) reste dans l'onglet
+ * Écran de la régie ; l'échelle (m par case) reste dans l'inspecteur du donjon, car elle sert à écrire et à créer les salles.
  *
  *   const a = creerAffichagePopover({ lire: () => r, surChangement: () => { sauver; redessiner; diffuser } });
  *   a.element  le bouton et son popover ; a.elementGrille  le bouton de grille et son chevron (à poser dans la barre) ; a.maj()  relit `lire()` ; a.fermer()
@@ -19,7 +20,7 @@ import { h } from '../dom.js';
 import { icone } from '../icones.js';
 import {
   casesDeReglages, casesValides, CASES_PAR_DEFAUT, themeDeReglages, detailsDeReglages, reliefDeReglages, penombreDeReglages, flammesDeReglages,
-  THEME_PAR_DEFAUT, DETAILS_PAR_DEFAUT, PENOMBRE_PAR_DEFAUT, THEMES_RENDU, DETAILS_SOLS,
+  THEME_PAR_DEFAUT, DETAILS_PAR_DEFAUT, PENOMBRE_PAR_DEFAUT, THEMES_RENDU, DETAILS_SOLS, TAILLE_MIN, TAILLE_MAX, TAILLE_PAR_DEFAUT,
 } from '../affichage.js';
 
 /**
@@ -69,7 +70,7 @@ export function appliquerRendu(r, champ, valeur) {
   }
 }
 
-export function creerAffichagePopover({ lire, surChangement }) {
+export function creerAffichagePopover({ lire, surChangement, regie = false }) {
   let derniere = 0; // la dernière opacité visible vue ici ; `casesAvant` (réglages) la garde d'une page à l'autre
   const bouton = h('button', { type: 'button', className: 'btn btn-icone btn-discret atelier-affichage-bouton', 'aria-label': 'Affichage', title: 'Affichage : thème, détails, relief, pénombre, flammes, repères', 'aria-haspopup': 'dialog', 'aria-expanded': 'false' }, icone('affichage'));
   const curseur = h('input', { type: 'range', min: '0', max: '100', step: '5', id: 'cases', 'aria-label': 'Opacité des lignes de la grille' });
@@ -81,11 +82,21 @@ export function creerAffichagePopover({ lire, surChangement }) {
   const penombreVal = h('output', { className: 'atelier-affichage-valeur', id: 'penombre-val' });
   const flammes = h('input', { type: 'checkbox', id: 'flammes' });
   const reperes = h('input', { type: 'checkbox', id: 'reperes' });
+  // Groupe « Régie » (Jouer seulement) : la taille d'une case et l'adaptation de la carte à la fenêtre. Réglages propres à la régie, lus et écrits par
+  // js/regie-reglages.js (qui retrouve ces contrôles par leur identifiant) : ce module ne fait que les poser.
+  const taille = h('input', { type: 'range', min: String(TAILLE_MIN), max: String(TAILLE_MAX), step: '0.1', value: String(TAILLE_PAR_DEFAUT), id: 'taille', 'aria-label': 'Taille d’une case' });
+  const tailleVal = h('output', { className: 'atelier-affichage-valeur', id: 'taille-val', textContent: `${TAILLE_PAR_DEFAUT} px` });
+  const ajuster = h('input', { type: 'checkbox', id: 'ajuster', checked: true });
   const ligne = (texte, champ, titre) => h('label', { className: 'atelier-affichage-ligne atelier-affichage-choix', title: titre ?? '' }, h('span', { textContent: texte }), champ);
   const caseACocher = (texte, champ) => h('label', { className: 'atelier-affichage-case' }, champ, h('span', { textContent: texte }));
   const groupe = (titre, ...enfants) => h('div', { className: 'atelier-affichage-groupe' }, h('p', { className: 'atelier-affichage-sous-titre', textContent: titre }), ...enfants);
+  const groupeRegie = regie ? [groupe('Régie',
+    h('label', { className: 'atelier-affichage-ligne', title: 'Sert de plafond à la carte de la régie, et à la table en échelle réelle (calibrée dans l’onglet Écran).' },
+      h('span', { textContent: 'Taille d’une case' }), taille, tailleVal),
+    h('label', { className: 'atelier-affichage-case', title: 'Ne change que l’affichage de cette régie.' }, ajuster, h('span', { textContent: 'Adapter la carte à la fenêtre' })))] : [];
   const panneau = h('div', { className: 'atelier-affichage-panneau', role: 'dialog', 'aria-label': 'Affichage', hidden: true },
     h('p', { className: 'atelier-affichage-titre', textContent: 'Affichage' }),
+    ...groupeRegie,
     groupe('Carte', ligne('Thème', theme), ligne('Détails des sols', details, 'Sols dessinés et détaillés, ou sols simples (thème peint).'), caseACocher('Relief des murs', relief)),
     groupe('À la table',
       h('label', { className: 'atelier-affichage-ligne', title: 'Obscurité de la salle à la table. La vue du MJ n’en garde qu’une part, pour tout voir.' },
