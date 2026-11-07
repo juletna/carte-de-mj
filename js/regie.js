@@ -404,22 +404,22 @@ export function demarrerRegie() {
     bandeau.replaceChildren(texte, actions);
   }
 
-  /** Ce que la table montre de la salle regardée : un bouton par catégorie, dont le texte dit l'état. */
-  const NOMS_MASQUE = { monstres: 'Monstres', objets: 'Objets' };
+  /** Ce que la table montre de la salle regardée : un interrupteur par catégorie (Monstres, Objets, Plan du donjon). */
   function majProjection() {
     const sur = etat.consultee === etat.p.salleCourante;
-    $('projection-titre').textContent = sur ? 'À la table :' : 'Une fois à la table :';
+    const titre = $('projection-titre');
+    titre.hidden = sur;
+    titre.textContent = 'La table voit une autre salle : ces réglages valent une fois cette salle à la table.';
     const plan = r.miniTable !== false;
-    iconeEtTexte($('montrer-plan'), plan ? 'oeil' : 'oeil-barre', `Plan du donjon ${plan ? 'visible' : 'masqué'}`);
-    $('montrer-plan').classList.toggle('masque', !plan);
+    $('montrer-plan').setAttribute('aria-checked', String(plan));
+    $('montrer-plan').title = `${plan ? 'Masquer' : 'Montrer'} à la table le plan des salles découvertes`;
     for (const b of $('projection').querySelectorAll('button[data-categorie]')) {
       const categorie = b.dataset.categorie, masque = pres.estMasque(etat.p, etat.consultee, categorie);
-      iconeEtTexte(b, masque ? 'oeil-barre' : 'oeil', `${NOMS_MASQUE[categorie]} ${masque ? 'masqués' : 'visibles'}`);
-      b.classList.toggle('masque', masque);
+      b.setAttribute('aria-checked', String(!masque));
       b.title = `${masque ? 'Montrer' : 'Masquer'} à la table les ${categorie === 'monstres' ? 'monstres et les PNJ' : 'objets'} de cette salle. Cette régie les montre toujours.`;
     }
   }
-  $('montrer-plan').addEventListener('click', () => { r.miniTable = r.miniTable === false; reglages.sauver(); diffuser(); majProjection(); montrerIci(); });
+  $('montrer-plan').addEventListener('click', () => { if (r.miniTable === false) delete r.miniTable; else r.miniTable = false; reglages.sauver(); diffuser(); majProjection(); montrerIci(); });
   for (const b of $('projection').querySelectorAll('button[data-categorie]')) {
     b.addEventListener('click', () => {
       if (!etat.p) return;
@@ -427,7 +427,6 @@ export function demarrerRegie() {
       modifie();
     });
   }
-
 
   /** Bloc « Cette salle » : éléments cachés, portes (accessibles au clavier) et notes en lecture seule. */
   function majSalle() {

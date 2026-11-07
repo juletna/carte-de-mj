@@ -87,6 +87,10 @@ const TESTS = [
     verifier(!JSON.stringify(vue).includes('blob:') && !JSON.stringify(vue).includes('data:'), 'jamais l’image');
     pa.masquerNoms = true;
     egal(p.vueDeLaTable(pa, univ).points.every((x) => !('nom' in x)) && !('nom' in p.vueDeLaTable(pa, univ)), true, 'noms masqués');
+    pa.masquerPoints = true;
+    egal(p.vueDeLaTable(pa, univ).points, [], 'points masqués : la table n’en voit aucun');
+    egal(p.validerPartieUnivers({ univers: 'u1', lieuCourant: 'l1', masquerPoints: true }).partie.masquerPoints, true, 'relu');
+    delete pa.masquerPoints;
     p.recacher(pa, m.id, pc.id);
     egal([pa.reveles, p.pointsPourLaTable(pa, univ).length], [{}, 1], 'recaché');
     verifier(p.vueDeLaTable({ ...pa, lieuCourant: 'x' }, univ) === null, 'lieu disparu');

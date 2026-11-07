@@ -58,11 +58,9 @@ body.presentation a { color: var(--accent); }
 #bandeau .actions button { white-space: nowrap; }
 @media (max-width: 1100px) and (min-width: 761px) { #bandeau { flex-wrap: wrap; height: 112px; align-content: center; } #bandeau .texte { flex: 1 1 100%; } }
 
-/* Hauteur fixe aussi : changer ce que montre la table ne décale jamais la carte. Le texte du bouton dit l'état (pas la couleur seule). */
-#projection { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 14px; }
-#projection-titre { color: var(--texte-doux); line-height: 1.2; }
-#projection button { padding: 0 12px; white-space: nowrap; flex: 1 1 auto; border-color: var(--succes-bord); background: var(--succes-fond); }
-#projection button.masque { border-color: #8a6d17; background: #33280a; }
+/* Les interrupteurs « Visible à la table » (Monstres, Objets, Plan du donjon ; Points, Noms des points dans un monde) : js/regie.js, js/regie-univers.js. */
+.rang-interrupteur { display: flex; align-items: center; gap: var(--esp-3); min-height: 40px; font-size: 14px; }
+#projection-titre { margin: 0; }
 
 /* Retour d'action transitoire : posé en bas à gauche de la fenêtre (sous la colonne de commandes), jamais sur la carte ni dans le flux.
    Opacité (pas display/visibility) : la zone aria-live reste annoncée. Il disparaît seul (regie.js, annoncer) ou au clic. */

@@ -402,15 +402,21 @@ export function creerRegieUnivers(ctx) {
         surChoix: () => { pointId = q.id; rendre(); },
       };
     }));
-    const masquer = h('input', { type: 'checkbox', checked: !!partie.masquerNoms });
-    masquer.addEventListener('change', () => { if (masquer.checked) partie.masquerNoms = true; else delete partie.masquerNoms; sauver(); rendre(); });
+    /** Un interrupteur « Visible à la table » : mêmes rangées que celles d'une salle (js/regie.js). */
+    const interrupteur = (libelle, visible, surBascule, aide = null) => {
+      const b = h('button', { type: 'button', className: 'pop-interrupteur', role: 'switch', 'aria-checked': String(visible), 'aria-label': `${libelle} à la table` });
+      b.addEventListener('click', () => { surBascule(!visible); sauver(); rendre(); });
+      return h('div', { className: 'rang-interrupteur' }, h('span', { className: 'pop-lib' }, libelle, ...(aide ? [h('small', { textContent: aide })] : [])), b);
+    };
+    const basculeChamp = (champ) => (visible) => { if (visible) delete partie[champ]; else partie[champ] = true; };
     const nbCaches = lieu.points.filter((q) => q.cache && !pu.pointRevele(partie, lieu.id, q)).length;
     // Sections du panneau (js/atelier/section.js, docs/design-panneaux.md) ; le pli est gardé pour la session.
     const section = (cle, titre, enfants, options = {}) => creerSection({ cle: `regie-lieu:${cle}`, titre, enfants, ...options }).element;
     panneau.replaceChildren(
-      section('table', 'Carte à la table', [
+      section('table', 'Visible à la table', [
         h('p', { className: 'note', textContent: enConsultation() ? 'Tu consultes cette carte : la table ne la voit pas encore. « Afficher à la table » l’y conduit.' : ctx.commande.main ? `La table voit cette carte${nbCaches ? ` sans ${pluriel(nbCaches, 'point caché', 'points cachés')}` : ''}.` : 'Cette régie est en retrait : la table ne voit pas ce que tu fais ici.' }),
-        h('label', { className: 'ligne case' }, masquer, ' Masquer les noms à la table')]),
+        interrupteur('Points', !partie.masquerPoints, basculeChamp('masquerPoints'), 'les points révélés'),
+        interrupteur('Noms des points', !partie.masquerNoms, basculeChamp('masquerNoms'))]),
       section('point', 'Point choisi', choisi),
       section('points', 'Points', [lieu.points.length ? liste : h('p', { className: 'note', textContent: 'Aucun point sur cette carte.' })], {
         compte: lieu.points.length || null,

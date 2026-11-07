@@ -2,7 +2,7 @@
  * Partie d'univers : où en est la table dans un univers (module PUR, sans DOM). Voir docs/conception-univers.md §4.
  *
  * { univers: idUnivers, lieuCourant: idLieu, chemin: [idLieu], decouverts: [idLieu], reveles: { idLieu: [idPoint] },
- *   dans?: { donjon, salle?, depuis? }, masquerNoms?: true, notesPartie?: { idLieu: texte } }
+ *   dans?: { donjon, salle?, depuis? }, masquerNoms?: true, masquerPoints?: true, notesPartie?: { idLieu: texte } }
  *
  * `chemin` : les lieux traversés pour arriver au lieu courant (le courant n'y est pas). `dans` : la table est entrée dans un
  * donjon (sa partie de donjon a son propre format, inchangé, dans carte-de-mj:presentations-v1) ; `depuis` : le point franchi.
@@ -148,7 +148,7 @@ export const filDAriane = (partie, univers) => [...partie.chemin, partie.lieuCou
 /** Les points du lieu courant que la table voit, dans l'ordre du lieu : [{ id, x, y, nom? }]. Sans nom si le MJ a masqué les noms. */
 export function pointsPourLaTable(partie, univers, idLieu = partie.lieuCourant) {
   const lieu = univers.lieux[idLieu];
-  if (!lieu) return [];
+  if (!lieu || partie.masquerPoints) return [];
   return lieu.points.filter((p) => pointRevele(partie, idLieu, p)).map((p) => ({ id: p.id, x: p.x, y: p.y, ...(partie.masquerNoms || !p.nom ? {} : { nom: p.nom }) }));
 }
 
@@ -226,6 +226,7 @@ export function validerPartieUnivers(brut) {
     } else avertissements.push('donjon ouvert illisible, la table revient à la carte');
   }
   if (brut.masquerNoms === true) partie.masquerNoms = true;
+  if (brut.masquerPoints === true) partie.masquerPoints = true;
   if (brut.notesPartie !== undefined) {
     if (!estObjet(brut.notesPartie)) avertissements.push('notes de partie illisibles, vidées');
     else for (const [lieu, texte] of Object.entries(brut.notesPartie)) {
