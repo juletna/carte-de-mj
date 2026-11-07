@@ -11,12 +11,12 @@
   <link rel="stylesheet" href="css/univers.css?v=e15bf1d6">
   <link rel="stylesheet" href="css/atelier.css?v=cb6508ad">
   <link rel="stylesheet" href="css/panneaux.css?v=21fca64a">
-  <link rel="stylesheet" href="css/presentation.css?v=47e4ff3c">
+  <link rel="stylesheet" href="css/presentation.css?v=65764080">
   <!-- versions:debut (généré par outils/versions.mjs, ne pas modifier à la main) -->
   <script type="importmap">
   {
     "imports": {
-      "./js/affichage.js": "./js/affichage.js?v=55b65d68",
+      "./js/affichage.js": "./js/affichage.js?v=b6c2b384",
       "./js/animation-carte.js": "./js/animation-carte.js?v=ca813499",
       "./js/atelier-arbre.js": "./js/atelier-arbre.js?v=91968e1e",
       "./js/atelier-route.js": "./js/atelier-route.js?v=c99de008",
@@ -42,6 +42,7 @@
       "./js/bibliotheque/source.js": "./js/bibliotheque/source.js?v=ef3cf14e",
       "./js/bibliotheque/vocabulaire.js": "./js/bibliotheque/vocabulaire.js?v=48a97e23",
       "./js/cadrage-table.js": "./js/cadrage-table.js?v=b145b237",
+      "./js/calibrage.js": "./js/calibrage.js?v=04f5755d",
       "./js/carte-personnage.js": "./js/carte-personnage.js?v=9e379875",
       "./js/catalogue.js": "./js/catalogue.js?v=8bd103a4",
       "./js/commande-table.js": "./js/commande-table.js?v=534e6525",
@@ -52,7 +53,7 @@
       "./js/donjon.js": "./js/donjon.js?v=52ddf63c",
       "./js/dossier-travail-logique.js": "./js/dossier-travail-logique.js?v=3ebf235b",
       "./js/dossier-travail.js": "./js/dossier-travail.js?v=b8ce52db",
-      "./js/ecran-table.js": "./js/ecran-table.js?v=9f93fd09",
+      "./js/ecran-table.js": "./js/ecran-table.js?v=36e7af0b",
       "./js/fiche/format.js": "./js/fiche/format.js?v=9477ccaf",
       "./js/fiche/regles.js": "./js/fiche/regles.js?v=01711471",
       "./js/format.js": "./js/format.js?v=c7e074dc",
@@ -94,10 +95,10 @@
       "./js/regie-depart.js": "./js/regie-depart.js?v=63b2ff4a",
       "./js/regie-icones.js": "./js/regie-icones.js?v=55f2e08b",
       "./js/regie-panneau.js": "./js/regie-panneau.js?v=85d10ec1",
-      "./js/regie-reglages.js": "./js/regie-reglages.js?v=76ca69bb",
+      "./js/regie-reglages.js": "./js/regie-reglages.js?v=5b81a5bb",
       "./js/regie-selection.js": "./js/regie-selection.js?v=17b5d4ac",
-      "./js/regie-univers.js": "./js/regie-univers.js?v=64ce8a7f",
-      "./js/regie.js": "./js/regie.js?v=083891a5",
+      "./js/regie-univers.js": "./js/regie-univers.js?v=195541ef",
+      "./js/regie.js": "./js/regie.js?v=fe9b1a40",
       "./js/rendu/feu.js": "./js/rendu/feu.js?v=026d6dcd",
       "./js/rendu/geometrie.js": "./js/rendu/geometrie.js?v=6d683b3b",
       "./js/rendu/graine.js": "./js/rendu/graine.js?v=5331bb5f",
@@ -158,7 +159,7 @@
       "./js/univers.js": "./js/univers.js?v=10b19c48",
       "./js/voix.js": "./js/voix.js?v=1b45311f",
       "./js/vue-publique.js": "./js/vue-publique.js?v=bfdc5b53",
-      "./js/vue-table.js": "./js/vue-table.js?v=78c98f08",
+      "./js/vue-table.js": "./js/vue-table.js?v=4217dba0",
       "./js/zip.js": "./js/zip.js?v=82ee6658",
       "./js/zone-passage.js": "./js/zone-passage.js?v=22c0cfc2"
     }
@@ -361,9 +362,15 @@
       <p id="attente" role="status" hidden></p>
       <!-- Une carte d'univers à la place de la salle (js/univers-table.js) : l'image en grand, les points visibles. -->
       <div id="univers-table" hidden></div>
+      <!-- Le calibrage : un mode de la table (message `calibrage`), fond uni et grille seule, prioritaire sur la salle et sur une carte d'univers. -->
       <div id="calibrage-table" hidden>
-        <div id="carte-calibrage"></div>
-        <p id="texte-calibrage"></p>
+        <div id="calibrage-scene">
+          <div id="calibrage-orienter" hidden><span id="calibrage-haut">HAUT</span><span id="calibrage-f" aria-hidden="true">F</span></div>
+          <div id="carte-calibrage" hidden></div>
+          <div id="calibrage-verifier" hidden><div id="calibrage-cases"><span id="calibrage-pion"></span></div></div>
+          <div id="calibrage-termine" hidden aria-hidden="true">✓</div>
+        </div>
+        <p id="texte-calibrage" role="status"></p>
       </div>
     </div>
     <button id="plein-ecran-table" type="button" class="btn btn-icone btn-discret coin coin-droite" aria-label="Plein écran" title="Plein écran" data-icone="plein-ecran"></button>

@@ -13,7 +13,7 @@ import { animationActive } from './rendu/lumiere.js';
 import { creerAnimation, mouvementReduit } from './animation-carte.js';
 import { activerDeplacement } from './deplacement.js';
 import { positionFractions, poserPosition } from './cadrage-table.js';
-import { AFFICHAGE_PAR_DEFAUT, CASE_MM_PAR_DEFAUT, optionsRendu, tailleTable, tailleQuiTientPlan, carteDeCalibrage, transformOrientation, versCarte } from './affichage.js';
+import { AFFICHAGE_PAR_DEFAUT, optionsRendu, tailleTable, tailleQuiTientPlan, carteDeCalibrage, transformOrientation, versCarte } from './affichage.js';
 import { virgule } from './format.js';
 import { $ } from './dom.js';
 
@@ -25,7 +25,7 @@ const DUREE_COINS = 3500;
  *   affichage : l'affichage avant le premier message (par défaut AFFICHAGE_PAR_DEFAUT).
  */
 export function creerEcranTable({ affichage = { ...AFFICHAGE_PAR_DEFAUT } } = {}) {
-  const ecran = { plan: null, mini: null, caseVisee: null, affichage };
+  const ecran = { plan: null, mini: null, caseVisee: null, affichage, calibrage: null };
   const animation = creerAnimation($('carte-table')); // une seule boucle, qui s'arrête quand la carte n'est plus affichée
 
   /** Côté de case à la table : « échelle réelle » = la taille calibrée, exacte ; « remplir » = calculé sur la fenêtre. */
@@ -48,19 +48,30 @@ export function creerEcranTable({ affichage = { ...AFFICHAGE_PAR_DEFAUT } } = {}
 
   /** Tourne ou retourne tout ce que voient les joueurs ; les boutons de coin restent à l'endroit. */
   function orienter() {
-    const o = $('orientation-table'), { rotation = 0 } = ecran.affichage;
-    o.style.transform = transformOrientation(ecran.affichage);
+    const o = $('orientation-table'), orientation = ecran.calibrage ?? ecran.affichage, { rotation = 0 } = orientation; // en calibrage, l'orientation en cours de réglage
+    o.style.transform = transformOrientation(orientation);
     o.classList.toggle('couche', rotation === 90 || rotation === 270);
   }
 
-  /** Pendant le calibrage : une carte bancaire dessinée à l'échelle réglée, à faire coïncider avec une vraie carte posée sur la table. */
-  function montrerCalibrage(taille) {
-    const { calibrage, caseMm = CASE_MM_PAR_DEFAUT } = ecran.affichage;
-    $('calibrage-table').hidden = !calibrage;
-    if (!calibrage) return;
-    const { largeur, hauteur } = carteDeCalibrage(taille, caseMm);
+  const ETAPES = [['orienter', 'calibrage-orienter'], ['mesurer', 'carte-calibrage'], ['verifier', 'calibrage-verifier'], ['termine', 'calibrage-termine']];
+  const CONSIGNES = {
+    orienter: 'Mets la lettre dans le sens où tu veux lire la carte.',
+    mesurer: 'Pose une carte bancaire sur le rectangle. Ajuste jusqu’à ce qu’elle coïncide.',
+    verifier: 'Pose une figurine sur une case. Elle doit y tenir sans déborder.',
+  };
+  /**
+   * Le mode calibrage (message `calibrage`) : fond uni et grille seule à la taille calibrée, par étape (orienter, mesurer, verifier,
+   * termine). Prioritaire sur la salle et sur une carte d'univers, qu'il ne défait pas : `ecran.plan` et le reste sont gardés tels quels.
+   */
+  function montrerCalibrage() {
+    const c = ecran.calibrage, racine = $('calibrage-table');
+    racine.hidden = !c;
+    if (!c) return;
+    racine.style.setProperty('--case', `${c.taille}px`);
+    for (const [etape, id] of ETAPES) $(id).hidden = c.etape !== etape;
+    const { largeur, hauteur } = carteDeCalibrage(c.taille, c.caseMm);
     Object.assign($('carte-calibrage').style, { width: `${largeur}px`, height: `${hauteur}px` });
-    $('texte-calibrage').textContent = `Pose une carte bancaire sur ce rectangle, puis ajuste la taille depuis la régie. 1 case = ${virgule(caseMm)} mm.`;
+    $('texte-calibrage').textContent = CONSIGNES[c.etape] ?? `Table calibrée · 1 case = ${virgule(c.caseMm)} mm`;
   }
 
   // L'écran reste allumé tant que la table montre quelque chose, si le navigateur le permet (sinon, rien ne change).
@@ -79,11 +90,12 @@ export function creerEcranTable({ affichage = { ...AFFICHAGE_PAR_DEFAUT } } = {}
   function rendre() {
     const carte = $('carte-table');
     orienter();
+    montrerCalibrage();
+    if (ecran.calibrage) { animation.arreter(); return; } // la salle n'est pas redessinée sous le calibrage ; elle revient à sa fin
     $('attente').hidden = !!ecran.plan;
     carte.hidden = !ecran.plan;
     const mini = $('mini-table');
     mini.hidden = !ecran.plan || !ecran.mini;
-    montrerCalibrage(ecran.affichage.taille);
     if (!ecran.plan) { animation.arreter(); return; }
     garderEveille();
     if (ecran.mini) {
@@ -107,6 +119,12 @@ export function creerEcranTable({ affichage = { ...AFFICHAGE_PAR_DEFAUT } } = {}
     ecran.caseVisee = caseVisee;
     ecran.plan = plan;
     if (!plan && texteAttente !== undefined) $('attente').textContent = texteAttente;
+    rendre();
+  }
+
+  /** Entre dans le mode calibrage (contenu relu par lireCalibrage) ou en sort (null) : la table montre alors exactement ce qu'elle montrait. */
+  function calibrer(contenu) {
+    ecran.calibrage = contenu;
     rendre();
   }
 
@@ -191,7 +209,8 @@ export function creerEcranTable({ affichage = { ...AFFICHAGE_PAR_DEFAUT } } = {}
   });
 
   return {
-    appliquer, attendre, activerActions, defiler, cadrer,
+    appliquer, attendre, calibrer, activerActions, defiler, cadrer,
+    enCalibrage: () => !!ecran.calibrage,
     /** L'affichage en cours (la fenêtre table s'en sert de repli quand un message en porte un invalide). */
     affichage: () => ecran.affichage,
     aUnPlan: () => !!ecran.plan,

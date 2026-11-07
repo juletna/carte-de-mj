@@ -8,7 +8,7 @@
 import * as stockage from './stockage.js';
 import * as table from './commande-table.js';
 import { creerEcranTable } from './ecran-table.js';
-import { MESSAGES, ouvrirCanal, lireEtat, lireDefilement, messageDemandeEtat, messageDeplacer, messageViser, messagePoint, messageZoom, messageCadrer, messageElement, lireCadrage } from './protocole-table.js';
+import { MESSAGES, ouvrirCanal, lireEtat, lireDefilement, lireCalibrage, messageDemandeEtat, messageDeplacer, messageViser, messagePoint, messageZoom, messageCadrer, messageElement, lireCadrage } from './protocole-table.js';
 import { affichageDeReglages } from './affichage.js';
 import { activerZoomGestes } from './cadrage-table.js';
 import { TYPE_UNIVERS, lireVueUnivers } from './univers-protocole.js';
@@ -32,6 +32,7 @@ export function demarrerTable() {
 
   if (!canal) { attendre('Ce navigateur ne permet pas de recevoir la présentation (BroadcastChannel indisponible).'); return; }
   let recu = false, regiePresente = false;
+  let dernierUnivers = null; // la dernière carte d'univers reçue : à remontrer à la fin du calibrage
   canal.onmessage = (ev) => {
     const m = ev.data;
     if (!m || typeof m !== 'object') return;
@@ -39,12 +40,23 @@ export function demarrerTable() {
       const lu = lireVueUnivers(m, ecran.affichage());
       if (!lu) return;
       recu = true;
+      dernierUnivers = lu;
       ecran.appliquer({ plan: null, mini: null, caseVisee: null, affichage: lu.affichage }, '');
-      universTable.montrer(lu.vue, lu.affichage, lu.defilement);
+      if (!ecran.enCalibrage()) universTable.montrer(lu.vue, lu.affichage, lu.defilement);
     } else if (m.type === MESSAGES.ETAT) {
       universTable.masquer();
+      dernierUnivers = null;
       recu = true;
       ecran.appliquer(lireEtat(m, ecran.affichage()), 'La présentation n’a pas commencé. Lance-la depuis la régie.');
+    } else if (m.type === MESSAGES.CALIBRAGE) {
+      // Un mode de la table, sans plan ni partie : il fonctionne même si rien n'a encore été reçu (fenêtre qui vient de s'ouvrir).
+      const c = lireCalibrage(m, ecran.affichage());
+      recu = true;
+      if (c.etape) { universTable.masquer(); ecran.calibrer(c); }
+      else {
+        ecran.calibrer(null);
+        if (dernierUnivers) universTable.montrer(dernierUnivers.vue, dernierUnivers.affichage, dernierUnivers.defilement); // la même carte, au même défilement
+      }
     } else if (m.type === MESSAGES.DEFILER) {
       ecran.defiler(lireDefilement(m));
     } else if (m.type === MESSAGES.CADRAGE) {
