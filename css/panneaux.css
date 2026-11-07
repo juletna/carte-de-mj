@@ -320,3 +320,6 @@
 .rang-badge .icone { width: 11px; height: 11px; }
 canvas[data-cadrage="coin"] { transform-origin: 0 0 !important; transform: scale(1.7) !important; } /* l'état se lit sur un coin de mur : le sol seul ressemble au choix du sol */
 canvas[data-cadrage="plein"] { transform: none !important; }
+
+/* Jouer : la rangée d'onglets (Salle · Joueurs · Table) a la hauteur de la barre d'outils de la scène et de l'en-tête de l'arbre, pour que leurs filets s'alignent (comme les onglets-icônes du Donjon). */
+@media (min-width: 761px) { [data-atelier="jouer"] .atelier-onglet.btn { min-height: calc(var(--hauteur-barre) - 1px); } }

@@ -176,7 +176,7 @@ body.atelier-avec-inspecteur { --largeur-inspecteur: 330px; }
   body.arbre-replie .atelier-arbre { display: none; }
   [data-atelier="preparer"] > .atelier-inspecteur { grid-column: 3; grid-row: 3; }
   [data-atelier="jouer"] > .atelier-inspecteur { grid-column: 3; grid-row: 1; }
-  [data-atelier="jouer"] .atelier-onglets { position: sticky; top: 0; z-index: 3; padding: var(--esp-2); border-bottom: 1px solid var(--bord); }
+  [data-atelier="jouer"] .atelier-onglets { position: sticky; top: 0; z-index: 3; padding: 0 var(--esp-2); border-bottom: 1px solid var(--bord); }
   .atelier-arbre-bouton { display: none; }
   body.arbre-replie .atelier-arbre-bouton { display: inline-flex; }
 }

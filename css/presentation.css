@@ -292,6 +292,6 @@ details.bloc > .aide, .defilement > .aide { display: block; margin-bottom: 6px; 
 .regie-vues .regie-vue[aria-selected="true"] { background: var(--p-surface-survol); color: var(--p-texte-1); }
 .apercu-scene { flex: 1; position: relative; min-height: 0; overflow: hidden; background: #000; }
 .apercu-scene[hidden] { display: none; }
-.apercu-scene iframe { position: absolute; left: 0; top: 0; border: 0; transform-origin: 0 0; pointer-events: none; }
+.apercu-scene iframe { position: absolute; left: 0; top: 0; border: 0; transform-origin: 0 0; }
 #principal.vue-table-active > :not(.atelier-barre):not(#apercu-scene) { display: none; } /* la carte de la régie cède la place à la vue table */
 body.vue-apercu .coin, body.vue-apercu #retour-regie { display: none !important; }
