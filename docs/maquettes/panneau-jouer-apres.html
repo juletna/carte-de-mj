@@ -259,31 +259,34 @@ textarea { width: 100%; min-height: 70px; background: var(--champ); border: 1px 
       </div>
     </section>
 
-    <section class="vue">
-      <h2>Popover « Affichage » <span class="num">6</span></h2>
-      <div class="pop">
-        <h3>Régie</h3>
-        <div class="ligne"><span>Thème</span><span class="champ">Dessiné ▾</span></div>
-        <div class="ligne"><span>Détails</span><span class="champ">Riches ▾</span></div>
-        <div class="ligne"><span>Relief</span><span class="interrupteur"></span></div>
-        <div class="ligne"><span>Repères</span><span class="interrupteur"></span></div>
-        <div class="ligne"><span>Taille d'une case</span><span class="curseur"></span></div>
-        <div class="ligne"><span>Adapter la carte à la fenêtre</span><span class="interrupteur"></span></div>
-        <h3 style="margin-top:12px">À la table</h3>
-        <div class="ligne"><span>Pénombre</span><span class="curseur"></span></div>
-        <div class="ligne"><span>Flammes animées</span><span class="interrupteur"></span></div>
-        <div class="ligne" style="margin-top:10px"><span class="btn" style="width:100%;justify-content:center">Régler l'écran de table…</span></div>
-      </div>
-    </section>
-
-    <section class="vue">
-      <h2>Fenêtre « Régler l'écran de table » <span class="num">6</span></h2>
-      <div class="pop" style="max-width:360px">
-        <h3>Matériel de la table</h3>
-        <div class="champ2" style="margin:6px 0"><span>Rotation</span><span class="champ" style="color:var(--t1)">Aucune ▾</span></div>
-        <div class="rang" style="margin:6px 0"><span style="flex:1">Image en miroir</span><span class="interrupteur off"></span></div>
-        <div class="champ2" style="margin:6px 0"><span>Taille réelle d'une case (mm)</span><span class="champ" style="color:var(--t1)">25</span></div>
-        <span class="btn" style="margin-top:6px">Calibrer sur la table</span>
+    <section class="vue" style="grid-column: 1 / -1">
+      <h2>« Affichage » puis « Régler l'écran de table… » <span class="num">6</span></h2>
+      <div style="display:flex; gap:18px; align-items:flex-start; flex-wrap:wrap">
+        <div class="pop" style="width:340px">
+          <h3>Régie</h3>
+          <div class="ligne"><span>Thème</span><span class="champ">Dessiné ▾</span></div>
+          <div class="ligne"><span>Détails</span><span class="champ">Riches ▾</span></div>
+          <div class="ligne"><span>Relief</span><span class="interrupteur"></span></div>
+          <div class="ligne"><span>Repères</span><span class="interrupteur"></span></div>
+          <div class="ligne"><span>Taille d'une case</span><span class="curseur"></span></div>
+          <div class="ligne"><span>Adapter la carte à la fenêtre</span><span class="interrupteur"></span></div>
+          <h3 style="margin-top:12px">À la table</h3>
+          <div class="ligne"><span>Pénombre</span><span class="curseur"></span></div>
+          <div class="ligne"><span>Flammes animées</span><span class="interrupteur"></span></div>
+          <div class="ligne" style="margin-top:12px"><span class="btn" style="width:100%;justify-content:center;border-color:var(--accent);color:var(--accent)">⚙ Régler l'écran de table…</span></div>
+        </div>
+        <div style="align-self:flex-end; margin-bottom:34px; color:var(--accent); font-size:26px; line-height:1">→<div style="font-size:11px; color:var(--t3)">ouvre</div></div>
+        <div class="pop" style="width:380px; padding:0; overflow:hidden">
+          <div style="display:flex; align-items:center; padding:10px 14px; border-bottom:1px solid var(--filet-fort)"><b style="color:var(--t1); font-size:14px">Régler l'écran de table</b><span style="margin-left:auto; color:var(--t3); font-size:18px">×</span></div>
+          <div style="padding:12px 14px">
+            <h3>Matériel de la table</h3>
+            <div class="champ2" style="margin:6px 0"><span>Rotation</span><span class="champ" style="color:var(--t1)">Aucune ▾</span></div>
+            <div class="rang" style="margin:6px 0"><span style="flex:1">Image en miroir</span><span class="interrupteur off"></span></div>
+            <div class="champ2" style="margin:6px 0"><span>Taille réelle d'une case (mm)</span><span class="champ" style="color:var(--t1)">25</span></div>
+            <span class="btn" style="margin-top:6px">Calibrer sur la table</span>
+          </div>
+          <div style="display:flex; justify-content:flex-end; padding:10px 14px; border-top:1px solid var(--filet-fort)"><span class="btn dore">Terminer</span></div>
+        </div>
       </div>
     </section>
 
