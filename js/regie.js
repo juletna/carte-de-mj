@@ -399,8 +399,7 @@ export function demarrerRegie() {
     if (meme) {
       texte.append(h('span', { className: 'pastille', textContent: 'À la table' }), 'Les joueurs voient cette salle : ', h('strong', { textContent: courante.nom }), '.');
     } else {
-      texte.append(h('span', { className: 'pastille', textContent: 'Consultation' }), 'Tu regardes ', h('strong', { textContent: consultee.nom }),
-        pres.estDecouverte(p, consultee.id) ? ' (déjà découverte)' : ' (non découverte)', '. La table montre toujours ', h('strong', { textContent: courante.nom }), '.');
+      texte.append(h('span', { className: 'pastille', textContent: 'Consultation' }), 'La table montre toujours ', h('strong', { textContent: courante.nom }), '.');
     }
     const actions = h('div', { className: 'actions' });
     if (!meme) {
