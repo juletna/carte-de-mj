@@ -109,7 +109,7 @@ export const zoomValide = (z) => (Number.isFinite(z) && z >= ZOOM_TABLE_MIN && z
 
 /**
  * L'affichage de la table tel que le décrivent des réglages enregistrés : { taille, grille, reperes, mode }, plus `cases` (si réglé), `theme`,
- * `details` (sobres), `relief`, `penombre`, `flammes` (faux), `rotation`, `miroir` et `caseMm` seulement s'ils diffèrent du défaut. `calibrage` n'est jamais enregistré : la régie l'ajoute le temps du réglage.
+ * `details` (sobres), `relief`, `penombre`, `flammes` (faux), `rotation`, `miroir` et `caseMm` seulement s'ils diffèrent du défaut. Le calibrage n'en fait pas partie : c'est un mode de la table (message `calibrage`, protocole-table.js).
  */
 export const affichageDeReglages = (reglages) => ({
   taille: reglages.taille, grille: casesDeReglages(reglages) > 0, reperes: reglages.reperes !== false, mode: modeTable(reglages),
@@ -140,7 +140,6 @@ export const validerAffichage = (a, defaut) => ({
   ...(ROTATIONS_TABLE.includes(a?.rotation) && a.rotation ? { rotation: a.rotation } : {}),
   ...(a?.miroir === true ? { miroir: true } : {}),
   ...(caseMmValide(a?.caseMm) ? { caseMm: a.caseMm } : {}),
-  ...(a?.calibrage === true ? { calibrage: true } : {}),
   ...(Number.isFinite(a?.zoom) && zoomValide(a.zoom) !== 1 ? { zoom: a.zoom } : {}),
 });
 

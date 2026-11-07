@@ -39,8 +39,9 @@ const TESTS = (pages) => [
     egal(affichageDeReglages({ taille: 60, grille: true, modeTable: 'reel', rotationTable: 180, miroirTable: true, caseMm: 25.4 }),
       { taille: 60, grille: true, reperes: true, mode: 'reel', rotation: 180, miroir: true, caseMm: 25.4 }, 'tout réglé');
     const defaut = { mode: 'remplir', taille: 48, grille: true, reperes: true };
-    egal(validerAffichage({ ...defaut, rotation: 90, miroir: true, caseMm: 30, calibrage: true }, defaut), { ...defaut, rotation: 90, miroir: true, caseMm: 30, calibrage: true }, 'tout valide');
-    egal(validerAffichage({ ...defaut, rotation: 45, miroir: 'oui', caseMm: 500, calibrage: 1 }, defaut), defaut, 'tout invalide : rien de gardé');
+    egal(validerAffichage({ ...defaut, rotation: 90, miroir: true, caseMm: 30 }, defaut), { ...defaut, rotation: 90, miroir: true, caseMm: 30 }, 'tout valide');
+    egal(validerAffichage({ ...defaut, rotation: 45, miroir: 'oui', caseMm: 500, calibrage: 1 }, defaut), defaut, 'tout invalide : rien de gardé, et plus de drapeau calibrage');
+    egal(validerAffichage({ ...defaut, calibrage: true }, defaut), defaut, 'un drapeau calibrage reçu est écarté');
     egal(validerAffichage({ ...defaut, rotation: 0 }, defaut), defaut, 'rotation nulle : aucune clé');
     egal(ROTATIONS_TABLE, [0, 90, 180, 270], 'quarts de tour');
     egal([caseMmValide(10), caseMmValide(9.9), caseMmValide(50), caseMmValide(50.1), caseMmValide('25')], [true, false, true, false, false], 'bornes de la taille réelle');

@@ -87,12 +87,11 @@ export function demarrerRegie() {
   const idsReveles = (idSalle) => etat.p.reveles[idSalle] || [];
 
   // --- Communication avec la fenêtre table -------------------------------------------------------
-  /** Pendant le calibrage, la table est à l'échelle réelle et dessine la carte bancaire ; ce réglage passager n'est pas enregistré. */
   // Le zoom de la vue table est celui de la régie (source unique) : propre à la carte montrée, il revient au cadrage de base quand elle change.
   const cleCarte = () => (etat.p ? `d:${etat.p.donjon.id}:${etat.p.salleCourante}` : ctx.univers?.cleCarte() ?? null);
   const zoomTable = () => { const cle = cleCarte(); if (etat.zoom.cle !== cle) etat.zoom = { cle, valeur: 1 }; return etat.zoom.valeur; };
   const affichageTable = () => {
-    const a = etat.calibrage ? { ...affichageDeReglages(r), mode: 'reel', calibrage: true } : affichageDeReglages(r);
+    const a = affichageDeReglages(r); // le calibrage n'en fait pas partie : c'est un mode de la table, avec son propre message (js/calibrage.js)
     const z = zoomTable();
     return z === 1 ? a : { ...a, zoom: z };
   };
@@ -117,6 +116,8 @@ export function demarrerRegie() {
   /** Envoie à la table son contenu (seule la régie qui a la main le fait). */
   function diffuser() {
     ctx.jouer?.vues.majCadrage(); // le contrôle de cadrage de la vue « À la table » suit le zoom et le mode
+    // Le calibrage est un mode de la table : prioritaire sur la salle et sur une carte d'univers, et possible sans partie ouverte (régie libre).
+    if (ctx.calibrage?.actif()) { ctx.calibrage.envoyer(); return; }
     if (!commande.main) return;
     if (univers.diffuser()) return; // une carte d'univers est affichée : c'est elle que voit la table (js/regie-univers.js)
     canal?.postMessage(messageEtat(contenuTable()));
@@ -156,7 +157,7 @@ export function demarrerRegie() {
       const action = table.surMessage(commande, m);
       if (action === 'retrait') { noterRetrait(); if (etat.p) majRetrait(); else univers.redessiner(); } // la carte d'un monde montre aussi son bandeau « En retrait »
       else if (action === 'diffuser') diffuser();
-      else if (action === 'presence') canal.postMessage({ type: table.PRESENCE });
+      else if (action === 'presence') { canal.postMessage({ type: table.PRESENCE }); if (ctx.calibrage?.actif()) ctx.calibrage.envoyer(); } // une table ouverte pendant le calibrage le rejoint
       else if (action === 'appliquer' && m.type === MESSAGES.TABLE_DEPLACER) deplacerDepuisTable(m.id, m.x, m.y);
       else if (action === 'appliquer' && m.type === MESSAGES.TABLE_ZOOM) { const f = lireFacteurZoom(m); if (f) cadrage.zoomer(f); }
       else if (action === 'appliquer' && m.type === MESSAGES.TABLE_CADRER) { const p = lireCadrage(m); if (p) cadrerTable(p); }
@@ -661,7 +662,7 @@ export function demarrerRegie() {
   const jouer = creerJouer({ racine: $('regie'), donnees: donneesJeu, partie: partieJeu, surChoix: choisirDansArbre,
     ouvrirTable: { fenetre: ouvrirFenetreTable },
     cadrage,
-    affichage: { regie: true, garderOuvert: () => etat.calibrage === true, lire: () => r, surChangement: () => { reglages.sauver(); rendre(); diffuser(); } } });
+    affichage: { regie: true, garderOuvert: () => ctx.calibrage?.actif() === true, lire: () => r, surChangement: () => { reglages.sauver(); rendre(); diffuser(); } } });
   reglages = creerReglages(ctx);
   ctx.jouer = jouer;
   let minuterie;

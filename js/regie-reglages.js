@@ -8,7 +8,8 @@
  * que ce qu'elle a changé elle-même (depuis `lu`), sur ce qui est enregistré à cet instant, et reprend ce que les autres ont réglé.
  */
 import * as stockage from './stockage.js';
-import { modeTable, ajusterTaille, caseMmValide, CASE_MM_PAR_DEFAUT } from './affichage.js';
+import { caseMmValide, CASE_MM_PAR_DEFAUT } from './affichage.js';
+import { creerCalibrage } from './calibrage.js';
 import { $ } from './dom.js';
 
 export function creerReglages(ctx) {
@@ -16,6 +17,18 @@ export function creerReglages(ctx) {
   const rendre = () => ctx.rendre();
   const diffuser = () => ctx.diffuser();
   let lu;
+  /** L'interface du popover suit l'état du calibrage ; la table, elle, est servie par `diffuser()` (regie.js) pendant le calibrage, puis retrouve la présentation. */
+  function majCalibrage() {
+    const actif = calibrage.actif();
+    $('calibrer-table').hidden = actif;
+    $('reglage-calibrage').hidden = !actif;
+    $('materiel-table').hidden = actif; // le calibrage se déplie dans le popover « Affichage », qui reste ouvert
+    majTaille();
+    rendre(); diffuser();
+  }
+  // Envoi : la régie à la main, ou libre (aucune partie ouverte) ; en retrait, une autre commande la table.
+  const calibrage = creerCalibrage({ r, envoyer: (m) => { if (!commande.retrait) ctx.canal?.postMessage(m); }, enregistrer: () => sauverReglages(), surChangement: majCalibrage });
+  ctx.calibrage = calibrage;
   function sauverReglages() {
     if (commande.retrait) return;
     const frais = stockage.enregistrerReglages(lu, r).reglages;
@@ -46,7 +59,7 @@ export function creerReglages(ctx) {
   function majTaille() {
     $('taille').value = r.taille;
     $('taille-val').textContent = `${r.taille} px`;
-    $('calibrage-val').textContent = `${r.taille} px`;
+    $('calibrage-val').textContent = `${calibrage.taille()} px`; // le brouillon pendant le calibrage
   }
   majControles();
   $('taille').addEventListener('input', (e) => { r.taille = Number(e.target.value); majTaille(); sauverReglages(); rendre(); });
@@ -77,20 +90,11 @@ export function creerReglages(ctx) {
     if (v === CASE_MM_PAR_DEFAUT) delete r.caseMm; else r.caseMm = v;
     sauverReglages(); rendre();
   });
-  function basculerCalibrage(actif) {
-    etat.calibrage = actif;
-    $('calibrer-table').hidden = actif;
-    $('reglage-calibrage').hidden = !actif;
-    $('materiel-table').hidden = actif; // le calibrage se déplie dans le popover « Affichage », qui reste ouvert
-    rendre();
-  }
-  $('calibrer-table').addEventListener('click', () => basculerCalibrage(true));
-  $('calibrage-fini').addEventListener('click', () => {
-    r.calibre = true; r.modeTable = 'reel'; // ce qui vient d'être mesuré sert à la table
-    sauverReglages(); basculerCalibrage(false);
-  });
+  // Le calibrage (js/calibrage.js) est un mode de la table : rien à voir avec la salle, il marche aussi dans un monde et sans présentation.
+  $('calibrer-table').addEventListener('click', () => calibrage.demarrer());
+  $('calibrage-fini').addEventListener('click', () => calibrage.terminer());
   for (const b of document.querySelectorAll('[data-pas-taille]')) {
-    b.addEventListener('click', () => { r.taille = ajusterTaille(r.taille, Number(b.dataset.pasTaille)); majTaille(); sauverReglages(); rendre(); });
+    b.addEventListener('click', () => calibrage.ajuster(Number(b.dataset.pasTaille)));
   }
   $('ajuster').addEventListener('click', () => { etat.ajuster = $('ajuster').getAttribute('aria-checked') === 'true'; rendre(); }); // le popover bascule l'interrupteur avant ce clic-ci
   return { sauver: sauverReglages };

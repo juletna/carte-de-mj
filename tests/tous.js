@@ -40,6 +40,7 @@ import { executer as executerContratFiche } from './fiche-contrat.test.js';
 import { executer as executerCatalogue } from './catalogue.test.js';
 import { executer as executerVuePublique } from './vue-publique.test.js';
 import { executer as executerProtocoleTable } from './protocole-table.test.js';
+import { executer as executerCalibrage } from './calibrage.test.js';
 import { executer as executerFicheDes } from './fiche-des.test.js';
 import { executer as executerFicheJeu } from './fiche-jeu.test.js';
 import { executer as executerFicheBase } from './fiche-base.test.js';
@@ -78,7 +79,7 @@ export const SUITES = [
   executerThemes, executerReferences, executerOutils, executerMurs, executerCoordonnees, executerSchema,
   executerGeometrie, executerAffichage, executerVisibilite, executerParseurCommun, executerMesuresImpression,
   executerHistorique, executerMiseEnPage, executerRegie, executerStockage, executerContratFiche, executerCatalogue,
-  executerVuePublique, executerProtocoleTable, executerFicheDes, executerFicheJeu, executerFicheBase, executerRail, executerPeint, executerLumiere, executerAmbiance, executerObjetsNouveaux, executerVariantes, executerEscaliers,
+  executerVuePublique, executerProtocoleTable, executerCalibrage, executerFicheDes, executerFicheJeu, executerFicheBase, executerRail, executerPeint, executerLumiere, executerAmbiance, executerObjetsNouveaux, executerVariantes, executerEscaliers,
   executerUnivers, executerOutilsCartes,
   executerUniversPartie,
   executerBibliotheque,

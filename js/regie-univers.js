@@ -69,18 +69,7 @@ export function creerRegieUnivers(ctx) {
   }
 
   // --- Réglages et défilement de la table ---------------------------------------------------------------------------
-  // Rien ne disparaît dans une carte de monde : ce qui ne concerne que les salles est grisé, avec la raison en infobulle.
-  const HORS_MONDE = { 'calibrer-table': 'Le calibrage dessine une carte bancaire sur une salle : mesure-le depuis une salle de donjon.' };
-  function grisees(oui) {
-    for (const [id, raison] of Object.entries(HORS_MONDE)) {
-      const b = $(id);
-      if (!('titreDonjon' in b.dataset)) b.dataset.titreDonjon = b.title;
-      b.disabled = oui;
-      b.title = oui ? raison : b.dataset.titreDonjon;
-    }
-  }
-  function prendreLesReglages() { grisees(true); }
-  function rendreLesReglages() { grisees(false); }
+  // Rien n'est grisé dans une carte de monde : le calibrage de la table est un mode de la table, sans salle (js/calibrage.js).
   /** La table change de carte ou de niveau : sa vue se recentre, et la régie regarde de nouveau ce que voit la table. */
   function recentrerTable() { defil = { ...CENTRE }; ordreDefil++; consulte = null; }
 
@@ -128,7 +117,6 @@ export function creerRegieUnivers(ctx) {
     sauver();
     if (partie.dans && reprise && donjons()[partie.dans.donjon]) { entrerDonjon(partie.dans, { main }); return; }
     afficherEcran();
-    prendreLesReglages();
     rendre();
     if (notes.length) ctx.annoncer(notes.join(' '), 12000);
     titre.focus({ preventScroll: true });
@@ -138,7 +126,6 @@ export function creerRegieUnivers(ctx) {
     const d = donjons()[idDonjon];
     if (!d) return;
     ecran.hidden = true;
-    rendreLesReglages();
     ctx.jouer?.mode('donjon');
     const existante = stockage.chargerPresentations()[d.id];
     if (existante) {
@@ -172,7 +159,6 @@ export function creerRegieUnivers(ctx) {
     etat.p = null; etat.consultee = null;
     ctx.noterRetrait();
     afficherEcran();
-    prendreLesReglages();
   }
   /** Après un changement de lieu ou de niveau : on enregistre, on sort du donjon si l'on y était, et on redessine la carte. */
   function apres() {
@@ -261,7 +247,7 @@ export function creerRegieUnivers(ctx) {
     return true;
   }
   /** La liste des parties est demandée : la carte de monde n'est plus affichée. */
-  function fermer() { ecran.hidden = true; rendreLesReglages(); }
+  function fermer() { ecran.hidden = true; }
   /** Dans la régie de donjon : le fil de l'univers d'où l'on vient, avec « Remonter ». Appelée à chaque rendu de la régie. */
   function majFil() {
     const zone = $('fil-univers');
