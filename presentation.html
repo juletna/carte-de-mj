@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="css/univers.css?v=e15bf1d6">
   <link rel="stylesheet" href="css/atelier.css?v=1d1c2b4b">
   <link rel="stylesheet" href="css/panneaux.css?v=21fca64a">
-  <link rel="stylesheet" href="css/presentation.css?v=6815cddd">
+  <link rel="stylesheet" href="css/presentation.css?v=0c57db18">
   <!-- versions:debut (généré par outils/versions.mjs, ne pas modifier à la main) -->
   <script type="importmap">
   {
@@ -45,7 +45,7 @@
       "./js/catalogue.js": "./js/catalogue.js?v=8bd103a4",
       "./js/commande-table.js": "./js/commande-table.js?v=b8b040ea",
       "./js/coordonnees.js": "./js/coordonnees.js?v=2799bab4",
-      "./js/deplacement.js": "./js/deplacement.js?v=b4bcdebd",
+      "./js/deplacement.js": "./js/deplacement.js?v=5c672b35",
       "./js/dom.js": "./js/dom.js?v=30215ecd",
       "./js/donjon-validation.js": "./js/donjon-validation.js?v=5b5d8eb5",
       "./js/donjon.js": "./js/donjon.js?v=52ddf63c",
@@ -59,6 +59,7 @@
       "./js/icones.js": "./js/icones.js?v=371257ed",
       "./js/main-presentation.js": "./js/main-presentation.js?v=a12f6298",
       "./js/mise-de-cote.js": "./js/mise-de-cote.js?v=b8e93497",
+      "./js/mise-en-page.js": "./js/mise-en-page.js?v=794b13fc",
       "./js/mj/sauvegarde-ui.js": "./js/mj/sauvegarde-ui.js?v=4edd0484",
       "./js/murs.js": "./js/murs.js?v=0480303c",
       "./js/navigation-donnees.js": "./js/navigation-donnees.js?v=5a7b661c",
@@ -90,11 +91,11 @@
       "./js/protocole-table.js": "./js/protocole-table.js?v=9728a7e8",
       "./js/regie-depart.js": "./js/regie-depart.js?v=ebfc2144",
       "./js/regie-icones.js": "./js/regie-icones.js?v=815e777f",
-      "./js/regie-panneau.js": "./js/regie-panneau.js?v=6f36e11a",
+      "./js/regie-panneau.js": "./js/regie-panneau.js?v=38d2a8c5",
       "./js/regie-reglages.js": "./js/regie-reglages.js?v=df405426",
-      "./js/regie-selection.js": "./js/regie-selection.js?v=bb38a63f",
+      "./js/regie-selection.js": "./js/regie-selection.js?v=d46c753d",
       "./js/regie-univers.js": "./js/regie-univers.js?v=d1ed3c95",
-      "./js/regie.js": "./js/regie.js?v=42432052",
+      "./js/regie.js": "./js/regie.js?v=c4e59195",
       "./js/rendu/feu.js": "./js/rendu/feu.js?v=026d6dcd",
       "./js/rendu/geometrie.js": "./js/rendu/geometrie.js?v=6d683b3b",
       "./js/rendu/graine.js": "./js/rendu/graine.js?v=5331bb5f",
@@ -298,17 +299,11 @@
         <div class="rang-interrupteur"><span class="pop-lib">Plan du donjon<small>les salles découvertes</small></span><button id="montrer-plan" type="button" class="pop-interrupteur" role="switch" aria-checked="true" aria-label="Plan du donjon visible à la table"></button></div>
       </div>
 
-      <section class="cette-salle" aria-label="Cette salle">
-        <h2>Cette salle</h2>
-        <p id="comptage-caches" class="note"></p>
-        <div class="actions"><button id="reveler-tout" type="button" class="btn btn-discret" data-icone="oeil">Révéler toute la salle</button></div>
-        <p class="note">Portes de la salle :</p>
-        <ul id="liste-portes" class="liste-portes"></ul>
-        <details id="elements-salle" class="elements-salle">
-          <summary>Éléments de la salle <span id="nb-elements" class="doux"></span></summary>
-          <p class="note">Pions, objets et éléments cachés : choisis-en un pour le sélectionner (Échap pour désélectionner).</p>
-          <ul id="liste-elements" class="liste-portes"></ul>
-        </details>
+      <!-- Cachés : ce qui est préparé en secret et pas encore à la table (js/regie.js, majSalle). La section disparaît quand rien n'est caché. -->
+      <section id="caches-salle" class="cette-salle" aria-label="Cachés">
+        <h2>Cachés</h2>
+        <ul id="liste-caches" class="liste-portes"></ul>
+        <div class="actions"><button id="reveler-tout" type="button" class="btn btn-discret" data-icone="oeil">Révéler tout</button></div>
       </section>
 
       <section class="bloc-notes" aria-label="Notes de la salle">

@@ -45,7 +45,9 @@ export function sectionnerOnglets(creerSection, $ = (id) => document.getElementB
     return creerSection({ cle: `regie:${cle}`, titre, enfants: blocs, ...options }).element;
   };
   // Les nœuds sont pris AVANT d'être déplacés : une fois dans une section pas encore posée, `getElementById` ne les trouve plus.
-  const [projection, elements, compteElements] = [$('projection'), $('elements-salle'), $('nb-elements')];
+  const projection = $('projection');
+  const compteCaches = document.createElement('span');
+  compteCaches.id = 'nb-caches';
   const cetteSalle = salle.querySelector('.cette-salle'), notes = salle.querySelector('.bloc-notes');
   // En-tête de l'onglet (docs/design-panneaux.md, « En-tête ») : type, nom de la salle regardée, où elle en est ; regie.js le remplit.
   const entete = document.createElement('div');
@@ -54,8 +56,7 @@ export function sectionnerOnglets(creerSection, $ = (id) => document.getElementB
   salle.replaceChildren(
     entete,
     section('visibilite', 'Visible à la table', [projection]),
-    section('salle', 'Cette salle', [cetteSalle]),
-    section('elements', 'Éléments', [elements], { compte: compteElements }),
+    section('caches', 'Cachés', [cetteSalle], { compte: compteCaches }),
     section('notes', 'Notes', [notes]));
   const persos = joueurs.querySelector('section');
   const ajout = joueurs.querySelector('.ajout-joueur');

@@ -436,42 +436,29 @@ export function demarrerRegie() {
       $('regie-entete-nom').textContent = s.nom;
       $('regie-entete-meta').textContent = s.id === p.salleCourante ? 'À la table' : 'Regardée ici seulement : la table voit une autre salle';
     }
-    const { total, reveles } = pres.comptageCaches(p, s.id);
-    $('comptage-caches').textContent = total
-      ? `Éléments cachés : ${total}, dont ${reveles} révélé${reveles > 1 ? 's' : ''}.`
-      : 'Aucun élément caché dans cette salle.';
-    $('reveler-tout').disabled = total === reveles;
-    $('reveler-tout').hidden = total === reveles; // rien à révéler : le compte au-dessus le dit, le bouton grisé n'apporterait rien
-    const choisi = (genre, id) => etat.selection?.genre === genre && etat.selection.id === id;
-    /**
-     * Rangée de liste (portes et éléments, docs/design-panneaux.md « Liste ») : nom, case à droite, état dessous ; sélectionne au clavier
-     * comme à la souris, `aria-pressed` = élément sélectionné.
-     */
-    const boutonListe = (genre, e, nom, position, detail, cachee) => {
-      const b = h('button', { type: 'button', className: `p-rang compacte${cachee ? ' cachee' : ''}` },
+    // Cachés : ce qui est préparé en secret et pas encore à la table. Le geste est ici (« Révéler » par ligne, ou « Révéler tout ») ; la carte et l'arbre font le reste.
+    const aRevelerOu = (genre, e, nom, position) => ({ genre, e, nom, position });
+    const caches = [
+      ...s.plan.creatures.filter((k) => k.cache && !pres.estRevele(p, s.id, k.id)).map((k) => aRevelerOu('creature', k, selection.nomPion(k), nomCase(k.x, k.y))),
+      ...s.plan.objets.filter((o) => o.cache && !pres.estRevele(p, s.id, o.id)).map((o) => aRevelerOu('objet', o, `${nomAffiche(o.type)}${o.variante ? ` ${nomVariante(o.type, o.variante)}` : ''}`, nomCase(o.x, o.y))),
+      ...s.plan.portes.filter((q) => q.cache && !pres.estRevele(p, s.id, q.id)).map((q) => aRevelerOu('porte', q, libelleDePorte(q), '')),
+    ];
+    $('caches-salle').closest('.p-section').hidden = !caches.length;
+    $('nb-caches').textContent = String(caches.length);
+    $('liste-caches').replaceChildren(...caches.map(({ genre, e, nom, position }) => {
+      const b = h('button', { type: 'button', className: 'p-rang compacte cachee', title: `Révéler « ${nom} » à la table` },
         h('span', { className: 'p-rang-icone' }),
         h('span', { className: 'p-rang-nom', textContent: nom }),
         h('span', { className: 'p-rang-position', textContent: position }),
-        ...(detail ? [h('span', { className: 'p-rang-detail', textContent: detail })] : []));
-      b.addEventListener('click', () => selection.selectionner(genre, e.id, { clavier: true }));
-      b.dataset.el = `${genre}:${e.id}`;
-      b.setAttribute('aria-pressed', String(choisi(genre, e.id)));
+        h('span', { className: 'p-rang-detail', textContent: 'Révéler' }));
+      b.addEventListener('click', () => {
+        pres.revelerElement(etat.p, s.id, e.id);
+        const masquee = pres.categorieMasquee(etat.p, s.id, genre, e);
+        etat.message = `Révélé${masquee ? `, mais les ${masquee} sont masqués à la table` : s.id === etat.p.salleCourante ? ' : il apparaît sur la table' : ', mais cette salle n’est pas à la table'}.`;
+        modifie();
+      });
       return h('li', {}, b);
-    };
-    $('liste-portes').replaceChildren(...s.plan.portes.map((q) => {
-      const lien = modele.liaisonDePorte(p.donjon, s.id, q);
-      const vers = lien && p.donjon.salles[lien.autre.salle];
-      const etatCache = !q.cache ? '' : pres.estRevele(p, s.id, q.id) ? ' · cachée, révélée' : ' · cachée';
-      return boutonListe('porte', q, libelleDePorte(q), '', `${vers ? `vers ${vers.nom}` : 'non reliée'}${etatCache}`, !pres.estDevoile(p, s.id, q));
     }));
-    // Éléments de la salle : pions puis objets, cachés repérés (comme sur la carte du MJ). Liste repliable.
-    const marque = (e) => (!e.cache ? '' : pres.estRevele(p, s.id, e.id) ? 'caché, révélé' : 'caché');
-    const elements = [
-      ...s.plan.creatures.map((k) => boutonListe('creature', k, selection.nomPion(k), nomCase(k.x, k.y), [k.etat ? pres.LIBELLES_ETAT[k.etat] : '', marque(k)].filter(Boolean).join(' · '), !pres.estDevoile(p, s.id, k))),
-      ...s.plan.objets.map((o) => boutonListe('objet', o, `${nomAffiche(o.type)}${o.variante ? ` ${nomVariante(o.type, o.variante)}` : ''}`, nomCase(o.x, o.y), marque(o), !pres.estDevoile(p, s.id, o))),
-    ];
-    $('nb-elements').textContent = String(elements.length); // pastille du bandeau de la section « Éléments »
-    $('liste-elements').replaceChildren(...(elements.length ? elements : [h('li', { className: 'note', textContent: 'Aucun pion ni objet dans cette salle.' })]));
     const notes = $('notes');
     notes.textContent = s.notes || 'Aucune note pour cette salle.';
     notes.classList.toggle('vide', !s.notes);
@@ -589,8 +576,9 @@ export function demarrerRegie() {
     taille: () => tailleRegie(salleConsultee().plan),
     apercu: (plan) => dessinerRegie(plan),
     deposer: (nouveau) => { pres.appliquerDeplacement(etat.p, etat.consultee, nouveau); etat.message = ''; modifie(); },
-    cliquer: (touche, caseVide) => {
+    cliquer: (touche, caseVide, position) => {
       etat.selection = touche ? { genre: touche.genre, id: touche.element.id } : null;
+      etat.ancreSelection = touche ? position ?? null : null; // le popover de l'élément se pose à côté du clic (regie-selection.js)
       etat.message = '';
       if (caseVide) viserCase(etat.consultee, caseVide[0], caseVide[1]);
       else rendre();

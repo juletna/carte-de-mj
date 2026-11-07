@@ -54,7 +54,7 @@ export function porteSous(cx, cy, plan, profondeur = EPAISSEUR_CLIC) {
  *   taille: () => number,               côté d'une case en px CSS
  *   apercu: (plan: object) => void,     redessine sans rien enregistrer
  *   deposer: (plan: object) => void     déplacement validé : le nouveau plan
- *   cliquer?: (touche: {genre: string, element: object} | null, caseVide?: [number, number]) => void
+ *   cliquer?: (touche: {genre: string, element: object} | null, caseVide?: [number, number], position?: {x: number, y: number}) => void  (position : où le doigt a touché, en px écran)
  *                                       appui sans glissement ; sans ce rappel, tout appui est un déplacement.
  *                                       Rien sous le pointeur : `touche` est null et `caseVide` donne la case visée
  *   versCanvas?: (e: PointerEvent) => [number, number]  position du pointeur en px CSS dans le canvas, s'il est tourné ou en miroir
@@ -134,7 +134,7 @@ export function activerDeplacement(canvas, { plan, taille, apercu, deposer, cliq
       else trouve = { genre: large.genre, element: large.element };
     }
     surlignage.cacher();
-    if (!trouve) { cliquer?.(null, [Math.floor(cx), Math.floor(cy)]); return; }
+    if (!trouve) { cliquer?.(null, [Math.floor(cx), Math.floor(cy)], { x: e.clientX, y: e.clientY }); return; }
     const { genre, element } = trouve;
     if (!peutBouger(genre) && !cliquer) return; // ni déplaçable ni cliquable : on ignore
     e.preventDefault();
@@ -201,7 +201,7 @@ export function activerDeplacement(canvas, { plan, taille, apercu, deposer, cliq
       const { genre, element, auClic } = prise;
       prise = null;
       canvas.style.cursor = '';
-      cliquer(auClic || { genre, element });
+      cliquer(auClic || { genre, element }, undefined, { x: e.clientX, y: e.clientY });
       return;
     }
     const nouveau = prise.glisse ? planDepose() : null;
