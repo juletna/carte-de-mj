@@ -60,4 +60,9 @@ export const messageDemandeEtat = () => ({ type: MESSAGES.DEMANDE_ETAT });
 export const messageDeplacer = (id, x, y) => ({ type: MESSAGES.TABLE_DEPLACER, id, x, y });
 export const messageViser = (x, y) => ({ type: MESSAGES.TABLE_VISER, x, y });
 /** Un point touché sur la carte d'un monde, dans la vue « Table » de la régie (js/atelier/vue-table-regie.js) : la régie le choisit comme si on l'avait touché sur sa propre carte. */
-export const messagePoint = (id) => ({ type: MESSAGES.TABLE_POINT, id });
+export const messagePoint = (id, x, y) => ({ type: MESSAGES.TABLE_POINT, id, ...(Number.isFinite(x) && Number.isFinite(y) ? { x, y } : {}) });
+/** Côté régie : où le point a été touché dans le cadre, en fractions (0–1) de sa largeur et de sa hauteur ; null si le message n'en porte pas (ou des valeurs hors bornes). */
+export function lirePosition(m) {
+  const ok = (v) => typeof v === 'number' && v >= 0 && v <= 1;
+  return ok(m?.x) && ok(m?.y) ? { x: m.x, y: m.y } : null;
+}

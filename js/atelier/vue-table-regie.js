@@ -53,5 +53,11 @@ export function creerVuesRegie({ scene, barre, avant = null, doc = document }) {
     ajuster();
   }
   afficher('regie');
-  return { afficher, courante: () => courante, element: selecteur };
+  /** Où se trouve, dans la fenêtre, un point touché dans le cadre (fractions de sa largeur et de sa hauteur) : null si le cadre n'est pas affiché. */
+  function ancre(pos) {
+    if (!cadre || !pos || zone.hidden) return null;
+    const r = cadre.getBoundingClientRect();
+    return { x: r.left + pos.x * r.width, y: r.top + pos.y * r.height };
+  }
+  return { afficher, courante: () => courante, element: selecteur, ancre };
 }

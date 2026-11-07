@@ -82,8 +82,8 @@ body.presentation a { color: var(--accent); }
 .notes-lecture { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14px; padding: 8px 10px; background: var(--champ); border: 1px solid var(--bord); border-radius: var(--rayon); max-height: 220px; overflow: auto; }
 .notes-lecture.vide { color: var(--texte-doux); font-style: italic; }
 /* Sélection : panneau superposé en bas à droite, toujours visible quel que soit le défilement de la colonne, sans rien pousser. */
-#selection { position: fixed; right: 16px; bottom: 16px; z-index: 30; width: min(340px, calc(100vw - 32px)); max-height: min(60vh, 520px); overflow: auto; padding: 12px; background: var(--panneau); border: 1px solid var(--accent); border-radius: var(--rayon); box-shadow: 0 8px 28px rgba(0, 0, 0, 0.6); }
-#selection:focus-visible { outline: var(--focus); outline-offset: var(--focus-decalage); }
+#selection, #popover-point { position: fixed; right: 16px; bottom: 16px; z-index: 30; width: min(340px, calc(100vw - 32px)); max-height: min(60vh, 520px); overflow: auto; padding: 12px; background: var(--panneau); border: 1px solid var(--accent); border-radius: var(--rayon); box-shadow: 0 8px 28px rgba(0, 0, 0, 0.6); }
+#selection:focus-visible, #popover-point:focus-visible { outline: var(--focus); outline-offset: var(--focus-decalage); }
 .selection-entete { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .selection-entete h2 { margin: 0; }
 .selection-titre { margin: 4px 0 0; font-weight: 600; overflow-wrap: anywhere; }
@@ -246,7 +246,7 @@ details.bloc > .aide, .defilement > .aide { display: block; margin-bottom: 6px; 
   #regie > .atelier-inspecteur.replie { overflow: hidden; max-height: none; }
   #regie > .atelier-inspecteur.replie > .atelier-onglets { display: flex; }
   /* La sélection d'un pion ou d'une porte se pose juste au-dessus de la barre d'onglets. */
-  #selection { left: 0; right: 0; bottom: 64px; width: auto; max-height: min(32vh, 260px); border-width: 1px 0 0; border-radius: var(--rayon) var(--rayon) 0 0; z-index: 36; }
+  #selection, #popover-point { left: 0; right: 0; bottom: 64px; width: auto; max-height: min(32vh, 260px); border-width: 1px 0 0; border-radius: var(--rayon) var(--rayon) 0 0; z-index: 36; }
   #toast { bottom: 76px; left: 8px; width: calc(100vw - 16px); }
 }
 

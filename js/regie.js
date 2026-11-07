@@ -30,7 +30,7 @@ import { telephone, marquerDefilement, tailleQuiTient } from './telephone.js';
 import { $, h, bouton } from './dom.js';
 import { icone } from './icones.js';
 import { pluriel } from './format.js';
-import { ouvrirCanal, messageEtat, messageDefiler, MESSAGES } from './protocole-table.js';
+import { ouvrirCanal, messageEtat, messageDefiler, lirePosition, MESSAGES } from './protocole-table.js';
 import { creerEcranTable } from './ecran-table.js';
 import { creerDepart } from './regie-depart.js';
 import { creerSelection } from './regie-selection.js';
@@ -142,7 +142,7 @@ export function demarrerRegie() {
       else if (action === 'diffuser') diffuser();
       else if (action === 'presence') canal.postMessage({ type: table.PRESENCE });
       else if (action === 'appliquer' && m.type === MESSAGES.TABLE_DEPLACER) deplacerDepuisTable(m.id, m.x, m.y);
-      else if (action === 'appliquer' && m.type === MESSAGES.TABLE_POINT) univers.choisirPoint(m.id);
+      else if (action === 'appliquer' && m.type === MESSAGES.TABLE_POINT) univers.choisirPoint(m.id, jouer.vues.ancre(lirePosition(m)));
       else if (action === 'appliquer' && etat.p) viserCase(etat.p.salleCourante, m.x, m.y);
     };
   }

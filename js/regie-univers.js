@@ -23,6 +23,7 @@ import { creerFilCompact } from './atelier/fil-compact.js';
 import { cartoucheLieu } from './atelier/cartouche.js';
 import { creerSection } from './atelier/section.js';
 import { creerListe } from './atelier/liste.js';
+import { placerPopover } from './popover-element.js';
 
 export function creerRegieUnivers(ctx) {
   const { etat } = ctx;
@@ -40,7 +41,7 @@ export function creerRegieUnivers(ctx) {
   const zoneCarte = h('div', { className: 'univers-zone-carte' });
   const panneau = $('panneau-lieu'); // l'onglet « Lieu » de l'inspecteur (js/atelier/jouer.js)
   ecran.querySelector('.univers-regie-corps').replaceChildren(titre, zoneCarte);
-  const carte = creerCarteUnivers(zoneCarte, { onPoint: (id) => { pointId = id; rendre(); } });
+  const carte = creerCarteUnivers(zoneCarte, { onPoint: (id, centre) => { pointId = id; ancrePoint = centre ?? null; rendre(); } });
 
   function sauver() {
     if (!stockage.enregistrerPartieUnivers(courant.partie)) ctx.annoncer('Impossible d’enregistrer la partie de ce monde dans ce navigateur (stockage plein ou bloqué) : elle continue, mais ne pourra pas être reprise.', 12000);
@@ -371,37 +372,47 @@ export function creerRegieUnivers(ctx) {
     return champ;
   }
 
-  function rendrePanneau(lieu, dons) {
+  /** Le popover du point touché (Mène à, Entrer, Cacher ou Révéler), posé à côté du point : remplace l'ancien bloc « Point choisi ». Échap ou « Fermer » le ferme. */
+  const popover = $('popover-point');
+  let ancrePoint = null; // où le point a été touché (px écran), pour poser le popover à côté
+  function fermerPopover() { pointId = null; popover.hidden = true; popover.replaceChildren(); }
+  function majPopover(lieu, dons) {
     const { univers, partie } = courant;
     const p = lieu.points.find((q) => q.id === pointId) ?? null;
-    const choisi = [];
-    if (p) {
-      const orph = modele.raisonOrpheline(univers, p.vers, dons);
-      const visible = pu.pointRevele(partie, lieu.id, p);
-      choisi.push(h('p', { className: `univers-point-choisi${p.nom ? '' : ' vide'}`, textContent: p.nom || 'Point sans nom' }),
-        h('p', { className: 'note' }, `Mène à : ${modele.nomDestination(univers, p.vers, dons)}`, ...(orph ? [' ', icone('alerte'), ` ${orph}`] : [])));
-      if (p.cache) choisi.push(h('p', { className: 'note', textContent: visible ? 'Révélé : la table le voit.' : 'Caché : la table ne le voit pas.' }));
-      const actions = h('div', { className: 'actions' });
-      if (p.cache) actions.append(btn(visible ? 'Cacher à nouveau' : 'Révéler à la table', () => { (visible ? pu.recacher : pu.reveler)(partie, lieu.id, p.id); sauver(); rendre(); }, { icone: visible ? 'oeil-barre' : 'oeil' }));
-      // Pas de doré ici : l'action principale de la régie est « Ouvrir la fenêtre table » (presentation.html).
-      const entrer = btn(p.vers?.donjon ? 'Entrer dans le donjon' : 'Entrer dans ce lieu', () => franchir(p.id), { icone: 'retour', classe: 'univers-entrer' });
-      entrer.append(entrer.firstChild); // la flèche passe après le libellé et pointe vers la droite
-      entrer.disabled = !p.vers || !!orph || (enConsultation() && p.vers.lieu === undefined); // un donjon : d'abord « Afficher à la table »
-      actions.append(entrer);
-      choisi.push(actions);
-    } else choisi.push(h('p', { className: 'note', textContent: 'Touche un point de la carte, ou choisis-le dans la liste.' }));
+    if (!p) { popover.hidden = true; popover.replaceChildren(); return; }
+    const orph = modele.raisonOrpheline(univers, p.vers, dons);
+    const visible = pu.pointRevele(partie, lieu.id, p);
+    const fermer = h('button', { type: 'button', className: 'btn btn-discret', 'aria-label': 'Fermer (Échap)' }, icone('fermer'), ' Fermer');
+    fermer.addEventListener('click', () => { fermerPopover(); rendre(); });
+    const contenu = [h('div', { className: 'selection-entete' }, h('h2', { textContent: 'Point' }), fermer),
+      h('p', { className: `selection-titre${p.nom ? '' : ' vide'}`, textContent: p.nom || 'Point sans nom' }),
+      h('p', { className: 'note' }, `Mène à : ${modele.nomDestination(univers, p.vers, dons)}`, ...(orph ? [' ', icone('alerte'), ` ${orph}`] : []))];
+    if (p.cache) contenu.push(h('p', { className: 'note', textContent: visible ? 'Révélé : la table le voit.' : 'Caché : la table ne le voit pas.' }));
+    const actions = h('div', { className: 'actions' });
+    if (p.cache) actions.append(btn(visible ? 'Cacher à nouveau' : 'Révéler à la table', () => { (visible ? pu.recacher : pu.reveler)(partie, lieu.id, p.id); sauver(); rendre(); }, { icone: visible ? 'oeil-barre' : 'oeil' }));
+    // Pas de doré ici : l'action principale de la régie est « Ouvrir la table » (barre d'outils).
+    const entrer = btn(p.vers?.donjon ? 'Entrer dans le donjon' : 'Entrer dans ce lieu', () => franchir(p.id), { icone: 'retour', classe: 'univers-entrer' });
+    entrer.append(entrer.firstChild); // la flèche passe après le libellé et pointe vers la droite
+    entrer.disabled = !p.vers || !!orph || (enConsultation() && p.vers.lieu === undefined); // un donjon : d'abord « Afficher à la table »
+    actions.append(entrer);
+    contenu.push(actions);
+    popover.replaceChildren(...contenu);
+    popover.hidden = false;
+    placerPopover(popover, ancrePoint, $('principal'));
+  }
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !popover.hidden && !ecran.hidden) { fermerPopover(); rendre(); } });
+  document.addEventListener('pointerdown', (e) => { if (!popover.hidden && !popover.contains(e.target) && !e.target.closest?.('.univers-point')) { fermerPopover(); rendre(); } });
 
-    // Les points en rangées (js/atelier/liste.js) : œil barré tant qu'il est caché, œil une fois révélé, triangle s'il mène à une destination perdue.
-    const liste = creerListe(lieu.points.map((q) => {
-      const orph = modele.raisonOrpheline(univers, q.vers, dons);
-      const revele = q.cache && pu.pointRevele(partie, lieu.id, q);
-      return {
-        nom: q.nom, vide: 'Point sans nom', choisie: q.id === pointId, alerte: !!orph,
-        icone: orph ? 'alerte' : q.cache ? (revele ? 'oeil' : 'oeil-barre') : 'point',
-        detail: orph || (q.cache ? (revele ? 'révélé à la table' : 'caché à la table') : `vers ${modele.nomDestination(univers, q.vers, dons)}`),
-        surChoix: () => { pointId = q.id; rendre(); },
-      };
-    }));
+  function rendrePanneau(lieu, dons) {
+    const { univers, partie } = courant;
+    majPopover(lieu, dons);
+    // Cachés : les points préparés en secret et pas encore révélés. « Révéler » par ligne, « Révéler tout » ; la section disparaît quand il n'y en a plus.
+    const caches = lieu.points.filter((q) => q.cache && !pu.pointRevele(partie, lieu.id, q));
+    const listeCaches = creerListe(caches.map((q) => ({
+      nom: q.nom, vide: 'Point sans nom', icone: 'oeil-barre', position: 'Révéler', detail: `vers ${modele.nomDestination(univers, q.vers, dons)}`,
+      surChoix: () => { pu.reveler(partie, lieu.id, q.id); sauver(); rendre(); },
+    })));
+    const reveler = btn('Révéler tout', () => { for (const q of caches) pu.reveler(partie, lieu.id, q.id); sauver(); rendre(); }, { icone: 'oeil' });
     /** Un interrupteur « Visible à la table » : mêmes rangées que celles d'une salle (js/regie.js). */
     const interrupteur = (libelle, visible, surBascule, aide = null) => {
       const b = h('button', { type: 'button', className: 'pop-interrupteur', role: 'switch', 'aria-checked': String(visible), 'aria-label': `${libelle} à la table` });
@@ -417,11 +428,7 @@ export function creerRegieUnivers(ctx) {
         h('p', { className: 'note', textContent: enConsultation() ? 'Tu consultes cette carte : la table ne la voit pas encore. « Afficher à la table » l’y conduit.' : ctx.commande.main ? `La table voit cette carte${nbCaches ? ` sans ${pluriel(nbCaches, 'point caché', 'points cachés')}` : ''}.` : 'Cette régie est en retrait : la table ne voit pas ce que tu fais ici.' }),
         interrupteur('Points', !partie.masquerPoints, basculeChamp('masquerPoints'), 'les points révélés'),
         interrupteur('Noms des points', !partie.masquerNoms, basculeChamp('masquerNoms'))]),
-      section('point', 'Point choisi', choisi),
-      section('points', 'Points', [lieu.points.length ? liste : h('p', { className: 'note', textContent: 'Aucun point sur cette carte.' })], {
-        compte: lieu.points.length || null,
-        aide: 'Touche un point sur la carte, ou choisis-le dans la liste. Un point caché (œil barré) n’apparaît à la table qu’une fois révélé ; un point marqué d’un triangle mène à une destination qui n’existe plus, rien n’a été retiré.',
-      }),
+      ...(caches.length ? [section('caches', 'Cachés', [listeCaches, h('div', { className: 'actions' }, reveler)], { compte: caches.length })] : []),
       section('notes', 'Notes', [
         h('p', { className: 'note', textContent: 'Préparation (lecture seule) :' }),
         h('p', { className: `univers-notes${lieu.notes ? '' : ' vide'}`, textContent: lieu.notes || 'Aucune note pour ce lieu.' }),
@@ -456,10 +463,11 @@ export function creerRegieUnivers(ctx) {
   /** La clé `univers:<id>` du monde dont la carte est affichée (retenue par une régie en retrait), ou null. */
   const cleOuverte = () => (courant && !ecran.hidden ? pu.cleOuverteUnivers(courant.univers.id) : null);
   /** Choisit un point de la carte du monde affichée (geste venu de la vue « Table » de la régie) : comme un toucher sur la carte de la régie. */
-  function choisirPoint(id) {
+  function choisirPoint(id, ancre = null) {
     const lieu = courant && !ecran.hidden ? courant.univers.lieux[courant.partie.lieuCourant] : null;
     if (!lieu || typeof id !== 'string' || !lieu.points.some((q) => q.id === id)) return;
     pointId = id;
+    ancrePoint = ancre;
     rendre();
   }
 

@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="css/univers.css?v=e15bf1d6">
   <link rel="stylesheet" href="css/atelier.css?v=1d1c2b4b">
   <link rel="stylesheet" href="css/panneaux.css?v=21fca64a">
-  <link rel="stylesheet" href="css/presentation.css?v=0c57db18">
+  <link rel="stylesheet" href="css/presentation.css?v=a2697075">
   <!-- versions:debut (généré par outils/versions.mjs, ne pas modifier à la main) -->
   <script type="importmap">
   {
@@ -33,7 +33,7 @@
       "./js/atelier/ouvrir-table.js": "./js/atelier/ouvrir-table.js?v=4e34fdec",
       "./js/atelier/section.js": "./js/atelier/section.js?v=14b9a65d",
       "./js/atelier/vignette-lieu.js": "./js/atelier/vignette-lieu.js?v=2e9a3f90",
-      "./js/atelier/vue-table-regie.js": "./js/atelier/vue-table-regie.js?v=956d0ef6",
+      "./js/atelier/vue-table-regie.js": "./js/atelier/vue-table-regie.js?v=56f37141",
       "./js/bibliotheque/catalogue.js": "./js/bibliotheque/catalogue.js?v=6308d839",
       "./js/bibliotheque/fiche.js": "./js/bibliotheque/fiche.js?v=9490bf04",
       "./js/bibliotheque/images.js": "./js/bibliotheque/images.js?v=807c36f5",
@@ -86,16 +86,17 @@
       "./js/plan-donjon/couloirs.js": "./js/plan-donjon/couloirs.js?v=7a468fed",
       "./js/plan-donjon/pose-salles.js": "./js/plan-donjon/pose-salles.js?v=27904938",
       "./js/plan-donjon/routage.js": "./js/plan-donjon/routage.js?v=8d732117",
+      "./js/popover-element.js": "./js/popover-element.js?v=38102338",
       "./js/pose.js": "./js/pose.js?v=3caab815",
       "./js/presentation.js": "./js/presentation.js?v=f615a0fc",
-      "./js/protocole-table.js": "./js/protocole-table.js?v=9728a7e8",
+      "./js/protocole-table.js": "./js/protocole-table.js?v=75cda4ed",
       "./js/regie-depart.js": "./js/regie-depart.js?v=ebfc2144",
       "./js/regie-icones.js": "./js/regie-icones.js?v=815e777f",
       "./js/regie-panneau.js": "./js/regie-panneau.js?v=38d2a8c5",
       "./js/regie-reglages.js": "./js/regie-reglages.js?v=df405426",
-      "./js/regie-selection.js": "./js/regie-selection.js?v=d46c753d",
-      "./js/regie-univers.js": "./js/regie-univers.js?v=d1ed3c95",
-      "./js/regie.js": "./js/regie.js?v=c4e59195",
+      "./js/regie-selection.js": "./js/regie-selection.js?v=18160a6c",
+      "./js/regie-univers.js": "./js/regie-univers.js?v=1cbc8876",
+      "./js/regie.js": "./js/regie.js?v=9f555bb7",
       "./js/rendu/feu.js": "./js/rendu/feu.js?v=026d6dcd",
       "./js/rendu/geometrie.js": "./js/rendu/geometrie.js?v=6d683b3b",
       "./js/rendu/graine.js": "./js/rendu/graine.js?v=5331bb5f",
@@ -144,7 +145,7 @@
       "./js/stockage.js": "./js/stockage.js?v=410e105c",
       "./js/telephone.js": "./js/telephone.js?v=46dd7eea",
       "./js/univers-boutons.js": "./js/univers-boutons.js?v=55881d1c",
-      "./js/univers-carte.js": "./js/univers-carte.js?v=aad7641a",
+      "./js/univers-carte.js": "./js/univers-carte.js?v=48f27c07",
       "./js/univers-fond.js": "./js/univers-fond.js?v=e57e108c",
       "./js/univers-grille.js": "./js/univers-grille.js?v=07498068",
       "./js/univers-images.js": "./js/univers-images.js?v=2ac230d3",
@@ -156,7 +157,7 @@
       "./js/univers.js": "./js/univers.js?v=10b19c48",
       "./js/voix.js": "./js/voix.js?v=1b45311f",
       "./js/vue-publique.js": "./js/vue-publique.js?v=bfdc5b53",
-      "./js/vue-table.js": "./js/vue-table.js?v=a5f08b9c",
+      "./js/vue-table.js": "./js/vue-table.js?v=bfa3a188",
       "./js/zip.js": "./js/zip.js?v=82ee6658",
       "./js/zone-passage.js": "./js/zone-passage.js?v=22c0cfc2"
     }
@@ -367,6 +368,8 @@
     </div>
 
     <!-- Sélection : panneau superposé en bas à droite de la fenêtre, hors du flux (n'écarte jamais la commande rapide). -->
+    <!-- Détail d'un point de la carte d'un monde : popover posé à côté du point (js/regie-univers.js). -->
+    <section id="popover-point" class="selection" role="dialog" aria-label="Point" tabindex="-1" hidden></section>
     <section id="selection" class="selection" role="region" aria-label="Sélection" tabindex="-1" hidden></section>
   </div>
 

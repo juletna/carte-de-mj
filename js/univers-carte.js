@@ -12,7 +12,7 @@ const borne = (v) => Math.min(1, Math.max(0, v));
 
 /**
  * @param {HTMLElement} parent
- * @param {{onPoint?:(id:string)=>void, onVide?:(x:number,y:number)=>void, onDeplace?:(id:string,x:number,y:number)=>void}} rappels
+ * @param {{onPoint?:(id:string, centre:{x:number,y:number})=>void, onVide?:(x:number,y:number)=>void, onDeplace?:(id:string,x:number,y:number)=>void}} rappels
  */
 export function creerCarteUnivers(parent, { onPoint, onVide, onDeplace } = {}) {
   const img = h('img', { className: 'univers-image', alt: '', draggable: false });
@@ -65,7 +65,8 @@ export function creerCarteUnivers(parent, { onPoint, onVide, onDeplace } = {}) {
     b.style.left = `${p.x * 100}%`;
     b.style.top = `${p.y * 100}%`;
     b.dataset.id = p.id;
-    if (!modifiable) { b.addEventListener('click', () => onPoint?.(p.id)); return b; }
+    const centre = () => { const r = b.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }; // le popover du point se pose à côté
+    if (!modifiable) { b.addEventListener('click', () => onPoint?.(p.id, centre())); return b; }
     let depart = null;
     b.addEventListener('pointerdown', (e) => {
       if (e.button) return;
@@ -85,11 +86,11 @@ export function creerCarteUnivers(parent, { onPoint, onVide, onDeplace } = {}) {
       if (!depart) return;
       const d = depart; depart = null;
       if (e.type === 'pointercancel') { b.style.left = `${p.x * 100}%`; b.style.top = `${p.y * 100}%`; return; }
-      if (d.bouge && d.fin) onDeplace?.(p.id, d.fin[0], d.fin[1]); else onPoint?.(p.id);
+      if (d.bouge && d.fin) onDeplace?.(p.id, d.fin[0], d.fin[1]); else onPoint?.(p.id, centre());
     };
     b.addEventListener('pointerup', fin);
     b.addEventListener('pointercancel', fin);
-    b.addEventListener('click', (e) => { if (e.detail === 0) onPoint?.(p.id); }); // clavier : Entrée ou Espace
+    b.addEventListener('click', (e) => { if (e.detail === 0) onPoint?.(p.id, centre()); }); // clavier : Entrée ou Espace
     b.addEventListener('keydown', (e) => {
       const pas = e.shiftKey ? 0.05 : 0.01;
       const d = { ArrowLeft: [-pas, 0], ArrowRight: [pas, 0], ArrowUp: [0, -pas], ArrowDown: [0, pas] }[e.key];

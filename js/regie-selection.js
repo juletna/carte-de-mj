@@ -11,8 +11,7 @@ import { nomAffiche } from './parseur/lexique.js';
 import { h, bouton, $ } from './dom.js';
 import { pluriel } from './format.js';
 import { icone } from './icones.js';
-import { telephone } from './telephone.js';
-import { positionBulle } from './mise-en-page.js';
+import { placerPopover } from './popover-element.js';
 
 export function creerSelection(ctx) {
   const { etat, r } = ctx;
@@ -137,18 +136,6 @@ export function creerSelection(ctx) {
     if (avaitFocus) $('carte').focus?.({ preventScroll: true });
   }
 
-  /** Le popover de l'élément : à côté du point touché sur la carte (à droite, sinon à gauche, dessous, dessus), sans sortir de la scène. Sous 760 px : feuille en bas (CSS). */
-  function placerPopover(zone) {
-    const a = etat.ancreSelection;
-    if (telephone() || !a) { zone.style.left = zone.style.top = zone.style.right = zone.style.bottom = ''; return; }
-    const sc = $('scene').getBoundingClientRect();
-    const vue = { g: sc.left, h: sc.top, d: sc.right, b: sc.bottom };
-    zone.style.right = zone.style.bottom = 'auto';
-    zone.style.maxHeight = `${Math.max(160, vue.b - vue.h - 16)}px`;
-    const { x, y } = positionBulle({ g: a.x - 14, h: a.y - 14, d: a.x + 14, b: a.y + 14 }, vue, zone.offsetWidth, zone.offsetHeight);
-    zone.style.left = `${x}px`; zone.style.top = `${y}px`;
-  }
-
   function majSelection() {
     const zone = $('selection');
     const p = etat.p, s = salleConsultee();
@@ -205,7 +192,7 @@ export function creerSelection(ctx) {
       }
     }
     zone.replaceChildren(...contenu);
-    placerPopover(zone);
+    placerPopover(zone, etat.ancreSelection, $('scene'));
     if (etat.focusSelection) { etat.focusSelection = false; zone.focus({ preventScroll: true }); }
   }
 

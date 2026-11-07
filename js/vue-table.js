@@ -25,7 +25,8 @@ export function demarrerTable() {
   const ecran = creerEcranTable({ affichage: affichageDeReglages(reglages) });
   const canal = ouvrirCanal();
   const apercu = new URLSearchParams(location.search).get('apercu') === '1'; // la vue « Table » de la régie : les points de la carte se touchent
-  const universTable = creerTableUnivers({ surPoint: apercu && canal ? (id) => canal.postMessage(messagePoint(id)) : null }); // une carte d'univers à la place de la salle (js/univers-table.js)
+  // Un point touché part avec sa position : la régie y pose son popover.
+  const universTable = creerTableUnivers({ surPoint: apercu && canal ? (id, pos) => canal.postMessage(messagePoint(id, pos && pos.x / innerWidth, pos && pos.y / innerHeight)) : null }); // une carte d'univers à la place de la salle (js/univers-table.js)
   const attendre = (texte) => ecran.attendre(texte);
 
   if (!canal) { attendre('Ce navigateur ne permet pas de recevoir la présentation (BroadcastChannel indisponible).'); return; }

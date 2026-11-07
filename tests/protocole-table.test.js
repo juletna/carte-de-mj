@@ -4,7 +4,7 @@
  */
 import * as p from '../js/presentation.js';
 import * as t from '../js/commande-table.js';
-import { MESSAGES, CANAL, messageEtat, lireEtat, messageDefiler, lireDefilement, messageDemandeEtat, messageDeplacer, messageViser } from '../js/protocole-table.js';
+import { MESSAGES, CANAL, messageEtat, lireEtat, messageDefiler, lireDefilement, messageDemandeEtat, messageDeplacer, messageViser, messagePoint, lirePosition } from '../js/protocole-table.js';
 import { AFFICHAGE_PAR_DEFAUT } from '../js/affichage.js';
 import { verifier, egal, executerSuite } from './mini-test.js';
 
@@ -38,6 +38,11 @@ const affichage = ({ mode, taille, grille, reperes }) => ({ mode, taille, grille
 const ids = (m) => ['portes', 'objets', 'creatures'].flatMap((l) => m.plan[l].map((e) => e.id)).sort();
 
 const TESTS = [
+  ['un point touché dans la vue « Table » porte sa position (fractions du cadre), relue avec ses bornes', () => {
+    egal(lirePosition(messagePoint('p1', 0.25, 0.5)), { x: 0.25, y: 0.5 }, 'relue');
+    egal(messagePoint('p1'), { type: MESSAGES.TABLE_POINT, id: 'p1' }, 'sans position : seulement l’identifiant');
+    egal([lirePosition({ x: 2, y: 0.5 }), lirePosition({ x: 'a', y: 0 }), lirePosition(null), lirePosition({})], [null, null, null, null], 'hors bornes ou absente : null');
+  }],
   ['les types de messages : distincts, et ceux que commande-table.js lit sont les mêmes', () => {
     egal(MESSAGES, { ETAT: 'etat', DEFILER: 'defiler', DEMANDE_ETAT: 'demande-etat', TABLE_DEPLACER: 'table-deplacer', TABLE_VISER: 'table-viser', TABLE_POINT: 'table-point' }, 'types sur le canal');
     egal(CANAL, 'carte-de-mj-presentation', 'nom du canal');
