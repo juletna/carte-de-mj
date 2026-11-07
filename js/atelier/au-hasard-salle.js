@@ -37,7 +37,7 @@ export function creerSectionAuHasard(ctx) {
   const reglages = { familles: [], monstres: null, coffres: null, pieges: null, forme: null, apparence: {} };
   /** Le dernier tirage appliqué : sert à « Relancer » et à « Tirage N », tant que la description est encore celle qu'il a écrite. */
   let dernier = null;
-  /** La salle dont la vue « Au hasard » est ouverte (null : aucune). Changer de salle la referme d'elle-même (`ouverte(id)`). */
+  /** La salle dont la vue « Génération aléatoire » est ouverte (null : aucune). Changer de salle la referme d'elle-même (`ouverte(id)`). */
   let vueOuverte = null;
   const redessiner = () => ctx.coquille?.rafraichir({ inspecteur: true });
 
@@ -102,11 +102,11 @@ export function creerSectionAuHasard(ctx) {
 
   /** La rangée de la salle, en tête des sections : le dé génère tout de suite ; l'icône réglages ouvre la vue dédiée. */
   function ligne(sel) {
-    const de = h('button', { type: 'button', className: 'btn btn-icone', title: 'Générer au hasard (remplit la salle, annulable)', 'aria-label': 'Générer au hasard' }, icone('de'));
+    const de = h('button', { type: 'button', className: 'btn btn-icone', title: 'Générer la salle de façon aléatoire (remplit la salle, annulable)', 'aria-label': 'Générer la salle de façon aléatoire' }, icone('de'));
     de.addEventListener('click', () => generer(sel.id));
     const regler = h('button', { type: 'button', className: `btn btn-icone btn-discret hasard-ligne-regler${reglagesImposes() ? ' impose' : ''}`, title: 'Régler le tirage', 'aria-label': reglagesImposes() ? 'Régler le tirage (des consignes sont imposées)' : 'Régler le tirage' }, icone('affichage'));
     regler.addEventListener('click', () => { vueOuverte = sel.id; redessiner(); });
-    return h('section', { className: 'hasard-ligne', 'aria-label': 'Au hasard' }, h('span', { className: 'hasard-ligne-titre', textContent: 'Au hasard' }), de, regler);
+    return h('section', { className: 'hasard-ligne', 'aria-label': 'Génération aléatoire' }, h('span', { className: 'hasard-ligne-titre', textContent: 'Génération aléatoire' }), de, regler);
   }
 
   /** La vue dédiée : un retour, puis les consignes du tirage. */
@@ -197,7 +197,7 @@ export function creerSectionAuHasard(ctx) {
     const retour = h('button', { type: 'button', className: 'hasard-vue-retour', 'aria-label': 'Retour à la salle' }, picto('retour', '←'), h('span', { textContent: 'Salle' }));
     retour.addEventListener('click', () => { vueOuverte = null; redessiner(); });
     return h('div', { className: 'hasard-vue' },
-      h('div', { className: 'hasard-vue-tete' }, retour, h('h3', { className: 'hasard-vue-titre', textContent: 'Au hasard' })),
+      h('div', { className: 'hasard-vue-tete' }, retour, h('h3', { className: 'hasard-vue-titre', textContent: 'Génération aléatoire' })),
       h('div', { className: 'hasard-vue-corps' }, ...corps));
   }
 

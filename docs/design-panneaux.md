@@ -156,7 +156,7 @@ Même grammaire dans le panneau bas. Replié, il ne montre que l'en-tête. Cible
 | Inspecteur Monde, Lieu, Point | `js/atelier/inspecteurs-monde.js` | oui (typographie, sections, liste des points) |
 | Inspecteur Calage | `js/mj/univers-calage.js` | oui |
 | Inspecteur Donjon, Salle | `js/atelier/inspecteurs-donjon.js`, `js/mj/salle-forme.js` | oui (« Compris » en pastilles, formes en icônes) |
-| Salle · Au hasard (rangée et vue dédiée) | `js/atelier/au-hasard-salle.js`, `css/panneaux.css` | oui (voir « Vue dédiée ») |
+| Salle · Génération aléatoire (rangée et vue dédiée) | `js/atelier/au-hasard-salle.js`, `css/panneaux.css` | oui (voir « Vue dédiée ») |
 | Donjon · onglets Portes, Mobilier, Créatures (catalogue) | `js/atelier/catalogue-onglet.js`, `js/palette.js` | oui (onglets soulignés comme Jouer ; catégories, recherche et vignettes sous les onglets) |
 | Porte, Objet, Créature | `js/mj/bulle.js` | oui (sections « Liaison », « Aspect ») |
 | Jouer · Salle, Joueurs, Table | `presentation.html`, `js/regie.js`, `js/regie-panneau.js` | oui (en-tête de l'onglet Salle) |

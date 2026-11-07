@@ -10,7 +10,7 @@
  * l'en-tête : il écrit dans `#salle-nom` / `#donjon-nom` (qui restent dans la réserve) et y déclenche « change ».
  *
  *   salle   « 9 × 12 m · pierre » ; Forme et dimensions (L, H, forme), Apparence (sol, ambiance, état, éclairage), description (dictée, « Compris »), liaisons orphelines, notes, éléments (liste), exemples.
- *           Au hasard : une rangée en tête (le dé génère d'un clic, l'icône réglages ouvre sa vue dédiée, qui remplace les sections, avec « ← Salle » pour revenir) ; remplit la salle de monstres, coffres, pièges et mobilier (js/atelier/au-hasard-salle.js).
+ *           Génération aléatoire : une rangée en tête (le dé génère d'un clic, l'icône réglages ouvre sa vue dédiée, qui remplace les sections, avec « ← Salle » pour revenir) ; remplit la salle de monstres, coffres, pièges et mobilier (js/atelier/au-hasard-salle.js).
  *           « ⋯ » : plan JSON, signaler une erreur de lecture, — , supprimer la salle.
  *   donjon  « 3 salles · 2 personnages » ; les personnages (liste, ajouter, au hasard) et, repliée, l'échelle (m par case) avec le plein écran. Le rendu (thème, grille…) est le bouton « Affichage » de la barre.
  *           « ⋯ » : exporter, imprimer, copier, — , supprimer le donjon. (L'arbre liste les salles ; la vue d'ensemble est celle du donjon.)
@@ -101,7 +101,7 @@ export function enregistrerInspecteursDonjon(coquille, ctx) {
   blocApparence.append(...[['salle-sol', 'sol', 'Sol', 'sol', COULEURS_SOL, null], ['salle-ambiance', 'ambiance', 'Ambiance', 'ambiance', undefined, 'ambiance'], ['salle-etat', 'état', 'État', 'etat', undefined, 'etat'], ['salle-eclairage', 'éclairage', 'Éclairage', 'eclairage', undefined, 'eclairage']]
     .map(([id, detail, titre, champ, couleurs, badge]) => creerChampChoix({ select: $(id), detail, titre, couleurs, badge, miniature: miniatureSalle(champ) }).element));
 
-  const hasard = creerSectionAuHasard(ctx); // « Au hasard » : le contenu (et la forme) de la salle, js/atelier/au-hasard-salle.js
+  const hasard = creerSectionAuHasard(ctx); // « Génération aléatoire » : le contenu (et la forme) de la salle, js/atelier/au-hasard-salle.js
   const donjonDe = (sel) => etat.donjons[sel.contexte?.donjon ?? sel.id] ?? ctx.donjon();
   /** Le nom de l'en-tête écrit dans le champ historique (dont les écouteurs enregistrent, nettoient et sauvegardent). */
   const renommerVia = (idChamp) => (_sel, valeur) => {
@@ -175,7 +175,7 @@ export function enregistrerInspecteursDonjon(coquille, ctx) {
       const apercuApparence = p ? [(NOMS_SOLS[p.sol] ?? 'Pierre').toLowerCase(), (NOMS_AMBIANCES[p.ambiance] ?? 'Neutre').toLowerCase(), mot(NOMS_ETATS_SALLE, p.etat, 'neuve'), mot(NOMS_ECLAIRAGES, p.eclairage, 'penombre')].filter(Boolean).join(', ') : '';
       const notes = (salle?.notes ?? '').trim().replace(/\s+/g, ' ');
       const apercuNotes = notes ? (notes.length > 32 ? `${notes.slice(0, 31)}…` : notes) : 'vide';
-      // « Au hasard » a sa propre vue (flux aval de l'édition : consignes, tirage, relance) : elle remplace les sections, avec un retour.
+      // « Génération aléatoire » a sa propre vue (flux aval de l'édition : consignes, tirage, relance) : elle remplace les sections, avec un retour.
       if (hasard.ouverte(sel.id)) { conteneur.append(hasard.vue(sel)); return; }
       conteneur.append(
         hasard.ligne(sel),
