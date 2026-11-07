@@ -4,8 +4,8 @@
  */
 import * as p from '../js/presentation.js';
 import * as t from '../js/commande-table.js';
-import { MESSAGES, CANAL, messageEtat, lireEtat, messageDefiler, lireDefilement, messageDemandeEtat, messageDeplacer, messageViser, messagePoint, lirePosition, messageZoom, lireFacteurZoom, messageCadrer, messageCadrage, lireCadrage, messageElement, lireElement } from '../js/protocole-table.js';
-import { AFFICHAGE_PAR_DEFAUT } from '../js/affichage.js';
+import { MESSAGES, CANAL, messageEtat, lireEtat, messageDefiler, lireDefilement, messageDemandeEtat, messageDeplacer, messageViser, messagePoint, lirePosition, messageZoom, lireFacteurZoom, messageCadrer, messageCadrage, lireCadrage, messageElement, lireElement, messageCalibrage, messageFinCalibrage, lireCalibrage, ETAPES_CALIBRAGE } from '../js/protocole-table.js';
+import { AFFICHAGE_PAR_DEFAUT, carteDeCalibrage } from '../js/affichage.js';
 import { verifier, egal, executerSuite } from './mini-test.js';
 
 const SECRETS = ['SECRET-NOM-SALLE', 'SECRET-TEXTE-SALLE', 'SECRET-NOTE-SALLE', 'SECRET-NOTE-PARTIE', 'SECRET-NOM-DONJON', 'SECRET-AUTRE-SALLE'];
@@ -55,7 +55,7 @@ const TESTS = [
     egal([lirePosition({ x: 2, y: 0.5 }), lirePosition({ x: 'a', y: 0 }), lirePosition(null), lirePosition({})], [null, null, null, null], 'hors bornes ou absente : null');
   }],
   ['les types de messages : distincts, et ceux que commande-table.js lit sont les mêmes', () => {
-    egal(MESSAGES, { ETAT: 'etat', DEFILER: 'defiler', DEMANDE_ETAT: 'demande-etat', TABLE_DEPLACER: 'table-deplacer', TABLE_VISER: 'table-viser', TABLE_POINT: 'table-point', TABLE_ZOOM: 'table-zoom', TABLE_CADRER: 'table-cadrer', CADRAGE: 'cadrage', TABLE_ELEMENT: 'table-element' }, 'types sur le canal');
+    egal(MESSAGES, { ETAT: 'etat', DEFILER: 'defiler', DEMANDE_ETAT: 'demande-etat', TABLE_DEPLACER: 'table-deplacer', TABLE_VISER: 'table-viser', TABLE_POINT: 'table-point', TABLE_ZOOM: 'table-zoom', TABLE_CADRER: 'table-cadrer', CADRAGE: 'cadrage', TABLE_ELEMENT: 'table-element', CALIBRAGE: 'calibrage' }, 'types sur le canal');
     egal(CANAL, 'carte-de-mj-presentation', 'nom du canal');
     egal(new Set(Object.values(MESSAGES)).size, Object.keys(MESSAGES).length, 'aucun type en double');
     const main = t.creerCommande('a'), libre = t.creerCommande('b');
@@ -138,6 +138,29 @@ const TESTS = [
     egal(messageDemandeEtat(), { type: 'demande-etat' }, 'demande d’état');
     egal(messageDeplacer('c1', 3, 4), { type: 'table-deplacer', id: 'c1', x: 3, y: 4 }, 'pion glissé');
     egal(messageViser(2, 5), { type: 'table-viser', x: 2, y: 5 }, 'case touchée');
+  }],
+  ['calibrage : un message valide traverse le canal tel quel, sans plan ni partie', () => {
+    const m = JSON.parse(JSON.stringify(messageCalibrage({ etape: 'mesurer', taille: 52.4, caseMm: 28, rotation: 90, miroir: true })));
+    egal(m, { type: 'calibrage', etape: 'mesurer', taille: 52.4, caseMm: 28, rotation: 90, miroir: true }, 'forme exacte');
+    egal(lireCalibrage(m, AFFICHAGE_PAR_DEFAUT), { etape: 'mesurer', taille: 52.4, caseMm: 28, rotation: 90, miroir: true }, 'relu à l’identique');
+    for (const etape of ETAPES_CALIBRAGE) egal(lireCalibrage(messageCalibrage({ etape, taille: 40 }), AFFICHAGE_PAR_DEFAUT).etape, etape, `étape ${etape}`);
+    verifier(!/plan|mini|creatures|partie/.test(JSON.stringify(m)), 'rien de la partie dans le message');
+  }],
+  ['calibrage : chaque champ invalide reprend sa valeur sûre', () => {
+    egal(lireCalibrage({ type: 'calibrage', etape: 'mesurer', taille: 9999, caseMm: 3, rotation: 45, miroir: 'oui' }, { ...AFFICHAGE_PAR_DEFAUT, taille: 61 }),
+      { etape: 'mesurer', taille: 61, caseMm: 25, rotation: 0, miroir: false }, 'taille de l’affichage actuel, 25 mm, aucune rotation, pas de miroir');
+    egal(lireCalibrage({ etape: 'verifier', taille: '50', caseMm: NaN }, AFFICHAGE_PAR_DEFAUT), { etape: 'verifier', taille: 48, caseMm: 25, rotation: 0, miroir: false }, 'chaînes et NaN');
+    egal(lireCalibrage(messageCalibrage({ etape: 'orienter' }), AFFICHAGE_PAR_DEFAUT).taille, 48, 'taille absente');
+  }],
+  ['calibrage : la fin, une étape inconnue ou un message vide rendent la table à la présentation', () => {
+    egal(messageFinCalibrage(), { type: 'calibrage', etape: null }, 'forme');
+    egal(lireCalibrage(messageFinCalibrage(), AFFICHAGE_PAR_DEFAUT), { etape: null }, 'fin');
+    egal(lireCalibrage({ etape: 'piratage' }, AFFICHAGE_PAR_DEFAUT), { etape: null }, 'étape inconnue');
+    egal(lireCalibrage(null, AFFICHAGE_PAR_DEFAUT), { etape: null }, 'rien');
+  }],
+  ['calibrage : la carte bancaire garde ses proportions et suit la case visée (inchangé)', () => {
+    egal(carteDeCalibrage(25), { largeur: 85.6, hauteur: 53.98 }, '25 px pour 25 mm');
+    egal(carteDeCalibrage(60, 30).largeur, 171.2, 'deux fois la taille visée par pixel');
   }],
 ];
 

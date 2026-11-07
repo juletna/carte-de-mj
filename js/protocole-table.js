@@ -3,7 +3,7 @@
  * relecture côté récepteur. Module sans DOM ni stockage : il se teste sous Node (`ouvrirCanal` est la seule fonction qui touche
  * à l'environnement, et elle ne s'exécute pas à l'import).
  *
- * Régie → table :  `etat` (le plan de la salle courante, l'encart, la case montrée, l'affichage), `defiler`.
+ * Régie → table :  `etat` (le plan de la salle courante, l'encart, la case montrée, l'affichage), `defiler`, `calibrage` (le mode de calibrage de la table).
  * Table → régie :  `demande-etat`, `table-deplacer` (un pion glissé à la souris), `table-viser` (une case touchée).
  * Les messages « qui commande la table » (`regie-prise-main`, `regie-depart`, `regie-presente`) sont dans commande-table.js.
  *
@@ -11,7 +11,7 @@
  * montrée et l'affichage ; rien d'autre ne part de la régie. À la réception, `lireEtat` relit tout champ par champ, avec les
  * mêmes règles que le reste de l'outil, et écarte ce qui serait marqué caché.
  */
-import { validerAffichage } from './affichage.js';
+import { validerAffichage, tailleReglable, caseMmValide, CASE_MM_PAR_DEFAUT, ROTATIONS_TABLE } from './affichage.js';
 import { recevoirVueTable, recevoirMiniPlan, recevoirCaseVisee } from './vue-publique.js';
 
 /** Canal BroadcastChannel entre la régie et la fenêtre table. */
@@ -31,6 +31,7 @@ export const MESSAGES = {
   TABLE_CADRER: 'table-cadrer',
   CADRAGE: 'cadrage',
   TABLE_ELEMENT: 'table-element',
+  CALIBRAGE: 'calibrage',
 };
 
 // --- Régie → table ----------------------------------------------------------------------------------------
@@ -48,6 +49,33 @@ export function lireEtat(m, affichageActuel) {
   const plan = m.plan ? recevoirVueTable(m.plan) : null;
   const mini = m.mini ? recevoirMiniPlan(m.mini) : null;
   return { plan, mini, caseVisee: recevoirCaseVisee(m.caseVisee, plan), affichage };
+}
+
+// --- Calibrage : un mode de la table, indépendant de toute salle ---------------------------------------------------
+// Le message ne porte ni plan ni partie : l'étape, la taille d'une case (px), la taille visée (mm), la rotation et le miroir. Tant qu'il
+// dure, la table montre une grille seule ; `etape: null` (messageFinCalibrage) la rend à ce qu'elle montrait.
+
+export const ETAPES_CALIBRAGE = ['orienter', 'mesurer', 'verifier', 'termine'];
+
+/** Un état de calibrage, à envoyer à la table (et à sa vue d'aperçu dans la régie). */
+export const messageCalibrage = ({ etape, taille, caseMm = CASE_MM_PAR_DEFAUT, rotation = 0, miroir = false }) => ({ type: MESSAGES.CALIBRAGE, etape, taille, caseMm, rotation, miroir });
+/** Le calibrage est fini ou annulé : la table retrouve sa présentation. */
+export const messageFinCalibrage = () => ({ type: MESSAGES.CALIBRAGE, etape: null });
+
+/**
+ * Côté table : relit un message `calibrage`. Champ par champ : taille invalide → celle de `affichageActuel`, caseMm invalide → 25, rotation
+ * invalide → 0, miroir vrai seulement s'il l'est exactement. Une étape inconnue ou absente (`null`) met fin au calibrage : `{ etape: null }`.
+ * @returns {{etape:null}|{etape:string, taille:number, caseMm:number, rotation:number, miroir:boolean}}
+ */
+export function lireCalibrage(m, affichageActuel) {
+  if (!ETAPES_CALIBRAGE.includes(m?.etape)) return { etape: null };
+  return {
+    etape: m.etape,
+    taille: Number.isFinite(m.taille) && tailleReglable(m.taille) ? m.taille : affichageActuel.taille,
+    caseMm: caseMmValide(m.caseMm) ? m.caseMm : CASE_MM_PAR_DEFAUT,
+    rotation: ROTATIONS_TABLE.includes(m.rotation) ? m.rotation : 0,
+    miroir: m.miroir === true,
+  };
 }
 
 const entierSigne = (v) => (v === -1 || v === 0 || v === 1 ? v : 0);
