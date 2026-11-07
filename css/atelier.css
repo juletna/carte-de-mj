@@ -152,16 +152,21 @@ body.atelier-avec-inspecteur { --largeur-inspecteur: 330px; }
 .pop-valeur { min-width: 46px; text-align: right; font-variant-numeric: tabular-nums; font-size: 13px; }
 .pop-ib { display: inline-grid; place-items: center; min-width: 40px; height: 40px; padding: 0 6px; border: 1px solid var(--bord); border-radius: 10px; background: var(--champ); color: var(--texte); font: inherit; font-size: 20px; line-height: 1; cursor: pointer; }
 .pop-ib:hover { border-color: var(--accent); }
-.pop-duo { display: inline-flex; gap: var(--esp-2); }
+.pop-bascule[aria-checked="true"] { background: var(--choisi, var(--bord)); border-color: var(--accent); color: var(--accent); }
+#regie[data-regie="monde"] .pop-donjon { display: none; }
+.pop-rang[hidden] { display: none; }
+.pop-duo { display: inline-flex; gap: 6px; }
+.pop-duo .pop-ib { min-width: 38px; height: 38px; }
+.pop-orientation { gap: var(--esp-2); }
 .pop-stepper { display: inline-flex; align-items: center; background: var(--champ); border: 1px solid var(--bord); border-radius: 10px; }
 .pop-stepper .pop-ib { border: 0; background: none; }
 .pop-stepper input { width: 4.2ch; min-height: 0; padding: 0; border: 0; background: none; color: var(--texte); text-align: right; font: inherit; font-variant-numeric: tabular-nums; -moz-appearance: textfield; }
 .pop-stepper input::-webkit-inner-spin-button { display: none; }
 .pop-unite { margin-right: 2px; color: var(--texte-doux); font-size: 13px; }
 .pop-orientation { min-height: 84px; }
-.pop-apercu { flex: none; width: 104px; height: 68px; display: grid; place-items: center; border-radius: 8px; background: #121116; border: 1px solid var(--bord); }
-.pop-apercu-cadre { width: 84px; height: 52px; display: grid; place-items: center; overflow: hidden; border: 2px solid var(--texte-doux); border-radius: 4px; background: #1c1b21; }
-.pop-apercu-lettre { display: inline-block; font: 800 38px/1 Georgia, serif; color: var(--accent); transition: transform .2s; }
+.pop-apercu { flex: none; width: 88px; height: 68px; display: grid; place-items: center; border-radius: 8px; background: #121116; border: 1px solid var(--bord); }
+.pop-apercu-cadre { width: 70px; height: 46px; display: grid; place-items: center; overflow: hidden; border: 2px solid var(--texte-doux); border-radius: 4px; background: #1c1b21; }
+.pop-apercu-lettre { display: inline-block; font: 800 32px/1 Georgia, serif; color: var(--accent); transition: transform .2s; }
 .pop-calibrer { width: 100%; min-height: 40px; margin-top: var(--esp-2); justify-content: center; }
 .pop-materiel[hidden], .pop-calibrage[hidden] { display: none; }
 .pop-note { margin: 0 0 var(--esp-2); color: var(--texte-doux); font-size: 13px; }

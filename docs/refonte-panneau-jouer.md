@@ -91,3 +91,7 @@ Aucun : les six étapes ont passé tests et vérification navigateur.
 - (Levé ensuite) Dans la vue « À la table » d'un donjon, toucher un pion, un objet ou une porte ouvre maintenant son popover (message `table-element`) ; seuls les éléments visibles à la table s'y touchent, les cachés se révèlent par « Cachés ».
 - Les notes de partie d'un lieu sont réécrites si la régie redessine pendant la frappe (le champ perd le focus) : à surveiller.
 - Le glisser et le zoom ne marchent que dans le cadre de la vue « À la table » ; la fenêtre table des joueurs ne reçoit que le résultat.
+
+## Révision du popover « Affichage » (7 novembre 2026, après retour de Julien)
+
+Trois groupes qui disent à qui s'applique chaque réglage : **Carte du donjon** (régie et table : style, détails, relief, repères, pénombre, flammes ; masqué dans un monde), **Écran de la table** (orientation ↺ ↻ et miroir ⇋ en pictos, taille réelle d'une case en mm, calibrage : tout le matériel au même endroit), **Régie** (adapter la carte à la fenêtre ; le curseur « Taille d'une case » n'apparaît que quand « Adapter » est éteint, car c'est aussi la taille calibrée de la table).

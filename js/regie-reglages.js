@@ -40,6 +40,7 @@ export function creerReglages(ctx) {
     const rot = r.rotationTable || 0, miroir = r.miroirTable === true;
     $('rotation-val').textContent = NOMS_ROTATION[rot] ?? `${rot}°`;
     $('miroir-table').setAttribute('aria-checked', String(miroir));
+    $('rotation-val').textContent += miroir ? ' · en miroir' : '';
     $('apercu-lettre').style.transform = `rotate(${rot}deg)${miroir ? ' scaleX(-1)' : ''}`;
   }
   /** Affiche la taille partout où on la règle. */

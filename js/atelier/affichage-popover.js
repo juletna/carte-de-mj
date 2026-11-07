@@ -112,8 +112,8 @@ export function creerAffichagePopover({ lire, surChangement, regie = false, gard
       h('div', { className: 'pop-rang pop-orientation' },
         h('div', { className: 'pop-apercu', title: 'Comment la carte apparaît à la table' }, h('div', { className: 'pop-apercu-cadre' }, h('span', { id: 'apercu-lettre', className: 'pop-apercu-lettre', textContent: 'F' }))),
         h('span', { className: 'pop-lib' }, 'Orientation', h('small', { id: 'rotation-val', textContent: 'Aucune' })),
-        h('span', { className: 'pop-duo' }, pasBouton('rotation-gauche', '↺', 'Tourner à gauche'), pasBouton('rotation-droite', '↻', 'Tourner à droite'))),
-      rang('Image en miroir', interrupteur('miroir-table', 'Image en miroir')),
+        h('span', { className: 'pop-duo' }, pasBouton('rotation-gauche', '↺', 'Tourner à gauche'), pasBouton('rotation-droite', '↻', 'Tourner à droite'),
+          h('button', { type: 'button', id: 'miroir-table', className: 'pop-ib pop-bascule', role: 'switch', 'aria-checked': 'false', 'aria-label': 'Image en miroir (symétrie)', title: 'Image en miroir : pour un projecteur sous la table dont le montage n’a pas de miroir', textContent: '⇋' }))),
       rang('Taille réelle d’une case', h('span', { className: 'pop-stepper' }, pasBouton('case-mm-moins', '−', 'Une case de moins'),
         h('input', { id: 'case-mm', type: 'number', inputmode: 'decimal', min: '10', max: '50', step: '0.1', 'aria-label': 'Taille réelle d’une case, en millimètres' }), h('span', { className: 'pop-unite', textContent: 'mm' }),
         pasBouton('case-mm-plus', '+', 'Une case de plus'))),
@@ -128,14 +128,20 @@ export function creerAffichagePopover({ lire, surChangement, regie = false, gard
 
   const carte = [rang('Style', theme), rang('Détails', details, null, 'Sols dessinés et détaillés, ou sols simples (style peint).'), rang('Relief', relief, null, 'Relief des murs')];
   const repereRang = rang('Repères', reperes, 'A, B… et 1, 2…');
-  const penombreRang = curseurRang('Pénombre', penombre, penombreVal, 'Obscurité de la salle à la table. La vue du MJ n’en garde qu’une part, pour tout voir.');
+  const tailleRegieRang = curseurRang('Taille d’une case', taille, tailleVal, 'Quand la carte n’est pas adaptée à la fenêtre : la taille d’une case à l’écran de la régie. C’est aussi la taille calibrée de la table (à régler avec « Calibrer sur la table »).');
+  tailleRegieRang.hidden = true; // visible seulement quand « Adapter » est éteint
+  const penombreRang = curseurRang('Pénombre', penombre, penombreVal, 'Obscurité de la salle : toute à la table, une part seulement à la régie (pour tout voir).');
+  const groupeDonjon = groupe('Carte du donjon', 'régie et table', ...carte, repereRang, penombreRang, rang('Flammes animées', flammes, 'à la table'));
+  groupeDonjon.classList.add('pop-donjon'); // masqué dans un monde (css/atelier.css) : ces réglages ne touchent que les salles de donjon
   const panneau = h('div', { className: 'atelier-affichage-panneau pop-affichage', role: 'dialog', 'aria-label': 'Affichage', hidden: true },
     h('p', { className: 'atelier-affichage-titre', textContent: 'Affichage' }),
     ...(regie
-      ? [groupe('Régie', 'ce que tu vois, toi', ...carte, repereRang, curseurRang('Taille d’une case', taille, tailleVal, 'Sert de plafond à la carte de la régie, et à la table en échelle réelle (calibrée ci-dessous).'),
-          rang('Adapter la carte à la fenêtre', ajuster, null, 'Ne change que l’affichage de cette régie.')),
-        groupe('À la table', 'ce que voient les joueurs', penombreRang, rang('Flammes animées', flammes)),
-        ecranTable]
+      // Jouer : ce qui touche la carte d'un donjon (régie ET table), l'écran de la table (matériel, une fois), puis la régie elle-même. Un monde n'a que les deux derniers groupes.
+      ? [groupeDonjon,
+        ecranTable,
+        groupe('Régie', 'cette fenêtre seulement',
+          rang('Adapter la carte à la fenêtre', ajuster, null, 'La carte de la régie remplit la place disponible. Ne change rien à la table.'),
+          tailleRegieRang)]
       : [groupe('Carte', null, ...carte), groupe('À la table', null, penombreRang, rang('Flammes animées', flammes), repereRang)]));
   const racine = h('div', { className: 'atelier-affichage' }, bouton, panneau);
 
@@ -190,7 +196,7 @@ export function creerAffichagePopover({ lire, surChangement, regie = false, gard
   penombre.addEventListener('input', () => ecrireRendu('penombre', penombre.value));
   basculer(flammes, (v) => ecrireRendu('flammes', v));
   basculer(reperes, (v) => ecrireRendu('reperes', v));
-  basculer(ajuster, (v) => { regle(ajuster, v); });
+  basculer(ajuster, (v) => { regle(ajuster, v); tailleRegieRang.hidden = v; });
   document.addEventListener('pointerdown', (e) => {
     if (!panneau.hidden && !racine.contains(e.target) && !garderOuvert()) fermer(); // pendant un calibrage, un clic ailleurs ne ferme pas
     if (!panneauGrille.hidden && !racineGrille.contains(e.target)) fermerGrille();
