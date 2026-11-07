@@ -194,6 +194,7 @@ details.bloc > .aide, .defilement > .aide { display: block; margin-bottom: 6px; 
 .etat-haut { display: flex; flex-wrap: wrap; align-items: center; gap: var(--esp-1) var(--esp-2); padding: var(--esp-1) var(--esp-3); }
 .etat-haut #fil-univers { padding: 0; border: 0; background: transparent; flex: 1 1 auto; min-width: 0; }
 .etat-haut .atelier-arbre-bouton { flex: none; }
+.etat-haut:not(:has(#fil-univers:not([hidden]))) { display: none; } /* rien à y montrer (donjon : le bouton de l'arbre et la sortie sont dans la barre d'outils) */
 #alerte-stockage { margin: 0; padding: var(--esp-1) var(--esp-3); }
 .btn-fort { border-color: var(--accent); color: var(--accent); font-weight: 700; }
 

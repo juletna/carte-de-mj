@@ -254,8 +254,6 @@ export function demarrerRegie() {
     if (reprise) etat.message = `Partie « ${p.donjon.nom} » reprise, salle « ${salleConsultee().nom} ».`;
     rendre();
   }
-  // En retrait, la partie ouverte mémorisée est celle de l'autre régie : on n'y touche pas.
-  $('quitter').addEventListener('click', () => { univers.fermer(); if (!commande.retrait) stockage.oublierPartieOuverte(); depart.afficher(); });
 
 
   // --- Arbre de lecture (js/atelier/jouer.js) -------------------------------------------------------------------
