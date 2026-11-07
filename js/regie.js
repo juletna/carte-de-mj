@@ -478,7 +478,8 @@ export function demarrerRegie() {
       ...s.plan.objets.filter((o) => o.cache && !pres.estRevele(p, s.id, o.id)).map((o) => aRevelerOu('objet', o, `${nomAffiche(o.type)}${o.variante ? ` ${nomVariante(o.type, o.variante)}` : ''}`, nomCase(o.x, o.y))),
       ...s.plan.portes.filter((q) => q.cache && !pres.estRevele(p, s.id, q.id)).map((q) => aRevelerOu('porte', q, libelleDePorte(q), '')),
     ];
-    $('caches-salle').closest('.p-section').hidden = !caches.length;
+    $('aucun-cache').hidden = !!caches.length; // la section reste toujours là : elle dit « aucun objet caché »
+    $('reveler-tout').disabled = !caches.length;
     $('nb-caches').textContent = String(caches.length);
     $('liste-caches').replaceChildren(...caches.map(({ genre, e, nom, position }) => {
       const b = h('button', { type: 'button', className: 'p-rang compacte cachee', title: `Révéler « ${nom} » à la table` },

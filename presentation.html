@@ -96,8 +96,8 @@
       "./js/regie-panneau.js": "./js/regie-panneau.js?v=85d10ec1",
       "./js/regie-reglages.js": "./js/regie-reglages.js?v=35aabd63",
       "./js/regie-selection.js": "./js/regie-selection.js?v=17b5d4ac",
-      "./js/regie-univers.js": "./js/regie-univers.js?v=bbbe7dc4",
-      "./js/regie.js": "./js/regie.js?v=22b93222",
+      "./js/regie-univers.js": "./js/regie-univers.js?v=d6ffed73",
+      "./js/regie.js": "./js/regie.js?v=56e51a31",
       "./js/rendu/feu.js": "./js/rendu/feu.js?v=026d6dcd",
       "./js/rendu/geometrie.js": "./js/rendu/geometrie.js?v=6d683b3b",
       "./js/rendu/graine.js": "./js/rendu/graine.js?v=5331bb5f",
@@ -301,10 +301,11 @@
         <div class="rang-interrupteur"><span class="pop-lib">Plan du donjon<small>les salles découvertes</small></span><button id="montrer-plan" type="button" class="pop-interrupteur" role="switch" aria-checked="true" aria-label="Plan du donjon visible à la table"></button></div>
       </div>
 
-      <!-- Cachés : ce qui est préparé en secret et pas encore à la table (js/regie.js, majSalle). La section disparaît quand rien n'est caché. -->
+      <!-- Cachés : ce qui est préparé en secret et pas encore à la table (js/regie.js, majSalle). La section reste là quand rien n'est caché : elle le dit. -->
       <section id="caches-salle" class="cette-salle" aria-label="Cachés">
         <h2>Cachés</h2>
         <ul id="liste-caches" class="liste-portes"></ul>
+        <p id="aucun-cache" class="note" hidden>Aucun objet caché.</p>
         <div class="actions"><button id="reveler-tout" type="button" class="btn btn-discret" data-icone="oeil">Révéler tout</button></div>
       </section>
 

@@ -409,6 +409,7 @@ export function creerRegieUnivers(ctx) {
       surChoix: () => { pu.reveler(partie, lieu.id, q.id); sauver(); rendre(); },
     })));
     const reveler = btn('Révéler tout', () => { for (const q of caches) pu.reveler(partie, lieu.id, q.id); sauver(); rendre(); }, { icone: 'oeil' });
+    reveler.disabled = !caches.length;
     /** Un interrupteur « Visible à la table » : mêmes rangées que celles d'une salle (js/regie.js). */
     const interrupteur = (libelle, visible, surBascule, aide = null) => {
       const b = h('button', { type: 'button', className: 'pop-interrupteur', role: 'switch', 'aria-checked': String(visible), 'aria-label': `${libelle} à la table` });
@@ -430,7 +431,7 @@ export function creerRegieUnivers(ctx) {
         h('p', { className: 'note', textContent: enConsultation() ? 'Tu consultes cette carte : la table ne la voit pas encore. « Afficher à la table » l’y conduit.' : ctx.commande.main ? `La table voit cette carte${nbCaches ? ` sans ${pluriel(nbCaches, 'point caché', 'points cachés')}` : ''}.` : 'Cette régie est en retrait : la table ne voit pas ce que tu fais ici.' }),
         interrupteur('Points', !partie.masquerPoints, basculeChamp('masquerPoints'), 'les points révélés'),
         interrupteur('Noms des points', !partie.masquerNoms, basculeChamp('masquerNoms'))]),
-      ...(caches.length ? [section('caches', 'Cachés', [listeCaches, h('div', { className: 'actions' }, reveler)], { compte: caches.length })] : []),
+      section('caches', 'Cachés', [caches.length ? listeCaches : h('p', { className: 'note', textContent: 'Aucun point caché.' }), h('div', { className: 'actions' }, reveler)], { compte: caches.length || null }),
       section('notes', 'Notes', [
         h('p', { className: 'note', textContent: 'Préparation (lecture seule) :' }),
         h('p', { className: `univers-notes${lieu.notes ? '' : ' vide'}`, textContent: lieu.notes || 'Aucune note pour ce lieu.' }),

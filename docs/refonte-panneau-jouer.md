@@ -95,3 +95,5 @@ Aucun : les six étapes ont passé tests et vérification navigateur.
 ## Révision du popover « Affichage » (7 novembre 2026, après retour de Julien)
 
 Trois groupes qui disent à qui s'applique chaque réglage : **Donjon** (régie et table : style, détails, relief, repères, pénombre, flammes ; toujours visible et réglable, même dans un monde : ce sont des réglages de préparation), **Écran de la table** (orientation ↺ ↻ et miroir ⇋ en pictos, taille réelle d'une case en mm, calibrage : tout le matériel au même endroit), **Régie** (adapter la carte à la fenêtre et « Taille d'une case », toujours visibles ; ce curseur est aussi la taille calibrée de la table).
+
+**Règle générale (Julien, 7 novembre) : rien ne se cache selon le contexte.** Un réglage ou une section hors contexte reste visible et dit pourquoi (ex. « Aucun objet caché » / « Aucun point caché » pour la liste Cachés, qui ne disparaît plus). Exceptions grisées avec infobulle : « Calibrer sur la table » et « Plein écran ici » dans un monde (impossibles).
