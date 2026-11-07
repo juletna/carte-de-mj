@@ -34,7 +34,7 @@ Le panneau de droite de la régie change d'onglets selon la carte affichée : **
 | Onglet | Question | Contenu |
 |---|---|---|
 | **Ici** | « Où suis-je, que voit la table ? » | *Visible à la table* (une seule section, mêmes mots pour une salle et un lieu : interrupteurs **Monstres**, **Objets** et **Plan du donjon** dans un donjon ; **Points** et **Noms des points** dans un monde) · *Cachés* (la seule liste : ce qui n'est pas encore à la table, « Révéler » sur chaque ligne et « Révéler tout » ; elle disparaît quand rien n'est caché) · *Notes* (préparation en lecture seule + notes de partie modifiables, aussi pour un lieu) |
-| **Joueurs** | « Qui joue ? » | Personnages · Ajouter un joueur. Disponible dans un monde comme dans un donjon. |
+| **Joueurs** | « Qui joue ? » | **Inchangé pour l'instant** (décision du 7 novembre : on n'y touche pas). Reste tel qu'il est dans le code : personnages, PV, pion, retardataires, seulement dans un donjon. Une piste est notée plus bas pour plus tard. |
 
 **Barre d'outils de la scène.** Sélecteur **En régie / À la table** (liseré vert et pastille « en direct » dans la vue « À la table »), bouton doré **Ouvrir la table ▾** (menu : « Dans une fenêtre », « Plein écran ici »), puis la grille et **Affichage**. « Ouvrir la table » n'existe qu'à cet endroit.
 
@@ -55,9 +55,13 @@ Le panneau de droite de la régie change d'onglets selon la carte affichée : **
 
 1. Renommer (Salle et Lieu → Ici), retirer l'onglet « Table » en déplaçant « Ouvrir la table » dans la barre d'outils, et sortir « Réglages » vers « Affichage » : rapide, sans risque.
 2. Le matériel de la table dans le groupe « À la table » du popover « Affichage » (calibrage qui se déplie, popover maintenu ouvert), « Mini-carte » renommée « Plan du donjon » et placée dans Ici.
-3. Rendre Joueurs disponible dans un monde ; notes de partie pour les lieux (stockage dans la partie du monde).
+3. Notes de partie pour les lieux (stockage dans la partie du monde). L'onglet Joueurs n'est pas touché (hors périmètre pour l'instant).
 4. Unifier « Visible à la table » entre salle et lieu.
 5. Liste « Cachés » (Révéler / Révéler tout) à la place des listes d'éléments, de points et de portes ; popover d'élément sur la carte (réutilise `js/mj/bulle.js`).
 6. Contrôle de cadrage sur la carte (− / + / Remplir / Réel), défilement et zoom directement sur la carte dans la vue « À la table » (nouveau message de zoom sur le canal, gestes envoyés depuis le cadre, la régie reste la source). Étape à part, la plus lourde.
 
 Les étapes 3 et 4 touchent la logique de partie (`js/partie.js`, `js/regie-univers.js`) et dépendent du chantier « arbre de Jouer » en cours dans sa propre session : à coordonner avant de les lancer.
+
+## Piste pour plus tard : l'onglet Joueurs
+
+Non décidée, notée le 7 novembre pour ne pas la perdre. Joueurs = le résumé du groupe : une ligne par personnage (nom, barre de PV avec − et + rapides, états en pastilles, position cliquable qui sélectionne le pion) ; le pion touché sur la carte ouvre le même popover que les points (PV −/+, états, fiche) ; dans un monde, mêmes lignes sans position (« avec le groupe »). Question ouverte : les PV changés en jeu ne vivent aujourd'hui que dans la partie (la fiche ne bouge pas) ; faut-il pouvoir les reporter sur la fiche en fin de séance ?
