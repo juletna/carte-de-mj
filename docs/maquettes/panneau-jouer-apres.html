@@ -96,6 +96,20 @@ textarea { width: 100%; min-height: 70px; background: var(--champ); border: 1px 
 .rang { display: flex; align-items: center; gap: 10px; background: var(--s1); border-radius: 8px; min-height: 40px; padding: 0 10px; color: var(--t1); }
 .champ2 { display: grid; gap: 5px; } .champ2 > span { font-size: 12.5px; color: var(--t3); }
 .rouge { background: #3a1a15; border: 1px solid var(--erreur); border-radius: 6px; padding: 8px 12px; font-size: 13px; color: #f1b3a8; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+/* carte d'exemple et popover d'élément */
+.carte { position: relative; height: 330px; border-radius: 8px; overflow: hidden; border: 1px solid var(--bord); background: radial-gradient(120% 90% at 30% 30%, #3f8fa6 0%, #2a6f8a 50%, #1c4d66 100%); }
+.carte .ile { position: absolute; border-radius: 46% 54% 50% 50% / 55% 45% 55% 45%; background: #6a9a4a; box-shadow: inset 0 0 0 6px #d9c58a; }
+.pt { position: absolute; display: flex; align-items: center; gap: 6px; transform: translate(-9px, -9px); }
+.pt i { width: 18px; height: 18px; border-radius: 50%; background: var(--accent); border: 2px solid #1a1508; flex: none; }
+.pt b { font-size: 11.5px; background: rgba(0,0,0,.75); color: #fff; border-radius: 4px; padding: 1px 6px; }
+.pt.choisi i { box-shadow: 0 0 0 3px #fff; }
+.pt.cache i { background: transparent; border: 2px dashed #fff; }
+.bulle { position: absolute; width: 214px; background: #2a2930; border: 1px solid var(--filet-fort); border-radius: 10px; box-shadow: 0 10px 28px rgba(0,0,0,.55); padding: 10px 12px; font-size: 13px; color: var(--t2); }
+.bulle::before { content: ""; position: absolute; left: 14px; top: -7px; width: 12px; height: 12px; background: #2a2930; border-left: 1px solid var(--filet-fort); border-top: 1px solid var(--filet-fort); transform: rotate(45deg); }
+.bulle .nom { color: var(--t1); font-weight: 650; font-size: 14px; margin: 0; }
+.bulle .vers { margin: 2px 0 8px; color: var(--t3); font-size: 12.5px; }
+.bulle .rangee { gap: 6px; }
+.bulle .btn { min-height: 28px; padding: 0 10px; font-size: 12.5px; }
 .couplage { margin: 20px 0 0; padding: 12px 16px; background: var(--panneau); border: 1px dashed var(--filet-fort); border-radius: 8px; color: var(--t2); max-width: 920px; }
 </style>
 </head>
@@ -152,10 +166,6 @@ textarea { width: 100%; min-height: 70px; background: var(--champ); border: 1px 
           <div class="corps"><div class="liste">
             <div class="l"><span class="ico">◌</span><span><b>Brasierre</b><small>caché à la table · vers Brasierre</small></span><span class="btn" style="min-height:26px;padding:0 10px;font-size:12px">Révéler</span></div>
           </div></div></div>
-        <div class="sec" style="border-bottom:0"><div class="bandeau" style="color:var(--accent)">Point choisi sur la carte <span class="p">10</span></div>
-          <div class="corps"><p class="note" style="color:var(--t2)"><b style="color:var(--t1)">Port-Bourdon</b> · mène à Port-Bourdon</p>
-            <div class="rangee"><span class="btn">Entrer dans ce lieu →</span><span class="btn">Cacher</span></div>
-            <p class="note">Ce bloc n'existe que quand on touche un point sur la carte ; sinon, rien. Descendre se fait aussi par l'arbre.</p></div></div>
         <div class="sec"><div class="bandeau">Notes <span class="p">4</span></div>
           <div class="corps"><div class="lecture">Préparation : un archipel tempéré et lumineux…</div>
             <div class="champ2"><span>Notes de partie</span><textarea>Ce qui se passe sur cette carte…</textarea></div></div></div>
@@ -202,6 +212,24 @@ textarea { width: 100%; min-height: 70px; background: var(--champ); border: 1px 
       </div>
     </section>
 
+    <section class="vue" style="grid-column: span 2">
+      <h2>Popover d'élément, sur la carte</h2><p class="qui">Toucher un point, une porte ou un pion : ses actions s'ouvrent <b>à côté de lui</b>, le panneau ne bouge pas <span class="p">10</span></p>
+      <div class="carte">
+        <div class="ile" style="left:6%;top:14%;width:34%;height:44%"></div>
+        <div class="ile" style="left:46%;top:8%;width:42%;height:52%"></div>
+        <div class="ile" style="left:14%;top:62%;width:36%;height:32%"></div>
+        <div class="pt" style="left:30%;top:36%"><i></i><b>La Verte-Écume</b></div>
+        <div class="pt choisi" style="left:64%;top:34%"><i></i><b>Port-Bourdon</b></div>
+        <div class="pt cache" style="left:34%;top:78%"><i></i><b>Brasierre</b></div>
+        <div class="bulle" style="left:calc(64% - 22px);top:calc(34% + 18px)">
+          <p class="nom">Port-Bourdon</p>
+          <p class="vers">Mène à Port-Bourdon</p>
+          <div class="rangee"><span class="btn dore">Entrer →</span><span class="btn">Cacher</span></div>
+        </div>
+      </div>
+      <p class="note" style="margin-top:8px">Un point caché (en pointillés) propose « Révéler » à la place de « Cacher ». Le popover se ferme au clic ailleurs ou avec Échap, évite les bords de la carte et ne couvre pas le point voisin. Sur téléphone, il devient une feuille en bas de l'écran. Dans la vue « À la table », il s'ouvre au même endroit, par-dessus le cadre.</p>
+    </section>
+
     <section class="vue">
       <h2>Popover « Affichage »</h2><p class="qui">Les préférences de la régie, au même endroit <span class="p">6</span></p>
       <div class="pop">
@@ -234,7 +262,7 @@ textarea { width: 100%; min-height: 70px; background: var(--champ); border: 1px 
       <li><span class="p">7</span> « Reprendre la main » seulement dans le bandeau rouge.</li>
       <li><span class="p">8</span> L'onglet Écran suit le design des panneaux : étiquette au-dessus du champ, interrupteurs, plus de « ? » orphelin ni de légende de fieldset.</li>
       <li><span class="p">9</span> Plus de liste « Éléments », « Points » ni « Portes de la salle » : la carte et l'arbre font déjà ce travail. Une seule liste, <b>Cachés</b>, avec « Révéler » sur chaque ligne et « Révéler tout » ; elle n'affiche que ce qui n'est pas encore à la table et disparaît quand il n'y en a plus.</li>
-      <li><span class="p">10</span> Le détail d'un point (Mène à, Entrer, Cacher) est un bloc contextuel : il n'apparaît que quand on touche un point sur la carte, comme le panneau « Sélection » d'une salle.</li>
+      <li><span class="p">10</span> Le détail d'un point (Mène à, Entrer, Cacher ou Révéler) est un popover sur la carte, à côté du point touché : même geste pour un point, une porte ou un pion, et le panneau de droite ne bouge pas. Il remplace le panneau « Sélection » flottant d'une salle.</li>
     </ol>
   </div>
 </main>
