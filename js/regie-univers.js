@@ -193,21 +193,22 @@ export function creerRegieUnivers(ctx) {
   const versLe = (index) => { if (pu.allerAuChemin(courant.partie, index)) apres(); };
 
   // --- Fil d'Ariane (carte et donjon) ---------------------------------------------------------------------------
-  function remplirFil(conteneur, partie, univers, dernier) {
+  function remplirFil(conteneur, partie, univers, dernier, { aller = versLe, remonterVers = remonter, etiquette = null } = {}) {
     const noms = pu.filDAriane(partie, univers);
     const items = [...noms.map((n, i) => ({ ...n, index: i })), ...(dernier ? [{ nom: dernier }] : [])];
+    if (etiquette) items[items.length - 1] = { ...items[items.length - 1], nom: `${items[items.length - 1].nom} (consultation)` };
     // Deux versions dans la page, dont css/presentation.css n'affiche qu'une : le fil complet (ordinateur) et le fil compact d'une ligne (sous 760 px).
     const complet = h('span', { className: 'fil-complet' }, ...items.flatMap((it, i) => {
       const sep = i ? [h('span', { className: 'univers-sep', textContent: '›', 'aria-hidden': 'true' })] : [];
       if (i === items.length - 1) return [...sep, h('strong', { textContent: it.nom, 'aria-current': 'location' })];
-      return [...sep, btn(it.nom, () => versLe(it.index), { classe: 'btn-discret' })];
+      return [...sep, btn(it.nom, () => aller(it.index), { classe: 'btn-discret' })];
     }));
-    const noeuds = [complet, creerFilCompact(items, { aller: versLe })];
+    const noeuds = [complet, creerFilCompact(items, { aller })];
     if (items.length > 1) {
       // Sous 760 px le libellé s'efface : Remonter est alors une icône (cible de 44 px).
       const haut = h('button', { type: 'button', className: 'btn btn-discret univers-remonter', 'aria-label': 'Remonter d’un niveau', title: 'Remonter d’un niveau' },
         icone('remonter'), h('span', { className: 'libelle', textContent: 'Remonter' }));
-      haut.addEventListener('click', () => remonter());
+      haut.addEventListener('click', () => remonterVers());
       noeuds.push(haut);
     }
     conteneur.replaceChildren(...noeuds);
@@ -288,7 +289,11 @@ export function creerRegieUnivers(ctx) {
     titre.textContent = univers.nom;
     const fil = $('fil-univers');
     fil.hidden = false;
-    remplirFil(fil, partie, univers);
+    if (enConsultation()) { // le fil suit le lieu regardé : ses noms et « Remonter » le consultent, sans bouger la table
+      const vers = { chemin: pu.cheminVers(univers, lieu.id) ?? [partie.lieuCourant], lieuCourant: lieu.id };
+      const consulter = (i) => consulterLieu([...vers.chemin, vers.lieuCourant][i]);
+      remplirFil(fil, vers, univers, undefined, { aller: consulter, remonterVers: () => consulter(vers.chemin.length - 1), etiquette: true });
+    } else remplirFil(fil, partie, univers);
     majBandeauMonde(lieu);
     const dons = donjons();
     const points = lieu.points.map((p) => {
