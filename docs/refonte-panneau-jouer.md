@@ -33,7 +33,7 @@ Le panneau de droite de la régie change d'onglets selon la carte affichée : **
 
 | Onglet | Question | Contenu |
 |---|---|---|
-| **Ici** | « Où suis-je, que voit la table ? » | *Visible à la table* (une seule section, même vocabulaire pour une salle ou un lieu : Monstres, Objets, Points, Révéler tout) · *Éléments* ou *Points* (la liste de l'endroit) · *Notes* (préparation en lecture seule + notes de partie modifiables, aussi pour un lieu) |
+| **Ici** | « Où suis-je, que voit la table ? » | *Visible à la table* (une seule section, même vocabulaire pour une salle ou un lieu : interrupteurs Monstres, Objets ou Points, Noms des points) · *Cachés* (la seule liste : ce qui n'est pas encore à la table, « Révéler » sur chaque ligne et « Révéler tout » ; elle disparaît quand rien n'est caché) · *Notes* (préparation en lecture seule + notes de partie modifiables, aussi pour un lieu) |
 | **Joueurs** | « Qui joue ? » | Personnages · Ajouter un joueur. Disponible dans un monde comme dans un donjon. |
 | **Écran** | « Comment la table affiche-t-elle ? » | *Fenêtre de table* (Ouvrir, Plein écran ici, Reprendre la main si besoin) · *Taille de la carte* (Remplir / Échelle réelle, Mini-carte) · *Calibrage* (Rotation, Miroir, mm, Calibrer) · *Défilement* |
 
@@ -45,6 +45,8 @@ Le panneau de droite de la régie change d'onglets selon la carte affichée : **
 - « Reprendre la main » vit seulement dans le bandeau rouge « En retrait », au-dessus de la carte, qui est déjà là.
 - Le bouton « Ouvrir la fenêtre table » (le seul doré du panneau) monte dans la barre d'outils, à côté du sélecteur « En régie / À la table », pour être atteint depuis n'importe quel onglet.
 - Les composants de l'onglet Écran passent au système de `docs/design-panneaux.md` : champs à étiquette T3, interrupteurs, une seule aide par section (le « ? » du bandeau).
+
+**Décision du 7 novembre : plus de listes d'éléments, de points ni de portes.** Les listes « Éléments » (salle), « Points » (lieu) et « Portes de la salle » doublent la carte (un clic y choisit déjà l'élément) et l'arbre (qui montre les lieux auxquels les points mènent, et qui descend depuis la navigation de Jouer). Elles sont remplacées par **Cachés**, la seule liste utile : retrouver ce qu'on a préparé en secret pour le révéler au bon moment. Les éléments visibles ne sont pas listés. Le détail d'un point (Mène à, Entrer dans ce lieu, Cacher) devient un bloc contextuel qui n'apparaît que quand on touche un point sur la carte, comme le panneau « Sélection » d'une salle. À vérifier : sur téléphone, toucher un petit point ou une porte sur la carte est plus difficile qu'une ligne de liste (le zoom doit suffire).
 
 **Couplage optionnel (à tester à l'usage).** Passer à la vue « À la table » ouvre l'onglet **Écran** ; revenir à « En régie » ouvre **Ici**. Le MJ qui règle l'écran voit tout de suite le résultat sans manipuler le panneau. Reste désactivable : un onglet choisi à la main n'est pas écrasé.
 

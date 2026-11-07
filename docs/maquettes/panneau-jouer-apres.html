@@ -124,14 +124,14 @@ textarea { width: 100%; min-height: 70px; background: var(--champ); border: 1px 
           <div class="corps">
             <div class="rang"><span style="flex:1">Monstres</span><span class="interrupteur"></span></div>
             <div class="rang"><span style="flex:1">Objets</span><span class="interrupteur"></span></div>
-            <div class="rang"><span style="flex:1;color:var(--t3)">Éléments cachés : aucun</span><span class="btn">Révéler tout</span></div>
           </div></div>
-        <div class="sec"><div class="bandeau">Éléments <span class="compte">17</span></div>
+        <div class="sec"><div class="bandeau">Cachés <span class="compte">3</span> <span class="btn" style="margin-left:auto;min-height:26px;padding:0 10px;font-size:12px">Révéler tout</span></div>
           <div class="corps"><div class="liste">
-            <div class="l"><span class="ico">⌂</span><span><b>porte · mur sud, repère H</b><small>vers Salle 2</small></span><span></span></div>
-            <div class="l"><span class="ico">●</span><b>wyverne 1</b><span class="pos">B2</span></div>
-            <div class="l"><span class="ico">▭</span><b>lit</b><span class="pos">C4</span></div>
-          </div></div></div>
+            <div class="l"><span class="ico">◌</span><span><b>piège à fosse</b><small>caché à la table</small></span><span class="btn" style="min-height:26px;padding:0 10px;font-size:12px">Révéler</span></div>
+            <div class="l"><span class="ico">◌</span><span><b>porte secrète · mur est</b><small>caché à la table</small></span><span class="btn" style="min-height:26px;padding:0 10px;font-size:12px">Révéler</span></div>
+            <div class="l"><span class="ico">◌</span><span><b>coffre</b><small>caché à la table · C4</small></span><span class="btn" style="min-height:26px;padding:0 10px;font-size:12px">Révéler</span></div>
+          </div>
+          <p class="note">Les éléments visibles ne sont pas listés : ils sont sur la carte. Rien de caché : la section disparaît. <span class="p">9</span></p></div></div>
         <div class="sec"><div class="bandeau">Notes <span class="p">4</span></div>
           <div class="corps"><div class="lecture">Préparation : cuisine enfumée, deux gardes endormis.</div>
             <div class="champ2"><span>Notes de partie</span><textarea>Ce qui se passe dans cette salle…</textarea></div></div></div>
@@ -147,15 +147,15 @@ textarea { width: 100%; min-height: 70px; background: var(--champ); border: 1px 
           <div class="corps">
             <div class="rang"><span style="flex:1">Points</span><span class="interrupteur"></span></div>
             <div class="rang"><span style="flex:1">Noms des points</span><span class="interrupteur off"></span></div>
-            <div class="rang"><span style="flex:1;color:var(--t3)">Points cachés : 1</span><span class="btn">Révéler tout</span></div>
           </div></div>
-        <div class="sec"><div class="bandeau">Points <span class="compte">5</span></div>
+        <div class="sec"><div class="bandeau">Cachés <span class="compte">1</span> <span class="btn" style="margin-left:auto;min-height:26px;padding:0 10px;font-size:12px">Révéler tout</span></div>
           <div class="corps"><div class="liste">
-            <div class="l choisi"><span class="ico">⌖</span><span><b>Port-Bourdon</b><small>vers Port-Bourdon</small></span><span></span></div>
-            <div class="l"><span class="ico">⌖</span><span><b>La Verte-Écume</b><small>vers La Verte-Écume</small></span><span></span></div>
-            <div class="l"><span class="ico">◌</span><span><b>Brasierre</b><small>caché à la table</small></span><span></span></div>
-          </div>
-          <span class="btn">Entrer dans ce lieu →</span></div></div>
+            <div class="l"><span class="ico">◌</span><span><b>Brasierre</b><small>caché à la table · vers Brasierre</small></span><span class="btn" style="min-height:26px;padding:0 10px;font-size:12px">Révéler</span></div>
+          </div></div></div>
+        <div class="sec" style="border-bottom:0"><div class="bandeau" style="color:var(--accent)">Point choisi sur la carte <span class="p">10</span></div>
+          <div class="corps"><p class="note" style="color:var(--t2)"><b style="color:var(--t1)">Port-Bourdon</b> · mène à Port-Bourdon</p>
+            <div class="rangee"><span class="btn">Entrer dans ce lieu →</span><span class="btn">Cacher</span></div>
+            <p class="note">Ce bloc n'existe que quand on touche un point sur la carte ; sinon, rien. Descendre se fait aussi par l'arbre.</p></div></div>
         <div class="sec"><div class="bandeau">Notes <span class="p">4</span></div>
           <div class="corps"><div class="lecture">Préparation : un archipel tempéré et lumineux…</div>
             <div class="champ2"><span>Notes de partie</span><textarea>Ce qui se passe sur cette carte…</textarea></div></div></div>
@@ -233,6 +233,8 @@ textarea { width: 100%; min-height: 70px; background: var(--champ); border: 1px 
       <li><span class="p">6</span> Les réglages de la régie (taille d'une case, adapter) rejoignent « Affichage » ; l'onglet Écran ne parle plus que de l'écran de la table.</li>
       <li><span class="p">7</span> « Reprendre la main » seulement dans le bandeau rouge.</li>
       <li><span class="p">8</span> L'onglet Écran suit le design des panneaux : étiquette au-dessus du champ, interrupteurs, plus de « ? » orphelin ni de légende de fieldset.</li>
+      <li><span class="p">9</span> Plus de liste « Éléments », « Points » ni « Portes de la salle » : la carte et l'arbre font déjà ce travail. Une seule liste, <b>Cachés</b>, avec « Révéler » sur chaque ligne et « Révéler tout » ; elle n'affiche que ce qui n'est pas encore à la table et disparaît quand il n'y en a plus.</li>
+      <li><span class="p">10</span> Le détail d'un point (Mène à, Entrer, Cacher) est un bloc contextuel : il n'apparaît que quand on touche un point sur la carte, comme le panneau « Sélection » d'une salle.</li>
     </ol>
   </div>
 </main>
