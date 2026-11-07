@@ -424,7 +424,7 @@ export function demarrerRegie() {
     }
     const actions = h('div', { className: 'actions' });
     if (!meme) {
-      // Pas de doré ici : l'action principale de la régie est « Ouvrir la fenêtre table » (onglet Table).
+      // Pas de doré ici : l'action principale de la régie est « Ouvrir la table » (barre d’outils).
       const afficher = h('button', { type: 'button', id: 'afficher-table', className: 'btn btn-fort' }, icone('oeil'), ' Afficher à la table');
       afficher.addEventListener('click', afficherConsulteeATable);
       const retour = h('button', { type: 'button', className: 'btn', textContent: 'Retour à la table' });
@@ -462,7 +462,7 @@ export function demarrerRegie() {
   /** Bloc « Cette salle » : éléments cachés, portes (accessibles au clavier) et notes en lecture seule. */
   function majSalle() {
     const p = etat.p, s = salleConsultee();
-    // En-tête de l'onglet Salle (js/regie-panneau.js) : la salle regardée, et si c'est elle que la table voit.
+    // En-tête de l'onglet Ici (js/regie-panneau.js) : la salle regardée, et si c'est elle que la table voit.
     if ($('regie-entete-nom')) {
       $('regie-entete-nom').textContent = s.nom;
       $('regie-entete-meta').textContent = s.id === p.salleCourante ? 'À la table' : 'Regardée ici seulement : la table voit une autre salle';

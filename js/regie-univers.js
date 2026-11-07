@@ -307,7 +307,7 @@ export function creerRegieUnivers(ctx) {
         if (moi === sequence && grilleDuLieu(lieu)) { carte.majGrille(grilleDuLieu(lieu), opacite()); diffuser(); }
       });
     }
-    images.urlLieu(lieu).then((url) => { if (moi === sequence) carte.afficher({ ...options, url, absente: 'Image introuvable : la carte n’est plus dans la bibliothèque ou dans ce navigateur. Les points restent utilisables dans la liste.' }); });
+    images.urlLieu(lieu).then((url) => { if (moi === sequence) carte.afficher({ ...options, url, absente: 'Image introuvable : la carte n’est plus dans la bibliothèque ou dans ce navigateur. Les points restent utilisables sur la carte.' }); });
     rendrePanneau(lieu, dons);
     majCartouche(lieu, moi);
     diffuser();
